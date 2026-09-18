@@ -28,12 +28,34 @@
 --     [0] Exploration
 --     [1] Email
 --     [2] NarrativeNPC
---     [3] KilLRequirement   -- auto-unlocked by kill tracking, not this RPC; not exposed here
+--     [3] KilLRequirement   -- see round 106 below: also reachable through this RPC
 --     [4] ECompendiumUnlockType_MAX  -- sentinel, not a real value
 -- This lines up exactly with the file format's own CompendiumRow.Sections[].UnlockRequirement
 -- values ("ECompendiumUnlockType::Exploration"/"::Email"/"::NarrativeNPC" - see
 -- Core/Catalogs/Codex/CodexCatalog.cs's BuildCompendium), so `sectionType` on the wire uses the
 -- same three plain names, translated to the RPC's integer here.
+--
+-- KILL-TRACKED SECTIONS GROUNDED (round 106): the round-77 comment above assumed UnlockType=3
+-- (KilLRequirement) was never reachable through Request_UnlockCompendiumSection, since no
+-- installed mod calls it that way. The full bytecode of the private function it forwards to,
+-- "Server Try Unlock Compendium Section" (pass2\Abiotic_CharacterProgressionComponent.json,
+-- statement dump around its EX_SwitchValue on Temp_byte_Variable), disassembles to an
+-- EX_SwitchValue keyed on UnlockType with FOUR cases, not three - 0/1/2 select
+-- Compendium_ExplorationSections/EmailSections/NarrativeNPCSections exactly as documented, and
+-- case 3 selects `Compendium_KillSections` (an FArrayProperty with
+-- PropertyFlags "Edit | BlueprintVisible | Net | DisableEditOnInstance | RepNotify" and
+-- RepNotifyFunc OnRep_Compendium_KillSections - the same shape as the other three section
+-- arrays), then the switch's selected array reference is passed to KismetArrayLibrary.Array_Add
+-- with CompendiumRow. The only gate before that add is a duplicate check
+-- (HasCompendiumSectionUnlocked(CompendiumRow, UnlockType) short-circuits if already unlocked) -
+-- there is no check of Compendium_KillCount/AllowedCompendiumKills in this path, so the RPC adds
+-- the row to Compendium_KillSections unconditionally, the same as the other three types. This is a
+-- real, grounded unlock path for a kill-tracked compendium row, reachable through the exact same
+-- RPC and calling convention already used for the other three types - not a guess from the leaf
+-- name. `Compendium_KillCount` (the actual per-row kill tally, a separate FArrayProperty
+-- incremented by `Server_AddCompendiumKill`) is NOT touched by this RPC and stays out of scope
+-- here; this only marks the compendium SECTION unlocked, the same thing offline editing's
+-- CompendiumRead_ tag records.
 --
 -- COMPENDIUM READ (round 77): the previous round read the TSet `Local_AllCompendiumEntries`, whose
 -- Lua-array readability this project could not confirm (a TSet has no established #/[i] indexing
@@ -62,6 +84,9 @@ return function(ctx)
             { "Compendium_ExplorationSections", "OnRep_Compendium_ExplorationSections" },
             { "Compendium_EmailSections", "OnRep_Compendium_EmailSections" },
             { "Compendium_NarrativeNPCSections", "OnRep_Compendium_NarrativeNPCSections" },
+            -- Round 106: the kill-tracked section array, same shape as the other three - see the
+            -- file header comment for the bytecode evidence.
+            { "Compendium_KillSections", "OnRep_Compendium_KillSections" },
         },
     }
     ---@return userdata? progressionComponent
@@ -98,6 +123,8 @@ return function(ctx)
             function() return component.Compendium_ExplorationSections end,
             function() return component.Compendium_EmailSections end,
             function() return component.Compendium_NarrativeNPCSections end,
+            -- Round 106: the kill-tracked section array - see the file header comment.
+            function() return component.Compendium_KillSections end,
         }) do
             for _, name in ipairs(readNameArray(getArray)) do
                 if not seen[name] then
@@ -119,6 +146,11 @@ return function(ctx)
                 fish = readNameArray(function() return component.FishCaughtArray end),
                 compendium = readCompendiumKnown(component),
                 canUnsetKnown = ctx.isHost() and replication.available(),
+                -- Round 106: whether this agent's unlockCompendiumSections() maps the
+                -- kill-requirement section type at all (older agents omit the field entirely,
+                -- which the app treats as false and keeps kill-only rows read-only, same as
+                -- every other agent-version capability flag in this protocol).
+                canUnlockKillSections = true,
             }
         end, respond)
     end
@@ -131,10 +163,12 @@ return function(ctx)
         end
     end
 
-    -- ECompendiumUnlockType's three RPC-reachable values (see the file header comment). Only
-    -- these three: KilLRequirement sections unlock themselves from kill tracking, never through
-    -- this function, and the MAX entry is a sentinel, not a real section.
-    local CompendiumSectionType = { Exploration = 0, Email = 1, NarrativeNPC = 2 }
+    -- ECompendiumUnlockType's four RPC-reachable values (see the file header comment).
+    -- KillRequirement (round 106) is grounded the same way as the other three: the server
+    -- function's own bytecode adds the row to Compendium_KillSections for this case, gated only
+    -- by the same already-unlocked check the other three share. The MAX entry is a sentinel, not
+    -- a real section, and is never exposed here.
+    local CompendiumSectionType = { Exploration = 0, Email = 1, NarrativeNPC = 2, KillRequirement = 3 }
 
     local function unlockCompendiumSections(component, entries)
         for i = 1, #entries do
@@ -142,7 +176,7 @@ return function(ctx)
             if entry and entry.row and entry.row ~= "" then
                 local sectionType = entry.sectionType
                 if type(sectionType) == "string" then sectionType = CompendiumSectionType[sectionType] end
-                if type(sectionType) == "number" and sectionType >= 0 and sectionType <= 2 then
+                if type(sectionType) == "number" and sectionType >= 0 and sectionType <= 3 then
                     pcall(function()
                         component:Request_UnlockCompendiumSection(FName(entry.row, EFindName.FNAME_Find), sectionType)
                     end)

@@ -227,6 +227,47 @@ public sealed class LiveStorySession : IWorldStorySession
         Changed?.Invoke();
     }
 
+    // ---------- world-wide item/codex lists (round 106; host capability required) ----------
+    //
+    // Not part of IWorldStorySession: the offline file session (WorldSaveSession) has no UI for
+    // these six lists either (only world recipes get an offline WORLD RECIPES browser today), so
+    // widening the shared interface would force an offline implementation with nothing to mirror.
+    // These are plain members on the concrete live session instead, ready for a future
+    // WorldStoryTab surface without touching the file-session boundary.
+
+    /// <summary>Whether the six world-wide item/codex lists below can be edited: host authority
+    /// and replication-notification support, same as recipes but without the extra TSet-capability
+    /// check (these are plain <c>FArrayProperty</c> lists, not TSets) - see
+    /// <see cref="LiveWorldUnlocksChannel"/>'s remarks.</summary>
+    public bool CanEditGlobalLists => IsHost && _unlocks?.CanEditGlobalLists == true;
+
+    /// <summary>Short reason <see cref="CanEditGlobalLists"/> is false, straight from the agent
+    /// (<c>worldunlocks.get</c>'s <c>globalListEditsUnavailableReason</c>).</summary>
+    public string? GlobalListEditsUnavailableReason => _unlocks?.GlobalListEditsUnavailableReason;
+
+    public IReadOnlyCollection<string> GlobalItemsPickedUpIds => _unlocks?.ItemsPickedUp ?? [];
+    public IReadOnlyCollection<string> GlobalEmailsReadIds => _unlocks?.EmailsRead ?? [];
+    public IReadOnlyCollection<string> GlobalJournalEntryIds => _unlocks?.JournalEntries ?? [];
+    public IReadOnlyCollection<string> GlobalCompendiumEmailIds => _unlocks?.CompendiumEmail ?? [];
+    public IReadOnlyCollection<string> GlobalCompendiumNarrativeIds => _unlocks?.CompendiumNarrative ?? [];
+    public IReadOnlyCollection<string> GlobalCompendiumExplorationIds => _unlocks?.CompendiumExploration ?? [];
+
+    /// <summary>Adds/removes rows in one of the six world-wide lists. <paramref name="list"/> is
+    /// the wire field name (<c>"itemsPickedUp"</c>, <c>"emailsRead"</c>, <c>"journalEntries"</c>,
+    /// <c>"compendiumEmail"</c>, <c>"compendiumNarrative"</c>, or
+    /// <c>"compendiumExploration"</c>) - see <see cref="LiveWorldUnlocksChannel.SetGlobalListAsync"/>.</summary>
+    public async Task SetGlobalListAsync(string list, IEnumerable<string> ids, bool present, CancellationToken cancellationToken = default)
+    {
+        if (!CanEditGlobalLists) throw new InvalidOperationException("Global lists require host authority and replication notification support.");
+        var edits = ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal)
+            .Select(id => new LiveWorldListEdit(id, present)).ToArray();
+        if (edits.Length == 0) return;
+        await _unlocksChannel.SetGlobalListAsync(list, edits, cancellationToken).ConfigureAwait(false);
+        _unlocks = await _unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false);
+        Status = null;
+        Changed?.Invoke();
+    }
+
     // ---------- whole-session save (file session only; live applies per action) ----------
 
     public bool IsDirty => false;

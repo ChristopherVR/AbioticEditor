@@ -17,6 +17,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     private HashSet<string> _fishIds = new(StringComparer.Ordinal);
     private HashSet<string> _compendiumIds = new(StringComparer.Ordinal);
     private bool _hasVocabulary;
+    private bool _canUnlockKillSections;
 
     private LivePlayerCodexSession(LivePlayerCodexChannel channel, string? playerId, LiveCodexDirectory directory)
     {
@@ -177,6 +178,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     private void LoadDirectory(LiveCodexDirectory directory)
     {
         CanUnsetKnown = directory.CanUnsetKnown;
+        _canUnlockKillSections = directory.CanUnlockKillSections;
         _emailIds = directory.Emails.ToHashSet(StringComparer.Ordinal);
         _journalIds = directory.Journals.ToHashSet(StringComparer.Ordinal);
         _fishIds = directory.Fish.ToHashSet(StringComparer.Ordinal);
@@ -198,7 +200,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         Fish = BuildRows(
             vocabulary.Fish.Select(f => (f.Id, f.Id + (f.IsRare ? " (rare)" : ""), f.Location, string.Empty)),
             _fishIds, editable: true);
-        Compendium = BuildCompendiumRows(vocabulary.Compendium, _compendiumIds);
+        Compendium = BuildCompendiumRows(vocabulary.Compendium, _compendiumIds, _canUnlockKillSections);
     }
 
     private static List<CodexRowEdit> BuildRows(
@@ -215,13 +217,26 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     /// <summary>Compendium rows carry <see cref="CodexRowEdit.SectionTypes"/> (the grounded
     /// <c>ECompendiumUnlockType</c> names - see <see cref="LivePlayerCodexChannel"/>'s remarks) so
     /// <see cref="SetKnownAsync"/> knows which section(s) to unlock. A row with no known section
-    /// type (only a kill-requirement section, unlocked by kill tracking rather than this RPC)
-    /// stays read-only, same as the file session shows it.</summary>
-    private static List<CodexRowEdit> BuildCompendiumRows(IReadOnlyList<CompendiumEntry> known, HashSet<string> knownIds)
+    /// type stays read-only, same as the file session shows it - except, when
+    /// <paramref name="canUnlockKillSections"/> is true (round 106: a connected agent that maps
+    /// the RPC's kill-requirement value - see <see cref="LivePlayerCodexChannel"/>'s remarks), a
+    /// row whose entry has a kill-requirement section (<see cref="CompendiumEntry.KillRequired"/>)
+    /// gets an extra "KillRequirement" section type here, live-only: the shared
+    /// <see cref="CodexCatalog"/> model never adds it to <see cref="CompendiumEntry.SectionTypes"/>
+    /// itself, since the offline file session unlocks a kill-only row through its own kill-count
+    /// field instead, not through this RPC.</summary>
+    private static List<CodexRowEdit> BuildCompendiumRows(
+        IReadOnlyList<CompendiumEntry> known, HashSet<string> knownIds, bool canUnlockKillSections)
     {
-        var rows = known.Select(c => new CodexRowEdit(
-            c.Id, c.Title, c.Subtitle ?? c.Tag, string.Join("\n\n", c.SectionTexts),
-            knownIds.Contains(c.Id), editable: c.SectionTypes.Count > 0, c.SectionTypes) { Tag = c.Tag }).ToList();
+        var rows = known.Select(c =>
+        {
+            IReadOnlyList<string> sectionTypes = canUnlockKillSections && c.KillRequired is not null
+                ? [.. c.SectionTypes, "KillRequirement"]
+                : c.SectionTypes;
+            return new CodexRowEdit(
+                c.Id, c.Title, c.Subtitle ?? c.Tag, string.Join("\n\n", c.SectionTexts),
+                knownIds.Contains(c.Id), editable: sectionTypes.Count > 0, sectionTypes) { Tag = c.Tag };
+        }).ToList();
         var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
         foreach (var id in knownIds.Where(seen.Add))
             rows.Add(new CodexRowEdit(id, id, null, string.Empty, true, false, []));

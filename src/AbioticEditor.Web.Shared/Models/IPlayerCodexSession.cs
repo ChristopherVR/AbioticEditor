@@ -19,8 +19,10 @@ public interface IPlayerCodexSession
     /// (<c>Request_UnlockCompendiumSection</c>) takes an enum this project has grounded from the
     /// game's own usmap enum table (see <c>LivePlayerCodexChannel</c>'s remarks). A row is
     /// <see cref="CodexRowEdit.Editable"/> only when its entry has at least one section type the
-    /// RPC covers - a kill-requirement-only entry stays read-only, since that unlocks itself from
-    /// kill tracking.</summary>
+    /// RPC covers. Round 106: a kill-requirement-only entry is now also settable through this RPC
+    /// when the connected agent reports <c>canUnlockKillSections</c> (see
+    /// <c>LivePlayerCodexChannel</c>'s remarks) - it stays read-only only against an older agent
+    /// that predates this grounding.</summary>
     IReadOnlyList<CodexRowEdit> Compendium { get; }
     IReadOnlyList<CodexRowEdit> Fish { get; }
 

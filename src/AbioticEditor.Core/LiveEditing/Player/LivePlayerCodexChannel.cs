@@ -14,10 +14,18 @@ namespace AbioticEditor.Core.LiveEditing.Player;
 /// were previously un-grounded (no working mod calls it with anything but a value read live off a
 /// widget). Round 77 grounded it directly from the game's own usmap enum table
 /// (<c>ECompendiumUnlockType</c>: Exploration=0, Email=1, NarrativeNPC=2, plus a
-/// kill-requirement value and a MAX sentinel this protocol never sends) - see
-/// <c>areas/codex.lua</c>'s header comment for the full evidence. <see cref="CompendiumUnlock"/>
-/// pairs a compendium row with the section type to unlock (a row can need more than one call when
-/// its entry spans several section types).
+/// kill-requirement value and a MAX sentinel) - see <c>areas/codex.lua</c>'s header comment for
+/// the full evidence. <see cref="CompendiumUnlock"/> pairs a compendium row with the section type
+/// to unlock (a row can need more than one call when its entry spans several section types).
+///
+/// Round 106: the kill-requirement value is settable too. The round-77 comment above assumed it
+/// never was, since no installed mod calls the RPC that way - but the full bytecode of the
+/// private function the RPC forwards to disassembles to a 4-case switch on the section type, and
+/// case 3 (KilLRequirement) adds the row to `Compendium_KillSections` unconditionally, gated only
+/// by the same already-unlocked check the other three share (no kill-count check in this path) -
+/// see <c>areas/codex.lua</c>'s header comment for the exact bytecode evidence.
+/// <see cref="LiveCodexDirectory.CanUnlockKillSections"/> reports whether this connected agent
+/// maps the kill-requirement section type at all (older agents omit the field, treated as false).
 /// </summary>
 public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
 {
@@ -29,7 +37,8 @@ public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
         object? payload = playerId is null ? null : new PlayerIdWire(playerId);
         var wire = await _channel.RequestAsync<DirectoryWire>("codex.get", payload, cancellationToken)
             .ConfigureAwait(false);
-        return new LiveCodexDirectory(wire.Emails ?? [], wire.Journals ?? [], wire.Fish ?? [], wire.Compendium ?? [], wire.CanUnsetKnown);
+        return new LiveCodexDirectory(wire.Emails ?? [], wire.Journals ?? [], wire.Fish ?? [], wire.Compendium ?? [],
+            wire.CanUnsetKnown, wire.CanUnlockKillSections);
     }
 
     /// <summary>Marks the given e-mail/journal/fish row names, and/or compendium
@@ -49,7 +58,8 @@ public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
 
     private sealed record DirectoryWire(
         IReadOnlyList<string>? Emails, IReadOnlyList<string>? Journals,
-        IReadOnlyList<string>? Fish, IReadOnlyList<string>? Compendium, bool CanUnsetKnown = false);
+        IReadOnlyList<string>? Fish, IReadOnlyList<string>? Compendium, bool CanUnsetKnown = false,
+        bool CanUnlockKillSections = false);
 
     private sealed record SetWire(
         string? PlayerId, IReadOnlyList<string>? Emails, IReadOnlyList<string>? Journals,
@@ -61,12 +71,18 @@ public sealed class LivePlayerCodexChannel(ILiveGameChannel channel)
 /// <summary>A compendium row to unlock plus which section type to unlock it for (one of
 /// <c>"Exploration"</c>, <c>"Email"</c>, <c>"NarrativeNPC"</c> - the same names
 /// <c>Core/Catalogs/Codex/CodexCatalog.cs</c>'s <c>CompendiumEntry.SectionTypes</c> already uses,
-/// translated to the RPC's integer enum value on the Lua side). A row whose entry spans more than
-/// one section type needs one pair per section type to fully unlock.</summary>
+/// translated to the RPC's integer enum value on the Lua side - or, round 106, <c>"KillRequirement"</c>,
+/// which the shared catalog never puts in <c>SectionTypes</c> itself - see <c>LivePlayerCodexSession</c>'s
+/// <c>BuildCompendiumRows</c> for where that value is added live-only). A row whose entry spans more
+/// than one section type needs one pair per section type to fully unlock.</summary>
 public readonly record struct CompendiumUnlock(string Row, string SectionType);
 
 /// <summary>Row names the running character currently knows, one list per GATEPal section.
 /// <see cref="Compendium"/> is read-only - see <see cref="LivePlayerCodexChannel"/>'s remarks.</summary>
+/// <param name="CanUnlockKillSections">Round 106: whether this agent maps
+/// <c>Request_UnlockCompendiumSection</c>'s kill-requirement value at all. False on an older
+/// agent, which keeps kill-requirement-only compendium rows read-only live.</param>
 public sealed record LiveCodexDirectory(
     IReadOnlyList<string> Emails, IReadOnlyList<string> Journals,
-    IReadOnlyList<string> Fish, IReadOnlyList<string> Compendium, bool CanUnsetKnown = false);
+    IReadOnlyList<string> Fish, IReadOnlyList<string> Compendium, bool CanUnsetKnown = false,
+    bool CanUnlockKillSections = false);

@@ -29,13 +29,27 @@ return function(H)
     } }), "codex.set compendium")
     H.eq(H.calls(progression, "Request_UnlockCompendiumSection"), 2, "compendium RPC called twice")
 
-    -- A string sectionType the enum table doesn't know, or a KilLRequirement/MAX index, is
+    -- Round 106: KillRequirement (enum value 3, string "KillRequirement") is now grounded and
+    -- reachable through the same RPC - see areas/codex.lua's header comment for the bytecode
+    -- evidence ("Server Try Unlock Compendium Section" adds to Compendium_KillSections for this
+    -- case). Both the string name and the raw numeric value are accepted, same as the other three.
+    H.ok(H.dispatch("codex.set", { compendium = {
+        { row = "Compendium_Kill", sectionType = "KillRequirement" },
+        { row = "Compendium_Kill2", sectionType = 3 },
+    } }), "codex.set compendium kill-requirement sections")
+    H.eq(H.calls(progression, "Request_UnlockCompendiumSection"), 4, "kill-requirement RPC calls went through")
+
+    -- A string sectionType the enum table doesn't know, or the MAX sentinel index, is still
     -- silently skipped rather than sending garbage to the game.
     H.ok(H.dispatch("codex.set", { compendium = {
         { row = "Compendium_Bad", sectionType = "NotARealType" },
-        { row = "Compendium_Kill", sectionType = 3 },
+        { row = "Compendium_Max", sectionType = 4 },
     } }), "codex.set ignores unmapped section types")
-    H.eq(H.calls(progression, "Request_UnlockCompendiumSection"), 2, "no additional RPC calls for unmapped types")
+    H.eq(H.calls(progression, "Request_UnlockCompendiumSection"), 4, "no additional RPC calls for unmapped types")
+
+    -- codex.get reports canUnlockKillSections so the app knows this agent maps the kill-requirement
+    -- section type at all (an older agent omits the field, treated as false).
+    H.eq(H.ok(H.dispatch("codex.get")).canUnlockKillSections, true, "canUnlockKillSections reported")
 
     -- A joined client can still read (codex data is per-player, read is never host-gated), but
     -- cannot be tested for "cannot write" here since codex.set has no host check (see area

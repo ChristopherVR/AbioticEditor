@@ -291,6 +291,9 @@ function H.hostSession()
         Compendium_ExplorationSections = { H.fname("Compendium_Office") },
         Compendium_EmailSections = {},
         Compendium_NarrativeNPCSections = {},
+        -- Round 106: the kill-tracked compendium section array - see areas/codex.lua's header
+        -- comment for the bytecode evidence it is reachable through the same unlock RPC.
+        Compendium_KillSections = {},
         -- Traits are now editable through general.trait.set, which needs an installed trait
         -- buff row to toggle against - see general.lua's header comment.
         Traits = { H.fname("Trait_Chef") },
@@ -302,6 +305,12 @@ function H.hostSession()
         Server_CheckNewItemPickedUp = function() end,
         Server_AddMapToJournal = function() end,
         Request_UnlockCompendiumSection = function() end,
+        -- Round 106: recipes.set's host relock path calls this after replacing
+        -- RecipesUnlockedArray (see areas/recipes.lua) - grounded, real function per the pak dump
+        -- (pass2\Abiotic_CharacterProgressionComponent.json / layouts.txt line 714).
+        OnRep_RecipesUnlockedArray = function() end,
+        -- Round 106: the new kill-tracked compendium section's RepNotify (see clearFields above).
+        OnRep_Compendium_KillSections = function() end,
         -- skills.set's remove-then-add write pattern (see main.lua's own header comment on that
         -- handler): mirrors the real TMap<CharacterSkills, ...> semantics closely enough to prove
         -- one skill's write never touches another skill's entry - the real bug tests/cases/skills.lua
