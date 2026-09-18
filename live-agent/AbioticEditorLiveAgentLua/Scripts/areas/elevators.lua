@@ -88,6 +88,16 @@ return function(ctx)
         return tonumber(mode)
     end
 
+    -- Round 125: exposed so the player can see why a move might be refused (setTopOpen below
+    -- already gates a press on this same IsPowered() call) before clicking, not only from the
+    -- refusal reason afterward. nil (not false) when this instance has no readable IsPowered()
+    -- at all - a different, honest "not available live" case from a real false.
+    local function readPowered(elevator)
+        local ok, powered = pcall(function() return elevator:IsPowered() end)
+        if ok and type(powered) == "boolean" then return powered end
+        return nil
+    end
+
     local function elevatorRows()
         local result = { __forceArray = true }
         for _, elevator in ipairs(findElevators()) do
@@ -102,6 +112,7 @@ return function(ctx)
                         controllable = mode ~= nil,
                         topOpen = mode == STOPPED_AT_TOP,
                         moving = mode == MOVING_TO_TOP or mode == MOVING_TO_BOTTOM,
+                        powered = readPowered(elevator),
                         x = x, y = y, z = z,
                     })
                 end

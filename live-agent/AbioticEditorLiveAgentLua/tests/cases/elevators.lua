@@ -53,7 +53,12 @@ return function(H)
     H.eq(list.elevators[1].topOpen, false, "first elevator parked at bottom")
     H.eq(list.elevators[1].moving, false, "first elevator not moving")
     H.eq(list.elevators[1].controllable, true, "first elevator is controllable")
+    -- Round 125: shown on the row so the player can see why a move might be refused before
+    -- clicking, not only from the refusal toast afterward - both fixture elevators have a
+    -- working IsPowered() that returns true (see the elevator() fixture factory above).
+    H.eq(list.elevators[1].powered, true, "first elevator reports powered from its own IsPowered()")
     H.eq(list.elevators[2].topOpen, true, "second elevator (a subclass, found only through the parent sweep) parked at top")
+    H.eq(list.elevators[2].powered, true, "second elevator also reports powered")
 
     -- elevators.set: call the bottom one up. It is not there yet (real travel takes time), so
     -- topOpen only becomes true once it arrives - but the write itself is accepted because the
@@ -79,6 +84,8 @@ return function(H)
     local unpowered = elevator("Elevator_ParentBP_C", 0, { IsPowered = function() return false end })
     local unpoweredList = H.ok(H.dispatch("elevators.list"), "elevators.list after adding the unpowered one")
     local unpoweredId = unpoweredList.elevators[3].id
+    -- Round 125: the row's own powered field already shows false before any click is attempted.
+    H.eq(unpoweredList.elevators[3].powered, false, "the unpowered elevator's row reports powered=false")
     local unpoweredReply = H.dispatch("elevators.set", { elevators = { { id = unpoweredId, topOpen = true } } })
     H.fails(unpoweredReply, "not powered", "an unpowered elevator refuses to move")
     H.eq(H.calls(unpowered, "TryPressTopButton"), 0, "top button never pressed on an unpowered elevator")
@@ -113,6 +120,7 @@ return function(H)
     local unfamiliarEntry = unfamiliarList.elevators[6]
     H.eq(unfamiliarEntry.controllable, false, "an elevator with no readable ElevatorCurrentMode lists as not controllable")
     H.eq(unfamiliarEntry.topOpen, false, "topOpen is reported false (meaningless) rather than erroring")
+    H.eq(unfamiliarEntry.powered, nil, "no readable IsPowered() on this instance, so powered is absent rather than a guessed false")
     local unfamiliarReply = H.dispatch("elevators.set", { elevators = { { id = unfamiliarEntry.id, topOpen = true } } })
     H.fails(unfamiliarReply, "not controllable", "a set attempt on an unfamiliar elevator is refused by name")
 

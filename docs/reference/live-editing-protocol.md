@@ -659,8 +659,13 @@ call, but the overall reply becomes an error naming it.
 The live twin of the `elevators` world-map feature
 (`Core/WorldSaves/Features/ElevatorMapFeature.cs`, the save's `ElevatorMap`, whose only persisted
 leaf is `TopOpen_<hash>`). `elevators.list` returns
-`{"elevators":[{"id","label","controllable","topOpen","moving","x","y","z"}],"isHost":bool}`.
-`elevators.set` takes `{"elevators":[{"id","topOpen"?}]}`. Host only.
+`{"elevators":[{"id","label","controllable","topOpen","moving","powered"?,"x","y","z"}],"isHost":bool}`.
+`elevators.set` takes `{"elevators":[{"id","topOpen"?}]}`. Host only. `powered` (round 125) is a
+bonus read-only field off the confirmed `IsPowered()` function `elevators.set` already gates a
+move on (see below) - shown on the row (`LiveElevatorsFeatureSession`'s own `powered` field) so the
+player can see why a move might be refused before clicking, not only from the refusal afterward;
+absent when this particular instance's power state could not be read right now, not a guessed
+`false`.
 
 **Confirmed from a real class+bytecode probe** (`tests/AbioticEditor.Probes/ElevatorButtonProbe.cs`),
 correcting an earlier guess (a live `TopOpen` bool with `OnRep_TopOpen`) that was wrong -
@@ -693,8 +698,24 @@ DLC addition are all found with no class name anywhere in this module. A short, 
 data-only fallback class list is consulted only if that parent sweep returns nothing. Every
 instance is read through `pcall` feature-detection: an elevator type this module cannot read
 `ElevatorCurrentMode` from still lists (`controllable: false`, its real class name as `label`)
-instead of erroring or being dropped, and a set attempt against it is refused by name. Not yet
-exercised in the running game.
+instead of erroring or being dropped, and a set attempt against it is refused by name. Exercised
+live in the running game (round 125): a refused `elevators.set` call correctly surfaced the game's
+own reason ("elevator is not powered").
+
+**Round 125 fix: a refused `elevators.set` no longer keeps re-sending.** `LiveElevatorsFeatureSession.SetMapFeatureField`
+(the C# host side, `Web.Shared/Models/LiveElevatorsFeatureSession.cs`) used to let the Lua handler's
+`error(...)` reach it as an uncaught `LiveAgentException` instead of catching it and returning a
+`WorldEditResult.Failure` - every sibling live area (`buttons`/`npcspawns`/`triggers`/
+`destructibles`/`resourcenodes`/`trams`) already caught this exception; elevators (and, with the
+identical gap, `portals`) did not. The uncaught exception skipped `WorldFeaturesTab.SetFieldAsync`'s
+own error handling and its `RefreshSnapshot()` revert, so the checkbox was never snapped back to the
+confirmed value; the live world's own 2-second periodic refresh loop (`LiveConnect.razor`) then kept
+re-rendering that same stale, unreverted field, which is what produced a "the elevator is not
+powered" toast repeating every couple of seconds instead of once. Fixed both by adding the same
+try/catch every sibling area already had, and by hardening `WorldFeaturesTab.SetFieldAsync` itself
+(a try/catch plus an in-flight guard per entry+field) so any future live session with the same gap
+fails once and reverts, rather than retrying silently. See docs/PROGRESS.md's Round-125 entry for
+the full trail.
 
 ## `buttons.list` / `buttons.set` - world buttons (round 80, property/function names confirmed round 95, hierarchy-based discovery round 96, pressedOnce made settable round 110)
 
@@ -1010,16 +1031,37 @@ that instance's own `TramRecallPressed(true)` - the game's own function, never r
 Refuses up front if the tram's moving state cannot be confirmed or the tram is already moving, and
 refuses if no recall station links this exact tram/station pair (live can only reach a station some
 placed recall station actually serves - narrower than offline's "any station the save has ever
-referenced", but real). After pressing, re-reads `Moving`/`PreviousStation` and accepts either the
-tram now moving (a hop toward the target started - the journey may still be in progress; every
-station is a confirmed full stop, so a distant recall is asynchronous and multi-step) or the tram
-already at the requested station as success; a press with no confirmed effect is an honest error,
-matching `elevators.set`'s own discipline. **Still open for a future round**: `TramRecallPressed`'s
-own bytecode (to confirm exactly what it calls on `LinkedTram` and whether it gates on
-host/`IsServer()` itself) and `TramSystem_Rail_C`'s bytecode (`GetNextStopPoint`/
-`GetDirectionFromStation`) were not part of this dump - the coordinator can supply
-`TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close this with full certainty. Not yet
-exercised in the running game.
+referenced", but real). **Still open for a future round**: `TramRecallPressed`'s own bytecode (to
+confirm exactly what it calls on `LinkedTram` and whether it gates on host/`IsServer()` itself) and
+`TramSystem_Rail_C`'s bytecode (`GetNextStopPoint`/`GetDirectionFromStation`) were not part of this
+dump - the coordinator can supply `TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close
+this with full certainty.
+
+**Round 125: confirmation after pressing is now tolerant, never a failure gate.** Exercised live in
+the running game, `trams.set` refused a real, working recall with "could not confirm the tram
+started moving toward that station" - the coordinator's own probe found no `power` property
+anywhere on `Tram_ParentBP_C`, `TramSystem_Station_C`, `TramSystem_RecallStation_C`,
+`Button_Tram_C`, or `Button_TramRecall_C` (the earlier round's dump, re-checked this round), so a
+tram cannot be gated the way `elevators.set` gates on `IsPowered()` - the refusal was a false
+negative, not a real "unpowered" case. The actual cause: `TramRecallPressed` hands off to the
+recall station's own multi-hop pathfinding (`FindNextStation`/`GetDirectionFromStation`/
+`GetNextStopPoint`/`IsStationLocked`, a counted loop) before it ever touches the tram, and every
+station stop is a confirmed full stop (`TramReachedLocation`'s own bytecode), so a synchronous
+"nothing changed yet" read immediately after the call is the expected case for a real, in-progress
+recall, not proof it was refused. `trams.set` now reads `Moving`, `TargetStation`, and the recall
+station's own `TramRecallStatus` (a confirmed `FByteProperty` with its own `OnRep_TramRecallStatus`,
+present on `TramSystem_RecallStation_C` per this dump) after pressing, and treats any one of them
+changing as a same-tick confirmation when the game happens to be fast enough to show one - but a
+press that changes none of them synchronously is still accepted (`nil`, no error), not refused; the
+next `trams.list` poll (or the live editor's own periodic refresh) shows whatever the tram and
+recall station end up actually reporting. Refusals are now limited to what the game concretely
+exposes before the press is even attempted: the tram's moving state cannot be read at all, the tram
+is already moving, or no recall station links this exact tram/station pair. `TramSystem_RecallStation_C`'s
+own `ScriptBytecode` still was not part of any dump (only its properties/function list - see above),
+so whether `TramRecallPressed` itself gates on a station being locked (`TramSystem_Station_C:IsStationLocked()`,
+a real function that checks a world flag - a different, story-gate concept from electrical power,
+not itself surfaced as a `trams.set` refusal reason yet) remains unconfirmed; a future round could
+close this with `TramSystem_RecallStation.json`'s bytecode.
 
 ## `npcspawns.list` / `npcspawns.set` - NPC spawners (round 102, cooldownRemainingSeconds made settable round 110)
 

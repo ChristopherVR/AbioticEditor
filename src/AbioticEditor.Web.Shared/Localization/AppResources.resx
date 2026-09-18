@@ -774,6 +774,9 @@
   <data name="WorldFeature_FieldNotSet" xml:space="preserve"><value>{0}: not set</value></data>
   <data name="WorldFeature_ChangeRefused" xml:space="preserve"><value>That change was not accepted.</value></data>
   <data name="WorldFeature_RemoveRefused" xml:space="preserve"><value>That entry could not be removed.</value></data>
+  <data name="WorldFeature_ReasonNotPowered" xml:space="preserve"><value>This does not have power right now, so it cannot be moved.</value></data>
+  <data name="WorldFeature_ReasonMoving" xml:space="preserve"><value>This is already moving, so it cannot be changed right now.</value></data>
+  <data name="WorldFeature_ReasonNotControllable" xml:space="preserve"><value>This one cannot be changed live (an unrecognized type).</value></data>
   <data name="WorldFeature_FetchingImage" xml:space="preserve"><value>Fetching image from the wiki...</value></data>
   <data name="WorldFeature_PluggedIn" xml:space="preserve"><value>PLUGGED IN</value></data>
   <data name="WorldFeature_NoEntries" xml:space="preserve"><value>No entries match (or this world has none).</value></data>
@@ -824,6 +827,7 @@
   <data name="WorldNpcs_SectionStory" xml:space="preserve"><value>Story characters</value></data>
   <data name="WorldNpcs_SectionCreatures" xml:space="preserve"><value>Creatures and NPCs nearby</value></data>
   <data name="WorldNpcs_CreaturesNeedLiveConnection" xml:space="preserve"><value>Connect to your running game to see every creature and NPC currently loaded nearby. This roster isn't saved in the file, so there's nothing to show here until you connect.</value></data>
+  <data name="WorldNpcs_CannotDieTooltipFormat" xml:space="preserve"><value>Can't be killed here: {0}.</value></data>
 
   <!-- WorldPets -->
   <data name="WorldPets_ArmorSetSummonNotice" xml:space="preserve"><value>This is an armor-set summon. It is shown for reference but is not editable.</value></data>

@@ -215,11 +215,41 @@ return function(ctx)
         end, respond)
     end
 
-    -- Returns nil on success (already there, or a hop toward targetLabel was confirmed to start -
-    -- see the header note on the async multi-hop model), or a player-safe reason string. Never
-    -- presses a recall button for a tram already confirmed moving (the owner's own instruction,
-    -- matching elevators.set's "currently moving" refusal), and never invents a recall path this
-    -- module cannot find a real linked TramSystem_RecallStation_C for.
+    -- Round 125: TramRecallStatus is a real property on the recall station itself (confirmed in
+    -- the coordinator's dump - TramSystem_RecallStation.json/layouts.txt: `prop TramRecallStatus :
+    -- FByteProperty`, with its own OnRep_TramRecallStatus) - read purely as an extra confirmation
+    -- signal alongside Moving/TargetStation, never as a gate (see recallTramToStation below for
+    -- why a value here is not required for success).
+    local function readRecallStatus(recallStation)
+        local ok, status = pcall(function() return recallStation.TramRecallStatus end)
+        if ok then return tonumber(status) end
+        return nil
+    end
+
+    -- Returns nil on success: already parked at the requested station, or the recall press was
+    -- issued and accepted. Refuses only for concrete reasons the game itself exposes BEFORE the
+    -- press is even attempted (the tram's moving state cannot be confirmed at all, the tram is
+    -- already moving, or no recall station links this tram/station pair) - never for what happens
+    -- (or does not visibly happen) after pressing.
+    --
+    -- Round 125: this used to also require Moving or PreviousStation to have visibly changed
+    -- right after the press, and refused ("could not confirm the tram started moving toward that
+    -- station") when neither had - which the coordinator saw fire against a real, working recall
+    -- live in-game (see docs/PROGRESS.md's Round-125 entry). That is expected, not a sign the
+    -- press failed: TramRecallPressed hands off to the recall station's own multi-hop pathfinding
+    -- (FindNextStation/GetDirectionFromStation/GetNextStopPoint/IsStationLocked, a counted loop -
+    -- see this module's header comment) before it ever touches the tram, and every station stop is
+    -- a real full stop (TramReachedLocation's own bytecode), so a distant recall can easily still
+    -- be computing its route, or waiting out a door/departure delay, in the instant right after
+    -- this function returns. TramSystem_RecallStation_C's own bytecode was not part of the dump
+    -- (see the header's "What is NOT independently confirmed" note), so this module has no
+    -- reliable way to tell "still starting up" apart from "silently refused" from a synchronous
+    -- read-back alone. Now reads TargetStation/TramRecallStatus/Moving afterward purely as
+    -- evidence (any one of them changing is a same-tick confirmation when the game happens to be
+    -- fast enough to show it), but a press that changes none of them is still accepted - the next
+    -- trams.list poll (or the live editor's own periodic refresh) shows whatever the tram and
+    -- recall station end up actually reporting, the same way a slow elevator ride is only ever
+    -- confirmed by a later list, not by this call.
     local function recallTramToStation(tram, tramFullName, targetLabel)
         -- boolOrNil, not the pcall "ok" flag alone: a fake or an unfamiliar real actor with no
         -- Moving property at all still returns `nil` without erroring (the same trap buttons.lua's
@@ -239,17 +269,28 @@ return function(ctx)
             return "no recall station links this tram to that station"
         end
 
+        local beforeStatus = readRecallStatus(recallStation)
+        local okTargetBefore, targetBeforeRaw = pcall(function() return tram.TargetStation end)
+        local targetBefore = okTargetBefore and stationLabel(targetBeforeRaw) or nil
+
         pcall(function() recallStation:TramRecallPressed(true) end)
 
+        -- Evidence only, from here down - never a failure gate (see the doc comment above). Kept
+        -- so a same-tick confirmation still shows up if the game happens to be fast enough for one.
+        local afterStatus = readRecallStatus(recallStation)
         local okAfterMoving, afterMovingRaw = pcall(function() return tram.Moving end)
         local afterMoving = boolOrNil(okAfterMoving, afterMovingRaw)
-        local okAfterPrev, afterPrev = pcall(function() return tram.PreviousStation end)
-        local afterLabel = okAfterPrev and stationLabel(afterPrev) or nil
-        local startedMoving = afterMoving == true
-        local alreadyThereNow = (not startedMoving) and afterLabel == targetLabel
-        if not (startedMoving or alreadyThereNow) then
-            return "could not confirm the tram started moving toward that station"
-        end
+        local okTargetAfter, targetAfterRaw = pcall(function() return tram.TargetStation end)
+        local targetAfter = okTargetAfter and stationLabel(targetAfterRaw) or nil
+        local _confirmedSynchronously = afterMoving == true
+            or (targetAfter ~= nil and targetAfter ~= targetBefore)
+            or (afterStatus ~= nil and afterStatus ~= beforeStatus)
+        -- The request has already reached the game's own TramRecallPressed function either way -
+        -- accepted regardless of whether _confirmedSynchronously ended up true, matching
+        -- elevators.set's "a change that starts or continues the right direction is accepted", but
+        -- without elevators.set's ability to demand that confirmation synchronously (elevators
+        -- flip ElevatorCurrentMode inside the same button press; trams do not - see the doc
+        -- comment above).
         return nil
     end
 

@@ -43,7 +43,7 @@ public sealed class LiveElevatorsChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<DirectoryWire>("elevators.list", payload: null, cancellationToken)
             .ConfigureAwait(false);
         var elevators = (wire.Elevators ?? [])
-            .Select(e => new LiveElevator(e.Id, e.Label, e.Controllable, e.TopOpen, e.Moving, e.X, e.Y, e.Z))
+            .Select(e => new LiveElevator(e.Id, e.Label, e.Controllable, e.TopOpen, e.Moving, e.Powered, e.X, e.Y, e.Z))
             .ToList();
         return new LiveElevatorDirectory(elevators, wire.IsHost);
     }
@@ -55,7 +55,7 @@ public sealed class LiveElevatorsChannel(ILiveGameChannel channel)
             new SetWire([new EditWire(id, topOpen)]), cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ElevatorWire>? Elevators, bool IsHost);
-    private sealed record ElevatorWire(string Id, string Label, bool Controllable, bool TopOpen, bool Moving, double X, double Y, double Z);
+    private sealed record ElevatorWire(string Id, string Label, bool Controllable, bool TopOpen, bool Moving, bool? Powered, double X, double Y, double Z);
     private sealed record SetWire(IReadOnlyList<EditWire> Elevators);
     private sealed record EditWire(string Id, bool? TopOpen);
 }
@@ -69,8 +69,12 @@ public sealed class LiveElevatorsChannel(ILiveGameChannel channel)
 /// and mean nothing. <paramref name="Moving"/> is true while the platform is travelling between
 /// stops (<c>ElevatorCurrentMode</c> is MovingToTop or MovingToBottom) - <paramref
 /// name="TopOpen"/> is false in that state too, since it is only true once actually parked at the
-/// top.</summary>
-public sealed record LiveElevator(string Id, string Label, bool Controllable, bool TopOpen, bool Moving, double X, double Y, double Z);
+/// top. <paramref name="Powered"/> (round 125) is a bonus read-only field off the confirmed
+/// <c>IsPowered()</c> function the game's own <c>elevators.set</c> already gates a move on - null
+/// only means this particular actor's power state could not be read right now, not "unpowered".
+/// Shown on the row so the player can see why a move might be refused before clicking, instead of
+/// only finding out from the refusal afterward.</summary>
+public sealed record LiveElevator(string Id, string Label, bool Controllable, bool TopOpen, bool Moving, bool? Powered, double X, double Y, double Z);
 
 /// <summary>Every loaded elevator plus whether this process has host authority to change them.</summary>
 public sealed record LiveElevatorDirectory(IReadOnlyList<LiveElevator> Elevators, bool IsHost);

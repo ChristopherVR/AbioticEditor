@@ -138,8 +138,14 @@ return function(H)
     local noLinkReply = H.dispatch("trams.set", { trams = { { id = atARow.id, targetStation = platformCLabel } } })
     H.fails(noLinkReply, "no recall station links", "an unlinked tram/station pair is refused by name")
 
-    -- A press with no confirmed effect (the honesty branch a wrong assumption about
-    -- TramRecallPressed's internals would hit for real) is an error, not a false success.
+    -- Round 125 (tolerant confirmation): a press with NO synchronously observable effect (Moving/
+    -- TargetStation/TramRecallStatus all unchanged right after the call) is now accepted, not
+    -- refused - this used to be an honest error ("could not confirm..."), but the coordinator saw
+    -- that exact refusal fire against a real, working recall live in-game (TramRecallPressed hands
+    -- off to the recall station's own multi-hop pathfinding before it ever touches the tram, so a
+    -- synchronous "nothing changed yet" read is the expected case, not proof the press failed -
+    -- see trams.lua's own header/recallTramToStation doc comments). The request still reaches the
+    -- real game function exactly once either way.
     local stubbornRecall = H.world.add(H.object("TramSystem_RecallStation_C", {
         LinkedTram = atA,
         LinkedStation = platformC,
@@ -147,8 +153,26 @@ return function(H)
         TramRecallPressed = function() end,
     }))
     local stubbornReply = H.dispatch("trams.set", { trams = { { id = atARow.id, targetStation = platformCLabel } } })
-    H.fails(stubbornReply, "could not confirm", "a recall press with no observable effect is an honest error")
-    H.eq(H.calls(stubbornRecall, "TramRecallPressed"), 1, "the stubborn recall station was still pressed once (the honesty check runs after, not instead of, the press)")
+    H.ok(stubbornReply, "a recall press with no synchronously observable effect is accepted, not refused")
+    H.eq(H.calls(stubbornRecall, "TramRecallPressed"), 1, "the recall station was pressed exactly once")
+
+    -- Same tolerant path, but this time TramRecallStatus (the recall station's own byte property)
+    -- is the only thing that changes - proves the read-back checks the recall station's status too,
+    -- not only the tram's own Moving/TargetStation. A brand-new platform/link pair (not C, which
+    -- stubbornRecall above already links to atA - findRecallStationFor returns the FIRST matching
+    -- link, so reusing C could silently press the wrong recall station instead of this one).
+    local platformD = station()
+    local platformDLabel = friendlyName(platformD)
+    local statusOnlyRecall = H.world.add(H.object("TramSystem_RecallStation_C", {
+        LinkedTram = atA,
+        LinkedStation = platformD,
+        TramRecallStatus = 0,
+    }, {
+        TramRecallPressed = function(self) rawget(self, "__fields").TramRecallStatus = 1 end,
+    }))
+    local statusOnlyReply = H.dispatch("trams.set", { trams = { { id = atARow.id, targetStation = platformDLabel } } })
+    H.ok(statusOnlyReply, "a recall press that only changes the recall station's own status is still accepted")
+    H.eq(H.calls(statusOnlyRecall, "TramRecallPressed"), 1, "this recall station was pressed exactly once")
 
     -- Missing tram id: player-safe failure, not a Lua error - and any resolvable rows in the same
     -- batch still apply first (matching doors.set/elevators.set).
