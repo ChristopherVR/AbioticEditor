@@ -200,7 +200,7 @@ else
             }
             else if (_worldTab == "bases" && _bases is not null)
             {
-                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" />
+                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" PlayerPosition="_spawn?.LivePosition" />
             }
             else if (_worldTab == "vehicles" && _vehicles is not null)
             {

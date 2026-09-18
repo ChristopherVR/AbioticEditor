@@ -10,6 +10,16 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// which crashed the bridge); whether removal is available on the connected runtime is reported
 /// per deployable as <see cref="LiveDeployable.CanEditUpgrades"/> and overall as
 /// <see cref="LiveDeployableDirectory.SupportsBenchUpgradeRemoval"/>.
+/// <see cref="LiveDeployable.CustomName"/> comes from the actor's own <c>PlayerMadeString</c> (a
+/// replicated field, matching the save's <c>CustomTextDisplay_</c> leaf) - round 121; it used to
+/// read the non-networked <c>AlternativeObjectName</c>, which is why a bench renamed in-game never
+/// showed a name here (see bases.lua's own header comment for the full write-up).
+/// <see cref="LiveDeployable.Id"/> is not scoped to any one region: this list sweeps every
+/// currently-loaded deployable, exactly like every other region-scoped live area (doors,
+/// containers, destructibles, triggers), none of which filter by the actor's map path either - the
+/// desktop app's own <c>WorldDeployable.SubLevel</c> (parsed from this same <see cref="LiveDeployable.Id"/>)
+/// and a distance-based "Nearest first" sort in <c>WorldBasesTab</c> are what let a player tell
+/// which of the listed bases is actually near them.
 /// </summary>
 public sealed class LiveBasesChannel(ILiveGameChannel channel)
 {

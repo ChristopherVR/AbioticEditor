@@ -79,6 +79,24 @@ public sealed record WorldDeployable(
         ClassName?.Contains("CraftingBench", StringComparison.OrdinalIgnoreCase) == true
         || ClassName?.Contains("Bench_Crafting", StringComparison.OrdinalIgnoreCase) == true;
 
+    /// <summary>Straight-line distance to a point (typically a player position), in UE units
+    /// (cm) - same shape as <see cref="WorldContainer.DistanceTo"/>/<see cref="WorldDroppedItem.DistanceTo"/>.
+    /// Real for both a file save (its X/Y/Z come from the save's own Transform_) and a live
+    /// session (from the running actor's own K2_GetActorLocation).</summary>
+    public double DistanceTo(double x, double y, double z)
+        => Math.Sqrt((X - x) * (X - x) + (Y - y) * (Y - y) + (Z - z) * (Z - z));
+
+    /// <summary>
+    /// Which streaming sub-level this deployable's actor path names (e.g. <c>Facility_MFWest</c>),
+    /// or empty for the persistent level itself - parsed from <see cref="Id"/> with the same
+    /// <see cref="DoorIdParser"/> the DOORS tab already uses on <c>WorldDoor.Id</c>, since both ids
+    /// are the same UE actor-path shape (a file save's own map key, or a live session's
+    /// <c>GetFullName()</c>). Round 121: added so a base's row can show where it is, since the
+    /// live sweep behind it (see <c>LiveBasesChannel</c>) is not itself filtered to one region -
+    /// see that channel's own remarks.
+    /// </summary>
+    public string SubLevel => DoorIdParser.Parse(Id).Map;
+
     /// <summary>True for claimable beds: crafted player beds and pet beds.</summary>
     public bool IsBed =>
         ClassName?.Contains("CraftedBed", StringComparison.OrdinalIgnoreCase) == true

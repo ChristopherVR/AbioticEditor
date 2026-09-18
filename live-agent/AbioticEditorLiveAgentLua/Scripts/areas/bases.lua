@@ -10,9 +10,72 @@
 -- uses the identical tag-write path as install (no separate native call, unlike the old
 -- AddUpgrade-only round 77 shape), there is no longer any capability removal needs that install
 -- does not already have.
+--
+-- Round 121: a live report on the BASES tab said two things: benches renamed in-game showed no
+-- name here, and the list itself carried deployables the player did not recognise as belonging to
+-- the world save they were looking at.
+--
+-- NAME - fixed here. This module used to read/write AlternativeObjectName (an FTextProperty on
+-- AbioticDeployed_ParentBP_C, "Edit | BlueprintVisible | DisableEditOnInstance" - no Net flag at
+-- all, confirmed against the class dump). main.lua's own containers.rename already investigated
+-- and rejected that exact field for the identical reason (see its header comment there): a write
+-- with no Net flag is only ever seen by whichever machine made it, so even a successful write here
+-- would not show up for anyone else, and would not survive being replaced by whatever the game's
+-- own systems last wrote to the real field. The real field is PlayerMadeString - a replicated
+-- (Net | RepNotify) StrProperty declared on AbioticDeployed_Furniture_ParentBP_C (confirmed
+-- against the class dump; crafting benches and containers both derive from it), read with the
+-- game's own NewPlayerMadeString()/OnRep_PlayerMadeString() pair exactly like containers.rename
+-- already does, and the one that matches the save file's own leaf for this data
+-- (CustomTextDisplay_ - see WorldSaveWriter.ApplyDeployableCustomText/ApplyContainerCustomName and
+-- WorldSaveReader's matching read). AlternativeObjectName is kept below as a READ-ONLY fallback
+-- for a deployable class with no PlayerMadeString at all (anything not Furniture-derived - lights,
+-- turrets, and similar non-nameable placeables); bases.set no longer writes it for a class that
+-- does have PlayerMadeString, and a bench renamed under the old code may still read back its old
+-- AlternativeObjectName value once, until it is renamed again through the fixed path.
+--
+-- SCOPE - not changed here, on the evidence available. deployableRows() below sweeps
+-- AbioticDeployed_ParentBP_C with FindAllOf exactly the way every other region-scoped area does
+-- (doors.list/containers.list in main.lua, destructibles.lua, triggers.lua - none of them filter
+-- by the actor's map/level path either), and LiveConnect.razor's ResetRegionScopedWorldSessions is
+-- the one and only scoping mechanism this whole mod has: it drops the cached BASES session (along
+-- with every other region-scoped one) the moment world.info's levelToken changes, so the next tab
+-- visit re-sweeps whatever region is loaded now. Adding a per-actor map-path filter here with no
+-- working precedent anywhere else in this mod, and no way to test it against the running game this
+-- round, risks hiding real, loaded bases rather than fixing anything. What actually changed for
+-- this report: WorldBasesTab now shows each deployable's own sub-level (parsed from its actor path
+-- client-side, the same DoorIdParser the DOORS tab already uses on WorldDoor.Id - see
+-- WorldDeployable.SubLevel) and, when a player position is known, a per-row distance with a
+-- "Nearest first" sort - see WorldBasesTab.razor. If the Facility region's several sub-levels
+-- really do all stream in at once regardless of where the player stands (plausible - it is the one
+-- ~16 MB region, per CLAUDE.md), that is the same thing every other region-scoped tab already
+-- shows for it, and the sub-level/distance additions are exactly the mitigation for "which of
+-- these is actually near me" the report asked for.
 return function(ctx)
     local benchTags = require("bench_tags")
     local replication = require("replication")
+
+    -- textValue: shared with main.lua's own helper of the same name (not exposed through ctx,
+    -- so duplicated here rather than threading one more field through it for one small function) -
+    -- a StrProperty sometimes hands back a plain Lua string, sometimes FString-like userdata
+    -- needing :ToString(), and this does not assume either shape.
+    local function textValue(value)
+        if value == nil then return nil end
+        if type(value) == "string" then return value end
+        local ok, str = pcall(function() return value:ToString() end)
+        return ok and str or nil
+    end
+
+    -- See the header comment: PlayerMadeString is the real, networked name field (matches
+    -- containers.rename's own read); AlternativeObjectName is a read-only fallback for a
+    -- deployable class that has no PlayerMadeString at all.
+    local function deployableCustomName(obj)
+        local ok, value = pcall(function() return obj.PlayerMadeString end)
+        local text = ok and textValue(value)
+        if text and text ~= "" then return text end
+        local okAlt, alt = pcall(function() return obj.AlternativeObjectName:ToString() end)
+        if okAlt and alt and alt ~= "" then return alt end
+        return nil
+    end
 
     -- EPaintColor::None (see AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.NoneValue) -
     -- the CDO default, meaning "unpainted". Paintability itself is decided client-side from the
@@ -119,7 +182,6 @@ return function(ctx)
                 if name and not seen[name] then
                     seen[name] = true
                     local x, y, z = ctx.actorLocation(obj)
-                    local okName, customName = pcall(function() return obj.AlternativeObjectName:ToString() end)
                     local inv = ctx.containerInventory(obj)
                     local hasInventory = inv ~= nil and inv.CurrentInventory ~= nil
                     local stored = 0
@@ -135,7 +197,7 @@ return function(ctx)
                         id = name,
                         className = ctx.classLabel(name),
                         x = x, y = y, z = z,
-                        customName = (okName and customName ~= "" and customName ~= nil) and customName or nil,
+                        customName = deployableCustomName(obj),
                         hasInventory = hasInventory,
                         storedItemCount = stored,
                         supportsUpgrades = benchSupportsUpgrades(obj),
@@ -181,20 +243,55 @@ return function(ctx)
                 -- Round 90: the shared-inventory refusal added the round before was removed here
                 -- too - see containers.rename's own remarks in main.lua (a live test proved the
                 -- name write is per-actor; only the contents are shared).
+                --
+                -- Round 121: writes PlayerMadeString first - the same real, networked field
+                -- containers.rename already uses (see this file's own header comment for why
+                -- AlternativeObjectName was wrong) - with the identical mark-dirty +
+                -- NewPlayerMadeString refresh. A class with no PlayerMadeString at all (not
+                -- Furniture-derived) falls back to the old AlternativeObjectName write so it still
+                -- shows something on the host's own screen, same as before this round for those
+                -- classes; that fallback is never attempted for a class that does have
+                -- PlayerMadeString, so a bench/container/furniture rename never regresses to the
+                -- non-networked field again.
                 local text = payload.customName
-                -- No precedent anywhere in the reference mod for writing an FText property from
-                -- Lua. FText(...) is UE4SS's own documented constructor but nothing here has
-                -- exercised it before. Try it, then fall back to a plain string assignment (some
-                -- UE4SS builds coerce a string into an FText field), and only then report failure
-                -- instead of silently doing nothing.
-                local ok = pcall(function() obj.AlternativeObjectName = FText(text) end)
-                if not ok then ok = pcall(function() obj.AlternativeObjectName = text end) end
-                if not ok then error("could not set this object's custom name on this game build") end
-                -- See main.lua's voidChestSiblings: a Void Chest's name is applied to every
-                -- Void Chest, from this screen the same as from the CONTAINERS one.
-                for _, sibling in ipairs(ctx.voidChestSiblings(obj)) do
-                    local okSibling = pcall(function() sibling.AlternativeObjectName = FText(text) end)
-                    if not okSibling then pcall(function() sibling.AlternativeObjectName = text end) end
+                local ok = pcall(function() obj.PlayerMadeString = text end)
+                if not ok then ok = pcall(function() obj.PlayerMadeString = FString(text) end) end
+                if ok then
+                    local markOk = pcall(function()
+                        local helper = replication.requireHelper()
+                        replication.mark(helper, obj, "PlayerMadeString")
+                    end)
+                    -- Mirrors OnRep_PlayerMadeString -> NewPlayerMadeString (see containers.rename's
+                    -- own remarks in main.lua): the host never gets its own RepNotify, so this call
+                    -- is what makes the host's own view catch up immediately too.
+                    pcall(function() obj:NewPlayerMadeString() end)
+                    -- See main.lua's voidChestSiblings: a Void Chest's name is applied to every
+                    -- Void Chest, from this screen the same as from the CONTAINERS one.
+                    for _, sibling in ipairs(ctx.voidChestSiblings(obj)) do
+                        local okSibling = pcall(function() sibling.PlayerMadeString = text end)
+                        if not okSibling then pcall(function() sibling.PlayerMadeString = FString(text) end) end
+                        pcall(function()
+                            local helper = replication.requireHelper()
+                            replication.mark(helper, sibling, "PlayerMadeString")
+                        end)
+                        pcall(function() sibling:NewPlayerMadeString() end)
+                    end
+                    if not markOk then
+                        error("the name was set but could not be confirmed as sent to other connected players on this game build")
+                    end
+                else
+                    -- No precedent anywhere in the reference mod for writing an FText property
+                    -- from Lua. FText(...) is UE4SS's own documented constructor but nothing here
+                    -- has exercised it before. Try it, then fall back to a plain string assignment
+                    -- (some UE4SS builds coerce a string into an FText field), and only then report
+                    -- failure instead of silently doing nothing.
+                    local okAlt = pcall(function() obj.AlternativeObjectName = FText(text) end)
+                    if not okAlt then okAlt = pcall(function() obj.AlternativeObjectName = text end) end
+                    if not okAlt then error("could not set this object's custom name on this game build") end
+                    for _, sibling in ipairs(ctx.voidChestSiblings(obj)) do
+                        local okSibling = pcall(function() sibling.AlternativeObjectName = FText(text) end)
+                        if not okSibling then pcall(function() sibling.AlternativeObjectName = text end) end
+                    end
                 end
             end
             if payload.upgradeRow ~= nil then

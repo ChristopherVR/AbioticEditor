@@ -1,21 +1,29 @@
--- World bases / deployables (areas/bases.lua): AlternativeObjectName (FText) rename,
--- container-backed deployables reporting hasInventory/storedItemCount via the same slot helpers
--- containers.list already uses, and PaintedColor (plain EPaintColor property + OnRep) reads/writes.
+-- World bases / deployables (areas/bases.lua): PlayerMadeString (round 121) rename with an
+-- AlternativeObjectName read-only fallback, container-backed deployables reporting
+-- hasInventory/storedItemCount via the same slot helpers containers.list already uses, and
+-- PaintedColor (plain EPaintColor property + OnRep) reads/writes.
 return function(H)
     H.hostSession()
+
+    -- netHelper is set up first (round 121): the primary rename path now needs it too (the same
+    -- push-model MarkPropertyDirty notification containers.rename already demonstrates), not just
+    -- the paint write further down.
+    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end })
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
 
     -- A plain deployable (no inventory) - bases.list must still report it. __bases lets the
     -- fake world's FindAllOf("AbioticDeployed_ParentBP_C") match it, matching how every deployed
     -- object in the real game derives from that one blueprint class.
     local bench = H.world.add(H.object("Deployed_Bench_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" },
-        AlternativeObjectName = H.fstring(""),
         PaintedColor = 12, -- EPaintColor::None
     }, {
         K2_GetActorLocation = function() return H.vector(1, 2, 3) end,
     }))
 
     -- A deployable WITH a container inventory (a storage-capable base piece), one slot filled.
+    -- Its name is read through PlayerMadeString (the real, networked field - see the header
+    -- comment in bases.lua) as FString-like userdata, exercising textValue's :ToString() branch.
     local containerInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("scrap_metal") },
           ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 5,
@@ -26,32 +34,62 @@ return function(H)
     } }, { OnRep_CurrentInventory = function() end })
     local locker = H.world.add(H.object("Deployed_Locker_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" },
-        AlternativeObjectName = H.fstring("Loot Locker"),
+        PlayerMadeString = H.fstring("Loot Locker"),
         ContainerInventory = containerInv,
         PaintedColor = 5, -- EPaintColor::Purple
-    }, { K2_GetActorLocation = function() return H.vector(4, 5, 6) end }))
+    }, {
+        K2_GetActorLocation = function() return H.vector(4, 5, 6) end,
+        NewPlayerMadeString = function() end,
+    }))
+
+    -- Round 121: a class with no PlayerMadeString at all (not Furniture-derived) still reports
+    -- whatever AlternativeObjectName carries, read-only - see deployableCustomName's own remarks.
+    local altNameOnly = H.world.add(H.object("Deployed_Light_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" },
+        AlternativeObjectName = H.fstring("Porch Light"),
+    }, {
+        K2_GetActorLocation = function() return H.vector(2, 2, 2) end,
+    }))
 
     local list = H.ok(H.dispatch("bases.list"), "bases.list")
-    H.eq(#list.deployables, 2, "both deployables found through the shared parent class")
+    H.eq(#list.deployables, 3, "all three deployables found through the shared parent class")
     H.eq(list.supportsBenchUpgrades, false, "unsafe bench upgrades are not advertised")
-    local benchId, lockerId = bench:GetFullName(), locker:GetFullName()
-    local benchRow, lockerRow
+    local benchId, lockerId, altNameOnlyId = bench:GetFullName(), locker:GetFullName(), altNameOnly:GetFullName()
+    local benchRow, lockerRow, altNameOnlyRow
     for _, d in ipairs(list.deployables) do
         if d.id == benchId then benchRow = d end
         if d.id == lockerId then lockerRow = d end
+        if d.id == altNameOnlyId then altNameOnlyRow = d end
     end
-    H.check(benchRow ~= nil and lockerRow ~= nil, "both rows matched by full name")
-    H.eq(benchRow.customName, nil, "an empty custom name reads as nil, not an empty string")
+    H.check(benchRow ~= nil and lockerRow ~= nil and altNameOnlyRow ~= nil, "all three rows matched by full name")
+    H.eq(benchRow.customName, nil, "no name set at all reads as nil, not an empty string")
     H.eq(benchRow.hasInventory, false, "the bench has no container inventory")
-    H.eq(lockerRow.customName, "Loot Locker", "the locker's custom name converted from FText")
+    -- Distance data (round 121): x/y/z travel through bases.list unconditionally - the desktop
+    -- app computes distance/sub-level from these client-side (WorldDeployable.DistanceTo/SubLevel),
+    -- rather than this module reporting either one itself.
+    H.eq(benchRow.x, 1, "actor position x reported for client-side distance math")
+    H.eq(benchRow.y, 2, "actor position y reported for client-side distance math")
+    H.eq(benchRow.z, 3, "actor position z reported for client-side distance math")
+    H.eq(lockerRow.customName, "Loot Locker", "the locker's custom name read from PlayerMadeString, converted from FString-like userdata")
     H.eq(lockerRow.hasInventory, true, "the locker has a container inventory")
     H.eq(lockerRow.storedItemCount, 1, "one non-empty slot counted")
+    H.eq(altNameOnlyRow.customName, "Porch Light", "a class with no PlayerMadeString still reports AlternativeObjectName, read-only")
     H.eq(benchRow.paintColor, nil, "EPaintColor::None reads as unpainted (nil), not 12")
     H.eq(lockerRow.paintColor, 5, "a real paint colour value reads through as a number")
 
-    -- bases.set: rename via FText(text) (a real UE4SS global, unlike FVector()/FRotator()).
+    -- bases.set: rename via PlayerMadeString (round 121) - the same real, networked field
+    -- containers.rename already uses, with the identical mark-dirty + NewPlayerMadeString refresh.
+    local marksBeforeRename = H.calls(netHelper, "MarkPropertyDirty")
     H.ok(H.dispatch("bases.set", { id = lockerId, customName = "Renamed Locker" }), "rename the locker")
-    H.eq(H.field(locker, "AlternativeObjectName"):ToString(), "Renamed Locker", "the new name was actually written and reads back through FText")
+    H.eq(H.field(locker, "PlayerMadeString"), "Renamed Locker",
+        "the new name was actually written as a plain string, the write handler's first attempt")
+    H.eq(H.calls(locker, "NewPlayerMadeString"), 1, "the host's own view is refreshed immediately, mirroring OnRep")
+    H.eq(H.calls(netHelper, "MarkPropertyDirty"), marksBeforeRename + 1,
+        "push-model replication notified, so other already-connected players see the new name too")
+    local afterRename = H.ok(H.dispatch("bases.list"))
+    for _, row in ipairs(afterRename.deployables) do
+        if row.id == lockerId then H.eq(row.customName, "Renamed Locker", "the new name is reported back through bases.list") end
+    end
 
     local upgradedBench = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" }, SupportsUpgrades = true,
@@ -63,8 +101,6 @@ return function(H)
     end
 
     local tagData = { GameplayTags = {{TagName=H.fname("Other.Tag")}}, ParentTags = {{TagName=H.fname("Other")}} }
-    local netHelper = H.object("NetPushModelHelpers", {}, { MarkPropertyDirty=function() end })
-    H.world.static("/Script/Engine.Default__NetPushModelHelpers", netHelper)
     local writable = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
         __bases={"AbioticDeployed_ParentBP_C"}, SupportsUpgrades=true,
         UpgradeTagContainer={GameplayTags={},ParentTags={}},
@@ -141,14 +177,37 @@ return function(H)
     local sharedBaseDecoy = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} })
     local sharedBase = H.world.add(H.object("Deployed_Container_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" },
-        ContainerInventory = sharedBaseDecoy, AlternativeObjectName = H.fstring(""),
+        ContainerInventory = sharedBaseDecoy, PlayerMadeString = H.fstring(""),
     }, {
         GetContainerInventory = function() return sharedBaseInv end,
         K2_GetActorLocation = function() return H.vector(13, 13, 13) end,
+        NewPlayerMadeString = function() end,
     }))
     -- Round 90: renaming is per-actor and allowed again (see containers.rename's remarks).
     H.ok(H.dispatch("bases.set", { id = sharedBase:GetFullName(), customName = "Mine Only" }),
         "a shared-inventory deployable still takes its own name from the BASES screen")
+
+    -- Round 121: SCOPE - bases.lua sweeps every currently-loaded deployable with no per-actor
+    -- map-path filter, the same as every other region-scoped live area (see bases.lua's own header
+    -- comment for why, and doors.list/destructibles.lua/triggers.lua alongside it). This locks
+    -- that design in: a deployable whose actor path names a totally different sub-level still
+    -- appears in bases.list - the desktop app's mitigation is showing that sub-level per row
+    -- (WorldDeployable.SubLevel, covered by the C# LiveBasesSessionTests) and a distance-based
+    -- "Nearest first" sort, not hiding it here with an unproven filter.
+    local otherRegion = H.world.add(H.object("Deployed_Bench_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" }, PaintedColor = 12,
+    }, {
+        K2_GetActorLocation = function() return H.vector(500, 500, 0) end,
+    }))
+    rawset(otherRegion, "__fullName",
+        "Deployed_Bench_ParentBP_C /Game/Maps/OtherRegion.OtherRegion:PersistentLevel.Deployed_Bench_ParentBP_C_999")
+    local crossRegion = H.ok(H.dispatch("bases.list"))
+    local otherRegionRow
+    for _, row in ipairs(crossRegion.deployables) do
+        if row.id == otherRegion:GetFullName() then otherRegionRow = row end
+    end
+    H.check(otherRegionRow ~= nil,
+        "a deployable from a different sub-level still appears - this module does not filter by region")
 
     -- Non-host refusal.
     H.clientSession()

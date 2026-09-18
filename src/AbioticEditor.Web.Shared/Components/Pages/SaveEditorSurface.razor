@@ -86,7 +86,7 @@
                 else if (_worldTab == "npcs") { <WorldNpcsTab Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "pets") { <WorldPetsTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" OnError="WorldError" /> }
                 else if (_worldTab == "vehicles") { <WorldVehiclesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" /> }
-                else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" PlayerPosition="@SelectedPlayerPosition" /> }
                 else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" Flags="@world" OnError="WorldError" /> }
                 else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" FileSession="@world" OnError="WorldError" /> }
@@ -115,6 +115,16 @@
     private WorldSaveSession? _tabSession;
     private IReadOnlyList<WorldTabItem> _worldTabItems = [];
     private string _worldTab = "containers";
+
+    /// <summary>Round 121: "the selected player's saved position" for the BASES tab's "Nearest
+    /// first" sort - the same saved respawn point PlayerInventoryTab already uses as a stand-in
+    /// for "where the player is" (see its own GroundName/DistanceTo calls). Null when no player
+    /// save has been opened in this workspace, which hides the toggle entirely (see
+    /// WorldBasesTab.PlayerPosition's own remarks) rather than showing a distance from the
+    /// origin.</summary>
+    private (double X, double Y, double Z)? SelectedPlayerPosition => Workspace.TransferPlayerSession is { } player
+        ? (player.Respawn.X, player.Respawn.Y, player.Respawn.Z)
+        : null;
 
     private sealed record WorldTabItem(string Id, string Label);
 

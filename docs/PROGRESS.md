@@ -1,5 +1,68 @@
 # Abiotic Editor - Session history
 
+## Round-121: BASES tab - benches renamed in-game showed no name, and "nearest to me" was missing (2026-09-18)
+
+Owner report, live mode, BASES tab: the tab showed bases for places unrelated to the region being
+viewed, crafting benches renamed in-game showed no name here, and there was no way to tell which
+bench was actually closest to the player.
+
+**Name - root cause.** `bases.lua` read/wrote `AbioticDeployed_ParentBP_C`'s `AlternativeObjectName`
+(`FTextProperty`, "Edit | BlueprintVisible | DisableEditOnInstance" - confirmed against the class
+dump to carry no `Net` flag at all). `main.lua`'s own `containers.rename` had already investigated
+and rejected that exact field for the identical reason, in favour of `PlayerMadeString` (a
+replicated `Net | RepNotify` `StrProperty` on `AbioticDeployed_Furniture_ParentBP_C`, which benches
+and containers both derive from) - `bases.lua` never picked up that finding. A write with no `Net`
+flag is only ever seen by whichever machine made it, and reads back as whatever the game's own
+systems last put there (nothing, for a bench that has never gone through the game's own in-world
+rename prompt) - exactly the "no name shows" symptom reported.
+
+**Name - fix.** `bases.lua` now reads/writes `PlayerMadeString` with the same mark-dirty +
+`NewPlayerMadeString()` refresh `containers.rename` already proved live, matching the save file's
+own `CustomTextDisplay_` leaf (`WorldSaveWriter.ApplyDeployableCustomText`/`ApplyContainerCustomName`,
+confirmed against `WorldSaveReader`'s matching read). A deployable class with no `PlayerMadeString`
+at all (not Furniture-derived) still reads `AlternativeObjectName` as a read-only fallback so it
+does not regress to showing nothing, but the fallback is never written to for a class that has the
+real field.
+
+**Scope - investigated, not changed.** `bases.lua`'s `deployableRows()` sweeps
+`AbioticDeployed_ParentBP_C` with `FindAllOf` and no per-actor map-path filter - exactly like every
+other region-scoped live area (`doors.list`/`containers.list` in `main.lua`, `destructibles.lua`,
+`triggers.lua`; none of them filter by the actor's map path either). The only scoping this protocol
+has anywhere is `LiveConnect.razor`'s `ResetRegionScopedWorldSessions`, which drops the cached
+BASES session when `world.info`'s `levelToken` changes, so the next tab visit re-sweeps whatever
+region is loaded now - BASES was already wired into that reset list. No working precedent exists in
+this mod for filtering `FindAllOf` by map path, and there was no running game available this round
+to test one against, so adding an unproven filter risked hiding real, loaded bases instead of
+fixing anything. Given the Facility region alone streams several named sub-levels at once (per
+CLAUDE.md, it is the ~16 MB region), a base reported "for an unrelated place" may simply be far away
+within the same region rather than genuinely a different world save.
+
+**Mitigation, per the task brief's own fallback instruction.** Since scoping could not be verified
+either way, the desktop app now shows each row's own sub-level and lets the player sort by distance
+instead of guessing at a filter:
+- `WorldDeployable.SubLevel` (`Core/Domain/World/WorldBase.cs`) parses a deployable's own `Id` with
+  the same `DoorIdParser` the DOORS tab already uses on `WorldDoor.Id` (both ids are the identical
+  UE actor-path shape, live or file) - no protocol change needed, since `id` already carried this.
+- `WorldDeployable.DistanceTo` (same file) mirrors `WorldContainer`/`WorldDroppedItem`'s existing
+  method of the same name.
+- `WorldBasesTab.razor` gained a `PlayerPosition` parameter (same shape/convention as
+  `WorldContainersTab`/`WorldDroppedItemsTab`), a "Nearest first" sort toggle, and a per-row
+  distance + sub-level line on both the base list and each crafting bench. `LiveConnect.razor` wires
+  it to `_spawn?.LivePosition` (the connected player's own read position); `SaveEditorSurface.razor`
+  wires it to the workspace's selected player's saved respawn point (`Workspace.TransferPlayerSession`),
+  when one is open - offline had no position source for this tab before.
+
+**Tests.** `live-agent/AbioticEditorLiveAgentLua/tests/cases/bases.lua`: rewritten name-read/write
+cases (`PlayerMadeString` primary, `AlternativeObjectName` read-only fallback, mark-dirty +
+`NewPlayerMadeString` call counts), an x/y/z-present case backing the new client-side distance math,
+and a case proving a deployable from a different sub-level still appears in `bases.list` (locks in
+the "not region-scoped" design). `python tools/run-lua-tests.py`: 1314 checks passing (up from 1304
+last round). `tests/AbioticEditor.Tests/LiveBasesSessionTests.cs` gained
+`WorldDeployable_SubLevel_parses_both_the_live_and_file_id_shapes` (live-GetFullName-shaped and
+file-map-key-shaped ids) and `WorldDeployable_DistanceTo_computes_straight_line_distance`. Could not
+run `dotnet build`/`dotnet test` this round (desktop app was running live against the game); the new
+C# tests should be run once the app is closed.
+
 ## Round-120: live DELETE/remove buttons no longer leave the item on screen for several seconds (2026-09-18)
 
 Owner report, live mode: clicking DELETE on an inventory/container slot (and removing a dropped

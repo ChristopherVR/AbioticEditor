@@ -308,7 +308,7 @@ On success the moved actor's position is read back with `K2_GetActorLocation` an
 the request before reporting success. Genuinely unproven end-to-end against the running game. Host
 only.
 
-## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16, paint colour 2026-09-16)
+## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16, paint colour 2026-09-16, name field fixed round 121)
 
 `bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
 "storedItemCount","supportsUpgrades","canEditUpgrades","installedUpgrades":[...],"paintColor"?}],
@@ -320,6 +320,34 @@ only for benches; every other deployable reports `false`/`false`/`[]`. `paintCol
 value 12, is never sent). `bases.set` takes `{"id","customName"?,"upgradeRow"?,
 "upgradeInstalled"?,"paintColor"?}` and renames the object, installs or removes a bench upgrade,
 and/or sets its paint colour immediately. Host only, like `containers.set`/`doors.set`.
+
+**Custom name field fixed (round 121).** `customName` used to read/write
+`AbioticDeployed_ParentBP_C`'s `AlternativeObjectName` (`FTextProperty`, "Edit | BlueprintVisible |
+DisableEditOnInstance" - no `Net` flag at all), which is why a bench renamed in-game never showed a
+name on this tab: a write with no `Net` flag is only ever seen by whichever machine made it. It now
+reads/writes `PlayerMadeString` (a replicated `Net | RepNotify` `StrProperty` declared on
+`AbioticDeployed_Furniture_ParentBP_C` - benches, containers and furniture all derive from it) with
+the exact same mark-dirty + `NewPlayerMadeString()` refresh `containers.rename` already uses, and
+which matches the save file's own `CustomTextDisplay_` leaf
+(`WorldSaveWriter.ApplyDeployableCustomText`/`ApplyContainerCustomName`). A deployable class with no
+`PlayerMadeString` at all (not Furniture-derived - lights, turrets, and similar non-nameable
+placeables) still reports `AlternativeObjectName` as a read-only fallback so it does not regress to
+showing nothing, but `bases.set` no longer writes that field for a class that has `PlayerMadeString`.
+
+**Not region-scoped** (unchanged, round 121 investigation). `bases.list` sweeps every currently
+loaded `AbioticDeployed_ParentBP_C` instance with no filter on the actor's map/level path, exactly
+like every other region-scoped live area (`doors.list`/`containers.list`, `destructibles.lua`,
+`triggers.lua` - none of them filter either); the only scoping this whole protocol has is the
+desktop app dropping its cached BASES session when `world.info`'s `levelToken` changes
+(`ResetRegionScopedWorldSessions` in `LiveConnect.razor`), so the next tab visit re-sweeps whatever
+is loaded now. A live report described bases "for places not related to the world save being
+viewed"; no working precedent exists anywhere in this mod for filtering `FindAllOf` by map path, so
+rather than guess at one, the desktop app now shows each row's own sub-level (parsed client-side
+from `id` - the same `DoorIdParser` the DOORS tab already uses on `WorldDoor.Id`, exposed as
+`WorldDeployable.SubLevel`) and a distance-based "Nearest first" sort (`WorldDeployable.DistanceTo`,
+driven by the tab's `PlayerPosition` parameter) so a player can tell which listed base is actually
+near them. Neither addition changes the wire shape above: `x`/`y`/`z` already carried everything
+both features need.
 
 **Paint colour** (implemented, awaiting in-game verification): a plain property write, not a
 function call. `AbioticDeployed_ParentBP_C` carries a bare `PaintedColor` `EPaintColor` property

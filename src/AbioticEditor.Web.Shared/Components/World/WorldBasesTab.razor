@@ -31,6 +31,20 @@
     @* The tab's how-to, worded so it reads the same with a mouse or by touch. *@
     <p class="wt-intro">@L.Resource("WorldBases_HowToHint")</p>
 
+    @* Round 121: "we're trying to see the bench closest to us" - the same "Nearest first" idea
+       WorldContainersTab/WorldDroppedItemsTab already offer, reusing their PlayerPosition
+       parameter (live: the connected player's own read position; file: the workspace's selected
+       player's saved respawn point, when one is open - see WorldBasesTab's own code-behind). Only
+       shown when a position is actually known, matching those tabs. *@
+    @if (PlayerPosition is not null)
+    {
+        <div class="wg-nearby">
+            <label class="wt-check">
+                <input type="checkbox" checked="@_nearestFirst" @onchange="e => _nearestFirst = (bool)e.Value!" />
+                @L.Resource("WorldBases_NearestFirst")
+            </label>
+        </div>
+    }
     <div class="wt-md bases-top">
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldBases_BaseManager")">
             @foreach (var worldBase in Bases)
@@ -42,6 +56,7 @@
                         <strong class="base-name">@worldBase.Name</strong>
                         <small class="base-anchor">@AnchorText(worldBase)</small>
                         <small>@L.Resource("WorldBases_SummaryFormat", worldBase.BenchCount, worldBase.Deployables.Count, worldBase.ContainerCount, worldBase.StoredItemCount)</small>
+                        @if (DistanceText(worldBase) is { } distance) { <small class="base-distance">@distance</small> }
                     </span>
                 </button>
             }
@@ -138,7 +153,7 @@
                    can be renamed and its contents opened. Benches are listed apart from the crates
                    below because they are what marks a spot as a base at all; a bench that also
                    holds items appears in both lists, which is why one can look like the other. *@
-                @foreach (var bench in worldBaseDetail.Deployables.Where(deployable => deployable.IsCraftingBench))
+                @foreach (var bench in CraftingBenches(worldBaseDetail))
                 {
                     @* Round 118: a bench that is ALSO paintable (e.g. Deployed_CraftingBench_Default_C -
                        see DeployablePaintCatalog) renders a second "bench-row" div for the same
@@ -155,6 +170,7 @@
                                 title="@L.Resource("WorldBases_BenchEditHint")" @onclick="() => ShowBench(bench)">
                             <span class="bench-name">@bench.DisplayName</span>
                             <small>(@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")) · id @(bench.Id[..Math.Min(8, bench.Id.Length)])…</small>
+                            <small>@SubLevelText(bench)@(DistanceText(bench) is { } benchDistance ? " · " + benchDistance : null)</small>
                         </button>
                         @if (Session.BenchSupportsUpgrades(bench.Id))
                         {
@@ -253,12 +269,23 @@
     [Parameter, EditorRequired] public IWorldBasesSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>Round 121: "which bench is closest to me" - same parameter shape and source as
+    /// WorldContainersTab/WorldDroppedItemsTab (live: LiveConnect passes the connected player's own
+    /// read position; file: SaveEditorSurface passes the workspace's selected player's saved
+    /// respawn point, when a player save is open alongside the world one). Null when no position is
+    /// known, which hides the "Nearest first" toggle and every per-row distance entirely, the same
+    /// as those other tabs.</summary>
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private WorldSaveSession? FileSession => Session as WorldSaveSession;
 
     private const float MapW = 640f;
     private const float MapH = 356f;
     private string? _selectedBaseName;
     private string? _openContainerId;
+    /// <summary>Off by default, matching WorldContainersTab/WorldDroppedItemsTab's own
+    /// "_nearbyOnly"/sort toggles - opening the tab shows bases in their normal detected order
+    /// until the player asks to sort by distance.</summary>
+    private bool _nearestFirst;
     private List<PlayerInventorySlotEdit> _slotEdits = [];
     /// <summary>The slot currently being dragged within this crate (null when dragging from the catalog).</summary>
     private PlayerInventorySlotEdit? _dragEdit;
@@ -288,8 +315,57 @@
         ("#D14A30", "defense"), ("#56C4E8", "power/tele"), ("#4FA84F", "farm"), ("#5E5440", "other"),
     ];
 
-    private IReadOnlyList<WorldBase> Bases => BaseDetector.Detect(Session.Deployables);
+    private IReadOnlyList<WorldBase> Bases
+    {
+        get
+        {
+            var bases = BaseDetector.Detect(Session.Deployables);
+            // Sorted by each base's own nearest deployable, not its (possibly empty-group)
+            // CenterX/CenterY - "closest bench" means the closest actual object to walk to, not
+            // the middle of a cluster that could itself be empty ground. A base with no
+            // deployables (should not happen - BaseDetector never emits an empty group - but
+            // guarded rather than assumed) sorts last.
+            if (_nearestFirst && PlayerPosition is { } position)
+            {
+                return bases.OrderBy(worldBase => worldBase.Deployables.Count == 0
+                    ? double.MaxValue
+                    : worldBase.Deployables.Min(deployable => deployable.DistanceTo(position.X, position.Y, position.Z)))
+                    .ToList();
+            }
+            return bases;
+        }
+    }
     private WorldBase? SelectedBase => _selectedBaseName is null ? null : Bases.FirstOrDefault(worldBase => worldBase.Name == _selectedBaseName);
+
+    /// <summary>The crafting benches in one base, nearest-first when asked and a position is known -
+    /// see <see cref="Bases"/>'s own remarks; this is the sub-list "which bench is closest to me"
+    /// most directly answers, since one base can anchor on several benches.</summary>
+    private IEnumerable<WorldDeployable> CraftingBenches(WorldBase worldBase)
+    {
+        var benches = worldBase.Deployables.Where(deployable => deployable.IsCraftingBench);
+        if (_nearestFirst && PlayerPosition is { } position)
+            benches = benches.OrderBy(bench => bench.DistanceTo(position.X, position.Y, position.Z));
+        return benches;
+    }
+
+    /// <summary>"12 m away" (UE units / 100, matching WorldBases_BaseManagerIntro's own "30 m"
+    /// wording), or null when no player position is known - see <see cref="PlayerPosition"/>.</summary>
+    private string? DistanceText(WorldDeployable deployable) => PlayerPosition is { } position
+        ? L.Resource("WorldBases_DistanceFormat", (deployable.DistanceTo(position.X, position.Y, position.Z) / 100).ToString("F0"))
+        : null;
+
+    /// <summary>The base's own nearest deployable's distance - "how far to walk to reach this
+    /// base at all", not a distance to its (possibly-empty-ground) detected centre.</summary>
+    private string? DistanceText(WorldBase worldBase) => PlayerPosition is { } position && worldBase.Deployables.Count > 0
+        ? L.Resource("WorldBases_DistanceFormat", (worldBase.Deployables.Min(deployable => deployable.DistanceTo(position.X, position.Y, position.Z)) / 100).ToString("F0"))
+        : null;
+
+    /// <summary>Which streaming sub-level this deployable is in, formatted the same way the DOORS
+    /// tab already shows it (<see cref="WorldDeployable.SubLevel"/>, parsed by the shared
+    /// <c>DoorIdParser</c>) - "Area: Facility MFWest", or "(main area)" for the persistent level
+    /// itself.</summary>
+    private string SubLevelText(WorldDeployable deployable) => L.Resource("WorldDoors_SubLevelFormat",
+        string.IsNullOrEmpty(deployable.SubLevel) ? L.Resource("WorldDoors_PersistentLevel") : deployable.SubLevel.Replace('_', ' '));
     // Crate contents only open in the file editor - see FileSession's own doc comment above.
     private WorldContainer? OpenContainer => _openContainerId is null || FileSession is not { } fileSession
         ? null
@@ -479,6 +555,16 @@
             <span class="wt-label">@L.Resource("WorldBases_DetailPosition")</span>
             <span class="wt-muted">@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")</span>
         </div>
+        <div class="wt-field">
+            <span class="wt-muted">@SubLevelText(bench)</span>
+        </div>
+        @if (DistanceText(bench) is { } cardDistance)
+        {
+            <div class="wt-field">
+                <span class="wt-label">@L.Resource("WorldBases_DetailDistance")</span>
+                <span class="wt-muted">@cardDistance</span>
+            </div>
+        }
         <div class="wt-field">
             <span class="wt-label">@L.Resource("WorldBases_DetailId")</span>
             <span class="wt-muted"><code>@bench.Id</code></span>

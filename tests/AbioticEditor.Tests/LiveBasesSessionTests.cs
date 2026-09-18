@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
+using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
 using Xunit;
 
@@ -85,6 +86,47 @@ public sealed class LiveBasesSessionTests
         // A later refresh replaying the same duplicate must not throw either.
         await session.RefreshAsync();
         Assert.Single(session.Deployables);
+    }
+
+    /// <summary>
+    /// Round 121: a live report said the BASES tab showed deployables the player did not
+    /// recognise as belonging to the region they were looking at. bases.lua's own sweep is not
+    /// filtered by map path (see that file's header comment for why, and every other
+    /// region-scoped area's identical shape), so the desktop app's mitigation is to show each row
+    /// its own sub-level so the player can tell where it actually is - parsed from the very same
+    /// <see cref="WorldDeployable.Id"/> the DOORS tab already parses for <c>WorldDoor.Id</c> via
+    /// the shared <see cref="DoorIdParser"/>. This locks in that a live id (the game's own
+    /// <c>GetFullName()</c> form, "ClassName /Game/Maps/X.X:PersistentLevel.Actor") parses the
+    /// same way an offline map-key id does.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        "Deployed_CraftingBench_Default_C /Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.Deployed_CraftingBench_Default_C_12",
+        "Facility_MFWest")]
+    [InlineData(
+        "/Game/Maps/Facility.Facility:PersistentLevel.Deployed_Locker_ParentBP_C_3",
+        "Facility")]
+    [InlineData("not-an-actor-path", "")]
+    public void WorldDeployable_SubLevel_parses_both_the_live_and_file_id_shapes(string id, string expected)
+    {
+        var deployable = new WorldDeployable(id, "Deployed_CraftingBench_Default_C", 0, 0, 0, false, 0);
+
+        Assert.Equal(expected, deployable.SubLevel);
+    }
+
+    /// <summary>
+    /// Backs the BASES tab's "Nearest first" sort and per-row distance (round 121) - the same
+    /// straight-line-distance shape <c>WorldContainer.DistanceTo</c>/<c>WorldDroppedItem.DistanceTo</c>
+    /// already use for WorldContainersTab/WorldDroppedItemsTab.
+    /// </summary>
+    [Fact]
+    public void WorldDeployable_DistanceTo_computes_straight_line_distance()
+    {
+        var deployable = new WorldDeployable("id", "Deployed_CraftingBench_Default_C", 3, 4, 0, false, 0);
+
+        // A 3-4-5 triangle from the origin - easy to verify by hand.
+        Assert.Equal(5, deployable.DistanceTo(0, 0, 0), precision: 6);
+        Assert.Equal(0, deployable.DistanceTo(3, 4, 0), precision: 6);
     }
 
     [Fact]
