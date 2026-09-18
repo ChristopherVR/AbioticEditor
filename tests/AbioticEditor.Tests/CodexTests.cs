@@ -3,6 +3,7 @@ using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Core.PlayerSaves;
+using AbioticEditor.Web.Models;
 using Xunit.Abstractions;
 
 namespace AbioticEditor.Tests;
@@ -167,5 +168,82 @@ public class CodexTests
 
         Assert.Equal(emails, reloaded.EmailsRead);
         Assert.Equal(journals, reloaded.Journals);
+    }
+
+    // Round 118: MoonFish_AllDay + MoonFish_rare1_AllDay could be checked in the GATEPal FISH
+    // list, but the click never stuck (live: the next periodic refresh reverted it; offline: the
+    // native game's own journal never showed the fish as caught). Root cause: DT_Fish carries a
+    // second row for these two fish suffixed "_AllDay" (see assets/registry/registry.en.json) -
+    // same item/recipe/bait/XP as the plain row, only the time-of-day catch-chance multipliers
+    // differ (an "always bites" schedule swapped in by a world setting, vs. the plain row's
+    // midnight-only one). Real saves only ever record the base id in Compendium_Fish_ /
+    // FishCaughtArray, never the "_AllDay" one, so a codex row built from the "_AllDay" id wrote
+    // to an id the game never reads back. CodexCatalog.CollapseAllDayVariants folds the "_AllDay"
+    // row into its base sibling wherever DT_Fish is loaded (both the live and file sessions read
+    // fish through CodexCatalog.LoadFish), leaving the two real, independently-trackable fish.
+    [Fact]
+    public void CollapseAllDayVariants_DropsAllDayDuplicateButKeepsRareVariantSeparate()
+    {
+        // The real MoonFish/MoonFish_rare1/MoonFish_AllDay/MoonFish_rare1_AllDay rows (trimmed to
+        // the fields CollapseAllDayVariants cares about).
+        var rows = new[]
+        {
+            new FishDefinition("MoonFish", "fish_moon", IsRare: false, MidnightMult: 2, DawnMult: 0, NoonMult: 0, DuskMult: 0),
+            new FishDefinition("MoonFish_rare1", "fish_moon", IsRare: true, RequiredBaitTag: "Fishing.Bait.MoonFish", MidnightMult: 2, DawnMult: 0, NoonMult: 0, DuskMult: 0),
+            new FishDefinition("MoonFish_AllDay", "fish_moon", IsRare: false, MidnightMult: 2, DawnMult: 0.25, NoonMult: 0.25, DuskMult: 0.5),
+            new FishDefinition("MoonFish_rare1_AllDay", "fish_moon", IsRare: true, RequiredBaitTag: "Fishing.Bait.MoonFish", MidnightMult: 2, DawnMult: 0.25, NoonMult: 0.25, DuskMult: 0.5),
+        };
+
+        var collapsed = CodexCatalog.CollapseAllDayVariants(rows);
+
+        Assert.Equal(2, collapsed.Count);
+        Assert.Contains(collapsed, f => f.Id == "MoonFish");
+        Assert.Contains(collapsed, f => f.Id == "MoonFish_rare1");
+        Assert.DoesNotContain(collapsed, f => f.Id == "MoonFish_AllDay");
+        Assert.DoesNotContain(collapsed, f => f.Id == "MoonFish_rare1_AllDay");
+
+        // A fish that (hypothetically) had only an "_AllDay" row and no plain sibling is kept
+        // rather than silently dropped.
+        var orphan = new FishDefinition("GhostFish_AllDay", "fish_ghost", IsRare: false);
+        Assert.Contains(CodexCatalog.CollapseAllDayVariants([orphan]), f => f.Id == "GhostFish_AllDay");
+    }
+
+    [Fact]
+    public void PlayerCodexEdit_TogglesEachCollapsedFishRowIndependently()
+    {
+        var path = FixturePlayerSave();
+        Assert.NotNull(path);
+        var data = PlayerSaveReader.ReadFromFile(path!);
+
+        // Build the vocabulary the same way CodexVocabularyService does: DT_Fish rows through
+        // CollapseAllDayVariants, so only the two real, trackable Moon Fish entries reach the
+        // GATEPal list, not their dead-end "_AllDay" duplicates.
+        var rawRows = new[]
+        {
+            new FishDefinition("MoonFish", "fish_moon", IsRare: false),
+            new FishDefinition("MoonFish_rare1", "fish_moon", IsRare: true, RequiredBaitTag: "Fishing.Bait.MoonFish"),
+            new FishDefinition("MoonFish_AllDay", "fish_moon", IsRare: false),
+            new FishDefinition("MoonFish_rare1_AllDay", "fish_moon", IsRare: true, RequiredBaitTag: "Fishing.Bait.MoonFish"),
+        };
+        var vocabulary = new CodexVocabulary([], [], [], CodexCatalog.CollapseAllDayVariants(rawRows));
+        var edit = PlayerCodexEdit.Create(data, vocabulary);
+
+        // Exactly the two real fish reached the model - no "_AllDay" row made it through.
+        Assert.Equal(2, edit.Fish.Count(f => !f.SaveOnly));
+        Assert.DoesNotContain(edit.Fish, f => f.Id.EndsWith("_AllDay", StringComparison.Ordinal));
+
+        var moon = edit.Fish.First(f => f.Id == "MoonFish");
+        var moonRare = edit.Fish.First(f => f.Id == "MoonFish_rare1");
+        var moonWasKnown = moon.IsKnown;
+        var moonRareWasKnown = moonRare.IsKnown;
+
+        // Flipping one leaves the other exactly where it was: each fish toggles independently.
+        moon.IsKnown = !moonWasKnown;
+        Assert.Equal(!moonWasKnown, moon.IsKnown);
+        Assert.Equal(moonRareWasKnown, moonRare.IsKnown);
+
+        moonRare.IsKnown = !moonRareWasKnown;
+        Assert.Equal(!moonWasKnown, moon.IsKnown);
+        Assert.Equal(!moonRareWasKnown, moonRare.IsKnown);
     }
 }

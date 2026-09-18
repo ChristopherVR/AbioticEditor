@@ -92,7 +92,42 @@ public static class CodexCatalog
         => Load(provider, "AbioticFactor/Content/Blueprints/DataTables/DT_Compendium", BuildCompendium);
 
     public static IReadOnlyList<FishDefinition> LoadFish(GameAssetProvider provider)
-        => Load(provider, "AbioticFactor/Content/Blueprints/DataTables/Fishing/DT_Fish", BuildFish);
+        => CollapseAllDayVariants(
+            Load(provider, "AbioticFactor/Content/Blueprints/DataTables/Fishing/DT_Fish", BuildFish));
+
+    /// <summary>
+    /// A handful of fish (currently only Moon Fish/Pelagic Moon Fish) carry a second DT_Fish row
+    /// with an "_AllDay" suffix: same item, same recipe/bait tag, same XP - only the time-of-day
+    /// catch-chance multipliers differ (the plain row bites at night only; the "_AllDay" row bites
+    /// any time). This is a server/world-setting alternate for the SAME catch, not a second
+    /// species: a save's <c>Compendium_Fish_</c> array (and the live game's own
+    /// <c>FishCaughtArray</c>) only ever records the base id, never the "_AllDay" one, no matter
+    /// which schedule was active when the fish was caught (verified against real save fixtures).
+    /// Surfacing the "_AllDay" row as its own GATEPal codex entry produced a checkbox that could
+    /// never actually be marked known by anything the game does - clicking it (live, through
+    /// Request_UnlockNewFish; offline, by staging the id into Compendium_Fish_) wrote an id the
+    /// game never reads back, so it looked like the click "didn't update" (live: the next refresh
+    /// reverted it; offline: the native game's own journal never showed it caught). Dropping the
+    /// "_AllDay" row when its base sibling is present collapses the pair back to the one real,
+    /// trackable entry. Public (rather than private) so <c>CodexTests</c> can exercise it directly
+    /// with synthetic rows, without a game install.
+    /// </summary>
+    public static IReadOnlyList<FishDefinition> CollapseAllDayVariants(IReadOnlyList<FishDefinition> rows)
+    {
+        const string suffix = "_AllDay";
+        var byId = rows.ToDictionary(f => f.Id, StringComparer.OrdinalIgnoreCase);
+        var result = new List<FishDefinition>(rows.Count);
+        foreach (var fish in rows)
+        {
+            if (fish.Id.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+                && byId.ContainsKey(fish.Id[..^suffix.Length]))
+            {
+                continue;
+            }
+            result.Add(fish);
+        }
+        return result;
+    }
 
     private static IReadOnlyList<T> Load<T>(
         GameAssetProvider provider, string path, Func<string, FStructFallback, T?> build) where T : class
