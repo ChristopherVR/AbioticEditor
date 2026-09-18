@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.0] - 2026-09-18
+
+### Bug Fixes
+- Holograms and trader stands can no longer be marked dead, and say what they are
+- A refused elevator change is reported once, and tram recalls are no longer refused while they work
+- Switching tabs can no longer freeze the editor when the game lists the same thing twice
+- The Bases tab shows bench names, where each base is, and how far away it is
+- The General tab shows only your account details
+- The Moon Fish "all day" entries no longer appear as separate fish that cannot be ticked
+- Deleting an item while connected to a running game now clears it from the screen right away
+- Bench upgrades no longer freeze the whole editor, and errors stay inside their tab
+- Live editing on Linux now ships its files, finds its helper and detects it running
+- The editor no longer crashes if the live helper quits right after writing its log
+- Containment units now show up in the web version
+- Refresh the web version's game data and drop two retired skills in Traditional Chinese
+
+
+### Documentation
+- Nexus page now describes live editing on Linux and everything it can change
+- The live editing guide now lists exactly what works, what needs the host, and what cannot change
+
+
+### Features
+- A fresh install asks for your language first, then what you want to do
+- More live editing parity - pressed-once buttons, exact spawner cooldowns, placed drops, clearer bench notes
+- Change a tamed pet's species while the game is running
+- Browse and edit the world's "seen" lists on the Story tab
+- Breakables, corpses, resource nodes, spawners, triggers, power sockets and trams in live editing
+- Unlock kill-tracked compendium entries while the game is running
+- Tamed Peccaries and Lamogi now show up in live editing
+- Edit a vehicle's on-board storage while the game is running
+- One NPCs tab with real names for story characters and creatures
+- Live editing on Linux when the game runs through Steam Play
+- The web version now tells you live editing exists in the desktop app
+- Edit buttons and elevators while the game is running
+- One Dead switch for characters and creatures instead of a separate Revive button
+- The live Traders tab now looks and works like the offline one
+- Warn about modded saves in the web version and remove moving items between worlds there
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.14.1 [skip ci]
+
+
 ## [2.14.1] - 2026-09-17
 
 ### Bug Fixes
