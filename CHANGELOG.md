@@ -2,10 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.16.2] - 2026-09-21
+
+### Bug Fixes
+- Improve world transfers, chemistry benches and character details
+
+
 ## [2.16.1] - 2026-09-21
 
 ### Bug Fixes
 - Tidy finale controls and restore missing companion pictures
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.16.0 [skip ci]
 
 
 ## [2.16.0] - 2026-09-21
