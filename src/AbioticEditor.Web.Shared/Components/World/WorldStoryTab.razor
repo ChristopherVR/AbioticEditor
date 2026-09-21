@@ -164,25 +164,6 @@
             }
         </div>
 
-        @if (HasWorldFlag("EndBossDefeated"))
-        {
-            <div class="wm-divider" role="presentation"></div>
-            <h3 class="wm-h2">Finale conversations</h3>
-            <p class="wm-intro">The finale chapter marks the Wayseeker's defeat. These separate flags record the conversations afterward. Mark each conversation complete here, or change its flag in the Facility save's @L.Resource("WorldEditor_TabQuestFlags") tab.</p>
-            @if (!Session.AppliesImmediately)
-            {
-                <p class="wm-note">These buttons write the sibling Facility save immediately and keep a backup, like Unlock Through.</p>
-            }
-            @foreach (var step in EpilogueSteps)
-            {
-                <div class="ws-recipe-row" @key="step.Flag">
-                    <span class="ws-recipe-text"><strong>@step.Label</strong><small>@step.Flag</small></span>
-                    <button type="button" class="secondary" disabled="@(_busy || HasWorldFlag(step.Flag) || !Session.CanSetStoryChapter)"
-                            @onclick="() => CompleteEpilogueAsync(step.Flag)">@(HasWorldFlag(step.Flag) ? "Complete" : "Mark complete")</button>
-                </div>
-            }
-        }
-
         @if (Session.SupportsRecipes)
         {
             <div class="wm-divider" role="presentation"></div>
@@ -243,7 +224,7 @@
         {
             <div class="wm-divider" role="presentation"></div>
 
-            <div class="ws-recipes-head">
+            <div class="ws-recipes-head ws-global-seen-head">
                 <span class="wm-label">@L.Resource("WorldStory_WorldWideSeen")</span>
                 <span class="wm-readout">@GlobalListCountText</span>
                 <select @bind="_globalListKind" aria-label="@L.Resource("WorldStory_WorldWideSeen")">
@@ -254,6 +235,9 @@
                 </select>
                 <input type="search" placeholder="@L.Resource("WorldStory_SearchWorldWideSeen")" aria-label="@L.Resource("WorldStory_SearchWorldWideSeen")"
                        @bind="_globalListSearch" @bind:event="oninput" />
+                <button type="button" class="wm-hazard-btn" disabled="@(!CanMarkAllGlobalList || _busy)" @onclick="MarkAllGlobalListAsync">
+                    @L.Resource("WorldStory_MarkAllSeen")
+                </button>
             </div>
 
             @if (!Session.CanEditGlobalLists)
@@ -287,14 +271,6 @@
                 }
             </div>
         }
-    }
-    @if (!Session.AppliesImmediately)
-    {
-        <div class="editor-actions"><button class="primary" disabled="@(!Session.IsDirty)" @onclick="SaveAsync">@L.Text("save").ToUpperInvariant() @L.Text("world").ToUpperInvariant()</button><button class="secondary" disabled="@(!Session.IsDirty)" @onclick="Revert">@L.Text("revert").ToUpperInvariant()</button></div>
-    }
-    @if (Session.Status is not null)
-    {
-        <p class="status-text">@Session.Status</p>
     }
     @if (_error is not null)
     {
@@ -415,6 +391,7 @@
             await RefreshWorldFlagsAsync();
             Toasts.Show(message);
         }
+        RefreshChapterDetail();
     });
 
     private bool IsCurrent(StoryChapter chapter)
@@ -571,6 +548,26 @@
             else
             {
                 <p class="wm-note">@L.Resource("WorldStory_LiveChapterReadOnly")</p>
+            }
+            @if (string.Equals(chapter.Row, "EndGame", StringComparison.OrdinalIgnoreCase)
+                )
+            {
+                <div class="ws-epilogue-detail">
+                    <span class="wm-label">Finale conversations</span>
+                    <p class="wm-note">The Wayseeker's defeat unlocks these separate conversation flags. @(HasWorldFlag("EndBossDefeated") ? string.Empty : "Defeat the Wayseeker or unlock this chapter first.")</p>
+                    @if (!Session.AppliesImmediately)
+                    {
+                        <p class="wm-note">These buttons write the sibling Facility save immediately and keep a backup.</p>
+                    }
+                    @foreach (var step in EpilogueSteps)
+                    {
+                        <div class="ws-epilogue-row" @key="step.Flag">
+                            <span class="ws-recipe-text"><strong>@step.Label</strong><small>@step.Flag</small></span>
+                            <button type="button" class="secondary" disabled="@(_busy || !HasWorldFlag("EndBossDefeated") || HasWorldFlag(step.Flag) || !Session.CanSetStoryChapter)"
+                                    @onclick="() => CompleteEpilogueAsync(step.Flag)">@(HasWorldFlag(step.Flag) ? "Complete" : "Mark complete")</button>
+                        </div>
+                    }
+                </div>
             }
         </aside>;
 
@@ -1059,12 +1056,6 @@
         return string.Join(", ", usedBy);
     }
 
-    private void Revert() { Session.Revert(); Workspace.NotifyEdited(); }
-    private async Task SaveAsync() { try { await Session.SaveAsync(); Workspace.NotifyEdited(); } catch (Exception ex) { await OnError.InvokeAsync(Errors.Present(ex, "The world save could not be written.", "Your changes remain open; check folder permissions and try again.")); } }
-    // (Revert/SaveAsync are only ever reachable when !Session.AppliesImmediately, i.e. the file
-    // session - see the SAVE/REVERT bar's guard above - so Workspace.NotifyEdited() here is safe
-    // unconditionally, unlike NotifyEdited() elsewhere in this file.)
-
     private sealed record WorldRecipeRow(string Id, RecipeInfo? Info, string DisplayName);
 
     // ---------- world-wide seen/read/found browser (round 112; both session kinds) ----------
@@ -1105,7 +1096,7 @@
     private string JournalName(string id) => _codexVocabulary.Journals.FirstOrDefault(j => j.Id == id)?.Title ?? PlainNames.Words(id);
     private string CompendiumName(string id) => _codexVocabulary.Compendium.FirstOrDefault(c => c.Id == id)?.Title ?? PlainNames.Words(id);
 
-    private bool GlobalListRowIsPresent(string id) => CurrentGlobalListDef.Ids(Session).Contains(id);
+    private bool GlobalListRowIsPresent(string id) => CurrentGlobalListDef.Ids(Session).Contains(id, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Every row worth showing for the selected list: every id the installed game's own
     /// data knows for that kind (so an unseen id can be added), plus any id already present in
@@ -1117,7 +1108,7 @@
         get
         {
             var def = CurrentGlobalListDef;
-            var ids = def.KnownIds().Concat(def.Ids(Session)).Distinct(StringComparer.Ordinal);
+            var ids = def.KnownIds().Concat(def.Ids(Session)).Distinct(StringComparer.OrdinalIgnoreCase);
             return ids.Select(id => new GlobalListRow(id, def.Name(id)));
         }
     }
@@ -1141,7 +1132,7 @@
             var def = CurrentGlobalListDef;
             var rows = AllGlobalListRows.ToList();
             return rows.Count > 0
-                ? L.Resource("WorldStory_WorldWideSeenCountFormat", def.Ids(Session).Count, rows.Count)
+                ? L.Resource("WorldStory_WorldWideSeenCountFormat", rows.Count(row => GlobalListRowIsPresent(row.Id)), rows.Count)
                 : L.Resource("PlayerRecipes_GameDataUnavailable");
         }
     }
@@ -1154,6 +1145,36 @@
         "not-host" => L.Resource("WorldStory_LiveGlobalListsNotHost"),
         _ => L.Resource("WorldStory_LiveGlobalListsReadOnlyHelp"),
     };
+
+    private bool CanMarkAllGlobalList
+    {
+        get
+        {
+            if (!Session.CanEditGlobalLists || _busy) return false;
+            var ids = CurrentGlobalListDef.KnownIds().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            return ids.Length > 0 && ids.Any(id => !GlobalListRowIsPresent(id));
+        }
+    }
+
+    private async Task MarkAllGlobalListAsync()
+    {
+        if (!CanMarkAllGlobalList) return;
+        var kind = CurrentGlobalListDef.Kind;
+        var ids = CurrentGlobalListDef.KnownIds().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Session.SetGlobalListAsync(kind, ids, true);
+            NotifyEdited();
+        }
+        catch (Exception exception) when (exception is LiveAgentException or System.Net.Sockets.SocketException
+            or IOException or OperationCanceledException)
+        {
+            _error = Errors.Present(exception, "Mark all world-wide entries seen.", "The connection may have dropped; try again.");
+        }
+        finally { _busy = false; }
+    }
 
     private async Task SetGlobalListRowAsync(string id, bool present)
     {

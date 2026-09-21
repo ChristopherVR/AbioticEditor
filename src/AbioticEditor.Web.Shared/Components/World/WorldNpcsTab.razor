@@ -398,17 +398,7 @@
     }
 
     private static IReadOnlyList<string> HologramPortraitCandidates(string name)
-    {
-        if (name.Contains("Interfector", StringComparison.OrdinalIgnoreCase))
-            return CreatureWikiImages.CandidatesFor("Interfector");
-        if (name.Contains("Manse", StringComparison.OrdinalIgnoreCase))
-            // Verified on the official Derek Manse page, whose portrait is Hologram.PNG.
-            return ["Hologram.PNG", "T_Compendium_Manse.png"];
-        // Exact portrait filenames from the official wiki's Compendium Images category.
-        if (name.Contains("Riggs", StringComparison.OrdinalIgnoreCase)) return ["T_Compendium_Riggs.png"];
-        if (name.Contains("Stern", StringComparison.OrdinalIgnoreCase)) return ["T_Compendium_Stern.png"];
-        return Array.Empty<string>();
-    }
+        => HologramPortraitCatalog.CandidatesFor(name);
 
     private Task SetDead(WorldNpc npc, bool isDead) => Apply(npc, isDead: isDead);
     private Task SetState(WorldNpc npc, string? state) => Apply(npc, state: state);

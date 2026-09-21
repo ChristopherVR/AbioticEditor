@@ -3,6 +3,7 @@
 @using AbioticEditor.Web.Components.Shared
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.Codex
 
 @* Faithful port of the native PlayerPetsTab: a master list of carried pets beside a
    detail editor (name, variant, level + XP, health + heal, staged remove/undo, and the
@@ -22,6 +23,7 @@
         }
     </div>
     <p class="muted companions-help">@L.Resource("PlayerPets_IntroHelp")</p>
+    <small class="muted">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
     @if (Session.Status is not null) { <p class="status-text">@Session.Status</p> }
     @if (Session is PlayerSaveSession fileSession)
     {
@@ -78,7 +80,7 @@
                    falling back to a paw glyph when no art is available. *@
                 <div class="pet-detail-head">
                     <span class="pet-portrait">
-                        <GameArtImage GameRefs="@PortraitRefs(pet)" Alt="@pet.DisplayName">
+                        <GameArtImage GameRefs="@PortraitRefs(pet)" WikiFiles="@CreatureWikiImages.CandidatesFor(PetWikiName(pet))" Alt="@pet.DisplayName">
                             <span class="material-symbol" aria-hidden="true">pets</span>
                         </GameArtImage>
                     </span>
@@ -271,6 +273,9 @@
     /// compendium art the world PETS tab uses), via the carried item row's creature class.</summary>
     private static IReadOnlyList<string> PortraitRefs(CarriedPetEdit pet)
         => PetCatalog.CompendiumTextureRefs(PetItemCatalog.NpcClassFor(pet.ItemRow));
+
+    private static string PetWikiName(CarriedPetEdit pet)
+        => PetItemCatalog.FriendlyName(pet.ItemRow) ?? pet.ItemRow;
 
     private string SlotText(CarriedPetEdit pet) => pet.IsCompanionSlot
         ? L.Resource("PlayerPets_CompanionSlot")

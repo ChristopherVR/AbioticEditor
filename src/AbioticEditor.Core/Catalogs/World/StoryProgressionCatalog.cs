@@ -61,7 +61,7 @@ public static class StoryProgressionCatalog
         new StoryChapter("Botanical", "Botanical Gardens", "You enter the Botanical Gardens, the overgrown heart of the Residence Sector's upper reaches.", "Res_EnteredBotanicals", Art + "map_botanical"),
         new StoryChapter("DarkLens", "The Dark Lens", "Past the wall lies the Dark Lens. Collect its fragments, face The Fallow, and open the way out of the facility at last.", "Residence_Wall", Art + "map_fracture2"),
         new StoryChapter("SouthIsland", "South Island", "The Fracture is behind you: you arrive at the South Island, whose altar can supposedly take you anywhere - Dr. Cahn and Thule have thoughts.", "Residence_Fracture_Complete", Art + "map_southisland"),
-        new StoryChapter("EndGame", "Finale - Facility Escape", "The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; use Finale conversations below to finish them.", "EndBossDefeated", Art + "map_endgame"),
+        new StoryChapter("EndGame", "Finale - Facility Escape", "The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; select this chapter to review its finale conversations.", "EndBossDefeated", Art + "map_endgame"),
     };
 
     public static IReadOnlyList<string> Rows { get; } = Chapters.Select(c => c.Row).ToList();

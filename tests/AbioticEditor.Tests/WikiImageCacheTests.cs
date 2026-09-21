@@ -282,6 +282,10 @@ public sealed class WikiImageCacheTests : IDisposable
         Assert.Contains("Itemicon_antefish.png", all, StringComparer.OrdinalIgnoreCase);
         Assert.Contains("Vehicle_-_Forklift.png", all, StringComparer.OrdinalIgnoreCase);
         Assert.Contains("Outlet.png", all, StringComparer.OrdinalIgnoreCase);
+        foreach (var portrait in HologramPortraitCatalog.AllWikiFiles)
+        {
+            Assert.Contains(portrait, all, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     // ---------- the curated wiki-file catalogs ----------

@@ -8,7 +8,8 @@ namespace AbioticEditor.Core.Assets;
 /// The single list of <i>verified</i> abioticfactor.wiki.gg image file names the editor knows
 /// it can show: the curated fish item icons (<see cref="FishWikiImages"/>), creature portraits
 /// (<see cref="CreatureWikiImages"/>), vehicle renders (<see cref="VehicleCatalog"/>), world-feature
-/// pictures (<see cref="FeatureWikiImageCatalog"/>), and door renders (<see cref="DoorWikiImageCatalog"/>).
+/// pictures (<see cref="FeatureWikiImageCatalog"/>), door renders (<see cref="DoorWikiImageCatalog"/>),
+/// and named hologram portraits (<see cref="HologramPortraitCatalog"/>).
 ///
 /// These are the names worth pre-downloading into the offline fallback bundle (the CLI's
 /// <c>download-wiki-images</c> command fetches exactly this set into <c>assets/wiki/</c>, which
@@ -26,9 +27,11 @@ public static class WikiImageManifest
     public static IReadOnlyList<string> AllFiles { get; } =
         FishWikiImages.AllWikiFiles
             .Concat(CreatureWikiImages.AllWikiFiles)
+            .Concat(HologramPortraitCatalog.AllWikiFiles)
             .Concat(VehicleCatalog.CuratedWikiFiles)
             .Concat(FeatureWikiImageCatalog.AllWikiFiles)
             .Concat(DoorWikiImageCatalog.MappedClasses.Values)
+            .Concat(HologramPortraitCatalog.AllWikiFiles)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static n => n, StringComparer.OrdinalIgnoreCase)
             .ToArray();

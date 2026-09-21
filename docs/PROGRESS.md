@@ -1,5 +1,40 @@
 # Abiotic Editor - Session history
 
+## Round-127: review follow-ups, story controls and companion portraits (2026-09-21)
+
+Pushed round 126 at the owner's request after rebasing over the automated v2.15.1 release
+commits (result: da9bf9a). Opened the desktop app for review.
+
+- Finale conversations now belong to the selected Finale chapter's right-hand detail pane.
+  Dedicated rows replace the incompatible recipe grid, and long flag IDs wrap. Selecting a
+  different chapter hides the panel. Before the boss flag is present the conversations remain
+  visible under Finale with a prerequisite note and disabled completion actions.
+- Removed the duplicate bottom Save/Revert/status block from Story. World-wide seen lists now
+  have Mark all seen for the selected list kind, independent of the search filter. It stages
+  offline changes for the header Save/Revert controls, preserves other lists, and disables when
+  all catalog entries are present. Case-insensitive matching follows the save writer so casing
+  variants do not remain falsely unseen after the bulk action.
+- Researched the official wiki pages and imageinfo API for hologram speakers. Bundled Manse's
+  actual hologram image plus the Manse, Riggs, and Abe Stern compendium portraits. Corrected
+  the non-existent Stern image filename to T_Compendium_Abe.png, verified in Abe Stern's page
+  infobox. The shared catalog now feeds the offline manifest. No individual image was verified
+  for Clericus Artem or B'hali; generic Clericum/Interfector artwork is not used as their portrait.
+  Provenance links are in assets/wiki/README.md.
+- Companion images now try wiki fallbacks after installed game texture refs. Verified and
+  bundled Sir Ogi and Speedogi's dedicated 256x256 PNGs from the official wiki, whose filenames
+  are Item_Icon_-_lamogi_plated.png and Item_Icon_-_lamogi_speedy.png. This covers the world add
+  palette, world pet list/detail, and carried-pet detail; custom names do not affect lookup.
+  Each companion surface includes the wiki attribution.
+
+Browser review used temporary fixture copies. Finale has no overflowing rows at 1440x1000,
+is absent after selecting another chapter, and there is no duplicate footer action block.
+The bulk action was also checked against an existing save and exposed the casing issue fixed
+above. The user's original review window and real save files were left intact.
+Final focused tests passed 134/134; the net10.0 host built with zero warnings or errors.
+Browser verification confirmed Mark all seen reaches 1592/1592 and disables itself, the header
+Revert restores the prior state, and all 28 companion choices have loaded images with this
+install. Sir Ogi resolves to the bundled wiki PNG; Speedogi resolves to its installed game art.
+
 ## Round-126: offline feedback, companions, epilogue and shared game data (2026-09-21)
 
 Merged the two open dependency PRs (#37 and #38) through GitHub at the owner's request,

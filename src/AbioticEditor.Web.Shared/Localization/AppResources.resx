@@ -905,6 +905,7 @@
   <data name="WorldStory_WorldRecipes" xml:space="preserve"><value>WORLD RECIPES</value></data>
   <data name="WorldStory_WorldWideSeen" xml:space="preserve"><value>WORLD-WIDE SEEN</value></data>
   <data name="WorldStory_SearchWorldWideSeen" xml:space="preserve"><value>Search…</value></data>
+  <data name="WorldStory_MarkAllSeen" xml:space="preserve"><value>MARK ALL SEEN</value></data>
   <data name="WorldStory_NoWorldWideSeen" xml:space="preserve"><value>No entries match (or game data is unavailable).</value></data>
   <data name="WorldStory_WorldWideSeenCountFormat" xml:space="preserve"><value>{0} of {1} known</value></data>
   <data name="WorldStory_WorldItemsPickedUp" xml:space="preserve"><value>Items picked up</value></data>
@@ -2805,7 +2806,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_ChapterTitle_SouthIsland" xml:space="preserve"><value>South Island</value></data>
   <data name="WorldStory_ChapterSummary_SouthIsland" xml:space="preserve"><value>The Fracture is behind you: you arrive at the South Island, whose altar can supposedly take you anywhere - Dr. Cahn and Thule have thoughts.</value></data>
   <data name="WorldStory_ChapterTitle_EndGame" xml:space="preserve"><value>Finale - Facility Escape</value></data>
-  <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; use Finale conversations below to finish them.</value></data>
+  <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; select this chapter to review its finale conversations.</value></data>
   <data name="WorldTraders_Lore_Warren_Name" xml:space="preserve"><value>Warren Bunning</value></data>
   <data name="WorldTraders_Lore_Warren_Where" xml:space="preserve"><value>Office Sector plaza - security kiosk (stationary)</value></data>
   <data name="WorldTraders_Lore_Warren_Blurb" xml:space="preserve"><value>Sydney-sider turned subterranean security specialist. Sells security keys, seeds, alloys and repair kits; stock grows with story progress.</value></data>

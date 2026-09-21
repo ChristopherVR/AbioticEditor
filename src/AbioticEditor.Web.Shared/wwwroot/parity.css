@@ -1614,13 +1614,20 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .ws-detail-title small{color:var(--faint);font-size:9px;letter-spacing:.06em}
 .ws-chapter-art{display:block;overflow:hidden;height:120px;border-radius:4px;background:#000}
 .ws-chapter-art img{width:100%;height:100%;object-fit:cover}
+.ws-epilogue-detail{display:grid;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.ws-epilogue-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.ws-epilogue-row .ws-recipe-text{min-width:0}
 .ws-detail-status{color:var(--terminal)}
 .ws-detail-summary{margin:0;font-size:12px}
 .ws-detail-blocked{color:var(--section)}
 .ws-detail-missing{margin:0;color:var(--section);font-size:11px}
 .ws-detail-actions{display:flex;flex-wrap:wrap;gap:8px}
 .ws-recipes-head{display:grid;grid-template-columns:180px minmax(0,1fr) auto auto;gap:16px;align-items:center}
+.ws-global-seen-head{display:flex;flex-wrap:wrap}
+.ws-global-seen-head>span{flex:0 0 auto}
+.ws-global-seen-head select{max-width:100%}
 .ws-recipes-head input[type=search]{box-sizing:border-box;width:240px;background:var(--elevated);color:var(--ink)}
+.ws-epilogue-row .ws-recipe-text small{overflow-wrap:anywhere}
 .ws-recipe-list{overflow:auto;max-height:320px;border:1px solid var(--line);background:var(--panel)}
 .ws-recipes-empty{margin:0;padding:16px;color:var(--muted)}
 .ws-recipe-row{display:grid;grid-template-columns:auto 32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:4px 14px;cursor:pointer}
@@ -1711,7 +1718,7 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .wc-unlock-btn:disabled{opacity:.72;cursor:default}
 .wc-unlock-btn.wm-hazard-btn{padding:4px 10px;background:var(--hazard);color:var(--on-accent)}
 @container(max-width:760px){
-  .ws-minutes-row,.ws-recipes-head{grid-template-columns:1fr}
+  .ws-minutes-row,.ws-recipes-head,.ws-global-seen-head{grid-template-columns:1fr}
   .ws-recipes-head input[type=search]{width:100%}
   .wc-detail{grid-template-columns:1fr}
   /* A containment row carries four things (badge, name+place, HOLDS picker, RELEASE); in a
@@ -1726,7 +1733,7 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
    keeps the wide layout exactly as it was. */
 @media(max-width:760px){
   .skill-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))!important}
-  .wc-detail,.wc-unlock-grid,.ws-minutes-row,.ws-recipes-head{grid-template-columns:minmax(0,1fr)}
+  .wc-detail,.wc-unlock-grid,.ws-minutes-row,.ws-recipes-head,.ws-global-seen-head{grid-template-columns:minmax(0,1fr)}
   .wc-list .wc-row{grid-template-columns:auto minmax(0,1fr);row-gap:8px}
   .wc-list .wc-assign,.wc-list .wc-release{grid-column:2}
   .wc-list .wc-release{justify-self:start}

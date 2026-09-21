@@ -3,6 +3,7 @@
 @using AbioticEditor.Web.Components.Shared
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Core.PlayerSaves
+@using AbioticEditor.Core.Codex
 @inject SaveWorkspaceSessionService Workspace
 @inject InventorySelectionService Selection
 @implements IDisposable
@@ -12,6 +13,7 @@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
     <h2 class="wt-h2">@L.Resource("WorldPets_TamedPetsInThisWorld")</h2>
     <p class="wt-intro">@L.Resource("WorldPets_PetListIntro")</p>
+    <small class="wt-muted">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
     @if (Session is WorldSaveSession)
     {
         <div class="editor-actions"><button type="button" class="primary" @onclick="OpenAddPet">@L.Resource("WorldPets_AddTitle")</button></div>
@@ -43,7 +45,7 @@
                             @onclick="() => _selectedId = row.Id">
                         <span class="pet-avatar" aria-hidden="true">
                             <span class="pet-avatar-letter">@Avatar(row)</span>
-                            <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(row.NpcClass)" Alt="" Class="pet-avatar-img" />
+                            <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(row.NpcClass)" WikiFiles="@CreatureWikiImages.CandidatesFor(PetCatalog.FriendlyName(row.NpcClass))" Alt="" Class="pet-avatar-img" />
                         </span>
                         <span class="wt-row-text">
                             <strong>@PetName(row)</strong>
@@ -76,7 +78,7 @@
                     <span class="wt-muted">@LocationText(pet)</span>
                 </div>
 
-                <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(pet.NpcClass)" Alt="@PetName(pet)" Class="pet-portrait" />
+                <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(pet.NpcClass)" WikiFiles="@CreatureWikiImages.CandidatesFor(PetCatalog.FriendlyName(pet.NpcClass))" Alt="@PetName(pet)" Class="pet-portrait" />
 
                 <PetCareGuide ClassPath="@pet.NpcClass" />
 

@@ -1,5 +1,6 @@
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.Codex
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Components.Shared
 @inject SaveWorkspaceSessionService Workspace
@@ -11,6 +12,7 @@
         <span class="detail-title"><strong>@L.Resource("WorldPets_AddTitle")</strong><small>@_variants.Count companion types</small></span>
         <button type="button" class="detail-close" aria-label="@L.Inventory("closeSlotEditor")" @onclick="Selection.CloseDetail">×</button>
     </div>
+    <small class="muted">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
     <input type="search" class="wt-input" placeholder="@L.Resource("WorldPets_SearchCompanions")"
            aria-label="@L.Resource("WorldPets_SearchCompanions")" @bind="_search" @bind:event="oninput" />
     <div class="companion-palette" role="listbox" aria-label="@L.Resource("WorldPets_SearchCompanions")">
@@ -19,7 +21,7 @@
             <button type="button" role="option" aria-selected="@(variant.ClassPath == _selected?.ClassPath ? "true" : "false")"
                     class="companion-choice @(variant.ClassPath == _selected?.ClassPath ? "selected" : null)"
                     @key="variant.ClassPath" @onclick="() => _selected = variant">
-                <span class="companion-icon"><GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(variant.ClassPath)" Alt="" /></span>
+                <span class="companion-icon"><GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(variant.ClassPath)" WikiFiles="@CreatureWikiImages.CandidatesFor(variant.FriendlyName)" Alt="" /></span>
                 <span class="companion-name"><strong>@variant.FriendlyName</strong><small>@variant.Category</small></span>
                 <span class="companion-support">@L.Resource(variant.IsEditable ? "WorldPets_AddSupported" : "WorldPets_AddUnsupported")</span>
             </button>

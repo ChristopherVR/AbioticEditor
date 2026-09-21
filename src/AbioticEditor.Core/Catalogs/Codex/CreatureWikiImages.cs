@@ -66,6 +66,10 @@ public static class CreatureWikiImages
             // is not guaranteed.
             ["Peccary"] = "Peccary.PNG",
             ["Symphonist"] = "Symphonist.PNG",
+            // The Lamogi variants use their carried-item icons on the official pet pages.
+            // Verified through the wiki imageinfo API: both are 256x256 PNGs.
+            ["Sir Ogi"] = "Item_Icon_-_lamogi_plated.png",
+            ["Speedogi"] = "Item_Icon_-_lamogi_speedy.png",
             // Verified 2026-09-17 by resolving each page-title guess against
             // Special:FilePath and confirming it actually redirects to an image (a real 404,
             // not the wiki's rate limiter, which also answers HTTP 429 on a genuine miss under
@@ -137,7 +141,7 @@ public static class CreatureWikiImages
             // their file differently from their title (Tarecarry, Rattis Pestis, Winter Peccary).
             // Classes with no wiki page or an image-less page (Reaper Scout, Thespian, Clericus,
             // the Dark Lens "of the Fallow" variants, the Magma/Verdant Skinks, Zombie Scientist /
-            // Dam Worker, Sir Ogi, Order Trooper's page, the training dummy and hologram, the
+            // Dam Worker, Order Trooper's page, the training dummy and hologram, the
             // VOTV UFO/Wisp cameos) are deliberately left out rather than pointed at a wrong file.
             ["Robot Defense"] = "T3.png",
             ["Robot Containment"] = "T2.png",
