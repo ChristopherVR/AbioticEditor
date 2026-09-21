@@ -1,5 +1,6 @@
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
+using AbioticEditor.Core.LiveEditing.World;
 
 namespace AbioticEditor.Web.Models;
 
@@ -35,4 +36,16 @@ public interface IWorldFeaturesSession
 
     /// <summary>Removes one entry, when the feature supports it.</summary>
     Task<WorldEditResult> RemoveMapFeatureEntry(string featureId, string entryKey);
+}
+
+/// <summary>Shared chemistry-bench surface used by both staged saves and live worlds.</summary>
+public interface IChemistryBenchSession
+{
+    IReadOnlyList<LiveCareEntry> Entries { get; }
+    bool IsHost { get; }
+    bool AppliesImmediately { get; }
+    event Action? Changed;
+    Task<WorldEditResult> SetFieldAsync(string entryKey, string fieldId, string? value,
+        CancellationToken cancellationToken = default);
+    Task RefreshAsync(CancellationToken cancellationToken = default);
 }

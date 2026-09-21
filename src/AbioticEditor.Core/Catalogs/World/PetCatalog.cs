@@ -230,10 +230,15 @@ public static class PetCatalog
             names.Add(parts[0]);
         }
 
-        return names
+        var refs = names
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Select(n => CompendiumDir + n)
             .ToList();
+        // Sir Ogi has a carried-item icon but no dedicated compendium texture. This path is
+        // verified by ItemTable_Global (Lamogi_Plated), so it also works without a wiki request.
+        if (string.Equals(shortClass, "NPC_Monster_LamogiPlated", StringComparison.OrdinalIgnoreCase))
+            refs.Insert(0, "/Game/Textures/GUI/ItemIcons/itemicon_lamogi_plated.itemicon_lamogi_plated");
+        return refs;
     }
 
     /// <summary>The short class-name (without <c>_C</c>) of a full path or short string.</summary>

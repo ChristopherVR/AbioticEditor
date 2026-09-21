@@ -39,6 +39,12 @@ They are shared character references, not screenshots of each recording.
 - [Manse compendium portrait](https://abioticfactor.wiki.gg/wiki/File:T_Compendium_Manse.png)
 - [Riggs compendium portrait](https://abioticfactor.wiki.gg/wiki/File:T_Compendium_Riggs.png)
 - [Abe Stern compendium portrait](https://abioticfactor.wiki.gg/wiki/File:T_Compendium_Abe.png)
+- Additional named story character portraits (`T_Compendium_Cahn.png`, `T_Compendium_Frake.png`,
+  `T_Compendium_Hank.png`, `T_Compendium_HastaTria.png`, `T_Compendium_Hoff.png`,
+  `T_Compendium_Houston.png`, `T_Compendium_Janet.png`, `T_Compendium_Jimmy.png`,
+  `T_Compendium_JonasConti.png`, `T_Compendium_KHill.png`, `T_Compendium_Kylie.png`,
+  `T_Compendium_Marion.png`, `T_Compendium_Newman.png`, `T_Compendium_Pendleton.png`) from the
+  [official Compendium Images category](https://abioticfactor.wiki.gg/wiki/Category:Compendium_Images)
 - [Sir Ogi companion icon](https://abioticfactor.wiki.gg/wiki/File:Item_Icon_-_lamogi_plated.png)
 - [Speedogi companion icon](https://abioticfactor.wiki.gg/wiki/File:Item_Icon_-_lamogi_speedy.png)
 

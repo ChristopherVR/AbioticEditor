@@ -28,6 +28,10 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     private readonly CodexVocabularyService _codexVocabulary;
     private readonly HostLanguageService? _language;
     private readonly ISaveFileSystem _files;
+    private readonly Dictionary<string, PlayerSaveSession> _transferPlayers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, WorldSaveSession> _transferWorlds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HashSet<string>> _linkedTransfers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SaveSelection> _retainedSelections = new(StringComparer.OrdinalIgnoreCase);
 
     public SaveWorkspaceSessionService(RecipeVocabularyService recipeVocabulary, ProgressionVocabularyService progressionVocabulary, CodexVocabularyService codexVocabulary, ISaveFileSystem files)
         : this(recipeVocabulary, new ItemUpgradeVocabularyService(), progressionVocabulary, codexVocabulary, files) { }
@@ -64,6 +68,103 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     public WorldSaveSession? TransferWorldSession { get; private set; }
     public string? BusyOperation { get; private set; }
     public event Action? Changed;
+
+    /// <summary>Loads an explicit target without changing the selected editor save.</summary>
+    public async Task<PlayerSaveSession?> GetTransferPlayerAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (Current is not { } workspace) return null;
+            var save = workspace.Saves.FirstOrDefault(candidate => candidate.Kind == SaveDocumentKind.Player
+                && string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+            if (save is null) return null;
+            return (await RetainSelectionAsync(save, workspace.Saves, cancellationToken).ConfigureAwait(false)).PlayerSession;
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async Task<WorldSaveSession?> GetTransferWorldAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_files.HasLocalPaths) path = Path.GetFullPath(path);
+            if (_transferWorlds.TryGetValue(path, out var retained)) return retained;
+            var saves = Current?.Saves ?? [];
+            var save = saves.FirstOrDefault(candidate => candidate.Kind == SaveDocumentKind.World
+                && string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+            if (save is null)
+            {
+                if (!_files.HasLocalPaths) throw new InvalidOperationException("An external world requires local file access.");
+                save = new WorkspaceSave(path, Path.GetFileName(path), Path.GetFileName(path),
+                    new FileInfo(path).Length, SaveDocumentKind.World, null);
+            }
+            return (await RetainSelectionAsync(save, saves, cancellationToken).ConfigureAwait(false)).WorldSession;
+        }
+        finally { _gate.Release(); }
+    }
+
+    private async Task<SaveSelection> RetainSelectionAsync(WorkspaceSave save,
+        IReadOnlyList<WorkspaceSave> siblings, CancellationToken cancellationToken)
+    {
+        if (_retainedSelections.TryGetValue(save.Path, out var retained)) return retained;
+        var selection = await ReadSelectionAsync(save, siblings, cancellationToken).ConfigureAwait(false);
+        _retainedSelections[save.Path] = selection;
+        if (selection.PlayerSession is { } player) _transferPlayers[save.Path] = player;
+        if (selection.WorldSession is { } world) _transferWorlds[save.Path] = world;
+        return selection;
+    }
+
+    public void RegisterTransfer(WorldSaveSession source, PlayerSaveSession target)
+    {
+        _transferWorlds[source.Path] = source;
+        _transferPlayers[target.Path] = target;
+        LinkTransfer(source.Path, target.Path);
+    }
+
+    public void RegisterTransfer(WorldSaveSession source, WorldSaveSession target)
+    {
+        _transferWorlds[source.Path] = source;
+        _transferWorlds[target.Path] = target;
+        LinkTransfer(source.Path, target.Path);
+    }
+
+    private void LinkTransfer(string first, string second)
+    {
+        if (string.Equals(first, second, StringComparison.OrdinalIgnoreCase)) return;
+        if (!_linkedTransfers.TryGetValue(first, out var a)) _linkedTransfers[first] = a = new(StringComparer.OrdinalIgnoreCase);
+        if (!_linkedTransfers.TryGetValue(second, out var b)) _linkedTransfers[second] = b = new(StringComparer.OrdinalIgnoreCase);
+        a.Add(second);
+        b.Add(first);
+    }
+
+    private List<string> TransferGroup(string path)
+    {
+        var result = new List<string>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<string>();
+        pending.Enqueue(path);
+        while (pending.TryDequeue(out var next))
+        {
+            if (!visited.Add(next)) continue;
+            result.Add(next);
+            if (_linkedTransfers.TryGetValue(next, out var neighbors))
+                foreach (var neighbor in neighbors) pending.Enqueue(neighbor);
+        }
+        return result;
+    }
+
+    private void UnlinkGroup(IEnumerable<string> paths)
+    {
+        foreach (var path in paths) _linkedTransfers.Remove(path);
+    }
+
+    public Task SaveTransferAsync(WorldSaveSession source, CancellationToken cancellationToken = default)
+    {
+        _transferWorlds[source.Path] = source;
+        return SaveSessionGroupAsync(source.Path, cancellationToken);
+    }
 
     /// <summary>
     /// Puts a message in the shell's busy line and gives the page a turn to draw it.
@@ -145,6 +246,10 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             DeleteWorkingDir(previousWorkingDir);
             TransferPlayerSession = null;
             TransferWorldSession = null;
+            _transferPlayers.Clear();
+            _transferWorlds.Clear();
+            _retainedSelections.Clear();
+            _linkedTransfers.Clear();
             Current = new SaveWorkspace(
                 session.WorkingDir, saves, null, null, null, null, SavePlatform.GamePass, source)
             {
@@ -204,6 +309,10 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             DeleteWorkingDir(previousWorkingDir);
             TransferPlayerSession = null;
             TransferWorldSession = null;
+            _transferPlayers.Clear();
+            _transferWorlds.Clear();
+            _retainedSelections.Clear();
+            _linkedTransfers.Clear();
             Current = new SaveWorkspace(
                 fullPath,
                 saves,
@@ -250,7 +359,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 WorldSession = null,
             };
             Changed?.Invoke();
-            var selection = await ReadSelectionAsync(save, cancellationToken).ConfigureAwait(false);
+            var selection = await RetainSelectionAsync(save, workspace.Saves, cancellationToken).ConfigureAwait(false);
             if (selection.PlayerSession is not null) TransferPlayerSession = selection.PlayerSession;
             if (selection.WorldSession is not null) TransferWorldSession = selection.WorldSession;
             Current = workspace with
@@ -295,6 +404,17 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             }
         }
 
+        // Reload discards the selected transfer group together, then reads fresh bytes.
+        var group = TransferGroup(save.Path);
+        RevertGroup(group);
+        foreach (var path in group)
+        {
+            _retainedSelections.Remove(path);
+            _transferPlayers.Remove(path);
+            _transferWorlds.Remove(path);
+        }
+        if (TransferPlayerSession is { } retainedPlayer && group.Contains(retainedPlayer.Path, StringComparer.OrdinalIgnoreCase)) TransferPlayerSession = null;
+        if (TransferWorldSession is { } retainedWorld && group.Contains(retainedWorld.Path, StringComparer.OrdinalIgnoreCase)) TransferWorldSession = null;
         await SelectAsync(save.Path, cancellationToken).ConfigureAwait(false);
     }
 
@@ -311,7 +431,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         {
             var workspace = Current ?? throw new InvalidOperationException("Open a world save folder first.");
             var player = workspace.PlayerSession ?? throw new InvalidOperationException("Select a player save first.");
-            if (player.IsDirty) throw new InvalidOperationException("Save or revert staged player changes before changing the player ID.");
+            if (HasStagedEdits) throw new InvalidOperationException("Save or revert staged changes before changing the player ID.");
 
             BusyOperation = "Changing player ID..."; Changed?.Invoke();
             var oldFileName = Path.GetFileName(player.Path);
@@ -374,6 +494,13 @@ public sealed class SaveWorkspaceSessionService : IDisposable
             var renamed = saves.FirstOrDefault(save => string.Equals(save.Path, newPath, StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException("The renamed player save was not rediscovered in this workspace.");
             var selection = await ReadSelectionAsync(renamed, cancellationToken).ConfigureAwait(false);
+            _retainedSelections.Clear();
+            _transferPlayers.Clear();
+            _transferWorlds.Clear();
+            _linkedTransfers.Clear();
+            _retainedSelections[renamed.Path] = selection;
+            if (selection.PlayerSession is { } renamedPlayer) _transferPlayers[renamed.Path] = renamedPlayer;
+            TransferWorldSession = null;
             TransferPlayerSession = selection.PlayerSession;
             Current = workspace with { Saves = saves, SelectedSave = renamed, Summary = selection.Summary, PlayerSession = selection.PlayerSession, WorldSession = null };
         }
@@ -383,16 +510,25 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         }
     }
 
-    public async Task SaveSelectedAsync(CancellationToken cancellationToken = default)
+    public Task SaveSelectedAsync(CancellationToken cancellationToken = default)
+    {
+        var path = Current?.PlayerSession?.Path ?? Current?.WorldSession?.Path;
+        return path is null ? Task.CompletedTask : SaveSessionGroupAsync(path, cancellationToken);
+    }
+
+    private async Task SaveSessionGroupAsync(string selectedPath, CancellationToken cancellationToken)
     {
         var current = Current;
-        var player = current?.PlayerSession;
-        var world = current?.WorldSession;
-        if (player is null && world is null) return;
-        BusyOperation = "Writing save and backup…"; Changed?.Invoke();
+        var group = TransferGroup(selectedPath);
+        BusyOperation = "Writing save and backup..."; Changed?.Invoke();
         try
         {
-            if (player is not null) await player.SaveAsync(cancellationToken); else if (world is not null) await world.SaveAsync(cancellationToken);
+            // Keep all links on failure, so a retry can finish the remaining writes.
+            foreach (var path in group.AsEnumerable().Reverse())
+            {
+                if (_transferPlayers.TryGetValue(path, out var player) && player.IsDirty) await player.SaveAsync(cancellationToken);
+                else if (_transferWorlds.TryGetValue(path, out var world) && world.IsDirty) await world.SaveAsync(cancellationToken);
+            }
 
             // The editor wrote the .sav into the temp working copy; pack it straight back
             // into the Xbox container so SAVE means saved, exactly like the native app
@@ -434,6 +570,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 ClearWorkingDirProtection(gamePass.WorkingDir);
                 EditorLog.Info("GamePass", $"Saved into Game Pass container '{gamePass.Container}'.");
             }
+                    UnlinkGroup(group);
         }
         finally { BusyOperation = null; Changed?.Invoke(); }
     }
@@ -527,7 +664,9 @@ public sealed class SaveWorkspaceSessionService : IDisposable
     }
 
     /// <summary>True when an open session is holding edits that have not been written yet.</summary>
-    public bool HasStagedEdits => Current?.PlayerSession?.IsDirty == true || Current?.WorldSession?.IsDirty == true;
+    public bool HasStagedEdits => Current?.PlayerSession?.IsDirty == true || Current?.WorldSession?.IsDirty == true
+        || _transferPlayers.Values.Any(session => session.IsDirty)
+        || _transferWorlds.Values.Any(session => session.IsDirty);
 
     /// <summary>
     /// Writes any staged edits out, so something that reads the saves back (the exporter) sees
@@ -542,14 +681,27 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 "Refusing to flush staged edits to a writable folder: that would save the player's "
                 + "files behind their back. Only a read-only workspace may be flushed.");
         }
-        if (HasStagedEdits) await SaveSelectedAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var path in _transferPlayers.Where(pair => pair.Value.IsDirty).Select(pair => pair.Key)
+            .Concat(_transferWorlds.Where(pair => pair.Value.IsDirty).Select(pair => pair.Key)).ToArray())
+            await SaveSessionGroupAsync(path, cancellationToken).ConfigureAwait(false);
     }
 
     public void RevertSelected()
     {
-        if (Current?.PlayerSession is { } player) player.Revert();
-        else Current?.WorldSession?.Revert();
+        var path = Current?.PlayerSession?.Path ?? Current?.WorldSession?.Path;
+        if (path is not null) RevertGroup(TransferGroup(path));
         Changed?.Invoke();
+    }
+
+    private void RevertGroup(IEnumerable<string> paths)
+    {
+        var group = paths.ToArray();
+        foreach (var path in group)
+        {
+            if (_transferPlayers.TryGetValue(path, out var player)) player.Revert();
+            if (_transferWorlds.TryGetValue(path, out var world)) world.Revert();
+        }
+        UnlinkGroup(group);
     }
 
     private async Task<WorkspaceSave[]> DiscoverSavesAsync(string worldFolder, CancellationToken cancellationToken)

@@ -12,7 +12,7 @@
 @inject RecipeVocabularyService Recipes
 @implements IDisposable
 
-@* Dedicated live tab, not the generic WorldFeaturesTab: a chemistry bench's four flask slots
+@* Shared chemistry tab for live and offline worlds: a chemistry bench's four flask slots
    (three inputs, one computed output) used to show as bare "flask:0".."flask:3" text fields that
    were also read-only in the running game, and finding the bench at all meant following an "open
    flask contents" link into the CONTAINERS tab filtered to this bench's id - a link a player
@@ -29,7 +29,7 @@
         <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
     </div>
 
-    @if (!Session.IsHost)
+    @if (Session.AppliesImmediately && !Session.IsHost)
     {
         <p class="error-text" role="alert">@L.Resource("LiveChemistryBenches_NotHostWarning")</p>
     }
@@ -137,7 +137,7 @@
                             {
                                 <p class="wt-muted">@L.Resource("LiveChemistryBenches_MixingInProgress")</p>
                             }
-                            else if (InputItemIds(bench).Count > 0)
+                            else if (Session.AppliesImmediately && InputItemIds(bench).Count > 0)
                             {
                                 <button class="wt-btn wt-yellow" type="button" disabled="@(_busy || !Session.IsHost)"
                                         @onclick='() => SetFlaskAsync(bench.Id, "process", "start")'>@L.Resource("LiveChemistryBenches_StartMixing")</button>
@@ -212,7 +212,7 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public LiveDeployedCareSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IChemistryBenchSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
     // "Send to player" destinations - exactly the same two-way shape WorldContainersTab already
     // exposes (a connected live player, or a player save staged alongside this world), so a host
@@ -381,7 +381,7 @@
 
     private void OpenSendPicker(LiveCareEntry bench, LiveCareField flask)
     {
-        if (IsEmptySlot(flask.Value)) return;
+        if (IsEmptySlot(flask.Value) || (LivePlayerSession is null && PlayerSession is null && Containers is null)) return;
         _fieldErrors.Remove(bench.Id);
         _sendPicker = (bench.Id, flask.Id);
         _sendChestId = NearbyChests(bench).FirstOrDefault()?.Id;

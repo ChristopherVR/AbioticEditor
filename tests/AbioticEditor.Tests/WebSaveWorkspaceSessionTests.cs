@@ -13,6 +13,132 @@ namespace AbioticEditor.Tests;
 public sealed class WebSaveWorkspaceSessionTests
 {
     [Fact]
+    public async Task Transfer_player_cache_retains_staged_slot_and_summary_when_selected()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var players = opened.Saves.Where(save => save.Kind == SaveDocumentKind.Player).Take(2).ToArray();
+        Assert.Equal(2, players.Length);
+        var target = await workspace.GetTransferPlayerAsync(players[1].Path);
+        Assert.NotNull(target);
+        var slot = target!.Backpack.First(slot => slot.IsEmpty);
+        Assert.True(target.TrySetInventorySlot(PlayerInventoryArea.Backpack, slot.Index,
+            new InventoryItemSlot(slot.Index, "pest", 1, 100, 100, 0, 0, null, false, null, null)));
+        target.MarkChanged();
+
+        var selected = await workspace.SelectAsync(players[1].Path);
+        Assert.Same(target, selected.PlayerSession);
+        Assert.IsType<PlayerSaveSummary>(selected.Summary);
+        Assert.True(selected.PlayerSession!.IsDirty);
+    }
+
+    [Fact]
+    public async Task Saving_selected_transfer_destination_saves_linked_source_and_target()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var targetSave = opened.Saves.First(save => save.Kind == SaveDocumentKind.Player);
+        var sourceSave = opened.Saves.First(save => save.Kind == SaveDocumentKind.World && save.Name.Contains("Facility", StringComparison.OrdinalIgnoreCase));
+        var source = await workspace.GetTransferWorldAsync(sourceSave.Path);
+        var target = await workspace.GetTransferPlayerAsync(targetSave.Path);
+        Assert.NotNull(source);
+        Assert.NotNull(target);
+        var sourceFlag = Assert.Single(source!.Flags.Take(1));
+        source.SetFlag(sourceFlag, false);
+        target!.CompletedIntro = !target.CompletedIntro;
+        workspace.RegisterTransfer(source, target);
+        await workspace.SelectAsync(targetSave.Path);
+        await workspace.SaveSelectedAsync();
+        Assert.DoesNotContain(sourceFlag, WorldSaveReader.ReadFromFile(sourceSave.Path).Flags);
+        Assert.Equal(target.CompletedIntro, PlayerSaveReader.ReadFromFile(targetSave.Path).CompletedIntro);
+    }
+
+    [Fact]
+    public async Task Linked_world_transfer_moves_a_real_container_item_before_both_saves()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var regions = opened.Saves.Where(save => save.Kind == SaveDocumentKind.World).Take(2).ToArray();
+        Assert.Equal(2, regions.Length);
+        var source = await workspace.GetTransferWorldAsync(regions[0].Path);
+        var destination = await workspace.GetTransferWorldAsync(regions[1].Path);
+        Assert.NotNull(source); Assert.NotNull(destination);
+        var sourceContainer = source!.Containers.First(container => container.Inventories.Any(inventory => inventory.Slots.Any(slot => !slot.IsEmpty)));
+        var sourceInventory = sourceContainer.Inventories.Select((_, index) => index).First(index => sourceContainer.Inventories[index].Slots.Any(slot => !slot.IsEmpty));
+        var sourceSlot = sourceContainer.Inventories[sourceInventory].Slots.First(slot => !slot.IsEmpty);
+        var destinationContainer = destination!.Containers.First(container => container.Inventories.Any(inventory => inventory.Slots.Any(slot => slot.IsEmpty)));
+        var destinationInventory = destinationContainer.Inventories.Select((_, index) => index).First(index => destinationContainer.Inventories[index].Slots.Any(slot => slot.IsEmpty));
+        var destinationSlot = destinationContainer.Inventories[destinationInventory].Slots.First(slot => slot.IsEmpty);
+        Assert.True(InventoryTransferService.TryMoveContainerToContainer(source, sourceContainer.Source, sourceContainer.Id, sourceInventory, sourceSlot.Index,
+            destination, destinationContainer.Source, destinationContainer.Id, destinationInventory, destinationSlot.Index));
+        workspace.RegisterTransfer(source, destination);
+        await workspace.SelectAsync(regions[1].Path);
+        await workspace.SaveSelectedAsync();
+        Assert.Contains(WorldSaveReader.ReadFromFile(regions[1].Path).Containers.SelectMany(container => container.Inventories).SelectMany(inventory => inventory.Slots), slot => slot.ItemId == sourceSlot.ItemId);
+    }
+
+    [Fact]
+    public async Task Revert_selected_linked_group_leaves_unrelated_dirty_session_alone()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var players = opened.Saves.Where(save => save.Kind == SaveDocumentKind.Player).Take(2).ToArray();
+        var sourceSave = opened.Saves.First(save => save.Kind == SaveDocumentKind.World && save.Name.Contains("Facility", StringComparison.OrdinalIgnoreCase));
+        var source = await workspace.GetTransferWorldAsync(sourceSave.Path);
+        var linked = await workspace.GetTransferPlayerAsync(players[0].Path);
+        var unrelated = await workspace.GetTransferPlayerAsync(players[1].Path);
+        Assert.NotNull(source); Assert.NotNull(linked); Assert.NotNull(unrelated);
+        var sourceFlag = Assert.Single(source!.Flags.Take(1));
+        source.SetFlag(sourceFlag, false);
+        linked!.CompletedIntro = !linked.CompletedIntro;
+        unrelated!.CompletedIntro = !unrelated.CompletedIntro;
+        workspace.RegisterTransfer(source, linked);
+        await workspace.SelectAsync(sourceSave.Path);
+        workspace.RevertSelected();
+        Assert.False(source.IsDirty);
+        Assert.False(linked.IsDirty);
+        Assert.True(unrelated.IsDirty);
+    }
+
+    [Fact]
+    public async Task External_transfer_world_is_cached_across_selections()
+    {
+        using var world = CopyCascadeWorld();
+        using var external = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var externalPath = Path.Combine(external.Path, "WorldSave_Facility.sav");
+        var first = await workspace.GetTransferWorldAsync(externalPath);
+        Assert.NotNull(first);
+        var sourceFlag = Assert.Single(first!.Flags.Take(1));
+        first.SetFlag(sourceFlag, false);
+        await workspace.SelectAsync(opened.Saves.First(save => save.Kind == SaveDocumentKind.Player).Path);
+        var second = await workspace.GetTransferWorldAsync(externalPath);
+        Assert.Same(first, second);
+        Assert.True(second!.IsDirty);
+    }
+
+    [Fact]
+    public async Task Reload_selected_rereads_disk_after_external_write()
+    {
+        using var world = CopyCascadeWorld();
+        using var workspace = CreateWorkspace();
+        var opened = await workspace.OpenAsync(world.Path);
+        var save = opened.Saves.First(candidate => candidate.Kind == SaveDocumentKind.Player);
+        var selected = await workspace.SelectAsync(save.Path);
+        var original = selected.PlayerSession!.CompletedIntro;
+        var disk = PlayerSaveReader.ReadFromFile(save.Path);
+        PlayerSaveWriter.ApplyCompletedIntro(disk, !original);
+        PlayerSaveWriter.WriteToFile(disk, save.Path);
+        await workspace.ReloadSelectedAsync();
+        Assert.Equal(!original, workspace.Current!.PlayerSession!.CompletedIntro);
+    }
+
+    [Fact]
     public async Task Workspace_opens_and_selects_player_and_world_saves()
     {
         using var world = CopyCascadeWorld();

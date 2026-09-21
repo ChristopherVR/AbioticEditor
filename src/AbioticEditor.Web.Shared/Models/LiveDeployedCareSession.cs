@@ -7,7 +7,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Shares the offline care panels with loaded world objects, applying each edit immediately.</summary>
-public sealed class LiveDeployedCareSession : IWorldFeaturesSession
+public sealed class LiveDeployedCareSession : IWorldFeaturesSession, IChemistryBenchSession
 {
     private readonly LiveDeployedCareChannel _channel;
     private LiveCareDirectory _directory;
@@ -29,6 +29,7 @@ public sealed class LiveDeployedCareSession : IWorldFeaturesSession
     public string Path => string.Empty;
     public IReadOnlyList<WorldDeployable> Deployables => [];
     public bool IsHost => _directory.IsHost;
+    public bool AppliesImmediately => true;
     public bool IsDirty => Volatile.Read(ref _pendingOperations) > 0;
     public event Action? Changed;
 

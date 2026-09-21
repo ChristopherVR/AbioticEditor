@@ -20,7 +20,7 @@
         {
             <button type="button" role="option" aria-selected="@(variant.ClassPath == _selected?.ClassPath ? "true" : "false")"
                     class="companion-choice @(variant.ClassPath == _selected?.ClassPath ? "selected" : null)"
-                    @key="variant.ClassPath" @onclick="() => _selected = variant">
+                    @key="variant.ClassPath" @onclick="() => SelectVariant(variant)">
                 <span class="companion-icon"><GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(variant.ClassPath)" WikiFiles="@CreatureWikiImages.CandidatesFor(variant.FriendlyName)" Alt="" /></span>
                 <span class="companion-name"><strong>@variant.FriendlyName</strong><small>@variant.Category</small></span>
                 <span class="companion-support">@L.Resource(variant.IsEditable ? "WorldPets_AddSupported" : "WorldPets_AddUnsupported")</span>
@@ -45,8 +45,8 @@
                 <label>Z<input class="wt-input" type="number" @bind="_z" /></label>
             </div>
             <p class="muted">@_placementHint</p>
+            <button type="button" class="primary" disabled="@(_x is null || _y is null || _z is null)" @onclick="AddAsync">@L.Resource("WorldPets_Add")</button>
         }
-        <button type="button" class="primary" disabled="@(!selected.IsEditable || _x is null || _y is null || _z is null)" @onclick="AddAsync">@L.Resource("WorldPets_Add")</button>
     }
     <p class="muted">New companions are staged until you save this world.</p>
     @if (_status is not null) { <p role="status" class="muted">@_status</p> }
@@ -97,9 +97,16 @@
         if (Session.TryAddCatalogPet(selected.ClassPath, _name, x, y, z, out var message))
         {
             _name = null;
+            _status = null;
             Workspace.NotifyEdited();
             await OnAdded.InvokeAsync();
         }
-        _status = message;
+        else _status = message;
+    }
+
+    private void SelectVariant(PetVariant variant)
+    {
+        _selected = variant;
+        _status = null;
     }
 }

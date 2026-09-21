@@ -391,7 +391,6 @@
             await RefreshWorldFlagsAsync();
             Toasts.Show(message);
         }
-        RefreshChapterDetail();
     });
 
     private bool IsCurrent(StoryChapter chapter)
@@ -818,6 +817,11 @@
         finally
         {
             _busy = false;
+            // Rebuild the open sidebar after the guard is released. Rebuilding it inside
+            // the action captures disabled controls, leaving the next distinct epilogue
+            // flag unusable until another unrelated render.
+            RefreshChapterDetail();
+            await InvokeAsync(StateHasChanged);
         }
     }
 

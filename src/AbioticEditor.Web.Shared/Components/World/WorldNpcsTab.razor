@@ -4,7 +4,6 @@
 @using AbioticEditor.Core.Codex
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.World
-@inject SaveWorkspaceSessionService Workspace
 @inject GameArtService Art
 
 @* Round 77: the first tab for narrative NPCs (story characters/traders) - the offline session
@@ -67,12 +66,12 @@
                     {
                         <button type="button" role="option" aria-selected="@(_storySelectedId == npc.Id ? "true" : "false")"
                                 class="wt-row @(_storySelectedId == npc.Id ? "selected" : null)" @key="npcKey" title="@npc.Id"
-                                @onclick="() => _storySelectedId = npc.Id">
+                                @onclick="() => SelectStoryRow(npc)">
                             <span class="wt-row-text">
                                 <strong>@CharacterName(npc)</strong>
                                 <small>@CharacterSecondary(npc)</small>
                             </span>
-                            <span class="wt-row-status">@(npc.IsDead ? L.Resource("WorldPets_StatusDead") : L.Resource("WorldPets_StatusHealthy"))</span>
+                            <span class="wt-row-status">@(npc.IsDead ? "Removal flag set" : "Removal flag not set")</span>
                         </button>
                     }
                 </div>
@@ -83,6 +82,18 @@
                     }
                     else
                     {
+                        @if (_storyWikiLoading || _storyWikiFile is not null)
+                        {
+                            <figure class="codex-wiki">
+                                @if (_storyWikiFile is { } wikiFile) { <img src="@Art.WikiImageUrl(wikiFile)" alt="@CharacterName(selected)" /> }
+                                else { <span class="codex-wiki-frame" role="status" aria-label="@L.Resource("PlayerCodex_FetchingImage")"><span class="header-busy-spinner"></span></span> }
+                                <figcaption class="muted">@(_storyWikiFile is null ? L.Resource("PlayerCodex_FetchingImage") : L.Resource("Slot_ImageAbioticfactorWikiGg")) · Character reference, not this actor's exact scene.</figcaption>
+                            </figure>
+                        }
+                        else
+                        {
+                            <p class="wt-muted">No verified character reference image is bundled for this entry.</p>
+                        }
                         <h3 class="wt-h3" title="@selected.Id">@CharacterName(selected)</h3>
                         <p class="wt-muted">@CharacterSecondary(selected)</p>
                         @if (HasRealLocation(selected))
@@ -92,35 +103,23 @@
                             <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
                         </div>
                         }
-                        @* Round 92: one Dead toggle does the whole job - unchecking it is the revive
-                           action (there used to be a second "Revive" button next to this checkbox
-                           that only ever called the exact same SetDead(selected, false)).
-                           Round 124: some classes (holograms, static trader stands) are never
-                           actually killable in-game - see NpcIdentityCatalog.CanBeKilled and
-                           docs/reference/research/research-narrative-npcs.md. The checkbox still
-                           shows whatever IsDead the save/live actor already carries (a row can
-                           legitimately be dead from the game's own story scripting), it just
-                           cannot be toggled for those classes, in either file or live mode. *@
-                        <label class="wt-check" title="@(CanKillSelected(selected) ? null : CannotDieTooltip(selected))">
-                            <input type="checkbox" checked="@selected.IsDead" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost) || !CanKillSelected(selected))" @onchange="e => SetDead(selected, e.Value is bool value && value)" />
-                            @L.Resource("WorldPets_Dead")
-                        </label>
+                        @* Research shows IsDead is primarily a story-scripted removal flag, so
+                           this screen never offers a player-facing kill switch. *@
+                        <div class="wt-field">
+                            <span class="wt-label">Saved removal flag</span>
+                            <span class="wt-muted">@(selected.IsDead ? "Set" : "Not set")</span>
+                            <small class="wt-muted">This field can be used by story scripts to remove an appearance; it is not a reliable alive/dead indicator.</small>
+                        </div>
                         <details>
                             <summary>@L.Resource("WorldNpcs_ScriptPhase")</summary>
                             <p class="wt-muted" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhaseTooltip")</p>
-                            <label class="wt-field"><span class="wt-label">Stage</span>
-                                <select class="wt-input" value="@selected.State" disabled="@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost))" @onchange="e => SetState(selected, e.Value?.ToString())">
-                                    @if (!StoryStages.Contains(selected.State)) { <option value="@selected.State">Unknown saved stage (@selected.State)</option> }
-                                    @for (var i = 0; i < StoryStages.Length; i++) { <option value="@StoryStages[i]">Stage @i</option> }
-                                </select>
-                            </label>
+                            <span class="wt-muted">Saved raw phase: @selected.State</span>
+                            <small class="wt-muted">This is a per-character dialogue or behavior phase. We have not verified what each value means for this character, so it is diagnostic only.</small>
                         </details>
                     }
                 </div>
             </div>
         }
-        @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
-        @if (_storyError is not null) { <p class="error-text" role="alert">@_storyError</p> }
     }
     else if (_section == NpcSection.Holograms)
     {
@@ -164,7 +163,7 @@
                         }
                         <h3 class="wt-h3">@CharacterName(selected)</h3>
                         <p class="wt-muted">Class: @NpcClassName(selected), instance: @NpcInstanceName(selected)</p>
-                        <p class="wt-muted">This saved entry is a scripted projection. Its story phase is the dialogue or scene phase assigned to this instance, not your global quest progress.</p>
+                        <p class="wt-muted">This saved entry is a scripted projection. Its raw phase belongs to this instance's dialogue or scene script; we have not verified what each value means, and it is not a global quest progress value.</p>
                         <details>
                             <summary>@L.Resource("WorldNpcs_ScriptPhase")</summary>
                             <p class="wt-muted" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhaseTooltip")</p>
@@ -297,8 +296,6 @@
     private enum NpcSection { Story, Creatures, Holograms }
     private NpcSection _section = NpcSection.Story;
 
-    private static readonly string[] StoryStages = Enumerable.Range(0, 6).Select(i => $"E_NarrativeNPCStates::NewEnumerator{i}").ToArray();
-
     // ----- Story characters (NarrativeNPCMap) -----
 
     private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
@@ -345,24 +342,36 @@
         return index >= 0 && int.TryParse(state[(index + marker.Length)..], out var stage) ? stage : -1;
     }
 
-    /// <summary>Round 124: whether the Dead checkbox should be interactive for this row - false
-    /// for classes the game never lets players kill (holograms, static trader stands), so the
-    /// control cannot imply an action that has no effect. See
-    /// <see cref="NpcIdentityCatalog.CanBeKilled"/>.</summary>
-    private static bool CanKillSelected(WorldNpc npc) => NpcIdentityCatalog.CanBeKilled(npc.Id, npc.ActorName);
-
-    /// <summary>Round 124 follow-up: the disabled Dead checkbox's tooltip - builds on the same
-    /// plain-language catalog explanation already shown under the character's name
-    /// (<see cref="NpcIdentityCatalog.LabelFor"/>), so a hologram's tooltip says the same
-    /// "recorded projection, not a living character" thing its row already does, instead of a
-    /// generic one-size-fits-all message.</summary>
-    private string CannotDieTooltip(WorldNpc npc) =>
-        L.Resource("WorldNpcs_CannotDieTooltipFormat", NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName));
-
     private string? _storySelectedId;
-    private bool _storyBusy;
-    private string? _storyError;
     private WorldNpc? StorySelected => _storySelectedId is null ? null : Session.Npcs.FirstOrDefault(npc => npc.Id == _storySelectedId && !IsHologram(npc));
+    private string? _storyWikiFile;
+    private bool _storyWikiLoading;
+
+    private void SelectStoryRow(WorldNpc npc)
+    {
+        if (_storySelectedId == npc.Id) { _storySelectedId = null; _storyWikiFile = null; _storyWikiLoading = false; return; }
+        _storySelectedId = npc.Id;
+        _ = LoadStoryWikiImageAsync(npc);
+    }
+
+    private async Task LoadStoryWikiImageAsync(WorldNpc npc)
+    {
+        _storyWikiFile = null;
+        _storyWikiLoading = false;
+        var candidates = HologramPortraitCatalog.CandidatesFor(CharacterName(npc));
+        if (candidates.Count == 0) return;
+        _storyWikiLoading = true;
+        var selected = npc.Id;
+        StateHasChanged();
+        foreach (var candidate in candidates)
+        {
+            var path = await Art.GetWikiImagePathAsync(candidate);
+            if (_storySelectedId != selected) return;
+            if (path is not null) { _storyWikiFile = candidate; break; }
+        }
+        _storyWikiLoading = false;
+        StateHasChanged();
+    }
 
     private string? _hologramSelectedId;
     private string? _hologramWikiFile;
@@ -399,29 +408,6 @@
 
     private static IReadOnlyList<string> HologramPortraitCandidates(string name)
         => HologramPortraitCatalog.CandidatesFor(name);
-
-    private Task SetDead(WorldNpc npc, bool isDead) => Apply(npc, isDead: isDead);
-    private Task SetState(WorldNpc npc, string? state) => Apply(npc, state: state);
-
-    private async Task Apply(WorldNpc npc, bool? isDead = null, string? state = null)
-    {
-        _storyBusy = true;
-        try
-        {
-            await Session.SetNpcAsync(npc.Id, isDead ?? npc.IsDead, state ?? npc.State);
-            _storyError = null;
-            if (!Session.AppliesImmediately) Workspace.NotifyEdited();
-        }
-        catch (Exception exception)
-        {
-            _storyError = Errors.Present(exception, "Change this NPC.", "The connection may have dropped; try reconnecting.");
-            await OnError.InvokeAsync(_storyError);
-        }
-        finally
-        {
-            _storyBusy = false;
-        }
-    }
 
     // ----- Creatures and NPCs nearby (live-only, main.lua's npcs.list/.set) -----
 

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using AbioticEditor.Core.Saves;
 using UeSaveGame;
 using UeSaveGame.PropertyTypes;
@@ -162,6 +162,7 @@ public sealed class ChemistryBenchesFeature : DeployedCareFeature
 {
     public override string Id => "chemistry-benches";
     public override string DisplayName => "Chemistry benches";
+    protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props) => $"Chemistry bench {ordinal}";
     public override string Description => "Three saved inputs and the output flask. Open contents to change items; mixing runs in the game.";
     protected override bool IncludesEntry(IList<FPropertyTag> props) => ClassName(props).Contains("/Deployed_ChemistryBench.", StringComparison.Ordinal);
     protected override (string? TargetId, string? Label, bool NeedsHostResolution) LinkFor(string key, IList<FPropertyTag> props)
@@ -178,12 +179,25 @@ public sealed class ChemistryBenchesFeature : DeployedCareFeature
         foreach (var slot in Elements(inventory, "InventoryContent_").Take(4))
         {
             var row = Struct(slot, "ItemDataTable_")?.FindByPrefix("RowName")?.Property?.Value?.ToString();
-            fields.Add(WorldMapField.ReadOnly($"flask:{index}", index == 3 ? "Output" : $"Input {index + 1}",
-                row is null or "Empty" or "None" ? "Empty" : row));
+            fields.Add(new WorldMapField($"flask:{index}", index == 3 ? "Output" : $"Input {index + 1}",
+                row is null or "Empty" or "None" ? "Empty" : row, WorldFieldKind.Text, true));
             index++;
         }
         return fields;
     }
     protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
-        => WorldEditResult.Failure("Use Edit flask contents to change saved items. Mixing progress belongs to the running game.");
+    {
+        if (!fieldId.StartsWith("flask:", StringComparison.Ordinal)
+            || !int.TryParse(fieldId.AsSpan("flask:".Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
+            || index is < 0 or > 3)
+            return WorldEditResult.Failure("Only flask contents can be changed in a saved chemistry bench.");
+        var inventory = Elements(props, "ContainerInventories_").FirstOrDefault();
+        var slot = inventory is null ? null : Elements(inventory, "InventoryContent_").Skip(index).FirstOrDefault();
+        var rowName = slot is null ? null : Struct(slot, "ItemDataTable_")?.FindByPrefix("RowName");
+        if (rowName?.Property is null) return WorldEditResult.Failure("This flask slot is not stored in the save.");
+        var normalized = string.IsNullOrWhiteSpace(value) ? "Empty" : value.Trim();
+        if (string.Equals(rowName.Property.Value?.ToString(), normalized, StringComparison.Ordinal)) return WorldEditResult.NoChange;
+        GvasTags.SetName(Struct(slot!, "ItemDataTable_")!, "RowName", normalized);
+        return WorldEditResult.Success;
+    }
 }

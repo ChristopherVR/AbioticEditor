@@ -648,7 +648,7 @@
 
   <!-- WorldContainers -->
   <data name="WorldContainers_DragHelp" xml:space="preserve"><value>Drag a slot onto a container in the list to move the item into that container's first empty slot.</value></data>
-  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Right-click an item to send it to a player save next to this world (it lands in their first free backpack slot, else the hotbar). Save or revert other world changes first.</value></data>
+  <data name="WorldContainers_SendHelp" xml:space="preserve"><value>Right-click an item, choose a player, then send it to their first free backpack or hotbar slot. Save or revert applies to both sides of the transfer.</value></data>
   <data name="WorldContainers_FilterPlaceholder" xml:space="preserve"><value>Filter containers by name…</value></data>
   <data name="WorldContainers_MovedIntoFormat" xml:space="preserve"><value>Moved {0} into {1}.</value></data>
   <data name="WorldContainers_ContainerFullFormat" xml:space="preserve"><value>{0} has no free space, so nothing was moved.</value></data>
@@ -824,7 +824,7 @@
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
   <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a character to restore them or inspect their story stage.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>
-  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>How far along this character is in their own scripted moments, from 0 to 5. It is not your quest progress. Everyone still alive sits at 3.</value></data>
+  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>This is the raw per-character script state. The numbers have no universal meanings, so changing one without that character's script can break conversations. It is shown for diagnosis only.</value></data>
   <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY NPCS &amp; TRADERS IN THIS WORLD</value></data>
   <data name="WorldNpcs_TradersMoved" xml:space="preserve"><value>Looking for traders? Open the world's story save and use its TRADERS tab to unlock their stock for everyone.</value></data>
   <data name="WorldNpcs_SectionStory" xml:space="preserve"><value>Story characters</value></data>
@@ -1099,7 +1099,7 @@
     <value>Transfer Items Between World Saves</value>
   </data>
   <data name="Transfer_Description" xml:space="preserve">
-    <value>Load two world saves (any two - the same world's regions, or two entirely separate playthroughs) and move items between their containers. Tap a filled slot to pick it up, then tap an empty slot on the other side to drop it there. Each side keeps its own .bak and saves independently.</value>
+    <value>Load two world saves (any two - the same world's regions, or two entirely separate playthroughs) and move items between their containers. Tap a filled slot to pick it up, then tap an empty slot on the other side to drop it there. Saving a transfer writes both sides and keeps a .bak backup for each save.</value>
   </data>
   <data name="Transfer_SideHeaderFormat" xml:space="preserve">
     <value>World {0}</value>
@@ -3900,6 +3900,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldContainers_SendItemDialogTitle" xml:space="preserve"><value>Send item to which player?</value></data>
   <data name="WorldContainers_SendToPlayerMenu" xml:space="preserve"><value>Send to player</value></data>
   <data name="WorldContainers_TransferItemsLink" xml:space="preserve"><value>Move items to a different world save →</value></data>
+  <data name="WorldContainers_TransferItemsButton" xml:space="preserve"><value>MOVE TO ANOTHER WORLD</value></data>
+  <data name="WorldContainers_SendTarget" xml:space="preserve"><value>Player destination</value></data>
+  <data name="WorldContainers_SendTargetPlaceholder" xml:space="preserve"><value>Choose a player</value></data>
+  <data name="Transfer_BackToContainers" xml:space="preserve"><value>BACK TO CONTAINERS</value></data>
   <data name="WorldContainers_SendingItemFormat" xml:space="preserve"><value>Sending {0} to {1}...</value></data>
   <data name="WorldContainment_BulkCompendiumWhat" xml:space="preserve"><value>unlock every compendium section world-wide</value></data>
   <data name="WorldContainment_BulkEmailsWhat" xml:space="preserve"><value>mark every email as read world-wide</value></data>
@@ -4346,4 +4350,5 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="AppError_Dismiss" xml:space="preserve"><value>DISMISS</value></data>
   <data name="AppError_Action" xml:space="preserve"><value>The last action did not go through.</value></data>
   <data name="AppError_Guidance" xml:space="preserve"><value>Try it again; if it keeps failing, reopen the save or reconnect to the game.</value></data>
+  <data name="Transfer_PairedSaveHint" xml:space="preserve"><value>Save or revert in the header applies to both sides of a transfer.</value></data>
 </root>

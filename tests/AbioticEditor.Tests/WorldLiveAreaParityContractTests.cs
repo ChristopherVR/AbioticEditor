@@ -1,4 +1,4 @@
-namespace AbioticEditor.Tests;
+﻿namespace AbioticEditor.Tests;
 
 /// <summary>
 /// Structural contract for round-76's live-editing slice (containment, traders, world
@@ -182,22 +182,14 @@ public sealed class WorldLiveAreaParityContractTests
     }
 
     [Fact]
-    public void WorldNpcsTab_disables_the_dead_checkbox_for_classes_that_cannot_be_killed()
+    public void WorldNpcsTab_keeps_unverified_story_removal_and_phase_fields_read_only()
     {
-        // Round 124: the checkbox must not imply an action the game never honours (holograms,
-        // static trader stands) - see NpcIdentityCatalog.CanBeKilled and
-        // docs/reference/research/research-narrative-npcs.md. It stays disabled in both file and
-        // live mode (this tab is the same component for both - see the test above), and shows a
-        // tooltip explaining why instead of just going silently inert - the tooltip is built from
-        // the same plain-language catalog label already shown under the character's name (round
-        // 124 follow-up), so a hologram's tooltip actually says "recorded projection", not a
-        // generic message.
+        // These actor fields have no verified universal mapping to alive/dead or quest progress.
+        // Keep them diagnostic rather than exposing arbitrary story mutations.
         var source = WorldSource("WorldNpcsTab.razor");
-        Assert.Contains("CanKillSelected(selected)", source, StringComparison.Ordinal);
-        Assert.Contains("disabled=\"@(_storyBusy || (Session.AppliesImmediately && !Session.IsHost) || !CanKillSelected(selected))\"", source, StringComparison.Ordinal);
-        Assert.Contains("CannotDieTooltip(selected)", source, StringComparison.Ordinal);
-        Assert.Contains("L.Resource(\"WorldNpcs_CannotDieTooltipFormat\", NpcIdentityCatalog.LabelFor(npc.Id, npc.ActorName))", source, StringComparison.Ordinal);
-        Assert.Contains("NpcIdentityCatalog.CanBeKilled(npc.Id, npc.ActorName)", source, StringComparison.Ordinal);
+        Assert.Contains("Saved removal flag", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Session.SetNpcAsync", source, StringComparison.Ordinal);
+        Assert.Contains("WorldNpcs_ScriptPhaseTooltip", source, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -91,6 +91,7 @@
                 else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" FileSession="@world" OnError="WorldError" /> }
                 else if (_worldTab == FeatureTabPrefix + WorldEntitlementsTab.EntitlementsFeatureId) { <WorldEntitlementsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
+                else if (_worldTab == FeatureTabPrefix + "chemistry-benches") { <LiveChemistryBenchTab Session="@ChemistrySession(world)" OnChanged="ChemistryChanged" /> }
                 else if (_worldTab.StartsWith(FeatureTabPrefix, StringComparison.Ordinal)) { <WorldFeaturesTab Title="@workspace.SelectedSave!.Name" Session="@world" FeatureId="@_worldTab[FeatureTabPrefix.Length..]" OnError="WorldError" OnOpenLink="OpenVehicleContainer" /> }
                 else { <WorldRawTab Title="@workspace.SelectedSave!.Name" Session="@world" /> }
                 </AppErrorBoundary>
@@ -113,6 +114,8 @@
     // map is actually present in this save, so smaller regions show fewer tabs.
     private const string FeatureTabPrefix = "feature:";
     private WorldSaveSession? _tabSession;
+    private WorldSaveSession? _chemistryWorld;
+    private OfflineChemistryBenchSession? _chemistrySession;
     private IReadOnlyList<WorldTabItem> _worldTabItems = [];
     private string _worldTab = "containers";
 
@@ -150,6 +153,16 @@
         if (_worldTabItems.Count > 0 && !_worldTabItems.Any(tab => string.Equals(tab.Id, _worldTab, StringComparison.Ordinal)))
             _worldTab = _worldTabItems[0].Id;
         return _worldTabItems;
+    }
+
+    private OfflineChemistryBenchSession ChemistrySession(WorldSaveSession world)
+    {
+        if (!ReferenceEquals(_chemistryWorld, world))
+        {
+            _chemistryWorld = world;
+            _chemistrySession = new OfflineChemistryBenchSession(world);
+        }
+        return _chemistrySession!;
     }
 
     private IReadOnlyList<WorldTabItem> BuildWorldTabs(WorldSaveSession world)
@@ -225,6 +238,7 @@
     protected override void OnInitialized() => Workspace.Changed += WorkspaceChanged;
     private void WorkspaceChanged() => _ = InvokeAsync(StateHasChanged);
     private Task PlayerChanged() { Workspace.Current?.PlayerSession?.MarkChanged(); Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
+    private Task ChemistryChanged() { Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
     private Task WorldError(string? error) { _error = error; return Task.CompletedTask; }
     public void Dispose() => Workspace.Changed -= WorkspaceChanged;
 }

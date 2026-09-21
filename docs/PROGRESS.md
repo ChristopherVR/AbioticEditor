@@ -1,5 +1,33 @@
 # Abiotic Editor - Session history
 
+## Round-128: review fixes for transfers, chemistry and character details (2026-09-21)
+
+- Containers now opens cross-world transfers from the filter toolbar, keeps the world tab
+  strip in place and offers Back without resetting the filter. Right-click opens an explicit
+  player chooser, with no item mutation until Send. Linked transfer sessions survive save
+  selection; Save/Revert handles the connected source and destination group. External world
+  targets are retained too. Reload rereads disk, and unrelated staged sessions are not reverted.
+- Offline chemistry uses the live flask and recipe layout through a staged adapter. Save/Revert
+  remains offline, with no invented live timer or start-mixing action. Live transfers still work;
+  offline flask transfers are not offered through the live catalog reconstruction path.
+- Story characters show verified wiki portraits. Bundled 14 additional compendium PNGs with
+  provenance, completing all 19 catalog image fallbacks. Unknown portraits are explicitly marked
+  unavailable. The misleading Dead and arbitrary script-phase controls are now read-only
+  diagnostics; neither field has a verified universal mapping to alive/dead or quest progress.
+- Sir Ogi tries its verified installed-game item texture before the bundled wiki fallback.
+  Read-only summons have no Add action or move-to-player control. Successful companion staging
+  no longer repeats the coordinate status message.
+- Finale detail refreshes after the busy guard clears, so completing one conversation does not
+  leave the remaining actions disabled. Browser checks completed Cahn and then Janet in sequence
+  while the final story completion action stayed enabled.
+
+Verification: clean host build; 100 focused tests passed across workspace transfer persistence,
+chemistry stage/revert/save roundtrip, inventory transfers, portraits and UI contracts (one old
+NPC contract was updated to match the read-only behavior). Browser checks used disposable copies:
+transfer Back retained the filter, tabs stayed visible, right-click offered all four player saves,
+Send staged the selected move, Revert restored the source, and offline chemistry rendered the
+shared flask/recipe surface. Existing user review windows and real saves were left untouched.
+
 ## Round-127: review follow-ups, story controls and companion portraits (2026-09-21)
 
 Pushed round 126 at the owner's request after rebasing over the automated v2.15.1 release

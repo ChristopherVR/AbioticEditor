@@ -1,4 +1,4 @@
-@page "/transfer-items"
+﻿@page "/transfer-items"
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Components.Player
@@ -12,15 +12,21 @@
 @inject IServiceProvider Services
 @inject NavigationManager Navigation
 
-<PageTitle>@L.Resource("Transfer_Title") · @L.Resource("App_Title")</PageTitle>
+@if (!Embedded)
+{
+    <PageTitle>@L.Resource("Transfer_Title") · @L.Resource("App_Title")</PageTitle>
+}
 
 @* "Move items between worlds" is desktop-only - see IBrowserHostMarker. A deep link straight to
    this route on the web deployment is sent back to the workspace in OnInitialized below instead
    of rendering anything here, so a bookmarked/typed URL can never reach the tool. *@
 @if (!IsBrowserHost)
 {
-    <section class="tool-scaffold">
-        <header class="tool-scaffold-heading"><p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1></header>
+    <section class="tool-scaffold @(Embedded ? "transfer-embedded" : null)">
+        <header class="tool-scaffold-heading">
+            @if (Embedded) { <button class="secondary" type="button" @onclick="() => OnBack.InvokeAsync()">@L.Resource("Transfer_BackToContainers")</button> }
+            <p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1>
+        </header>
 
         @* Picking an arbitrary .sav file from anywhere on disk needs a real file system, exactly
            like the file-vs-file half of Compare - a browser tab without local paths cannot reach a
@@ -35,6 +41,7 @@
         else
         {
             <p class="muted">@L.Resource("Transfer_Description")</p>
+            @if (Embedded) { <p class="muted">@L.Resource("Transfer_PairedSaveHint")</p> }
 
             @SidePanel(_left, other: _right)
             <section class="compare-card transfer-held-card">
@@ -53,6 +60,11 @@
 }
 
 @code {
+    [Parameter] public bool Embedded { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public string? EmbeddedSourcePath { get; set; }
+    [Parameter] public WorldSaveSession? EmbeddedSourceSession { get; set; }
+
     /// <summary>True on the browser (WebAssembly) deployment - see IBrowserHostMarker.</summary>
     private bool IsBrowserHost => Services.GetService<IBrowserHostMarker>() is not null;
 
@@ -85,10 +97,17 @@
             return;
         }
 
+        if (EmbeddedSourceSession is { } source)
+        {
+            _left.Path = source.Path;
+            _left.Session = source;
+        }
+        else if (EmbeddedSourcePath is { Length: > 0 }) _left.Path = EmbeddedSourcePath;
+
         // A world already open in the main editor is the most likely thing someone wants to
         // move items out of - pre-fill side A with it rather than making them browse for a
         // file they are currently looking at in another tab.
-        if (Workspace.Current?.WorldSession is { } open) { _left.Path = open.Path; }
+        if (_left.Session is null && Workspace.Current?.WorldSession is { } open) { _left.Path = open.Path; _left.Session = open; }
     }
 
     private WorldContainer? SelectedContainer(Side side) => side.SelectedKey is { } key
@@ -139,14 +158,14 @@
     private async Task LoadAsync(Side side)
     {
         if (string.IsNullOrWhiteSpace(side.Path)) return;
+        if (ReferenceEquals(side, _left) && EmbeddedSourceSession is not null) return;
         side.Error = null;
         side.Status = null;
         side.Busy = true;
         StateHasChanged();
         try
         {
-            var data = await Task.Run(() => WorldSaveReader.ReadFromFile(side.Path));
-            side.Session = new WorldSaveSession(data, side.Path, Files);
+            side.Session = await Workspace.GetTransferWorldAsync(side.Path);
             side.SelectedKey = null;
             if (ReferenceEquals(side, _left) ? _held?.Side == _left : _held?.Side == _right) _held = null;
         }
@@ -167,7 +186,7 @@
         side.Busy = true;
         try
         {
-            await session.SaveAsync();
+            await Workspace.SaveTransferAsync(session);
             side.Status = session.Status ?? L.Resource("Transfer_Saved");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
@@ -200,6 +219,8 @@
                 destSession, container.Source, container.Id, 0, slotIndex);
             if (moved)
             {
+                Workspace.RegisterTransfer(sourceSession, destSession);
+                Workspace.NotifyEdited();
                 other.Status = L.Resource("Transfer_MovedFormat", held.ItemLabel, DisplayName(container));
                 side.Status = other.Status;
                 _held = null;
@@ -227,9 +248,12 @@
             <div class="compare-source">
                 <div class="compare-source-path" title="@side.Path">@(string.IsNullOrWhiteSpace(side.Path) ? L.Resource("Compare_NothingSelected") : side.Path)</div>
                 <div class="editor-actions">
+                    @if (!(Embedded && ReferenceEquals(side, _left)))
+                    {
                     <button class="secondary" type="button" @onclick="() => BrowseAsync(side)" disabled="@side.Busy">@L.Resource("Compare_BrowseButton")</button>
                     <button class="primary" type="button" @onclick="() => LoadAsync(side)" disabled="@(side.Busy || string.IsNullOrWhiteSpace(side.Path))">@(side.Busy ? L.Resource("Common_Working") : L.Resource("Transfer_LoadButton"))</button>
-                    @if (side.Session is { IsDirty: true })
+                    }
+                    @if (!Embedded && side.Session is { IsDirty: true })
                     {
                         <button class="secondary" type="button" @onclick="() => SaveAsync(side)" disabled="@side.Busy">@L.Resource("Transfer_SaveButton")</button>
                     }

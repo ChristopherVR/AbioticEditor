@@ -189,7 +189,7 @@
                     }
                 }
 
-                @if (PlayerSession is not null && !pet.Id.StartsWith("pending-", StringComparison.Ordinal))
+                @if (editable && PlayerSession is not null && !pet.Id.StartsWith("pending-", StringComparison.Ordinal))
                 {
                     <hr class="wt-divider" />
                     <div class="wt-field">

@@ -4,6 +4,7 @@ using UeSaveGame;
 using AbioticEditor.Core.Saves;
 using UeSaveGame.PropertyTypes;
 using UeSaveGame.DataTypes;
+using AbioticEditor.Web.Models;
 
 namespace AbioticEditor.Tests.Features;
 
@@ -105,7 +106,44 @@ public sealed class DeployedCareFeatureTests
         var entry = Assert.Single(feature.Read(save));
         Assert.Equal(entry.Key, entry.LinkTargetId);
         Assert.Equal(4, entry.Fields.Count(f => f.Id.StartsWith("flask:", StringComparison.Ordinal)));
-        Assert.All(entry.Fields, f => Assert.False(f.Editable));
+        Assert.False(entry.Fields.Single(f => f.Id == "processing").Editable);
+        var flask = entry.Fields.First(f => f.Id == "flask:0");
+        Assert.True(flask.Editable);
+        Assert.All(entry.Fields.Where(f => f.Id.StartsWith("flask:", StringComparison.Ordinal)), f => Assert.True(f.Editable));
+        var replacement = flask.Value == "Empty" ? "Item_Water" : "Empty";
+        Assert.True(feature.SetField(save, entry.Key, flask.Id, replacement).Changed);
         Assert.True(feature.SetField(save, entry.Key, "processing", "1").IsError);
+    }
+
+    [Fact]
+    public async Task OfflineChemistryAdapter_stages_reverts_and_saves_flask_edit()
+    {
+        var source = Path.Combine(Fixtures.CascadeDir ?? "", "WorldSave_Facility.sav");
+        if (!File.Exists(source)) return;
+        var copy = Path.Combine(Path.GetTempPath(), $"uesave-chemistry-{Guid.NewGuid():N}.sav");
+        File.Copy(source, copy);
+        try
+        {
+            var session = new WorldSaveSession(WorldSaveReader.ReadFromFile(copy), copy);
+            var adapter = new OfflineChemistryBenchSession(session);
+            var before = Assert.Single(adapter.Entries).Fields.Single(field => field.Id == "flask:0").Value;
+            var replacement = before == "Empty" ? "Item_Water" : "Empty";
+            var benchId = adapter.Entries.Single().Id;
+
+            Assert.True((await adapter.SetFieldAsync(benchId, "flask:0", replacement)).Changed);
+            Assert.Equal(replacement, adapter.Entries.Single().Fields.Single(field => field.Id == "flask:0").Value);
+            session.Revert();
+            Assert.Equal(before, adapter.Entries.Single().Fields.Single(field => field.Id == "flask:0").Value);
+
+            Assert.True((await adapter.SetFieldAsync(benchId, "flask:0", replacement)).Changed);
+            await session.SaveAsync();
+            var saved = new ChemistryBenchesFeature().Read(WorldSaveReader.ReadFromFile(copy).Raw);
+            Assert.Equal(replacement, Assert.Single(saved).Fields.Single(field => field.Id == "flask:0").Value);
+        }
+        finally
+        {
+            File.Delete(copy);
+            File.Delete(copy + ".bak");
+        }
     }
 }
