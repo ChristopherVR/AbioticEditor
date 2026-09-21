@@ -180,7 +180,7 @@ jobs:
           fetch-tags: true
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2.87.9
+        uses: taiki-e/install-action@v2.87.13
         with:
           tool: git-cliff
 
