@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [2.15.1] - 2026-09-21
+
+### Miscellaneous Tasks
+- Update editor dependencies
+- Update the release packaging helper
+- Point bucket at v2.15.0 [skip ci]
+
+
 ## [2.15.0] - 2026-09-18
 
 ### Bug Fixes
