@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.16.1] - 2026-09-21
+
+### Bug Fixes
+- Tidy finale controls and restore missing companion pictures
+
+
 ## [2.16.0] - 2026-09-21
 
 ### Features
