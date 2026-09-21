@@ -4,12 +4,18 @@
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Core.PlayerSaves
 @inject SaveWorkspaceSessionService Workspace
+@inject InventorySelectionService Selection
+@implements IDisposable
 
 @* Faithful port of the native WorldPetsTab.xaml: master list (avatar, name, class, status)
    plus a Fish-style detail editor (name, creature type, level/XP, health, delete, send). *@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldPets_TamedPetsInThisWorld")">
     <h2 class="wt-h2">@L.Resource("WorldPets_TamedPetsInThisWorld")</h2>
     <p class="wt-intro">@L.Resource("WorldPets_PetListIntro")</p>
+    @if (Session is WorldSaveSession)
+    {
+        <div class="editor-actions"><button type="button" class="primary" @onclick="OpenAddPet">@L.Resource("WorldPets_AddTitle")</button></div>
+    }
     @* Round 78: a live session's per-field warnings (e.g. "this pet has never earned XP yet, so
        its level can't be raised live") - see LivePetsSession.SetPetAsync's own remarks. Not part
        of IWorldPetsSession (the file session has nothing analogous to show), so this checks the
@@ -222,6 +228,35 @@
     // The used-limb set and "full" value are captured from the loaded state so DOWN -> HEAL
     // stays reversible even after every limb reads 0 (mirrors the native editor).
     private readonly Dictionary<string, (IReadOnlyList<string> Used, double Full)> _healBaselines = new(StringComparer.Ordinal);
+    private const string AddDetailPrefix = "world-add-companion:";
+    private IWorldPetsSession? _renderedSession;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_renderedSession, Session)) return;
+        CloseAddPet();
+        _renderedSession = Session;
+    }
+
+    private void OpenAddPet()
+    {
+        if (Session is not WorldSaveSession file) return;
+        Selection.ShowDetail(AddDetailPrefix + file.Path, builder =>
+        {
+            builder.OpenComponent<WorldPetAddEditor>(0);
+            builder.AddAttribute(1, "Session", file);
+            builder.AddAttribute(2, "OnAdded", EventCallback.Factory.Create(this, () => InvokeAsync(StateHasChanged)));
+            builder.CloseComponent();
+        });
+    }
+
+    private void CloseAddPet()
+    {
+        if (Selection.DetailKey?.StartsWith(AddDetailPrefix, StringComparison.Ordinal) == true)
+            Selection.CloseDetail();
+    }
+
+    public void Dispose() => CloseAddPet();
 
     private List<WorldPet> AllPets => Session.Pets
         .Concat(_deleted.Values.Where(pet => !Session.Pets.Any(live => live.Id == pet.Id)))
@@ -252,6 +287,8 @@
     private string StatusText(WorldPet pet)
     {
         if (IsDeleted(pet)) return L.Resource("WorldPets_StatusWillBeDeleted");
+        if (pet.Id.StartsWith("pending-", StringComparison.Ordinal)) return "Staged";
+        if (!pet.IsDead && pet.LimbHealth.Count == 0) return "Health not stored";
         return PetHealth.Status(pet) switch
         {
             PetStatus.Dead => L.Resource("WorldPets_StatusDead"),

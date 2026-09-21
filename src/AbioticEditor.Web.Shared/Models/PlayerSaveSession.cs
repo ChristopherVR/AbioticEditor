@@ -580,6 +580,34 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         return true;
     }
 
+    /// <summary>Stages a fresh carried pet from the installed or curated pet catalog.</summary>
+    public bool TryAddCatalogPet(string itemRow, PetSlotKind preferred, string? name, out string message)
+    {
+        var item = PetItemCatalog.ForRow(itemRow);
+        if (item is null || item.IsWeaponForm)
+        {
+            message = $"No held pet item is known for '{itemRow}'.";
+            return false;
+        }
+
+        var target = FindFreePetSlot(preferred)
+            ?? (preferred == PetSlotKind.Equipment ? FindFreePetSlot(PetSlotKind.Hotbar) : null);
+        if (target is null)
+        {
+            message = "The companion slot and hotbar are full. Free a slot and try again.";
+            return false;
+        }
+
+        var displayName = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        CarriedPets.Add(new CarriedPetEdit(new CarriedPet(
+            target.Value.Kind, target.Value.Index, item.ItemRow, displayName,
+            PetItemCatalog.DefaultMaxHealth, PetItemCatalog.DefaultMaxHealth,
+            Xp: 0, MutationProgress: 0, PetMutation: 0), isNew: true));
+        MarkChanged();
+        message = $"Staged {item.Friendly} for the {target.Value.Label}. Save this player to add it.";
+        return true;
+    }
+
     private (PetSlotKind Kind, int Index, string Label)? FindFreePetSlot(PetSlotKind kind)
     {
         var slots = kind switch { PetSlotKind.Equipment => Equipment, PetSlotKind.Hotbar => Hotbar, _ => Backpack };

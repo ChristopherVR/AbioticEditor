@@ -164,6 +164,25 @@
             }
         </div>
 
+        @if (HasWorldFlag("EndBossDefeated"))
+        {
+            <div class="wm-divider" role="presentation"></div>
+            <h3 class="wm-h2">Finale conversations</h3>
+            <p class="wm-intro">The finale chapter marks the Wayseeker's defeat. These separate flags record the conversations afterward. Mark each conversation complete here, or change its flag in the Facility save's @L.Resource("WorldEditor_TabQuestFlags") tab.</p>
+            @if (!Session.AppliesImmediately)
+            {
+                <p class="wm-note">These buttons write the sibling Facility save immediately and keep a backup, like Unlock Through.</p>
+            }
+            @foreach (var step in EpilogueSteps)
+            {
+                <div class="ws-recipe-row" @key="step.Flag">
+                    <span class="ws-recipe-text"><strong>@step.Label</strong><small>@step.Flag</small></span>
+                    <button type="button" class="secondary" disabled="@(_busy || HasWorldFlag(step.Flag) || !Session.CanSetStoryChapter)"
+                            @onclick="() => CompleteEpilogueAsync(step.Flag)">@(HasWorldFlag(step.Flag) ? "Complete" : "Mark complete")</button>
+                </div>
+            }
+        }
+
         @if (Session.SupportsRecipes)
         {
             <div class="wm-divider" role="presentation"></div>
@@ -372,6 +391,31 @@
     /// needs no such fallback - the running world's own flag set is already complete).</summary>
     private bool HasWorldFlag(string flag)
         => Flags.Flags.Contains(flag) || _worldFlags?.Contains(flag) == true;
+
+    private static readonly (string Flag, string Label)[] EpilogueSteps =
+    [
+        ("End_PostBoss_MetCahn_Island", "Talk to Dr. Cahn"),
+        ("End_PostBoss_MetJanet_Island", "Talk to Janet"),
+        ("End_PostBoss_MetWitch_Island", "Talk to the Sister of the Unlost"),
+        ("End_PostBoss_MetRiggs_Island", "Talk to Riggs"),
+        ("End_MainStoryComplete", "Complete the main story (includes all conversations)"),
+    ];
+
+    private Task CompleteEpilogueAsync(string flag) => RunAsync(async () =>
+    {
+        if (!Session.CanSetStoryChapter || !HasWorldFlag("EndBossDefeated")) return;
+        if (Session.AppliesImmediately)
+        {
+            await Flags.EnableFlagWithPrerequisitesAsync(flag);
+        }
+        else if (FileSession is { } file)
+        {
+            var required = FlagGate.PrerequisitesFor(flag).Append(flag).Distinct(StringComparer.Ordinal).ToArray();
+            var (_, message) = await FlagSync.AddFlagsAsync(file.Path, required);
+            await RefreshWorldFlagsAsync();
+            Toasts.Show(message);
+        }
+    });
 
     private bool IsCurrent(StoryChapter chapter)
         => string.Equals(Session.StoryProgressionRow, chapter.Row, StringComparison.OrdinalIgnoreCase);

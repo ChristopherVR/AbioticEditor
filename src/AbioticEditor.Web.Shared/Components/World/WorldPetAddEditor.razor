@@ -1,0 +1,103 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Shared
+@inject SaveWorkspaceSessionService Workspace
+@inject InventorySelectionService Selection
+@inject ItemCatalogService Items
+
+<div class="detail-card detail-card--terminal companion-picker">
+    <div class="detail-head">
+        <span class="detail-title"><strong>@L.Resource("WorldPets_AddTitle")</strong><small>@_variants.Count companion types</small></span>
+        <button type="button" class="detail-close" aria-label="@L.Inventory("closeSlotEditor")" @onclick="Selection.CloseDetail">×</button>
+    </div>
+    <input type="search" class="wt-input" placeholder="@L.Resource("WorldPets_SearchCompanions")"
+           aria-label="@L.Resource("WorldPets_SearchCompanions")" @bind="_search" @bind:event="oninput" />
+    <div class="companion-palette" role="listbox" aria-label="@L.Resource("WorldPets_SearchCompanions")">
+        @foreach (var variant in VisibleVariants)
+        {
+            <button type="button" role="option" aria-selected="@(variant.ClassPath == _selected?.ClassPath ? "true" : "false")"
+                    class="companion-choice @(variant.ClassPath == _selected?.ClassPath ? "selected" : null)"
+                    @key="variant.ClassPath" @onclick="() => _selected = variant">
+                <span class="companion-icon"><GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(variant.ClassPath)" Alt="" /></span>
+                <span class="companion-name"><strong>@variant.FriendlyName</strong><small>@variant.Category</small></span>
+                <span class="companion-support">@L.Resource(variant.IsEditable ? "WorldPets_AddSupported" : "WorldPets_AddUnsupported")</span>
+            </button>
+        }
+        @if (!VisibleVariants.Any()) { <p class="muted">No companions match this search.</p> }
+    </div>
+    @if (_selected is { } selected)
+    {
+        <h3>@selected.FriendlyName</h3>
+        @if (!selected.IsEditable)
+        {
+            <p class="muted">@L.Resource("WorldPets_AddUnsupportedReason")</p>
+        }
+        else
+        {
+            <label class="wt-label">@L.Resource("WorldPets_Name")<input class="wt-input" @bind="_name" placeholder="@selected.FriendlyName" /></label>
+            <span class="wt-label">Placement coordinates</span>
+            <div class="companion-coordinates">
+                <label>X<input class="wt-input" type="number" @bind="_x" /></label>
+                <label>Y<input class="wt-input" type="number" @bind="_y" /></label>
+                <label>Z<input class="wt-input" type="number" @bind="_z" /></label>
+            </div>
+            <p class="muted">@_placementHint</p>
+        }
+        <button type="button" class="primary" disabled="@(!selected.IsEditable || _x is null || _y is null || _z is null)" @onclick="AddAsync">@L.Resource("WorldPets_Add")</button>
+    }
+    <p class="muted">New companions are staged until you save this world.</p>
+    @if (_status is not null) { <p role="status" class="muted">@_status</p> }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnAdded { get; set; }
+    private WorldSaveSession? _loadedSession;
+    private IReadOnlyList<PetVariant> _variants = [];
+    private PetVariant? _selected;
+    private string _search = string.Empty;
+    private string? _name;
+    private string? _status;
+    private double? _x, _y, _z;
+    private string _placementHint = string.Empty;
+    private IEnumerable<PetVariant> VisibleVariants => _variants.Where(v => string.IsNullOrWhiteSpace(_search)
+        || v.FriendlyName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || v.ShortClass.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || v.Category.ToString().Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_loadedSession, Session)) return;
+        _loadedSession = Session;
+        _name = _status = null;
+        _search = string.Empty;
+        var session = Session;
+        var variants = await Items.GetPetVariantsAsync();
+        if (!ReferenceEquals(session, Session)) return;
+        _variants = variants.OrderBy(v => PetCatalog.DisplayOrder(v.Category))
+            .ThenBy(v => v.FriendlyName, StringComparer.OrdinalIgnoreCase).ToArray();
+        _selected = _variants.FirstOrDefault(v => v.IsEditable);
+        var anchor = Session.Pets.Select(p => (p.X, p.Y, p.Z))
+            .Concat(Session.Npcs.Select(n => (n.X, n.Y, n.Z)))
+            .Where(p => double.IsFinite(p.X) && double.IsFinite(p.Y) && double.IsFinite(p.Z)
+                && (p.X != 0 || p.Y != 0 || p.Z != 0))
+            .Select(p => ((double X, double Y, double Z)?)p).FirstOrDefault();
+        _x = anchor?.X; _y = anchor?.Y; _z = anchor?.Z;
+        _placementHint = anchor is null
+            ? "Enter a known safe position in this region before adding a companion."
+            : "Starts at an existing creature's saved position. Adjust it to choose another spot.";
+    }
+
+    private async Task AddAsync()
+    {
+        if (_selected is not { IsEditable: true } selected || _x is not { } x || _y is not { } y || _z is not { } z) return;
+        if (Session.TryAddCatalogPet(selected.ClassPath, _name, x, y, z, out var message))
+        {
+            _name = null;
+            Workspace.NotifyEdited();
+            await OnAdded.InvokeAsync();
+        }
+        _status = message;
+    }
+}

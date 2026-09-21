@@ -1,5 +1,65 @@
 # Abiotic Editor - Session history
 
+## Round-126: offline feedback, companions, epilogue and shared game data (2026-09-21)
+
+Merged the two open dependency PRs (#37 and #38) through GitHub at the owner's request,
+then fast-forwarded local main. Feedback changes are committed locally only.
+
+- Offline NPCs now separates living story characters from holograms and hides the nearby
+  creatures section unless a live connection exists. Holograms show their actual class and
+  actor instance, omit the death control and fake zero-position readout, and explain that
+  their saved stage is a local scripted scene phase rather than the world's chapter.
+  Verified Manse artwork (`Hologram.PNG`, official Derek Manse wiki page) loads through the
+  existing wiki cache. Riggs/Stern compendium portraits are additional verified filename
+  candidates; Interfector uses the existing bundled picture. Character portraits are labeled
+  as shared previews, not screenshots of a particular recording. Artem and B'hali still have
+  no verified individual portrait and show an honest unavailable message.
+- Buttons show their actor instance in the list and full actor path in the detail. Selecting
+  one resolves level coordinates through the existing cached actor-position service when
+  installed game data is available. Sentinel Button ID -1 no longer pollutes row names.
+- Player Companions can stage a catalog pet into a free companion/hotbar slot, with an optional
+  name. World Pets can stage catalog companions with a name and coordinates, including worlds
+  with narrative NPCs but no existing pet map. The existing writer clones the real save's
+  creature schema, assigns a fresh identity, resets death/XP and fills serialized limb health.
+  Missing health maps remain at the game's default rather than inventing unverified tags.
+  Non-finite coordinates are refused; the UI prefers a non-zero saved creature location.
+  Follow-up: world Add opens a searchable companion palette in the existing slot-editor
+  sidebar, with creature icons and name/placement fields. It lists both supported companions
+  and unsupported armor summons; unsupported rows can be inspected for the reason but cannot
+  be added. The catalog loads installed pet tables with the curated offline fallback. An
+  unknown placement starts blank, so the player must supply coordinates before Add is enabled.
+- Achievements retains local and Steam web states separately and shows both sources. A web
+  locked result no longer erases a local unlocked observation. Uncached local state is labeled
+  as such. Conflicting sources are displayed explicitly; the editor does not change Steam.
+- GameDataGate reuses mounted providers for the same install/mappings/language/mod settings.
+  Null and English share a cache key. Vocabulary services no longer each mount and dispose the
+  same paks, so provider-owned data-table discovery is shared too. Failed/null mounts can retry.
+  Explicit reload/mod changes invalidate the cache; retired providers stay alive for existing
+  consumers and are disposed on process exit. Region parsing lines in the supplied log name
+  different saves and are expected, not repeated parsing of one file.
+- Added the Decals feature from actual Dam fixture evidence: `SaveData_Decal_Struct` has
+  `Removed_30_128506D0489955F65729EEA611C542AC`. The Cleaned checkbox edits that bool and creates
+  the exact tag when omitted. No raw-entry deletion: cleaned state is reversible. This also
+  registers DecalMap as modeled, removing its unknown-property diagnostic.
+- Removed the World Teleporters intro paragraph. Research-queue help now describes Add/Remove
+  as edits to the saved pending-research list, distinct from the recipe's unlock checkbox.
+- Finale chapter text no longer claims all epilogue steps are complete. The Story panel now
+  exposes Cahn/Janet/Witch/Riggs post-boss conversation flags and End_MainStoryComplete.
+  These use the existing dependency graph. Offline buttons explicitly say they write the
+  sibling Facility save immediately with a backup, matching the existing Unlock Through flow.
+
+Validation: full .NET suite passed 1644 tests, with one optional Lua-harness skip. Subsequent
+focused runs passed 95 tests, including decal delta-default creation and serialization,
+player/world companion save/reload and first-pet placement, Steam/UI contracts and story tests.
+Final net10.0 host build passed with no warnings or errors. Browser checks used temporary copies
+of server fixtures: decal toggles update SAVE/REVERT; button coordinates resolve; finale flags
+display correctly; Manse hologram image, class and instance render with no death/location controls.
+The companion sidebar lists 28 variants, filters by search, explains unavailable summons, and
+stages a named pet with coordinates while enabling Save. Staged pets and missing health data
+are labeled explicitly rather than presenting an empty health map as a downed companion.
+New game actions have not been exercised inside the running game. New text is English-first,
+consistent with preceding rounds; localization remains a follow-up.
+
 ## Round-125: live ELEVATORS retry storm, and a stuck TRAMS refusal against a real, working recall (2026-09-18)
 
 Two live-mode bugs from the same editor log window (`editor-20260918.log`, 14:47-14:48), both on

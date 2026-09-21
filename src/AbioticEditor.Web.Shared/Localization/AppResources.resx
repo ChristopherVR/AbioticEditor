@@ -397,6 +397,9 @@
 
   <!-- PlayerPets -->
   <data name="PlayerPets_CarriedPetsCompanions" xml:space="preserve"><value>Carried pets</value></data>
+  <data name="PlayerPets_AddTitle" xml:space="preserve"><value>Add a pet</value></data>
+  <data name="PlayerPets_Add" xml:space="preserve"><value>ADD PET</value></data>
+  <data name="PlayerPets_Slot" xml:space="preserve"><value>Slot</value></data>
   <data name="PlayerPets_CarryOverHelp" xml:space="preserve"><value>Health, level and name carry over. Save other player edits first.</value></data>
   <data name="PlayerPets_Heal" xml:space="preserve"><value>HEAL</value></data>
   <data name="PlayerPets_Health" xml:space="preserve"><value>HEALTH</value></data>
@@ -435,7 +438,7 @@
   <data name="PlayerRecipes_ResearchQueue" xml:space="preserve"><value>Awaiting research</value></data>
   <data name="PlayerRecipes_ResearchQueueAdd" xml:space="preserve"><value>ADD</value></data>
   <data name="PlayerRecipes_ResearchQueueEmpty" xml:space="preserve"><value>Nothing is waiting on the research bench.</value></data>
-  <data name="PlayerRecipes_ResearchQueueHelp" xml:space="preserve"><value>Recipes here still need to be researched at the bench before they can be crafted, even though they're not fully locked.</value></data>
+  <data name="PlayerRecipes_ResearchQueueHelp" xml:space="preserve"><value>This is the player's saved list of recipes awaiting research. Add puts a recipe on that list; remove takes it off. These actions edit the pending-research list separately from the recipe's unlock checkbox above. SAVE applies your edits.</value></data>
   <data name="PlayerRecipes_ResearchQueuePickPlaceholder" xml:space="preserve"><value>Add a recipe to the queue…</value></data>
   <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or id…</value></data>
   <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
@@ -853,6 +856,12 @@
   <data name="WorldPets_SendToPlayer" xml:space="preserve"><value>SEND TO PLAYER</value></data>
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Health, level and name carry over; the pet leaves the world. Save other world edits first.</value></data>
   <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>TAMED PETS IN THIS WORLD</value></data>
+  <data name="WorldPets_AddTitle" xml:space="preserve"><value>Add a companion</value></data>
+  <data name="WorldPets_Add" xml:space="preserve"><value>ADD COMPANION</value></data>
+  <data name="WorldPets_SearchCompanions" xml:space="preserve"><value>Search companions or class IDs</value></data>
+  <data name="WorldPets_AddSupported" xml:space="preserve"><value>SUPPORTED</value></data>
+  <data name="WorldPets_AddUnsupported" xml:space="preserve"><value>READ ONLY</value></data>
+  <data name="WorldPets_AddUnsupportedReason" xml:space="preserve"><value>Armor-set summon, not a tamed companion.</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>UNDO DELETE</value></data>
   <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>This pet's creature type gives the game no stable id to match live, so its name and level can't be read or changed here. Health and alive/dead status still can. Edit the save file for the rest.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
@@ -2796,7 +2805,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_ChapterTitle_SouthIsland" xml:space="preserve"><value>South Island</value></data>
   <data name="WorldStory_ChapterSummary_SouthIsland" xml:space="preserve"><value>The Fracture is behind you: you arrive at the South Island, whose altar can supposedly take you anywhere - Dr. Cahn and Thule have thoughts.</value></data>
   <data name="WorldStory_ChapterTitle_EndGame" xml:space="preserve"><value>Finale - Facility Escape</value></data>
-  <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>The Wayseeker is defeated. The end? Talk to Dr. Cahn, Janet, and the Sister of the Unlost. Main story complete.</value></data>
+  <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; use Finale conversations below to finish them.</value></data>
   <data name="WorldTraders_Lore_Warren_Name" xml:space="preserve"><value>Warren Bunning</value></data>
   <data name="WorldTraders_Lore_Warren_Where" xml:space="preserve"><value>Office Sector plaza - security kiosk (stationary)</value></data>
   <data name="WorldTraders_Lore_Warren_Blurb" xml:space="preserve"><value>Sydney-sider turned subterranean security specialist. Sells security keys, seeds, alloys and repair kits; stock grows with story progress.</value></data>
@@ -3624,6 +3633,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerAchievements_StatusQuerying" xml:space="preserve"><value>Querying steamcommunity.com…</value></data>
   <data name="PlayerAchievements_StatusReadingLocalCache" xml:space="preserve"><value>Reading Steam's local achievement cache…</value></data>
   <data name="PlayerAchievements_StatusWebLoaded" xml:space="preserve"><value>Steam web data loaded ({0} unlocked on Steam) · icons from steamcommunity.com.</value></data>
+  <data name="PlayerAchievements_StatusWebMismatch" xml:space="preserve"><value>Steam web reports no unlocked achievements, while this computer's local Steam cache reports {0}. Both sources are kept separate; the local state remains visible until Steam confirms the web state.</value></data>
   <data name="PlayerAchievements_StatusCheckFailedWeb" xml:space="preserve"><value>Steam check failed.</value></data>
   <data name="PlayerAchievements_StatusCheckFailedWebHelp" xml:space="preserve"><value>Local cache data is still shown - try again in a moment.</value></data>
   <data name="PlayerAchievements_StatusComparisonFailedWeb" xml:space="preserve"><value>The comparison could not be loaded.</value></data>

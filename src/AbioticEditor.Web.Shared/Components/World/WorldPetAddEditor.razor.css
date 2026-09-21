@@ -1,0 +1,15 @@
+.companion-picker { gap: 12px; }
+.companion-palette { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); background: var(--shell); }
+.companion-choice { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 8px; text-align: left; border: 0; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; background: transparent; color: var(--ink); }
+.companion-choice:hover, .companion-choice.selected { background: var(--hover); }
+.companion-choice.selected { border-left-color: var(--orange); }
+.companion-choice:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+.companion-icon { flex: 0 0 38px; height: 38px; display: grid; place-items: center; }
+.companion-icon ::deep img { max-width: 38px; max-height: 38px; object-fit: contain; }
+.companion-name { display: grid; flex: 1; min-width: 0; gap: 3px; }
+.companion-name strong { font-size: 12px; }
+.companion-name small, .companion-support { font-size: 10px; color: var(--muted); }
+.companion-support { flex: 0 0 auto; }
+.companion-coordinates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.companion-coordinates label { min-width: 0; }
+.companion-coordinates input { box-sizing: border-box; width: 100%; min-width: 0; }

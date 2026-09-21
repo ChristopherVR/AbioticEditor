@@ -22,7 +22,7 @@ public sealed class CodexVocabularyService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider();
+            var provider = GameDataGate.CreateProvider();
             if (provider is { HasMappings: true })
             {
                 var live = new CodexVocabulary(

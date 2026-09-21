@@ -44,9 +44,7 @@ public sealed class PortalMapFeature : WorldMapFeatureBase
 
     public override string DisplayName => "World Teleporters";
 
-    public override string Description =>
-        "Fixed in-level teleporters: toggle whether each is active (unlocked/usable). These have no "
-        + "tag/link (their destinations are baked into the level); to LINK teleporters use the Teleporter Pads tab.";
+    public override string Description => string.Empty;
 
     /// <summary>Fixed teleporter actor keys carry no friendly name, so number them.</summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)

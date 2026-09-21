@@ -21,7 +21,7 @@ public sealed class TraderVocabularyService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider();
+            var provider = GameDataGate.CreateProvider();
             // LoadFrom itself falls back to the snapshot when the tables are unreadable.
             if (provider is not null) return TraderCatalog.LoadFrom(provider);
         }

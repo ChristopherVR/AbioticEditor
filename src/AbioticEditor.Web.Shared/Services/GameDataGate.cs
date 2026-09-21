@@ -19,19 +19,64 @@ namespace AbioticEditor.Web.Services;
 internal static class GameDataGate
 {
     public static readonly object Sync = new();
+    private static readonly Dictionary<string, GameAssetProvider> Providers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly List<GameAssetProvider> RetiredProviders = [];
+
+    static GameDataGate() => AppDomain.CurrentDomain.ProcessExit += (_, _) => DisposeProviders();
 
     /// <summary>
     /// Mounts the installed game's paks, serialized against every other mount in the
-    /// process. Returns null when there is no readable install. Callers own the result and
-    /// must dispose it (or hold it for the session, as the long-lived services do).
+    /// process. Returns null when there is no readable install. The gate owns shared
+    /// providers; callers must not dispose them.
     /// </summary>
     public static GameAssetProvider? CreateProvider(string? culture = null)
     {
         lock (Sync)
         {
-            return culture is null
-                ? GameAssetProvider.CreateForLocalInstall()
-                : GameAssetProvider.CreateForLocalInstall(culture: culture);
+            // Null and English both use the same baked-in game text.
+            culture = string.IsNullOrWhiteSpace(culture) ? "en" : culture;
+            var paks = AfInstallLocator.FindPaksDirectory();
+            if (paks is null) return null;
+            var mappings = GameAssetProvider.FindConventionalMappings() ?? string.Empty;
+            var disabledModsStamp = File.Exists(ModLoadStore.DisabledModsPath)
+                ? File.GetLastWriteTimeUtc(ModLoadStore.DisabledModsPath).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : string.Empty;
+            var key = string.Join("|", paks, mappings, culture ?? string.Empty,
+                ModLoadStore.ModsEnabled, disabledModsStamp);
+            if (!Providers.TryGetValue(key, out var provider))
+            {
+                provider = GameAssetProvider.CreateForLocalInstall(culture: culture);
+                if (provider is not null) Providers[key] = provider;
+            }
+
+            // Providers are process-scoped. Callers must not dispose this result: the
+            // singleton vocabularies share it for the lifetime of the desktop host.
+            return provider;
+        }
+    }
+
+    /// <summary>Drops cached mounts after game-data settings change.</summary>
+    public static void Invalidate()
+    {
+        lock (Sync)
+        {
+            // Existing consumers may still be reading a provider. Retain retired mounts
+            // until process exit instead of disposing underneath an in-flight catalog read.
+            RetiredProviders.AddRange(Providers.Values);
+            Providers.Clear();
+        }
+    }
+
+    private static void DisposeProviders()
+    {
+        lock (Sync)
+        {
+            foreach (var provider in Providers.Values.Concat(RetiredProviders).Distinct())
+            {
+                try { provider.Dispose(); } catch { }
+            }
+            Providers.Clear();
+            RetiredProviders.Clear();
         }
     }
 }

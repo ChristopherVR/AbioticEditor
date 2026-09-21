@@ -107,6 +107,18 @@ public sealed class PlayerUiParityContractTests
     }
 
     [Fact]
+    public void Achievement_rows_keep_local_and_web_states_separate_on_mismatch()
+    {
+        var source = PlayerSource("PlayerAchievementsTab.razor");
+        Assert.Contains("LocalUnlocked", source, StringComparison.Ordinal);
+        Assert.Contains("WebUnlocked", source, StringComparison.Ordinal);
+        Assert.Contains("LOCAL:", source, StringComparison.Ordinal);
+        Assert.Contains("STEAM WEB:", source, StringComparison.Ordinal);
+        Assert.Contains("StatusWebMismatch", source, StringComparison.Ordinal);
+        Assert.Contains("WebUnlocked is false && LocalUnlocked", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Player_ui_resource_references_exist_and_migrated_copy_does_not_return_to_Razor()
     {
         var resources = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"))

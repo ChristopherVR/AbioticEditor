@@ -68,7 +68,7 @@ public sealed class ProgressionVocabularyService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider();
+            var provider = GameDataGate.CreateProvider();
             if (provider is { HasMappings: true })
             {
                 // Skill milestones come straight from the game's own DT_Skills/DT_SkillPerks

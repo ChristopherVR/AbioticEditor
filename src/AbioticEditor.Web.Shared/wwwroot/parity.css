@@ -1045,6 +1045,10 @@ button.accent-hazard{border:0;background:var(--hazard)!important;color:var(--on-
 .pet-level-readout{min-width:32px;color:var(--terminal);font:16px var(--font-num);text-align:center}
 .pet-xp{width:110px;color:var(--terminal)!important;font:15px var(--font-num)!important;text-align:center}
 .pet-health-row input{width:120px}
+.pet-add-panel{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:14px;border:1px solid var(--line);background:var(--shell)}
+.pet-add-panel>strong,.pet-add-panel>small{flex-basis:100%}
+.pet-add-panel>select,.pet-add-panel>input{box-sizing:border-box;max-width:100%;flex:1 1 180px;min-width:0}
+.pet-add-panel .pet-health-row{flex-wrap:wrap}
 .pet-bed-help{margin:0;font-size:9px}
 .pet-world-name{margin:0;font-size:12px}
 .pet-send{justify-self:start}

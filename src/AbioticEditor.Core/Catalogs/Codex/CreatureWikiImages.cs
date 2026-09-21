@@ -146,6 +146,9 @@ public static class CreatureWikiImages
             ["Reaper"] = "ReaperCalm.png",
             ["Assassin"] = "Crystalisk.png",
             ["Interfector"] = "Order_Interfector.png",
+            // Narrative hologram conversation rows call this character "Order Interfector";
+            // it is the same verified portrait as the combat-creature entry above.
+            ["Order Interfector"] = "Order_Interfector.png",
             ["Bog Man"] = "Bogman.png",
             ["Boxy"] = "The_Moving_Box.png",
             ["Exor Ally"] = "Exor_Spirit.png",

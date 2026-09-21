@@ -583,6 +583,37 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         return true;
     }
 
+    /// <summary>Stages a fresh world companion from the installed or curated creature catalog.</summary>
+    public bool TryAddCatalogPet(string classPath, string? name, double x, double y, double z, out string message)
+    {
+        var variant = PetCatalog.BuildVariants(null).FirstOrDefault(candidate =>
+            candidate.IsEditable && string.Equals(candidate.ClassPath, classPath, StringComparison.OrdinalIgnoreCase));
+        if (variant is null)
+        {
+            message = $"No editable companion is known for '{classPath}'.";
+            return false;
+        }
+        if (_pets.Count == 0 && _npcs.Count == 0)
+        {
+            message = "This world needs an existing pet or NPC so the save writer can clone a valid creature entry.";
+            return false;
+        }
+
+        if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z))
+        {
+            message = "Placement coordinates must be finite numbers.";
+            return false;
+        }
+
+        var displayName = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        var staged = new WorldPet($"pending-{Guid.NewGuid():N}", false, variant.ClassPath,
+            x, y, z, displayName, new Dictionary<string, double>(), 0, null);
+        _pendingPetPlacements.Add(new PendingWorldPetPlacement(staged, null));
+        UpdateStatus();
+        message = $"Staged {variant.FriendlyName} at {x:0}, {y:0}, {z:0}. Save this world to add it.";
+        return true;
+    }
+
     public void SetDroppedItem(string id, int count, bool noDespawn)
     {
         if (_droppedItems.TryGetValue(id, out var item))

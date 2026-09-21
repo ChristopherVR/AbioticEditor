@@ -266,5 +266,5 @@ public sealed class GameArtService : IDisposable
         catch { return null; }
     }
 
-    public void Dispose() { if (_provider.IsValueCreated) _provider.Value?.Dispose(); }
+    public void Dispose() { }
 }

@@ -75,6 +75,12 @@
                 <span class="achievement-text">
                     <strong>@(concealed ? L.Resource("PlayerUi_HiddenAchievement") : achievement.DisplayName)</strong>
                     <small>@(concealed ? L.Resource("PlayerAchievements_HiddenAchievementFallback") : achievement.Description)</small>
+                    <small class="achievement-source">LOCAL: @(achievement.LocalAvailable ? achievement.LocalUnlocked ? "UNLOCKED" : "LOCKED" : "NOT CACHED")
+                        @if (achievement.WebUnlocked is { } webUnlocked)
+                        {
+                            <span> · STEAM WEB: @(webUnlocked ? "UNLOCKED" : "LOCKED")</span>
+                        }
+                    </small>
                     @if (achievement.UnlockedAt is { } unlockedAt) { <span class="achievement-when">@unlockedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</span> }
                 </span>
                 @if (achievement.CompareUnlocked is { } compareUnlocked) { <span class="achievement-compare">@($"{_compareName}: {(compareUnlocked ? "✓" : "✗")}")</span> }
@@ -181,7 +187,14 @@
         public string DisplayName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public bool Hidden { get; set; }
-        public bool Unlocked { get; set; }
+        public bool LocalUnlocked { get; set; }
+        public bool LocalAvailable { get; set; }
+        public bool? WebUnlocked { get; set; }
+        // A contradictory all-locked web snapshot must not hide a locally observed
+        // unlock from the player. The source chips beside the badge show both values.
+        public bool Unlocked => WebUnlocked is false && LocalUnlocked
+            ? true
+            : WebUnlocked ?? LocalUnlocked;
         public string? IconUrl { get; set; }
         public string? IconGrayUrl { get; set; }
         public DateTimeOffset? UnlockedAt { get; set; }
@@ -262,9 +275,16 @@
         try
         {
             var web = await SteamWebAchievements.FetchAsync(_steamId64);
+            // Keep the local cache and web response as separate observations. Steam can
+            // return a valid all-locked response that disagrees with this machine's
+            // cache, so the row renders both sources instead of silently replacing one.
+            var localUnlocked = _rows.Values.Count(row => row.LocalUnlocked);
+            var webUnlocked = web.Count(achievement => achievement.Unlocked);
             MergeWeb(web);
             _profileGated = false;
-            Status = L.Resource("PlayerAchievements_StatusWebLoaded", web.Count(achievement => achievement.Unlocked));
+            Status = webUnlocked == 0 && localUnlocked > 0
+                ? L.Resource("PlayerAchievements_StatusWebMismatch", localUnlocked)
+                : L.Resource("PlayerAchievements_StatusWebLoaded", webUnlocked);
         }
         catch (SteamGameDetailsPrivateException)
         {
@@ -352,7 +372,8 @@
             row.DisplayName = achievement.DisplayName;
             row.Description ??= achievement.Description;
             row.Hidden = achievement.Hidden;
-            row.Unlocked |= achievement.Unlocked;
+            row.LocalUnlocked |= achievement.Unlocked;
+            row.LocalAvailable = true;
             // The local schema carries the same CDN icon hashes Steam uses.
             row.IconUrl ??= achievement.IconUrl;
             row.IconGrayUrl ??= achievement.IconGrayUrl;
@@ -366,7 +387,7 @@
             var row = GetRow(achievement.ApiName);
             if (!string.IsNullOrEmpty(achievement.DisplayName)) row.DisplayName = achievement.DisplayName;
             if (!string.IsNullOrEmpty(achievement.Description)) row.Description = achievement.Description;
-            row.Unlocked = achievement.Unlocked; // web is authoritative
+            row.WebUnlocked = achievement.Unlocked;
             row.IconUrl = achievement.IconUrl;
             row.IconGrayUrl = achievement.IconGrayUrl;
             row.UnlockedAt = achievement.UnlockedAt;

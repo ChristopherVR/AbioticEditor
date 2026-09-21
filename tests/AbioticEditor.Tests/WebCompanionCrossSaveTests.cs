@@ -13,6 +13,77 @@ namespace AbioticEditor.Tests;
 public sealed class WebCompanionCrossSaveTests
 {
     [Fact]
+    public void Catalog_add_refuses_summons_and_invalid_coordinates_without_staging()
+    {
+        using var world = CopyCascadeWorld();
+        var path = Path.Combine(world.Path, "WorldSave_Facility.sav");
+        var session = new WorldSaveSession(WorldSaveReader.ReadFromFile(path), path);
+        var summon = PetCatalog.Curated.First(candidate => !candidate.IsEditable);
+        Assert.False(session.TryAddCatalogPet(summon.ClassPath, null, 1, 2, 3, out _));
+        var companion = PetCatalog.Curated.First(candidate => candidate.IsEditable);
+        Assert.False(session.TryAddCatalogPet(companion.ClassPath, null, double.NaN, 2, 3, out _));
+        Assert.False(session.IsDirty);
+    }
+
+    [Fact]
+    public async Task Catalog_adds_are_staged_until_the_matching_save()
+    {
+        using var world = CopyCascadeWorld();
+        var playerPath = FindPlayer(world.Path);
+        var facilityPath = Path.Combine(world.Path, "WorldSave_Facility.sav");
+        var playerBytes = File.ReadAllBytes(playerPath);
+        var worldBytes = File.ReadAllBytes(facilityPath);
+
+        var playerSession = new PlayerSaveSession(PlayerSaveReader.ReadFromFile(playerPath), playerPath);
+        Assert.True(playerSession.TryAddCatalogPet("pest", PetSlotKind.Equipment, "Sparky", out var playerMessage), playerMessage);
+        Assert.True(playerSession.IsDirty);
+        Assert.Equal(playerBytes, File.ReadAllBytes(playerPath));
+        await playerSession.SaveAsync();
+        var playerPet = Assert.Single(PlayerSaveReader.ReadFromFile(playerPath).CarriedPets);
+        Assert.Equal("Sparky", playerPet.Name);
+
+        var worldSession = await new SiblingWorldBedService(new DesktopSaveFileSystem()).GetOrLoadSessionAsync(facilityPath);
+        var variant = PetCatalog.Curated.First(candidate => candidate.IsEditable);
+        Assert.True(worldSession.TryAddCatalogPet(variant.ClassPath, "Worldy", 1, 2, 3, out var worldMessage), worldMessage);
+        Assert.True(worldSession.IsDirty);
+        Assert.Equal(worldBytes, File.ReadAllBytes(facilityPath));
+        await worldSession.SaveAsync();
+        var added = Assert.Single(WorldSaveReader.ReadFromFile(facilityPath).Pets, pet => pet.CustomName == "Worldy");
+        Assert.False(added.IsDead);
+        Assert.True(added.TotalHealth > 0);
+        Assert.Equal(1, added.X);
+        Assert.Equal(2, added.Y);
+        Assert.Equal(3, added.Z);
+    }
+
+    [Fact]
+    public async Task Catalog_add_creates_a_pet_map_entry_when_the_world_has_only_npcs()
+    {
+        using var world = CopyCascadeWorld();
+        var facilityPath = Path.Combine(world.Path, "WorldSave_Facility.sav");
+        var data = WorldSaveReader.ReadFromFile(facilityPath);
+        Assert.NotEmpty(data.Pets);
+        Assert.NotEmpty(data.Npcs);
+        foreach (var pet in data.Pets) Assert.True(WorldSaveWriter.RemovePet(data, pet.Id));
+        WorldSaveWriter.WriteToFile(data, facilityPath);
+        File.Delete(facilityPath + ".bak");
+
+        var session = new WorldSaveSession(WorldSaveReader.ReadFromFile(facilityPath), facilityPath);
+        var variant = PetCatalog.Curated.First(candidate => candidate.IsEditable);
+        Assert.True(session.TryAddCatalogPet(variant.ClassPath, "First", 101, 202, 303, out var message), message);
+        await session.SaveAsync();
+
+        var added = Assert.Single(WorldSaveReader.ReadFromFile(facilityPath).Pets);
+        Assert.Equal(variant.ClassPath, added.NpcClass);
+        Assert.Equal("First", added.CustomName);
+        Assert.False(added.IsDead);
+        Assert.Equal(101, added.X);
+        Assert.Equal(202, added.Y);
+        Assert.Equal(303, added.Z);
+        if (added.LimbHealth.Count > 0) Assert.True(added.TotalHealth > 0);
+    }
+
+    [Fact]
     public async Task Sibling_bed_discovery_and_send_move_a_carried_pet_between_saves()
     {
         using var world = CopyCascadeWorld();

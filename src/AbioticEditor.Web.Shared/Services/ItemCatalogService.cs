@@ -79,6 +79,24 @@ public sealed class ItemCatalogService : IDisposable
         });
 
     private Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>? _petCare;
+    private Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetVariant>>? _petVariants;
+
+    public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetVariant>> GetPetVariantsAsync()
+        => _petVariants ??= Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetVariant>>(() =>
+        {
+            lock (GameDataGate.Sync)
+            {
+                try
+                {
+                    if (_extractsIconsLive && _provider.Value is { HasMappings: true } provider)
+                        AbioticEditor.Core.WorldSaves.PetCatalog.ApplyGameData(
+                            AbioticEditor.Core.WorldSaves.PetGameData.TryLoadFrom(provider));
+                }
+                catch (Exception) { /* The curated companion catalog remains available offline. */ }
+                return AbioticEditor.Core.WorldSaves.PetCatalog.BuildVariants(null);
+            }
+        });
+
     public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>> GetPetCareAsync()
         => _petCare ??= Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>(() =>
         {
@@ -246,5 +264,5 @@ public sealed class ItemCatalogService : IDisposable
         catch { return null; }
     }
 
-    public void Dispose() { if (_provider.IsValueCreated) _provider.Value?.Dispose(); }
+    public void Dispose() { }
 }

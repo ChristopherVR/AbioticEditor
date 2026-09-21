@@ -42,7 +42,7 @@ public sealed class ButtonMapFeature : WorldMapFeatureBase
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
     {
         var id = props.GetString(ButtonIdPrefix);
-        return string.IsNullOrWhiteSpace(id) || id is "None" ? $"Button {ordinal}" : $"Button {ordinal}: {id}";
+        return string.IsNullOrWhiteSpace(id) || id is "None" or "-1" ? $"Button {ordinal}" : $"Button {ordinal}: {id}";
     }
 
     // ── ReadFields ────────────────────────────────────────────────────────────────────────────

@@ -23,6 +23,21 @@
     </div>
     <p class="muted companions-help">@L.Resource("PlayerPets_IntroHelp")</p>
     @if (Session.Status is not null) { <p class="status-text">@Session.Status</p> }
+    @if (Session is PlayerSaveSession fileSession)
+    {
+        <div class="pet-add-panel">
+            <strong>@L.Resource("PlayerPets_AddTitle")</strong>
+            <select class="pet-world-select" @bind="_addItemRow" aria-label="@L.Resource("PlayerPets_Variant")">
+                @foreach (var variant in HeldVariants) { <option value="@variant.ItemRow">@variant.Friendly</option> }
+            </select>
+            <input @bind="_addName" placeholder="@L.Resource("PlayerPets_NamePlaceholder")" aria-label="@L.Resource("PlayerPets_Name")" />
+            <select class="pet-world-select" @bind="_addKind" aria-label="@L.Resource("PlayerPets_Slot")">
+                <option value="@PetSlotKind.Equipment">@L.Resource("PlayerPets_CompanionSlot")</option>
+                <option value="@PetSlotKind.Hotbar">@L.Resource("PlayerPets_SlotKind_Hotbar")</option>
+            </select>
+            <button class="heal-all-button" type="button" @onclick="() => AddPet(fileSession)">@L.Resource("PlayerPets_Add")</button>
+        </div>
+    }
 
     <div class="pets-split">
         <div class="pet-master" role="listbox" aria-label="@L.Resource("PlayerPets_CarriedPetsCompanions")">
@@ -157,6 +172,9 @@
     private string? _selectedWorldPath;
     private bool _bedsLoading;
     private string? _bedError;
+    private string _addItemRow = HeldVariants.FirstOrDefault()?.ItemRow ?? string.Empty;
+    private string? _addName;
+    private PetSlotKind _addKind = PetSlotKind.Equipment;
     private IReadOnlyList<SiblingPetBed> _beds = [];
     private IReadOnlyList<SiblingWorldOption> _siblingWorlds = [];
     private WorldSaveSession? _targetSession;
@@ -167,6 +185,16 @@
         .GroupBy(item => item.Friendly, StringComparer.OrdinalIgnoreCase)
         .Select(group => group.First())
         .ToList();
+
+    private async Task AddPet(PlayerSaveSession session)
+    {
+        if (session.TryAddCatalogPet(_addItemRow, _addKind, _addName, out var message))
+        {
+            _addName = null;
+            await OnChanged.InvokeAsync();
+        }
+        else ReportMoveFailed(message);
+    }
 
     /// <summary>
     /// Send targets: every sibling region save of this player (native behavior), plus the

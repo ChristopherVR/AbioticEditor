@@ -84,7 +84,8 @@ public sealed class HostSettingsService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
+            GameDataGate.Invalidate();
+            var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
             _recipes.Reload(); _progression.Reload(); _codex.Reload(); _dismantle.Reload();
             return provider is null
                 ? new(false, GameDataReloadOutcome.NoInstall)
@@ -98,9 +99,17 @@ public sealed class HostSettingsService
             return new(false, GameDataReloadOutcome.ReloadFailed);
         }
     }
-    public void SetModsEnabled(bool enabled) => ModLoadStore.SetPersistedEnabled(enabled);
+    public void SetModsEnabled(bool enabled)
+    {
+        ModLoadStore.SetPersistedEnabled(enabled);
+        GameDataGate.Invalidate();
+    }
     public bool IsModEnabled(string modName) => ModLoadStore.IsModEnabled(modName);
-    public void SetModEnabled(string modName, bool enabled) => ModLoadStore.SetModEnabled(modName, enabled);
+    public void SetModEnabled(string modName, bool enabled)
+    {
+        ModLoadStore.SetModEnabled(modName, enabled);
+        GameDataGate.Invalidate();
+    }
     public bool SetPluginEnabled(PluginDescriptor plugin, bool enabled) => plugin.SetEnabled(enabled);
 }
 

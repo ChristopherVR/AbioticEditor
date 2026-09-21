@@ -48,7 +48,7 @@ public sealed class RecipeVocabularyService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider();
+            var provider = GameDataGate.CreateProvider();
             if (provider is { HasMappings: true })
             {
                 var live = RecipeCatalog.LoadInfosFrom(provider);

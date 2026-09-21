@@ -6,6 +6,7 @@
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
 @inject AbioticEditor.Web.Services.ItemCatalogService Items
+@inject AbioticEditor.Web.Services.GameArtService GameArt
 @implements IDisposable
 
 @* Faithful port of the native WorldFeatureTab: ONE world-map feature (buttons, elevators,
@@ -27,7 +28,10 @@ else
         @* One intro line only: the feature's own description when it has one, otherwise the
            generic "tap an entry to change it" hint. Showing both stacked the same reassurance
            twice on tabs like the teleporters. *@
-        <p class="world-flags-intro">@(string.IsNullOrWhiteSpace(Description(feature)) ? L.Resource("WorldFeature_EditHint") : Description(feature))</p>
+        @if (FeatureId != "portals")
+        {
+            <p class="world-flags-intro">@(string.IsNullOrWhiteSpace(Description(feature)) ? L.Resource("WorldFeature_EditHint") : Description(feature))</p>
+        }
         @* No per-tab SAVE/REVERT: the shell owns the save/revert pair, exactly like native. *@
         <div class="world-feature-panes">
             <div class="world-feature-list">
@@ -56,6 +60,7 @@ else
                                 class="world-feature-row @(_selectedKey == row.Key ? "selected" : null)" @key="row.RenderKey"
                                 @onclick="() => Select(row.Key)">
                             <strong>@row.Label</strong>
+                            @if (FeatureId == "buttons") { <span class="feature-area">@row.Key[(row.Key.LastIndexOf('.') + 1)..]</span> }
                             @if (row.Area is { Length: > 0 }) { <span class="feature-area">@row.Area</span> }
                             <span class="feature-summary-row">
                                 <span class="feature-summary" title="@row.Summary">@row.Summary</span>
@@ -73,6 +78,11 @@ else
                 else
                 {
                     <h3>@selected.Label</h3>
+                    @if (FeatureId is "buttons" or "decals")
+                    {
+                        <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>
+                        <p class="world-feature-hint">@_actorLocationText</p>
+                    }
                     @if (AreaFor(selected) is { Length: > 0 } area)
                     {
                         <p class="world-feature-arearow"><span class="eyebrow">@L.Resource("WorldFeature_Area")</span> @area</p>
@@ -210,11 +220,12 @@ else
         var sessionChanged = !ReferenceEquals(_renderedSession, Session);
         if (!featureChanged && !sessionChanged) return;
 
-        if (featureChanged)
+        if (featureChanged || sessionChanged)
         {
             _renderedFeatureId = FeatureId;
             _filter = string.Empty;
             _selectedKey = null;
+            _actorLocationText = string.Empty;
             _fieldErrors.Clear();
             _deployablesById = null;
             _crossRegionDevices.Clear();
@@ -321,6 +332,7 @@ else
             var filter = _filter.Trim();
             rows = rows.Where(row =>
                 row.Label.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || row.Key.Contains(filter, StringComparison.OrdinalIgnoreCase)
                 || row.Area.Contains(filter, StringComparison.OrdinalIgnoreCase)
                 || row.Summary.Contains(filter, StringComparison.OrdinalIgnoreCase));
         }
@@ -332,7 +344,24 @@ else
         _visibleRows = rows.ToList();
     }
 
-    private void Select(string key) => _selectedKey = key;
+    private string _actorLocationText = string.Empty;
+
+    private async Task Select(string key)
+    {
+        _selectedKey = key;
+        _actorLocationText = string.Empty;
+        if (FeatureId is not ("buttons" or "decals") || string.IsNullOrEmpty(Session.Path)) return;
+        var session = Session;
+        var feature = FeatureId;
+        var map = WorldAreaCatalog.TokenFromActorPath(key) ?? WorldAreaCatalog.TokenFromSaveFile(Session.Path);
+        var actor = key[(key.LastIndexOf('.') + 1)..];
+        _actorLocationText = "Looking up the actor's location in the installed game...";
+        var position = await GameArt.TryGetDoorPositionAsync(map, actor);
+        if (!ReferenceEquals(session, Session) || FeatureId != feature || _selectedKey != key) return;
+        _actorLocationText = position is { } p
+            ? $"{map}: X {p.X:F0}, Y {p.Y:F0}, Z {p.Z:F0} (game level coordinates)"
+            : "Exact position unavailable. The actor path above identifies its level and instance.";
+    }
 
     // Filtering waits for a short pause in typing. Re-filtering hundreds of entries on every
     // keystroke made the search box feel like it was lagging a word behind.

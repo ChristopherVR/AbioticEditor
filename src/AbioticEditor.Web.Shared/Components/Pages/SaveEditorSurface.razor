@@ -166,7 +166,10 @@
         }
         if (world.DroppedItems.Count > 0) Add("dropped", "WorldEditor_TabDropped");
         if (((IWorldNpcsSession)world).Npcs.Count > 0) Add("npcs", "WorldEditor_TabNpcs");
-        if (world.Pets.Count > 0) Add("pets", "WorldEditor_TabPets");
+        // A world with no PetNPC map can still safely add a companion by cloning its
+        // NarrativeNPCMap. Keep the tab reachable whenever either source has a real
+        // creature entry to clone.
+        if (world.Pets.Count > 0 || world.Npcs.Count > 0) Add("pets", "WorldEditor_TabPets");
         if (world.Vehicles.Count > 0) Add("vehicles", "WorldEditor_TabVehicles");
         if (world.Deployables.Count > 0) Add("bases", "WorldEditor_TabBases");
         if (world.IsMetadataSave)

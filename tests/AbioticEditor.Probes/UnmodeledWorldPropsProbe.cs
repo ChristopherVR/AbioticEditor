@@ -23,7 +23,7 @@ public class UnmodeledWorldPropsProbe
     private static readonly string[] Prefixes =
     {
         "LeyakContainmentIDs", "TimeOfDay", "DayDiscovered", "GlobalUnlocks",
-        "LastPlayed", "ServerEntitlements", "PetNPC",
+        "LastPlayed", "ServerEntitlements", "PetNPC", "DecalMap",
     };
 
     [Fact]

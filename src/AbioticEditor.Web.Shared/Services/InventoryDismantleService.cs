@@ -80,7 +80,7 @@ public sealed class InventoryDismantleService
     {
         try
         {
-            using var provider = GameDataGate.CreateProvider();
+            var provider = GameDataGate.CreateProvider();
             if (provider is not { HasMappings: true }) return DismantleVocabulary.Empty;
             return new(RecipeCatalog.LoadInfosFrom(provider), ItemCatalog.LoadFrom(provider));
         }
