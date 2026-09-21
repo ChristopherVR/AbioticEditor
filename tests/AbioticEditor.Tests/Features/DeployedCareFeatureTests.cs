@@ -137,13 +137,67 @@ public sealed class DeployedCareFeatureTests
 
             Assert.True((await adapter.SetFieldAsync(benchId, "flask:0", replacement)).Changed);
             await session.SaveAsync();
-            var saved = new ChemistryBenchesFeature().Read(WorldSaveReader.ReadFromFile(copy).Raw);
+            var savedRaw = WorldSaveReader.ReadFromFile(copy).Raw;
+            var saved = new ChemistryBenchesFeature().Read(savedRaw);
             Assert.Equal(replacement, Assert.Single(saved).Fields.Single(field => field.Id == "flask:0").Value);
+            var savedEntry = WorldMapAccessor.FindEntry(savedRaw, "DeployedObjectMap", benchId);
+            Assert.NotNull(savedEntry);
+            var inventory = Assert.IsType<ArrayProperty>(savedEntry!.FindByPrefix("ContainerInventories_")!.Property);
+            var inventoryEntry = Assert.IsType<StructProperty>(inventory.Value!.GetValue(0));
+            var inventoryProps = Assert.IsType<UeSaveGame.StructData.PropertiesStruct>(inventoryEntry.Value);
+            var content = Assert.IsType<ArrayProperty>(inventoryProps.Properties.FindByPrefix("InventoryContent_")!.Property);
+            var slotEntry = Assert.IsType<StructProperty>(content.Value!.GetValue(0));
+            var slotProps = Assert.IsType<UeSaveGame.StructData.PropertiesStruct>(slotEntry.Value).Properties;
+            var changeableEntry = Assert.IsType<StructProperty>(slotProps.FindByPrefix("ChangeableData_")!.Property);
+            var changeable = Assert.IsType<UeSaveGame.StructData.PropertiesStruct>(changeableEntry.Value);
+            Assert.Equal(1, changeable.Properties.FindByPrefix("CurrentStack_")!.Property!.Value);
         }
         finally
         {
             File.Delete(copy);
             File.Delete(copy + ".bak");
         }
+    }
+
+    [Fact]
+    public void Digital_garden_cartridge_round_trips_and_resets_saved_progress()
+    {
+        var path = Path.Combine(Fixtures.CascadeDir ?? "", "WorldSave_Facility.sav");
+        if (!File.Exists(path)) return;
+        var save = WorldSaveReader.ReadFromFile(path).Raw;
+        var garden = new GardenPlotsFeature().Read(save).First(e => e.Fields.Any(f => f.Id.StartsWith("crop:", StringComparison.Ordinal)));
+        var props = WorldMapAccessor.FindEntry(save, "DeployedObjectMap", garden.Key)!;
+        var classProperty = Assert.IsType<SoftObjectProperty>(props.FindByPrefix("Class_")!.Property);
+        classProperty.Value = new SoftObjectPath
+        {
+            PackageName = new("/Game/Blueprints/DeployedObjects/Farming/Deployed_GardenPlot_Digital"),
+            AssetName = new("Deployed_GardenPlot_Digital_C"), SubPathString = new("")
+        };
+        var feature = new DigitalGardenPlotsFeature();
+        var entry = Assert.Single(feature.Read(save));
+        var cartridge = entry.Fields.First(f => f.Id.StartsWith("cartridge:", StringComparison.Ordinal));
+        Assert.Contains("Plant_Blank", cartridge.Options!);
+        Assert.True(feature.SetField(save, entry.Key, cartridge.Id, "Plant_Blank").Changed);
+        using var buffer = new MemoryStream(); save.WriteTo(buffer); buffer.Position = 0;
+        var after = feature.Read(SaveGame.LoadFrom(buffer)).Single();
+        Assert.Equal("Plant_Blank", after.Fields.Single(f => f.Id == cartridge.Id).Value);
+        Assert.Equal("0", after.Fields.Single(f => f.Id == $"stage:{cartridge.Id[10..]}").Value);
+        Assert.Equal("0", after.Fields.Single(f => f.Id == $"growth:{cartridge.Id[10..]}").Value);
+        Assert.DoesNotContain(new GardenPlotsFeature().Read(save), entry => entry.Key == garden.Key);
+    }
+
+    [Fact]
+    public void Sconce_lamp_state_round_trips()
+    {
+        var path = Path.Combine(Fixtures.CascadeDir ?? "", "WorldSave_Facility.sav");
+        if (!File.Exists(path)) return;
+        var save = WorldSaveReader.ReadFromFile(path).Raw;
+        var feature = new SconceLampsFeature();
+        var before = feature.Read(save)[0];
+        var on = before.Fields.Single(f => f.Id == "on");
+        var updated = on.Value == "true" ? "false" : "true";
+        Assert.True(feature.SetField(save, before.Key, "on", updated).Changed);
+        using var buffer = new MemoryStream(); save.WriteTo(buffer); buffer.Position = 0;
+        Assert.Equal(updated, feature.Read(SaveGame.LoadFrom(buffer)).Single(e => e.Key == before.Key).Fields.Single(f => f.Id == "on").Value);
     }
 }

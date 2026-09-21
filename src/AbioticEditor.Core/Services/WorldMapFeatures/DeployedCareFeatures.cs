@@ -158,6 +158,94 @@ public sealed class PowerChairsFeature : DeployedCareFeature
     }
 }
 
+/// <summary>Edits cartridge rows already saved by the powered Digital Garden Plot.</summary>
+public sealed class DigitalGardenPlotsFeature : DeployedCareFeature
+{
+    private static readonly string[] CartridgeRows =
+    [
+        "Plant_Blank", "Plant_Pepper", "Plant_Lamogi", "Plant_9mm", "Plant_Magnum", "Plant_556", "Plant_308", "Plant_12g",
+    ];
+
+    public override string Id => "digital-garden-plots";
+    public override string DisplayName => "Digital garden plots";
+    public override string Description => "Cartridges in placed Digital Garden Plots. Printing progress is managed by the powered plot in game.";
+    protected override bool IncludesEntry(IList<FPropertyTag> props)
+        => ClassName(props).Contains("/Farming/Deployed_GardenPlot_Digital", StringComparison.Ordinal);
+
+    protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
+    {
+        var fields = new List<WorldMapField>();
+        foreach (var proxy in Elements(props, "ItemProxies_"))
+        {
+            if (proxy.FindByPrefix("SpotIndex_")?.Property?.Value is not int spot) continue;
+            var row = Struct(proxy, "ItemRow_")?.FindByPrefix("RowName")?.Property?.Value?.ToString();
+            fields.Add(WorldMapField.Choice($"cartridge:{spot}", $"Slot {spot + 1} cartridge", row, OptionsFor(row),
+                hint: "Changing a cartridge starts its saved printing progress again."));
+            var changeable = Struct(proxy, "ChangeableData_");
+            if (Dynamic(changeable, "GrowthStage") is int stage)
+                fields.Add(WorldMapField.ReadOnly($"stage:{spot}", $"Slot {spot + 1} printing stage", Number(stage), "The powered plot advances this in game."));
+            if (Dynamic(changeable, "GrowthProgress") is int progress)
+                fields.Add(WorldMapField.ReadOnly($"growth:{spot}", $"Slot {spot + 1} printing progress", Number(progress), "The powered plot advances this in game."));
+        }
+        return fields;
+    }
+
+    protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
+    {
+        if (!fieldId.StartsWith("cartridge:", StringComparison.Ordinal)
+            || !int.TryParse(fieldId.AsSpan("cartridge:".Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out var spot)
+            || string.IsNullOrWhiteSpace(value))
+            return WorldEditResult.Failure("Choose a saved cartridge slot and cartridge.");
+        var proxy = Elements(props, "ItemProxies_").FirstOrDefault(p => p.FindByPrefix("SpotIndex_")?.Property?.Value is int index && index == spot);
+        var itemRow = proxy is null ? null : Struct(proxy, "ItemRow_");
+        var rowName = itemRow?.FindByPrefix("RowName")?.Property?.Value?.ToString();
+        if (itemRow?.FindByPrefix("RowName") is null) return WorldEditResult.Failure("This cartridge slot is not stored in the save.");
+        var selected = OptionsFor(rowName).FirstOrDefault(option => string.Equals(option, value.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (selected is null) return WorldEditResult.Failure("Choose a cartridge offered by this plot.");
+        if (string.Equals(rowName, selected, StringComparison.Ordinal)) return WorldEditResult.NoChange;
+        GvasTags.SetName(itemRow, "RowName", selected);
+        var changeable = Struct(proxy!, "ChangeableData_");
+        if (changeable is not null)
+        {
+            PetDynamicProperties.SetOrAdd(changeable, "GrowthStage", 0);
+            PetDynamicProperties.SetOrAdd(changeable, "GrowthProgress", 0);
+        }
+        return WorldEditResult.Success;
+    }
+
+    private static List<string> OptionsFor(string? current)
+    {
+        var options = CartridgeRows.ToList();
+        if (!string.IsNullOrWhiteSpace(current) && !options.Contains(current, StringComparer.OrdinalIgnoreCase)) options.Add(current);
+        return options;
+    }
+}
+
+/// <summary>Edits the persisted switch state of placed wall Sconce lamps.</summary>
+public sealed class SconceLampsFeature : DeployedCareFeature
+{
+    public override string Id => "sconce-lamps";
+    public override string DisplayName => "Sconce lamps";
+    public override string Description => "Saved on or off state for placed Sconce lamps.";
+    protected override bool IncludesEntry(IList<FPropertyTag> props)
+        => ClassName(props).Contains("/Misc/Deployed_Lamp_Sconce", StringComparison.Ordinal);
+    protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)
+    {
+        var data = Struct(props, "ChangableData_");
+        return data?.FindByPrefix("DynamicState_")?.Property?.Value is bool on
+            ? [WorldMapField.Bool("on", "Lamp on", on)]
+            : [WorldMapField.ReadOnly("on", "Lamp on", "Not stored in this save")];
+    }
+    protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
+    {
+        if (fieldId != "on" || !WorldMapAccessor.TryParseBool(value, out var on)) return WorldEditResult.Failure("Lamp state must be on or off.");
+        var data = Struct(props, "ChangableData_");
+        if (data?.FindByPrefix("DynamicState_")?.Property?.Value is not bool current) return WorldEditResult.Failure("Lamp state is not stored in this save.");
+        return current == on ? WorldEditResult.NoChange
+            : WorldMapAccessor.SetBool(data, "DynamicState_", on) ? WorldEditResult.Success : WorldEditResult.Failure("Lamp state could not be updated.");
+    }
+}
+
 public sealed class ChemistryBenchesFeature : DeployedCareFeature
 {
     public override string Id => "chemistry-benches";
@@ -193,11 +281,12 @@ public sealed class ChemistryBenchesFeature : DeployedCareFeature
             return WorldEditResult.Failure("Only flask contents can be changed in a saved chemistry bench.");
         var inventory = Elements(props, "ContainerInventories_").FirstOrDefault();
         var slot = inventory is null ? null : Elements(inventory, "InventoryContent_").Skip(index).FirstOrDefault();
-        var rowName = slot is null ? null : Struct(slot, "ItemDataTable_")?.FindByPrefix("RowName");
-        if (rowName?.Property is null) return WorldEditResult.Failure("This flask slot is not stored in the save.");
+        if (slot is null || Struct(slot, "ItemDataTable_")?.FindByPrefix("RowName")?.Property is null)
+            return WorldEditResult.Failure("This flask slot is not stored in the save.");
         var normalized = string.IsNullOrWhiteSpace(value) ? "Empty" : value.Trim();
-        if (string.Equals(rowName.Property.Value?.ToString(), normalized, StringComparison.Ordinal)) return WorldEditResult.NoChange;
-        GvasTags.SetName(Struct(slot!, "ItemDataTable_")!, "RowName", normalized);
+        var current = Struct(slot, "ItemDataTable_")!.FindByPrefix("RowName")!.Property!.Value?.ToString();
+        if (string.Equals(current, normalized, StringComparison.Ordinal)) return WorldEditResult.NoChange;
+        WorldSaveWriter.ApplyChemistryFlaskSlot(slot, index, normalized);
         return WorldEditResult.Success;
     }
 }

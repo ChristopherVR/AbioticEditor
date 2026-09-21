@@ -97,24 +97,27 @@ else
                     @* The panel opens straight into the settings: the "nothing is written until
                        you press SAVE" reminder is already at the top of this tab. *@
                     <hr class="world-feature-divider" />
-                    @if (FeatureId == "garden-plots")
+                    @if (IsGardenFeature)
                     {
                         @* The plot itself (the "pot"), separate from whatever is growing in it -
                            a real, placeable item with its own catalog icon, the same reasoning as
                            the crop icon right below it. *@
-                        <div class="world-feature-crop-preview">
-                            <ItemIcon ItemId="@GardenPlotItemId(selected)" Alt="@selected.Label" Class="world-feature-crop-icon" />
-                            <span>@selected.Label</span>
-                        </div>
-                        <label class="world-feature-field-row">Planting spot
-                            <select @bind="_gardenSpot" aria-label="Planting spot">
+                        @if (FeatureId == "garden-plots")
+                        {
+                            <div class="world-feature-crop-preview">
+                                <ItemIcon ItemId="@GardenPlotItemId(selected)" Alt="@selected.Label" Class="world-feature-crop-icon" />
+                                <span>@selected.Label</span>
+                            </div>
+                        }
+                        <label class="world-feature-field-row">@(FeatureId == "digital-garden-plots" ? "Cartridge slot" : "Planting spot")
+                            <select @bind="_gardenSpot" aria-label="@(FeatureId == "digital-garden-plots" ? "Cartridge slot" : "Planting spot")">
                                 @foreach (var spot in GardenSpots(selected)) { <option value="@spot">Spot @(int.Parse(spot, System.Globalization.CultureInfo.InvariantCulture) + 1)</option> }
                             </select>
                         </label>
                         @* The crop field already stores an item-table row id (see care.lua/
                            DeployedCareFeatures.cs), so the same icon lookup every item slot
                            already uses just works here, no separate artwork source needed. *@
-                        @if (CurrentCropItemId(selected) is { Length: > 0 } cropItemId)
+                        @if (CurrentGardenItemId(selected) is { Length: > 0 } cropItemId)
                         {
                             <div class="world-feature-crop-preview">
                                 <ItemIcon ItemId="@cropItemId" Alt="@CropDisplayName(cropItemId)" Class="world-feature-crop-icon" />
@@ -395,6 +398,8 @@ else
 
     private bool IsPowerSockets => string.Equals(FeatureId, "power-sockets", StringComparison.OrdinalIgnoreCase);
 
+    private bool IsGardenFeature => FeatureId is "garden-plots" or "digital-garden-plots";
+
     /// <summary>True when a power socket has a device drawing from it. Core describes a free
     /// socket's pluggedInDevice field as "Nothing plugged in", so anything else means in use.</summary>
     private bool IsPluggedInSocket(WorldMapEntry entry)
@@ -410,7 +415,7 @@ else
     /// </summary>
     private string? DisplayFieldValue(WorldMapEntry entry, WorldMapField field)
     {
-        if ((FeatureId == "garden-plots" && field.Id.StartsWith("crop:", StringComparison.Ordinal))
+        if ((IsGardenFeature && (field.Id.StartsWith("crop:", StringComparison.Ordinal) || field.Id.StartsWith("cartridge:", StringComparison.Ordinal)))
             || (FeatureId == "chemistry-benches" && field.Id.StartsWith("flask:", StringComparison.Ordinal)))
             return Items.Find(field.Value)?.DisplayName ?? PlainNames.Words(field.Value);
         if (IsPowerSockets
@@ -549,10 +554,16 @@ else
     private string? PlantedCropRow(WorldMapEntry entry)
         => entry.Fields.FirstOrDefault(f => f.Id == $"crop:{ResolvedSpot(entry)}") is { Value.Length: > 0 } field ? field.Value : null;
 
+    private string? SelectedCartridgeRow(WorldMapEntry entry)
+        => entry.Fields.FirstOrDefault(f => f.Id == $"cartridge:{ResolvedSpot(entry)}") is { Value.Length: > 0 } field ? field.Value : null;
+
     /// <summary>The real, pictured item id for whatever <see cref="PlantedCropRow"/> reports -
     /// see <see cref="CropToPicturedItemId"/> for why this translation exists at all.</summary>
     private string? CurrentCropItemId(WorldMapEntry entry)
         => PlantedCropRow(entry) is { } row ? CropToPicturedItemId.GetValueOrDefault(row, row) : null;
+
+    private string? CurrentGardenItemId(WorldMapEntry entry)
+        => FeatureId == "digital-garden-plots" ? SelectedCartridgeRow(entry) : CurrentCropItemId(entry);
 
     private string CropDisplayName(string cropItemId) => Items.Find(cropItemId)?.DisplayName ?? PlainNames.Words(cropItemId);
 
@@ -572,13 +583,14 @@ else
 
     private IEnumerable<WorldMapField> VisibleFields(WorldMapEntry entry)
     {
-        if (FeatureId != "garden-plots") return entry.Fields;
+        if (!IsGardenFeature) return entry.Fields;
         var spot = ResolvedSpot(entry);
         return entry.Fields.Where(f => !f.Id.Contains(':') || f.Id.EndsWith(":" + spot, StringComparison.Ordinal));
     }
     private string Summary(WorldMapEntry entry)
     {
         if (FeatureId == "garden-plots") return $"{entry.Fields.Count(f => f.Id.StartsWith("crop:", StringComparison.Ordinal))} planted spots";
+        if (FeatureId == "digital-garden-plots") return $"{entry.Fields.Count(f => f.Id.StartsWith("cartridge:", StringComparison.Ordinal))} cartridge slots";
         if (IsResourceNodes && entry.Fields.FirstOrDefault(field => field.Id == "harvested") is { } state)
             return $"{FieldLabel(entry, state)}: {StateText(entry, state)}";
         return string.Join(" · ", entry.Fields

@@ -63,17 +63,22 @@ supported placed plots. Choose a plot, then choose a **Planting spot**.
 - Growth stage uses the game's names: Sprout, Budding, Juvenile, Flowering, Grown,
   Harvested, Regrowing and Dead. Growth progress is 0 to 10,000 toward the next stage.
 
-Only fields actually present in the save are offered. Digital garden plots are excluded:
-their water and growth behavior differs. Unsupported or future layouts remain intact.
-Planting into a spot that has never held a crop, and clearing a spot back to empty, are
-not supported yet: no real save so far shows what that field looks like, and guessing the
-shape risks a save the game cannot read (see `docs/reference/research/` for what was
-checked).
+Only fields actually present in the save are offered. Unsupported or future layouts remain
+intact. Planting into a spot that has never held a crop, and clearing a spot back to empty,
+are not supported yet: no real save so far shows what that field looks like, and guessing the
+shape risks a save the game cannot read (see `docs/reference/research/` for what was checked).
 
 
 ![Garden plot water, fertilizer and growth controls](/screenshots/26-world-garden.png)
 
 *Choose one plot and one planting spot at a time.*
+
+## Digital garden plots
+
+**Digital garden plots** appear separately from ordinary gardens. Choose a cartridge slot and
+select the saved cartridge, including Blank, food, ammunition and Lamogi cartridges. Replacing
+a cartridge resets its saved printing state; the powered plot advances printing progress in game.
+Digital plots do not expose water or a manual progress control.
 
 ## Chemistry benches
 
@@ -122,6 +127,12 @@ A region containing a saved, deployed Power Chair gains a **Power chairs** tab. 
 one to change its battery charge from 0 to 200. The charge is read from the same item
 field used by the game's rechargeable component. Chairs do not get storage controls.
 If charge is absent from the save, the panel reports that it is unavailable.
+
+## Sconce lamps
+
+A region with placed Sconce lamps gains a **Sconce lamps** tab. Toggle **Lamp on** to save each
+lamp's on or off state. This includes the Christmas Sconce variant when its switch state is
+present in the save.
 
 ## Story characters
 

@@ -25,7 +25,7 @@ public sealed class LiveWorldCareProbe
         provider.Initialize();
         provider.SubmitKey(new FGuid(), new FAesKey("0x" + new string('0', 64)));
         Directory.CreateDirectory(output);
-        string[] names = ["GardenPlot_ParentBP", "FarmingPlot_BP", "Deployed_Furniture_Chair_PowerChair", "RechargeableComponent",
+        string[] names = ["GardenPlot_ParentBP", "FarmingPlot_BP", "Deployed_GardenPlot_Digital", "FarmingPlot_Digital", "AbioticDeployed_Lamp_ParentBP", "Deployed_Lamp_Sconce", "Deployed_Lamp_Sconce_XMAS", "Deployed_Furniture_Chair_PowerChair", "RechargeableComponent",
             "Deployed_ProcessingBench_ParentBP", "Deployed_ChemistryBench", "AbioticDeployed_CraftingBench_ParentBP",
             "Abiotic_Survival_GameState", "Abiotic_Survival_GameMode", "Abiotic_GameInstance", "Abiotic_WorldMetadataSave", "DayNightManager"];
         foreach (var path in provider.Files.Keys.Where(path => path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)

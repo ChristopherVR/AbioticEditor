@@ -232,5 +232,15 @@ public static partial class WorldSaveWriter
         PetDynamicProperties.ApplyCoating(p, newSlot.CoatingIndex, newSlot.CoatingDurability, save);
     }
 
+    /// <summary>Applies a chemistry bench flask through the same complete slot writer used by
+    /// container edits: row handle, item table, stack count, and sparse changeable data all stay
+    /// consistent when a saved flask is replaced or cleared.</summary>
+    internal static void ApplyChemistryFlaskSlot(IList<FPropertyTag> slotProps, int index, string itemId)
+    {
+        var isEmpty = string.IsNullOrEmpty(itemId) || itemId is "Empty" or "None";
+        ApplySlot(slotProps, new InventoryItemSlot(index, isEmpty ? "Empty" : itemId, isEmpty ? 0 : 1,
+            0, 0, 0, 0, null, false, null, null));
+    }
+
     // ---------- primitive setters ----------
 }

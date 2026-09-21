@@ -1,5 +1,17 @@
 # Abiotic Editor - Session history
 
+## Round-129: Community Update 4 digital gardens and Sconce lamps (2026-09-21)
+
+- Added separate offline world-editor tabs for Digital Garden Plots and Sconce lamps. Digital
+  plots expose their persisted cartridge slots, preserve unknown future or modded cartridge rows,
+  and reset only the saved printing state when a cartridge changes. Printing remains game-managed
+  and requires power. Sconces now expose the game-persisted on or off switch state, including the
+  Christmas Sconce layout.
+- Confirmed the saved layouts against the installed Community Update 4 game content and real
+  fixture saves. The standard garden controls remain scoped to ordinary water-based plots.
+- Repaired the chemistry roundtrip assertion to use the serialized struct layout after the flask
+  writer began restoring its required stack data.
+
 ## Round-128: review fixes for transfers, chemistry and character details (2026-09-21)
 
 - Containers now opens cross-world transfers from the filter toolbar, keeps the world tab
