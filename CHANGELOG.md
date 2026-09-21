@@ -2,10 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## [2.17.0] - 2026-09-21
+
+### Features
+- Add digital gardens and sconce controls
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.16.2 [skip ci]
+
+
 ## [2.16.2] - 2026-09-21
 
 ### Bug Fixes
 - Improve world transfers, chemistry benches and character details
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.16.1 [skip ci]
 
 
 ## [2.16.1] - 2026-09-21
