@@ -6,7 +6,7 @@
 @if (Modals.Current is { } modal)
 {
     <div class="modal-backdrop" role="presentation" @onclick="() => BackdropClicked(modal)">
-        <section @ref="_dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
+        <section @ref="_dialog" class="modal @(modal.IsWide ? "modal-wide" : null)" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown">
             <div class="modal-accent" aria-hidden="true"></div>
             <header class="modal-header"><h2 id="modal-title">@modal.Title</h2></header>
             <div class="modal-body">@modal.Body</div>

@@ -1,8 +1,8 @@
 # Game Pass and Microsoft Store saves
 
-Game Pass saves work in Abiotic Editor, but Xbox cloud sync makes them more delicate than Steam saves. The editor can safely open and edit them. The danger comes later, when Xbox sees a different cloud copy and quietly puts it back.
+Offline editing of Game Pass saves is highly experimental. Xbox cloud sync can undo edits, hide a world or leave it unable to load. Use live editing whenever it supports the change you need, so the running game saves the changes itself. Backups and the offline routine below reduce risk but cannot guarantee recovery.
 
-Use this routine every time. It is the best way to make your edited save the copy Xbox keeps.
+A warning dialog appears before every offline Game Pass open. Follow the full routine every time. Selecting Offline Editing in the editor does not disconnect your PC or stop Xbox cloud sync. Before editing, copy the entire wgs folder somewhere safe outside the game's save location.
 
 ## The offline routine
 

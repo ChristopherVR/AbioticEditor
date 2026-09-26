@@ -129,7 +129,7 @@ public sealed class OpenGuardTests
     }
 
     [Fact]
-    public async Task The_cloud_sync_warning_is_not_repeated_once_it_has_been_read()
+    public async Task Every_offline_Game_Pass_open_requires_a_fresh_acknowledgment()
     {
         using var host = new GuardHost();
         using var folder = ScratchFolder.WithGamePassSave();
@@ -141,6 +141,11 @@ public sealed class OpenGuardTests
 
         await host.GamePass.OpenAsync(folder.Path, () => { opened++; return Task.CompletedTask; });
 
+        Assert.Equal(1, opened);
+        Assert.NotNull(host.Modals.Current);
+        Assert.True(host.Modals.Current.IsWide);
+        Assert.False(host.Modals.Current.CloseOnBackdrop);
+        await host.ConfirmAsync();
         Assert.Equal(2, opened);
         Assert.Null(host.Modals.Current);
     }
@@ -242,7 +247,7 @@ public sealed class OpenGuardTests
         Assert.Equal(1, opened);
         modals.Close();
 
-        // Unlike the Game Pass cloud-sync warning, there is deliberately no "don't show again" -
+        // There is deliberately no "don't show again" -
         // the very next open asks again.
         await gate.ShowAsync(() => { opened++; return Task.CompletedTask; });
         var second = Assert.IsType<ModalRequest>(modals.Current);

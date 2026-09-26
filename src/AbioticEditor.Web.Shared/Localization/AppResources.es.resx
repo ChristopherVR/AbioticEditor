@@ -1382,15 +1382,22 @@ El mundo se actualiza de inmediato. ¿Continuar?</value>
     <value>No se pudo abrir el guardado de Game Pass</value>
   </data>
   <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
-    <value>Antes de editar este guardado de Game Pass</value>
+    <value>Edición sin conexión de Game Pass experimental: riesgo de perder partidas</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>Xbox guarda una copia de esta partida en la nube, y cuando las dos no coinciden la copia de la nube puede ganar. Así es como un cambio parece correcto ahora y ha desaparecido más tarde.
-Para que un cambio se mantenga: cierra el juego y la aplicación de Xbox, desconéctate de internet, edita y guarda aquí, luego abre el juego una vez sin conexión y guarda dentro. Vuelve a conectarte solo después de eso.
-Se hace una copia de seguridad de toda la carpeta antes de cada escritura. Hay más detalles en la guía de Game Pass.</value>
+    <value>La edición sin conexión de partidas de Game Pass es muy experimental. La sincronización de Xbox puede deshacer cambios, ocultar mundos o impedir que carguen. Las copias de seguridad y estos pasos reducen el riesgo, pero no garantizan la recuperación.
+Se recomienda la edición en vivo para Game Pass siempre que admita el cambio deseado. Así el juego en ejecución guarda los cambios en lugar de reescribir archivos de Xbox sin conexión. Cancela este diálogo y cambia a la edición en vivo.
+Si continúas con la edición sin conexión, sigue TODOS estos pasos cada vez:
+1. Cierra Abiotic Factor y la aplicación Xbox, incluida la bandeja del sistema. Espera aproximadamente un minuto a que termine la última sincronización.
+2. Copia toda la carpeta de partidas wgs a un lugar seguro fuera de la ubicación de guardado del juego.
+3. Desconecta Internet. Elegir la edición sin conexión en esta aplicación NO desconecta el PC ni detiene la sincronización de Xbox.
+4. Mantén el juego cerrado mientras editas. Guarda los cambios en este editor.
+5. Sin reconectar Internet, inicia Abiotic Factor, carga este mundo, compruébalo, guarda dentro del juego y sal. Si no carga, conserva la copia de seguridad y pide ayuda antes de reconectar.
+6. Solo entonces reconecta Internet. Si Xbox pregunta qué copia conservar, elige la copia local del dispositivo que acabas de comprobar y guardar.
+Las copias automáticas del editor no impiden que Xbox sustituya una partida. Continúa solo si entiendes el riesgo y seguirás este procedimiento.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
-    <value>Entendido, abrir</value>
+    <value>Entiendo los riesgos y pasos, abrir sin conexión</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
     <value>¿Arreglar esta partida primero?</value>

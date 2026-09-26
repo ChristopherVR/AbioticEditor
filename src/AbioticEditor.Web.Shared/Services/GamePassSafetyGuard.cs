@@ -16,8 +16,8 @@ namespace AbioticEditor.Web.Services;
 /// wrong at the time. The only reliable defence is a workflow the player has to follow themselves
 /// (close the game and the Xbox app, go offline, edit, launch the game once offline, only then
 /// reconnect), so the editor's job is to explain it before the first edit rather than after the
-/// loss. Shown once per run: it is long, and a player working through several worlds should not
-/// have to dismiss it each time.</para>
+/// loss. Shown before every offline Game Pass open so each attempt requires an explicit
+/// acknowledgment of the experimental workflow.</para>
 ///
 /// <para>The second case is a save whose container list points at data that is not on disk - the
 /// fingerprint of an Xbox sync that never finished. The save still opens (the editor finds the
@@ -45,11 +45,9 @@ public sealed class GamePassSafetyGuard(
     SaveWorkspaceSessionService workspace, ModalService modals, HostLanguageService language, ToastService toasts)
     : IGamePassSafetyGuard
 {
-    private bool _cloudSyncWarningShown;
-
     /// <summary>
     /// Runs <paramref name="open"/>, first explaining the cloud-sync workflow when
-    /// <paramref name="folder"/> is a Game Pass save and this run has not explained it yet, and
+    /// <paramref name="folder"/> is a Game Pass save, and
     /// afterwards offering to repair a half-synced folder. <paramref name="declined"/> runs
     /// instead when the player backs out of the warning, so nothing opens.
     /// </summary>
@@ -68,29 +66,16 @@ public sealed class GamePassSafetyGuard(
             return open();
         }
 
-        if (_cloudSyncWarningShown)
-        {
-            return OfferRepairThenOpenAsync(folder!, open);
-        }
-
-        // Marked as read only when the player actually acknowledges it. Setting it as the dialog
-        // goes up meant that backing out of the warning counted as having read it, so the next
-        // attempt to open a Game Pass save went straight in with no warning at all - the one case
-        // where someone has just shown they were not ready to proceed.
         modals.Show(new ModalRequest(
             language.Resource("Main_GpCloudSyncWarningTitle"),
-            Paragraphs(language.Resource("Main_GpCloudSyncWarningMessage")),
+            OfflineWarning(),
             ConfirmText: language.Resource("Main_GpCloudSyncWarningContinue"),
-            OnConfirm: () =>
-            {
-                _cloudSyncWarningShown = true;
-                return OfferRepairThenOpenAsync(folder!, open);
-            },
+            OnConfirm: () => OfferRepairThenOpenAsync(folder!, open),
             CancelText: language.Resource("Common_Cancel"),
             // Backing out of the warning opens nothing at all, so the caller is told the attempt
             // is over. This is the one decline here: cancelling the repair question below still
             // opens the world, because "no thanks" there means "without tidying it up first".
-            OnCancel: declined));
+            OnCancel: declined, CloseOnBackdrop: false, IsWide: true));
         return Task.CompletedTask;
     }
 
@@ -208,6 +193,14 @@ public sealed class GamePassSafetyGuard(
             toasts.Show(language.Resource("Main_GpRepairFailed"), ToastKind.Error);
         }
     }
+
+    private RenderFragment OfflineWarning() => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "gamepass-offline-warning");
+        builder.AddContent(2, Paragraphs(language.Resource("Main_GpCloudSyncWarningMessage")));
+        builder.CloseElement();
+    };
 
     private static bool IsGamePassFolder(string? folder)
     {

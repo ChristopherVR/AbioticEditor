@@ -2233,3 +2233,10 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .app-error-text{display:grid;gap:3px;flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 .app-error-text strong{font-size:13px;letter-spacing:.04em;text-transform:uppercase}
 .app-error-dismiss{flex:0 0 auto;align-self:center}
+
+/* Experimental Game Pass offline opening: keep the procedure prominent and readable. */
+.modal.modal-wide{width:min(780px,100%);max-height:calc(100dvh - 48px)}
+.gamepass-offline-warning{font-size:14px;line-height:1.6}
+.gamepass-offline-warning>p:first-child{padding:14px 16px;border-left:4px solid var(--alert);background:color-mix(in srgb,var(--alert) 10%,var(--shell));font-weight:600}
+.gamepass-offline-warning>p:nth-child(2){color:var(--section);font-weight:600}
+@media(max-width:600px){.modal.modal-wide{max-height:calc(100dvh - 20px)}}

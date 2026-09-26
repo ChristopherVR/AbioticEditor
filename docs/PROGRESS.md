@@ -1,5 +1,21 @@
 # Abiotic Editor - Session history
 
+## Round-130: prominent Game Pass offline warning (2026-09-27)
+
+- Every offline Game Pass open now requires a fresh acknowledgment, including after a
+  previously accepted warning. Cancel and Escape still decline the open; clicking the
+  backdrop cannot dismiss this warning.
+- Expanded the dialog to 780px with responsive scrolling, a highlighted experimental
+  save-loss warning, a live-editing recommendation for supported changes, and six numbered
+  steps covering closing the game/Xbox app, a separate full wgs backup, disconnecting,
+  editing, loading and saving in-game offline, and choosing the verified local copy on sync.
+- Explicitly states that choosing Offline Editing does not disconnect the computer or stop
+  Xbox cloud sync. Updated all five languages and the Game Pass guide.
+
+Validation: desktop host build succeeded with zero warnings/errors; 28 open-guard tests
+and 60 localization/language tests passed. Repeated Game Pass opens are covered by the
+behavioral regression test. No save-writing or live-editing behavior changed.
+
 ## Round-129: Community Update 4 digital gardens and Sconce lamps (2026-09-21)
 
 - Added separate offline world-editor tabs for Digital Garden Plots and Sconce lamps. Digital

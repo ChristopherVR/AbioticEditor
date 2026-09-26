@@ -60,4 +60,4 @@ public sealed class ModalService
 /// </summary>
 public sealed record ModalRequest(string Title, RenderFragment Body, string? ConfirmText = null,
     Func<Task>? OnConfirm = null, string CancelText = "Cancel", bool IsDestructive = false,
-    bool CloseOnBackdrop = true, Func<Task>? OnCancel = null);
+    bool CloseOnBackdrop = true, Func<Task>? OnCancel = null, bool IsWide = false);

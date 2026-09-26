@@ -1381,15 +1381,22 @@ Le monde est mis à jour immédiatement. Continuer ?</value>
     <value>Impossible d'ouvrir la sauvegarde Game Pass</value>
   </data>
   <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
-    <value>Avant de modifier cette sauvegarde Game Pass</value>
+    <value>Édition hors ligne Game Pass expérimentale : risque de perte de sauvegarde</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>Xbox garde une copie de cette sauvegarde dans le cloud, et quand les deux diffèrent la copie du cloud peut l'emporter. C'est ainsi qu'une modification semble correcte puis disparaît plus tard.
-Pour qu'une modification tienne : fermez le jeu et l'application Xbox, passez hors ligne, modifiez et enregistrez ici, puis lancez le jeu une fois toujours hors ligne et sauvegardez dedans. Ne vous reconnectez qu'ensuite.
-Tout le dossier de sauvegarde est copié avant chaque écriture. Le guide Game Pass donne plus de détails.</value>
+    <value>L’édition hors ligne des sauvegardes Game Pass est très expérimentale. La synchronisation Xbox peut annuler les modifications, masquer un monde ou empêcher son chargement. Les copies de secours et ces étapes réduisent le risque, sans garantir la récupération.
+L’édition en direct est recommandée pour Game Pass lorsque la modification souhaitée est prise en charge. Le jeu en cours enregistre alors les modifications au lieu de réécrire les fichiers Xbox hors ligne. Annulez cette fenêtre et passez à l’édition en direct.
+Si vous continuez hors ligne, suivez TOUTES ces étapes à chaque fois :
+1. Fermez Abiotic Factor et l’application Xbox, y compris dans la zone de notification. Attendez environ une minute que la dernière synchronisation se termine.
+2. Copiez tout le dossier de sauvegarde wgs dans un endroit sûr, en dehors du dossier des sauvegardes du jeu.
+3. Déconnectez Internet. Choisir l’édition hors ligne dans cette application ne déconnecte PAS votre PC et n’arrête pas la synchronisation Xbox.
+4. Gardez le jeu fermé pendant l’édition. Enregistrez vos modifications dans cet éditeur.
+5. Toujours sans Internet, lancez Abiotic Factor, chargez ce monde, vérifiez-le, sauvegardez dans le jeu et quittez. Si le chargement échoue, gardez votre copie de secours et demandez de l’aide avant de vous reconnecter.
+6. Reconnectez-vous seulement ensuite. Si Xbox demande quelle copie conserver, choisissez la copie locale de cet appareil que vous venez de vérifier et d’enregistrer.
+Les copies automatiques de l’éditeur n’empêchent pas Xbox de remplacer une sauvegarde. Continuez uniquement si vous comprenez le risque et suivrez cette procédure.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
-    <value>J'ai compris, ouvrir</value>
+    <value>Risques et étapes compris, ouvrir hors ligne</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
     <value>Remettre cette sauvegarde en ordre d'abord ?</value>

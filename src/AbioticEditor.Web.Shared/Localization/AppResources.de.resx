@@ -1381,15 +1381,22 @@ Die Welt wird sofort aktualisiert. Fortfahren?</value>
     <value>Game Pass-Spielstand konnte nicht geöffnet werden</value>
   </data>
   <data name="Main_GpCloudSyncWarningTitle" xml:space="preserve">
-    <value>Bevor du diesen Game Pass-Spielstand bearbeitest</value>
+    <value>Experimentelle Game-Pass-Offlinebearbeitung - Risiko eines Spielstandverlusts</value>
   </data>
   <data name="Main_GpCloudSyncWarningMessage" xml:space="preserve">
-    <value>Xbox behält eine Kopie dieses Spielstands in der Cloud, und wenn beide sich unterscheiden, kann die Cloud-Kopie gewinnen. So kann eine Änderung jetzt gut aussehen und später verschwunden sein.
-Damit eine Änderung bleibt: Spiel und Xbox-App schließen, offline gehen, hier bearbeiten und speichern, dann das Spiel einmal noch offline starten und darin speichern. Erst danach wieder verbinden.
-Vor jedem Schreiben wird der gesamte Spielstandordner gesichert. Mehr dazu steht im Game-Pass-Leitfaden.</value>
+    <value>Die Offlinebearbeitung von Game-Pass-Spielständen ist stark experimentell. Die Xbox-Cloud-Synchronisierung kann Änderungen rückgängig machen, Welten ausblenden oder das Laden verhindern. Backups und die folgenden Schritte verringern das Risiko, garantieren aber keine Wiederherstellung.
+Für Game Pass wird Live-Bearbeitung empfohlen, sofern die gewünschte Änderung unterstützt wird. Dabei speichert das laufende Spiel die Änderungen, statt Xbox-Spielstandsdateien offline umzuschreiben. Breche diesen Dialog ab und wechsle zur Live-Bearbeitung.
+Wenn du offline fortfährst, befolge JEDES MAL ALLE Schritte:
+1. Schließe Abiotic Factor und die Xbox-App, auch im Infobereich. Warte etwa eine Minute, bis die letzte Synchronisierung abgeschlossen ist.
+2. Kopiere den gesamten wgs-Spielstandsordner an einen sicheren Ort außerhalb des Spielstandsverzeichnisses.
+3. Trenne die Internetverbindung. Die Auswahl der Offlinebearbeitung in dieser App trennt deinen PC NICHT vom Internet und stoppt die Xbox-Synchronisierung nicht.
+4. Lass das Spiel während der Bearbeitung geschlossen. Speichere deine Änderungen in diesem Editor.
+5. Starte Abiotic Factor weiterhin ohne Internet, lade diese Welt, überprüfe sie, speichere im Spiel und beende es. Lädt sie nicht, bewahre das Backup auf und suche Hilfe, bevor du die Verbindung wiederherstellst.
+6. Verbinde dich erst danach wieder. Fragt Xbox nach der zu behaltenden Kopie, wähle die gerade geprüfte und gespeicherte lokale Kopie auf diesem Gerät.
+Automatische Backups des Editors verhindern nicht, dass Xbox einen Spielstand ersetzt. Fahre nur fort, wenn du das Risiko verstehst und dieses Verfahren befolgst.</value>
   </data>
   <data name="Main_GpCloudSyncWarningContinue" xml:space="preserve">
-    <value>Verstanden, öffnen</value>
+    <value>Risiken und Schritte verstanden, offline öffnen</value>
   </data>
   <data name="Main_GpMidSyncTitle" xml:space="preserve">
     <value>Diesen Spielstand zuerst in Ordnung bringen?</value>
