@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.17.1] - 2026-09-26
+
+### Bug Fixes
+- Make Game Pass offline editing risks clear before every open
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.17.0 [skip ci]
+
+
 ## [2.17.0] - 2026-09-21
 
 ### Features
