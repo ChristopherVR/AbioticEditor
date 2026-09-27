@@ -130,6 +130,49 @@ The missing construction workflow is a spatial editor for individual pieces and 
 
 **Done when:** the editor can explain which operations are supported for the selected save/game combination and avoid unsupported writes without preventing known-safe inspection. Each claimed older-version editing capability has fixtures and recorded verification.
 
+## Extract Game Pass support for other games and modding tools
+
+**Gap:** the Game Pass findings and storage implementation live inside Abiotic Editor Core. Other game editors and modding tools cannot consume them through a focused, independently versioned package. This work includes migrating the code, documenting its contracts, and providing extension points for different games.
+
+### Package boundaries
+
+| Component | Responsibility |
+| --- | --- |
+| Shared Xbox storage package | Wgs index/manifests, container/blob identities, opaque payload access, observed state transitions, ETag handling, timestamps, write preflight, snapshots, backup/recovery, and commit ordering. |
+| Platform integration | Package/account discovery, game-process checks, filesystem access, and lock/write-availability handling through replaceable platform services. Keep account and title selection explicit. |
+| Game adapter | Payload recognition, game-specific bundles and compression, checksums, save classes, member names, account profiles, and platform conversion rules. |
+| Editor/modding integration | Semantic save operations, content/version catalogs, migration steps, previews, validation, and tooling built on the storage package and a game adapter. |
+
+Abiotic Factor's `ABF_SAVE_VERSION` bundle, headerless GVAS member reconstruction, settings encoding, and world/profile conversion belong in its adapter. Oodle should be an optional codec dependency with documented installation and licensing requirements. Other games may use different payloads, multiple blobs, integrity checks, or container layouts; discover those differences before making the current single-title assumptions public API contracts.
+
+### Findings to carry into the package
+
+- Document index, manifest, blob, and payload boundaries with byte layouts, sanitized examples, and the source of each observation. Label confirmed Abiotic behavior, cross-game evidence, and unresolved interpretations separately.
+- Preserve service-issued ETags, their relationship to local container states, timestamp precision, upload/conflict flags, and the distinction between current and previous blob IDs. Include ambiguous or interrupted sync states in the read/write rules.
+- Inventory the locking and unlocking behavior we have investigated: file sharing, active game processes, write refusal, resource acquisition/release, and storage state transitions. Specify exactly what is locked, what permits a write, and how resources are released on success, failure, or cancellation. Keep gameplay unlock/relock operations in game adapters. Local file access does not establish control over Xbox cloud sync.
+- Record backup scope, write ordering, atomic file replacement, generation cleanup, orphan recovery, and conflict reporting. Make repair an explicit operation with a preview; a read must not silently repair a store.
+- Define concurrent-change detection between inspection and commit. A store changed by the game or sync client must be re-evaluated before writing; multiple atomic file replacements do not constitute a transaction across the whole store.
+
+### Migration plan
+
+1. **Inventory dependencies and assumptions.** Map `WgsContainerStore`, `WgsSnapshot`, discovery/environment checks, `GamePassSaveSet`, codecs, and conversion code to the boundaries above. Identify hard-coded title IDs, container names, blob counts, compression formats, and account-file conventions.
+2. **Capture behavior before moving code.** Assemble sanitized fixtures for ordinary reads/writes, created/modified containers, conflicting ETags, locked files, interrupted commits, missing blobs, orphaned containers, Unicode names, and recovery. Record expected outcomes and untouched-byte preservation.
+3. **Define the public contracts.** Provide inspect/read, enumerate containers/blobs, plan edits, validate, commit, backup/restore, and diagnose APIs. Use typed results for lock conflicts, concurrent changes, unsupported layouts, and recovery choices. Allow injected filesystem, clock, codec, discovery, and logging services where needed.
+4. **Extract generic storage first.** Move the container layer into its own project/package and route Abiotic Editor through an adapter. Preserve the published Core API where callers depend on it, using forwarding wrappers during migration. Keep CLI and desktop behavior aligned through the same package.
+5. **Extract Abiotic payload handling.** Move its bundle/member/header conversion and profile semantics behind the adapter contract. Document supported source/target versions for conversion and upgrade operations, including what happens to unknown or modded data.
+6. **Prove reuse with another game.** A synthetic adapter can exercise the API boundary early, but support claims require at least one second game's real sanitized fixtures and verified read/write behavior. Publish a title capability matrix; do not advertise generic write support from Abiotic fixtures alone.
+7. **Package and document.** Choose package/repository naming, version the API independently, document dependency licenses and supported platforms, and provide a small CLI/example adapter. Publish the format findings as durable reference material alongside the package.
+
+### Modding extension goals
+
+- Allow a game adapter or plugin to register recognized save versions, custom structures, item/class catalogs, validators, and deliberate migrations. Unknown content must survive unrelated edits when its defining mod is absent.
+- Expose semantic operations with parameters, a dry-run change plan, and declared target-game/version support. Route cooperative operations through the same backup, validation, and commit pipeline as built-in editing.
+- Support reusable save transformations: configurable unlock/relock actions, custom item edits, base templates, and power-network layouts where the game adapter has a verified contract. Include dependent-state changes in the preview.
+- Define versioned manifests, dependencies, adapter compatibility, operation discovery, and actionable errors for missing mods or codecs. Document the trust model: in-process plugins with full filesystem access are not isolated by API conventions alone.
+- Treat runtime mod deployment and live editing as a further adapter capability requiring game-specific loader/protocol integration. Track installation, update/removal, authority, and persistence requirements before including them in the supported modding workflow.
+
+**Done when:** Abiotic Editor uses the extracted package; another game integration demonstrates the boundary with real fixtures; findings and lock/state rules are documented; and a sample extension can inspect, preview, validate, and commit a semantic save change through the shared workflow. Broader runtime modding support remains a separate deliverable until a target game's adapter implements it.
+
 ## Additional gaps to track
 
 - **Group operations and linked identities:** whole-base copy, cross-world placement, and power-network duplication need identity remapping for containers, beds/owners, teleporters, and connected devices. Define how external references are retained, rebound, or reported before a group operation is applied.
@@ -140,12 +183,13 @@ The missing construction workflow is a spatial editor for individual pieces and 
 
 ## Work order and review checkpoints
 
-1. Define the compatibility matrix and collect the save/asset evidence needed by the map and power work.
+1. Define the compatibility matrix, collect save/asset evidence, and establish the reusable Game Pass package and adapter boundaries.
 2. Build the shared level/actor location index and full 2D floor plans; add Show on map throughout the editor.
 3. Implement power graph discovery, cross-file endpoint resolution, and network inspection on those maps.
 4. Prove base transforms and connection semantics, then add staged placement and power-routing edits with undo and grouped saves.
 5. Add whole-base operations and the optional Three.js construction view using the same identities and coordinate system.
-6. Close the remaining character/account, crop/pet, story-consequence, and live-operation gaps in independently reviewable increments.
+6. Migrate Abiotic Game Pass support into the shared package, prove a second game adapter, and deliver the documented extension example. This can progress independently once the storage fixtures and API boundaries are established.
+7. Close the remaining character/account, crop/pet, story-consequence, and live-operation gaps in independently reviewable increments.
 
 For each task, record its player-facing outcome, dependencies, evidence, remaining unknowns, and completion check. A task leaves this roadmap only when that outcome is delivered and its required verification is recorded.
 
@@ -158,3 +202,5 @@ These are implementation pointers for reviewing the gaps, not a list of complete
 - [Socket save fields and device links](../src/AbioticEditor.Core/Services/WorldMapFeatures/PowerSocketMapFeature.cs) and [live socket constraints](../src/AbioticEditor.Core/LiveEditing/World/LivePowerSocketsChannel.cs).
 - [Tram destination limitation](../src/AbioticEditor.Core/Services/WorldMapFeatures/TramMapFeature.cs).
 - [Unsurfaced per-player recipe entitlements](../src/AbioticEditor.Core/Services/WorldMapFeatures/ServerEntitlementsFeature.cs).
+
+- [Game Pass storage and codecs](../src/AbioticEditor.Core/Infrastructure/GamePass), [format findings](reference/game-pass-format.md), and [save operation runner](../src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs).
