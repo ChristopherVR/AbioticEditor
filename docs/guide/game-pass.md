@@ -27,7 +27,7 @@ There is no per-game PC switch to disable Xbox cloud saves and no PC Xbox-app bu
 
 ### A world will not load
 
-Close the game and Xbox app. Open the save in the desktop editor and choose **Repair now** if it appears. Repair creates a backup first and fixes save information that older editor versions could leave in a state Xbox does not understand.
+Close the game and Xbox app. Open the save in the desktop editor and choose **Repair now** if it appears. Repair creates a backup first and checks the save container information before continuing.
 
 After repair, follow the offline routine: launch and save in-game while offline, then reconnect. If the world still does not load, stop editing and [request help on GitHub](https://github.com/ChristopherVR/AbioticEditor/issues/new/choose) or [ask on Nexus Mods](https://www.nexusmods.com/abioticfactor/mods/244?tab=posts). Include the editor version and what happened, but never share your save publicly.
 

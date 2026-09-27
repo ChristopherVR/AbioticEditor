@@ -9,7 +9,7 @@ start with the [player guides](/guide/).
 
 - [Architecture and contributing](./architecture): projects, save contract, build commands, and documentation checks.
 - [Localization](./localization): shared strings and translations.
-- [Maintainer commands](./maintainer-commands): regenerate registries and wiki images.
+- [Maintainer commands](./maintainer-commands): regenerate registries and bundled game/wiki art.
 
 ## Save formats
 
@@ -28,7 +28,7 @@ start with the [player guides](/guide/).
 
 ## Live editing and research
 
-- [Live protocol](./live-editing-protocol): commands, capability limits, and verification evidence.
+- [Live protocol](./live-editing-protocol): transport contract and command payloads.
 - [Live setup guide](/guide/live-editing): the player-facing connection workflow.
 - The **Research notes** sidebar contains investigations for specific game builds.
 - [Historical Razor parity audit](/architecture/razor-parity-audit): the migration record for the retired MAUI app.

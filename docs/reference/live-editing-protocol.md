@@ -1,11 +1,13 @@
 # Live-editing wire protocol
 
-The protocol between the desktop editor (`AbioticEditor.Core.LiveEditing.TcpLiveGameChannel`) and
-whichever in-game agent is listening (`live-agent/`, outside the .NET solution - see its own
-README for the two implementations: the primary Lua-mod-plus-native-helper hybrid, and the
-secondary pure-C++-mod). Both speak the identical protocol described here - the client cannot
-tell which one it is talking to, by design. One TCP connection, one request in flight at a time,
-one line of JSON per message in either direction.
+This document specifies the TCP wire contract shared by the desktop editor and the in-game
+agents in `live-agent/`. The Lua-mod-plus-native-helper and pure-C++ implementations use the same
+framing, handshake, request envelope, response envelope and command payloads. Commands are grouped
+by feature below. Implementation details and research evidence belong in source comments or the
+maintainer progress log, not in this protocol reference.
+
+A connection carries one request at a time. Each direction sends one compact JSON message per
+line. The feature sections define the payload and result shapes supported by the current protocol.
 
 ## Framing
 
@@ -57,7 +59,7 @@ compatibility.
 
 ## `vitals.get` / `vitals.set`
 
-The Phase-0 slice (see `docs/PROGRESS.md`). `vitals.get` takes no payload and returns a flat
+`vitals.get` takes no payload and returns a flat
 object with all twelve fields below. `vitals.set` takes the same shape as its payload and returns
 no result.
 
@@ -112,7 +114,7 @@ An `id` in any world area is the game's own full object name for that exact acto
 (`GetFullName()`), re-resolved by a fresh scan on every write: the loaded set of doors, crates,
 NPCs and loose items changes constantly, so an index from an earlier list is never trusted.
 
-## `transmog.get` / `transmog.set` - armor-visibility toggles (round 77)
+## `transmog.get` / `transmog.set` - armor-visibility toggles
 
 Previously reported as having "no confirmed live property", the six per-slot "hide this armor
 piece" eye toggles (`PlayerTransmogTab`'s `TransmogVisibility`) turned out to have a real,
@@ -128,14 +130,7 @@ and applies each flag via that RPC immediately; an index outside 0-5 is silently
 than written. Not host-gated, the same "player-owned data" reasoning `inventory.set` already
 uses: this component belongs to a specific player's own pawn.
 
-**Bug fix (reported live): the equipment tab didn't reflect a change until the player toggled the
-transmog button themselves.** Calling `Request_ChangeTransmogVisibilityFlag` writes the array on
-this process's own server-side copy of the component, but a server never receives its own
-property's `OnRep` callback the way a remote client does - only the in-game button's own trigger
-of that same callback was ever repainting the UI. `transmog.set` now also calls
-`OnRep_TransmogVisibility()` itself after every write (the same real function this file's own
-class-layout dump already found, just never invoked), forcing the repaint immediately instead of
-waiting for the player to press the button.
+After applying a visibility flag, the agent calls `OnRep_TransmogVisibility()` so the in-game equipment view refreshes immediately.
 
 ## `world.get` / `world.set` - clock and weather
 
@@ -149,14 +144,14 @@ waiting for the player to press the button.
 | `currentWeather` | string | Active weather event row (`None` when clear) |
 | `weatherOptions` | string[] | Every weather row the game knows, `None` first |
 | `isHost` | bool | Whether this process can change any of it |
-| `minutesPassed` | number? | Total world play time in minutes (2026-09-16, see `world.setPlaytime` below) |
+| `minutesPassed` | number? | Total world play time in minutes (see `world.setPlaytime` below) |
 | `canSetMinutesPassed` | bool | Whether this process can change `minutesPassed` |
 
 `world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather"}`. `weather`
 triggers that event immediately (`None` ends the current one); `nextWeather` queues it for the
 next in-game day. Host only.
 
-### `world.setPlaytime` - total world play time (2026-09-16)
+### `world.setPlaytime` - total world play time
 
 **Implemented, awaiting in-game verification.** The counterpart to the file editor's world
 playtime field (`WorldSave_MetaData.sav`'s `MinutesPassed`, which `DayNightCycle`/
@@ -171,7 +166,7 @@ running session clock itself keeps advancing normally from that new base. The wr
 by an immediate readback; a mismatch (or an offset outside the 32-bit range the field can hold)
 is reported as an error rather than silently applied.
 
-## `world.info` - current region (round 78)
+## `world.info` - current region
 
 `world.info` takes no payload and returns `{"levelToken":string?,"isHost":bool}`. `levelToken` is
 the local controller's own `ActiveLevelName` - the exact same evidenced read `spawn.get` already
@@ -260,7 +255,7 @@ component class as a player's backpack. `containers.set` takes `{"id","edits":[{
 `SortInventory()` function - the same reorder the in-game "sort" button performs; not exercised
 by any mod before round 77. Host only.
 
-`containers.get` (round 91) takes `{"id"}` and returns `{"container":{...},"isHost":bool}` - ONE
+`containers.get` takes `{"id"}` and returns `{"container":{...},"isHost":bool}` - ONE
 row in exactly the `containers.list` shape (the mod builds both from the same function). It is a
 single actor lookup plus one row, not a world scan, and is what the editor uses after every slot
 write, rename and transfer, and on its periodic tick for the container the player has open;
@@ -286,7 +281,7 @@ calls it with. Not exercised by any mod, so genuinely unproven end-to-end; with 
 item lands wherever the game's own `FindBestItemDropLocation` puts it (near the player), unchanged
 from round 77.
 
-**Position (round 111, all three of `x`/`y`/`z` or none)**: the game mode's own
+**Position**: the game mode's own
 `SpawnItem(InTransform, ItemRow, StackSize, Durability, NoPhysics, NoCollision, ConnectToComponent,
 ConnectToBone, ...)` was considered and rejected - its `ItemRow` parameter is a `DataTableRowHandle`
 struct that has to be built and passed ACROSS a function-call boundary, exactly the class of
@@ -308,7 +303,7 @@ On success the moved actor's position is read back with `K2_GetActorLocation` an
 the request before reporting success. Genuinely unproven end-to-end against the running game. Host
 only.
 
-## `bases.list` / `bases.set` - deployables (round 76, bench upgrades round 77, upgrade removal 2026-09-16, paint colour 2026-09-16, name field fixed round 121)
+## `bases.list` / `bases.set` - deployables
 
 `bases.list` returns `{"deployables":[{"id","className","x","y","z","customName","hasInventory",
 "storedItemCount","supportsUpgrades","canEditUpgrades","installedUpgrades":[...],"paintColor"?}],
@@ -321,7 +316,7 @@ value 12, is never sent). `bases.set` takes `{"id","customName"?,"upgradeRow"?,
 "upgradeInstalled"?,"paintColor"?}` and renames the object, installs or removes a bench upgrade,
 and/or sets its paint colour immediately. Host only, like `containers.set`/`doors.set`.
 
-**Custom name field fixed (round 121).** `customName` used to read/write
+**Custom name field fixed.** `customName` used to read/write
 `AbioticDeployed_ParentBP_C`'s `AlternativeObjectName` (`FTextProperty`, "Edit | BlueprintVisible |
 DisableEditOnInstance" - no `Net` flag at all), which is why a bench renamed in-game never showed a
 name on this tab: a write with no `Net` flag is only ever seen by whichever machine made it. It now
@@ -349,7 +344,7 @@ driven by the tab's `PlayerPosition` parameter) so a player can tell which liste
 near them. Neither addition changes the wire shape above: `x`/`y`/`z` already carried everything
 both features need.
 
-**Paint colour** (implemented, awaiting in-game verification): a plain property write, not a
+**Paint colour**: a plain property write, not a
 function call. `AbioticDeployed_ParentBP_C` carries a bare `PaintedColor` `EPaintColor` property
 (no hash suffix in the compiled class layout) with its own `OnRep_PaintedColor()` (no
 parameters - a normal `RepNotify`), confirmed from the game's own class layout (see
@@ -371,7 +366,7 @@ re-derived the entry from `PaintedColor` on the next save (as `SetPaintColor`'s 
 `SetDynamicProperty` call implies) is unverified without a running game.
 
 **Bench-upgrade editing no longer calls the native `AddUpgrade`/`"Has Upgrade"` functions at
-all** (implemented, awaiting in-game verification). Round 77 grounded installation in those two
+all**. earlier implementation grounded installation in those two
 real functions, but the row-handle struct fed to them had to be reconstructed by hand (no live
 enumeration function exists for `DT_BenchUpgrades`), and a player reported the BASES tab crashing
 the game with a fatal error every time it was opened - `bases.list` used to call `"Has Upgrade"`
@@ -397,7 +392,7 @@ read-only instead of guessing. `upgradeRow` must be one of the 11 known `DT_Benc
 `AbioticEditor.Core.WorldSaves.BenchUpgradeCatalog.All`); `upgradeInstalled` defaults to `true`
 when omitted, so passing `false` removes it.
 
-**Round 111 re-check of `canEditUpgrades`**: re-examined against a fresh class probe rather than
+: re-examined against a fresh class probe rather than
 assumed still correct. Two findings. First, new grounding: `AddUpgrade`'s own disassembly
 (`AbioticDeployed_CraftingBench_ParentBP_C`) ends its success path in a local
 `CallFunc_AddTagToChangeableData_ReturnValue` call - the native function's own internal
@@ -423,7 +418,7 @@ just can't be confirmed on this connection gets an explanation instead of silent
 Opening a bench or crate's contents inline (the file editor's slot grid) is still file-only - it
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
-## `vehicles.list` / `vehicles.set` - round 76, wrecked state round 77, on-board storage the coordinator round after 79
+## `vehicles.list` / `vehicles.set`
 
 `vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","wrecked",
 "x","y","z","containerId"?,"hasInventory","inventoryItemCount"}],"isHost":bool,
@@ -435,7 +430,7 @@ subclasses). `vehicles.set` takes `{"id","driveable"?,"wrecked"?,
 `CheatConsoleCommands/AFUtils/BaseUtils/BaseUtils.lua`'s `TeleportActorToActor`), keeping the
 vehicle's current rotation. Host only.
 
-`wrecked` (round 77) reads/writes the vehicle's own `PendingDestroy` property - a real,
+`wrecked` reads/writes the vehicle's own `PendingDestroy` property - a real,
 unsuffixed class member confirmed from the game's own class layout (the save's `Destroyed` flag
 is fed from a local variable inside the vehicle's own `UpdateWorldSave` function, and
 `PendingDestroy` is the only real class member anywhere near it). There is no confirmed
@@ -465,16 +460,16 @@ the same way `containers.lua` counts a container's own non-empty slots. The app'
 slot-edit code path, the same one every other placed container already uses) instead of the old
 hardcoded `hasInventory: false`. **Not yet exercised in the running game.**
 
-## `pets.list` / `pets.set` / `pets.remove` - round 76 (no path), partially closed round 77, removal added round 78, generic tamed sweep added round 105, species change added round 109
+## `pets.list` / `pets.set` / `pets.remove`
 
 `pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
 {...},"xp","matched"}],"isHost":bool,"available":true,"supportsSpeciesChange":true,
 "supportsRemoval":true,"reason":"..."}`. `supportsSpeciesChange` is reported by the live agent
 itself (round 109 - see below); an older agent build that never sends the field is read as `false`
-by the app, so its creature-type control stays hidden automatically. Round 76 found no general
+by the app, so its creature-type control stays hidden automatically. earlier implementation found no general
 live path for tamed pets: the
 fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
-families. Round 77 re-checked the game's own class layout and found a real, **partial** path
+families. earlier implementation re-checked the game's own class layout and found a real, **partial** path
 instead of guessing a universal one:
 
 - The Pest family (and Skink, which inherits from it) directly exposes, with no hash suffix:
@@ -492,10 +487,10 @@ instead of guessing a universal one:
 - Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
   `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner` as their own properties - there is still no
   stable id for them, so species change is refused for these rows even though it is now attempted
-  for matched ones (round 109, see below): there is no Guid to hand the game to preserve identity
+  for matched ones: there is no Guid to hand the game to preserve identity
   with, and nothing to verify a "same pet" result against.
 
-**Round 105: Peccary/Lamogi pets are listed now, not omitted.** Rather than re-confirming round
+Rather than re-confirming round
 77/79's conclusion unchanged, this round found a real, generic tamed-creature marker:
 `NPC_Monster_WinterSprite_C`'s own compiled graph calls a static library function,
 `AbioticFunctionLibrary::IsTamedPet(Actor)` (bool, one parameter), from three of its own
@@ -511,7 +506,7 @@ the real game until tested live, wrapped in `pcall` like every other first-use c
 project. An unmatched row's `customName` is always `null` and `xp` is always `0` (the class has
 neither field); `isDead`/`limbHealth` are real and stay editable exactly like a matched row's.
 
-**Round 105: species change stayed refused through this round, with sharper evidence.** The game's
+The game's
 own `Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner,
 DynamicProperties, Tamed)` is a real function with exactly the shape a "respawn as a different
 class" edit would need - but `SpawnTransform` is an `FTransform`, a nested struct
@@ -521,10 +516,9 @@ UE4SS Lua reflection, unlike the flat `FVector`/`FRotator` tables round 76 prove
 the BASES tab's fatal, non-catchable crash in round 79, so this stayed refused project-wide through
 round 105.
 
-**Round 109: species change, for MATCHED (Pest/Skink-family) pets only, no longer refused.**
 Re-examined against a fresh pak dump of `Abiotic_Survival_GameMode_C.SpawnPet` (full bytecode, not
 just its signature) rather than re-asserting the round-76/105 conclusion unchanged. The blocker was
-never "structs are unsafe to pass" in general - round 76 already proved that an engine-*returned*
+never "structs are unsafe to pass" in general already proved that an engine-*returned*
 `FVector`/`FRotator` struct (from `K2_GetActorLocation`/`K2_GetActorRotation`) can be handed
 straight back into another native call's matching struct parameter, unchanged or with individual
 leaf fields overwritten (`spawn.lua`'s `TeleportPlayer` path, `vehicles.lua`'s `K2_TeleportTo`
@@ -564,7 +558,7 @@ class (`WorldPetsTab.razor`'s own `Apply()` resends the pet's current class unch
 other edit, so a plain health/name/xp call never attempts one by accident) - and only for a matched
 row; an unmatched row's requested change is refused with a warning naming why. Host only. It
 replies `{"warnings":[...]}` rather than failing outright when one field could not be applied - see
-the round-78 bug fix below. On an unmatched (`matched:false`) row, a requested `customName`/`xp`
+the validation behavior described below. On an unmatched (`matched:false`) row, a requested `customName`/`xp`
 change is never attempted (the class has no such field) and comes back as a warning instead of a
 silent no-op or a thrown error; `isDead`/`limbHealth` apply the same way as a matched row.
 
@@ -577,7 +571,7 @@ already-world-placed NPC), so this is the closest evidenced removal there is. Ho
 is no undo once it returns. Works on matched and unmatched rows alike - removal never needed a
 save-matchable id, only a live actor reference.
 
-**Round-78 bug fix (reported live: "pet health and level editing doesn't seem to work").** The
+The
 root cause was not that the writes themselves failed live - it was that a combined `pets.set` call
 (every field sent together, since the shared `WorldPetsTab` always sends the whole row) used to
 raise a hard error the moment ANY one field looked unwritable, most commonly `xp`: a pet that has
@@ -595,7 +589,7 @@ returning non-fatal warnings instead of aborting: a request that only changes he
 fail for a genuine health-write problem, never because of an unrelated XP echo-back, and the tab
 always refreshes to show what actually applied.
 
-## `narrativenpcs.list` / `narrativenpcs.set` - story NPCs and traders (round 77)
+## `narrativenpcs.list` / `narrativenpcs.set` - story NPCs and traders
 
 `narrativenpcs.list` returns `{"npcs":[{"id","label","isCorpse","narrativeState","x","y","z"}],
 "isHost":bool}` for every `NarrativeNPC_ParentBP_C` (and subclass, e.g.
@@ -654,13 +648,13 @@ installed mod exercises this actor class; this is the first live write to it. Sa
 behavior as `doors.set`: a row with an unresolved `id` does not block the others in the same
 call, but the overall reply becomes an error naming it.
 
-## `elevators.list` / `elevators.set` - fixed elevator platforms (round 79, mechanics confirmed and discovery made subclass-generic round 95)
+## `elevators.list` / `elevators.set` - fixed elevator platforms
 
 The live twin of the `elevators` world-map feature
 (`Core/WorldSaves/Features/ElevatorMapFeature.cs`, the save's `ElevatorMap`, whose only persisted
 leaf is `TopOpen_<hash>`). `elevators.list` returns
 `{"elevators":[{"id","label","controllable","topOpen","moving","powered"?,"x","y","z"}],"isHost":bool}`.
-`elevators.set` takes `{"elevators":[{"id","topOpen"?}]}`. Host only. `powered` (round 125) is a
+`elevators.set` takes `{"elevators":[{"id","topOpen"?}]}`. Host only. `powered` is a
 bonus read-only field off the confirmed `IsPowered()` function `elevators.set` already gates a
 move on (see below) - shown on the row (`LiveElevatorsFeatureSession`'s own `powered` field) so the
 player can see why a move might be refused before clicking, not only from the refusal afterward;
@@ -699,10 +693,10 @@ data-only fallback class list is consulted only if that parent sweep returns not
 instance is read through `pcall` feature-detection: an elevator type this module cannot read
 `ElevatorCurrentMode` from still lists (`controllable: false`, its real class name as `label`)
 instead of erroring or being dropped, and a set attempt against it is refused by name. Exercised
-live in the running game (round 125): a refused `elevators.set` call correctly surfaced the game's
+live in the running game: a refused `elevators.set` call correctly surfaced the game's
 own reason ("elevator is not powered").
 
-**Round 125 fix: a refused `elevators.set` no longer keeps re-sending.** `LiveElevatorsFeatureSession.SetMapFeatureField`
+**Error handling:** `LiveElevatorsFeatureSession.SetMapFeatureField`
 (the C# host side, `Web.Shared/Models/LiveElevatorsFeatureSession.cs`) used to let the Lua handler's
 `error(...)` reach it as an uncaught `LiveAgentException` instead of catching it and returning a
 `WorldEditResult.Failure` - every sibling live area (`buttons`/`npcspawns`/`triggers`/
@@ -714,10 +708,9 @@ re-rendering that same stale, unreverted field, which is what produced a "the el
 powered" toast repeating every couple of seconds instead of once. Fixed both by adding the same
 try/catch every sibling area already had, and by hardening `WorldFeaturesTab.SetFieldAsync` itself
 (a try/catch plus an in-flight guard per entry+field) so any future live session with the same gap
-fails once and reverts, rather than retrying silently. See docs/PROGRESS.md's Round-125 entry for
-the full trail.
+fails once and reverts, rather than retrying silently.
 
-## `buttons.list` / `buttons.set` - world buttons (round 80, property/function names confirmed round 95, hierarchy-based discovery round 96, pressedOnce made settable round 110)
+## `buttons.list` / `buttons.set` - world buttons
 
 The live twin of the `buttons` world-map feature (`Core/WorldSaves/Features/ButtonMapFeature.cs`,
 the save's `ButtonMap`, whose leaves are `ButtonID_`/`ButtonHasBeenPressedOnce_`/
@@ -786,7 +779,7 @@ row with an unresolved `id` does not block the others in the same call; a failed
 write - e.g. a class with no live `ButtonSaveData` struct at all - fails that row by name without
 blocking the rest). Not yet exercised in the running game.
 
-## `resourcenodes.list` / `resourcenodes.set` - harvestable resource nodes (round 101)
+## `resourcenodes.list` / `resourcenodes.set` - harvestable resource nodes
 
 The live twin of the `resource-nodes` world-map feature
 (`Core/WorldSaves/Features/ResourceNodeMapFeature.cs`, the save's `ResourceNodeMap`, whose leaves
@@ -866,7 +859,7 @@ default) - `RespawnResourceNode` only clears the harvested flag and re-places th
 does not reset position or any other persisted state, so mapping "remove" onto it would overstate
 what actually happens. Not yet exercised in the running game.
 
-## `destructibles.list` / `destructibles.set` - breakable world objects (round 100)
+## `destructibles.list` / `destructibles.set` - breakable world objects
 
 The live twin of the `destructibles` world-map feature (`Core/WorldSaves/Features/DestructibleMapFeature.cs`,
 the save's `DestructibleMap`, whose only editable leaf is `Broken_`). `destructibles.list` returns
@@ -911,7 +904,7 @@ feature disables it too, for the same reason: an entry only exists once broken, 
 would have the same effect as `broken: false`, which is refused live anyway). Not yet exercised in
 the running game.
 
-## `corpses.list` / `corpses.remove` - NPC corpses (round 100)
+## `corpses.list` / `corpses.remove` - NPC corpses
 
 The live twin of the `corpses` world-map feature (`Core/WorldSaves/Features/CorpseMapFeature.cs`,
 the save's `CorpseMap`, which has no editable field offline either - only removal). `corpses.list`
@@ -945,7 +938,7 @@ combination the file editor supports having no live equivalent.
 
 Not yet exercised in the running game.
 
-## `powersockets.list` / `powersockets.set` - power sockets (round 103)
+## `powersockets.list` / `powersockets.set` - power sockets
 
 The live twin of the `power-sockets` world-map feature
 (`Core/WorldSaves/Services/WorldMapFeatures/PowerSocketMapFeature.cs`, the save's `PowerSocketMap`).
@@ -983,7 +976,7 @@ does not add a meaningful choice list, only confirms the offline "cannot be dete
 already correct). `powered` is a bonus read-only field off the confirmed `IsPowered()` function.
 Not yet exercised in the running game.
 
-## `trams.list` / `trams.set` - trams (round 103, recall write path added round-103 follow-up, Facility only)
+## `trams.list` / `trams.set` - trams
 
 The live twin of the `trams` world-map feature
 (`Core/WorldSaves/Services/WorldMapFeatures/TramMapFeature.cs`, the save's `TramMap`).
@@ -1037,7 +1030,7 @@ confirm exactly what it calls on `LinkedTram` and whether it gates on host/`IsSe
 dump - the coordinator can supply `TramSystem_RecallStation.json`/`TramSystem_Rail.json` to close
 this with full certainty.
 
-**Round 125: confirmation after pressing is now tolerant, never a failure gate.** Exercised live in
+Exercised live in
 the running game, `trams.set` refused a real, working recall with "could not confirm the tram
 started moving toward that station" - the coordinator's own probe found no `power` property
 anywhere on `Tram_ParentBP_C`, `TramSystem_Station_C`, `TramSystem_RecallStation_C`,
@@ -1063,7 +1056,7 @@ a real function that checks a world flag - a different, story-gate concept from 
 not itself surfaced as a `trams.set` refusal reason yet) remains unconfirmed; a future round could
 close this with `TramSystem_RecallStation.json`'s bytecode.
 
-## `npcspawns.list` / `npcspawns.set` - NPC spawners (round 102, cooldownRemainingSeconds made settable round 110)
+## `npcspawns.list` / `npcspawns.set` - NPC spawners
 
 The live twin of the `npc-spawns` world-map feature (`Core/WorldSaves/Features/NpcSpawnMapFeature.cs`,
 the save's `NPCSpawnMap`, whose leaves are `CurrentCooldownRemaining_`/`LastDayOnCooldown_`/
@@ -1103,7 +1096,7 @@ is not exposed here - **re-checked round 110** against `SetSpawnOnCooldown`'s ow
 Director.DayNightManager.CurrentDay`, itself a whole-day counter), with no minutes-within-the-day
 component to derive or set this leaf from, so the conclusion stands.
 
-**`cooldownRemainingSeconds` is a real, persistent editable value (round 110), not just a
+**`cooldownRemainingSeconds` is a real, persistent editable value, not just a
 read-only figure.** `SetSpawnOnCooldown(TimeRemaining: double, InCurrentDay: int)` is a real,
 actor-level `BlueprintCallable` function whose full bytecode was traced this round: it
 unconditionally sets `CooldownDay = InCurrentDay` first, then - only when `InCurrentDay==0` and
@@ -1136,7 +1129,7 @@ periodic live-tab refresh loop, the same performance care `containers`/`resource
 `destructibles` already document - a tab visit still fetches once, and the REFRESH pattern those
 areas use applies here too. Not yet exercised in the running game.
 
-## `triggers.list` / `triggers.set` - scripted world triggers (round 102)
+## `triggers.list` / `triggers.set` - scripted world triggers
 
 The live twin of the `triggers` world-map feature (`Core/WorldSaves/Features/TriggerMapFeature.cs`,
 the save's `TriggerMap`, whose leaves are `UniqueTriggerID_`/`TimesTriggered_`). `triggers.list`
@@ -1172,7 +1165,7 @@ re-allow overlap on its linked trigger arrays, then call `SaveTriggerData()` - a
 complete reset than a bare `timesTriggered=0` write, so `reset` on the same row as a
 `timesTriggered` value ignores the latter. Not yet exercised in the running game.
 
-## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches (2026-09-16)
+## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches
 
 **Implemented, awaiting in-game verification.** The live counterpart of watering/fertilizing a
 garden plot, charging a Power Chair, and reading a chemistry bench's flask contents. Unlike most
@@ -1249,8 +1242,7 @@ immediately, one pet at a time - there is no batch form. `clear` empties the slo
 other field, exactly like `inventory.set`'s `clear`, and replies `{"despawnedFollower":bool}` - see
 the round-78 fix below.
 
-**Round-78 bug fix (reported live): removing the active Companion pet left it stuck in the world,
-unable to be picked up.** `clear` used to only ever write the inventory slot struct back to
+`clear` used to only ever write the inventory slot struct back to
 `Empty` - a plain field write, like every other edit in this file - which for the Companion slot
 (`kind:"equip"`, `slotIndex:12`, the one slot the game visibly spawns a live follower actor for)
 desyncs the follower from its now-empty backing item instead of despawning it. No blueprint
@@ -1262,8 +1254,7 @@ clearing the Companion slot now also searches Pest/Skink-family actors for one w
 technique `findByFullName` already uses) and destroys it with `K2_DestroyActor()` - the same call
 `pets.remove` uses. `despawnedFollower` says whether a match was found and destroyed.
 
-**Round-79: re-checked whether Peccary/Lamogi could be added to that search, against the
-installed game's own class data (`LiveClassPropsProbe`, run against the mounted paks).** The
+The
 result is conclusive, not unexplored: `NPC_Monster_Peccary_C` and `NPC_Monster_WinterSprite_C`
 both declare `super=NPC_Base_ParentBP_C` directly (unlike `NPC_Skink_Basic_C`, which declares
 `super=NPC_Monster_Pest_C`), and neither their own properties nor `NPC_Base_ParentBP_C`'s ~150
@@ -1282,15 +1273,15 @@ real (found in the game's own class layout, the identical array/enum the file fo
 uses), but no reference-mod command reads or writes it over UE4SS Lua, so reading an enum-keyed
 struct array's `Key`/`Value` this way is genuinely new and unverified against the real game until
 tested. `itemId`/`name`/`health`/`maxHealth` carry the same confidence as `inventory.list`/`.set`'s
-fields (round 74), since they are the identical hash-suffixed struct members.
+fields, since they are the identical hash-suffixed struct members.
 
-**Round 79: `mutationProgress` is now editable, not just a readout.** Both the offline and the
+Both the offline and the
 live COMPANIONS tab expose it through the shared "Feeding and mutation" panel. Negative values are
 rejected; nothing else is capped, because `DT_Pets` carries no explicit threshold field and the
 largest value observed across this project's fixture saves (`PetCatalog.ObservedMaxMutationProgress`,
 currently `3`) comes from only two pets, so it is shown as a hint rather than enforced.
 
-**Session 2026-09-17: `petMutation` is now editable too, through the same panel.** Cross-checking
+Cross-checking
 this project's two real carried pets against the installed game's own `DT_Pets` mutation lists
 (`PetCareCatalog.MutationOptionsFor`, see `docs/reference/research/research-garden-crops-and-pet-mutation.md`)
 showed the stored int is a 1-based position in the pet's own mutation family, resolvable back to
@@ -1313,7 +1304,7 @@ replication support, replaces the FName array after validating all names, marks
 `RecipesUnlockedArray` dirty for replication, and invokes its RepNotify. Older agents
 omit `canLock`, which the editor treats as false.
 
-**Round 106 re-grounding: `canLock` is already as wide as the game honestly allows.** Re-checked
+Re-checked
 against a fresh pak dump (`pass2\Abiotic_CharacterProgressionComponent.json`/`layouts.txt`):
 `RecipesUnlockedArray` is confirmed a plain `FArrayProperty`, `OnRep_RecipesUnlockedArray` is a
 real exported function, and no dedicated "forget"/"lock"/"remove recipe" RPC exists anywhere on
@@ -1343,7 +1334,7 @@ union of the three per-category arrays described below, deduplicated.
 "compendium"?:[{"row":"Compendium_Foo","sectionType":"Exploration"}, ...]}` and marks each given
 entry known immediately; omitted categories are left untouched.
 
-**`compendium` is settable (round 77).** The game's unlock function,
+**`compendium` is settable.** The game's unlock function,
 `Request_UnlockCompendiumSection(CompendiumRow, UnlockType)`, takes an `UnlockType` enum whose
 values were previously un-grounded (the one place a real mod calls it,
 `CheatConsoleCommands/scripts/Features.lua:894-900`, only ever forwards a value read live off a UI
@@ -1368,7 +1359,7 @@ section type needs one `codex.set` pair per section type to fully unlock it. A r
 kill-requirement section has no section type this RPC covers and stays read-only in the desktop
 app (its checkbox is disabled, not sent as a request that would silently do nothing).
 
-**Compendium read source (round 77):** `codex.get`'s `compendium` list reads
+**Compendium read source:** `codex.get`'s `compendium` list reads
 `Compendium_ExplorationSections`, `Compendium_EmailSections` and `Compendium_NarrativeNPCSections`
 on `Abiotic_CharacterProgressionComponent_C` - all plain `FArrayProperty` (`TArray<FName>`), the
 same confirmed-working indexed-read technique `EmailsRead`/`JournalEntries`/`FishCaughtArray`
@@ -1379,7 +1370,7 @@ this round switched to the better-grounded per-category arrays instead.
 `canUnsetKnown` reports whether this host supports clearing known state. See the expanded
 codex edit schema below. Older agents omit the capability and remain unlock-only.
 
-**Round 106: kill-requirement compendium sections are settable too.** The table row above ("3 |
+The table row above ("3 |
 `KilLRequirement` | no") reflected round 77's assumption, based on no installed mod ever calling
 the RPC that way - not on reading the function it forwards to. This round disassembled the full
 bytecode of that private function, `Server Try Unlock Compendium Section` (dumped whole in
@@ -1418,7 +1409,7 @@ untouched.
 `itemsCrafted:[...]`. The host appends unique names to `CraftedItems`, marks the property
 dirty for replication, and invokes `OnRep_CraftedItems`. Older agents remain read-only.
 
-**`background` (round 77) IS a real live write.** `Abiotic_PlayerState_C` declares a plain,
+**`background` IS a real live write.** `Abiotic_PlayerState_C` declares a plain,
 no-hash-suffix `PhD : FNameProperty` with no `OnRep_PhD` - the same row-name concept the file
 format's `PhD_` tag stores. `general.set`'s `background` writes it directly on the connected
 player's `PlayerState` (found via `APawn.PlayerState`, the base-engine property `main.lua`'s own
@@ -1426,9 +1417,9 @@ player's `PlayerState` (found via `APawn.PlayerState`, the base-engine property 
 needed because a replicated UPROPERTY changed on the server's own authoritative object replicates
 to owning clients on the next network update.
 
-### `general.trait.set` - toggle a character trait (2026-09-16)
+### `general.trait.set` - toggle a character trait
 
-**Traits are now editable live** (implemented, awaiting in-game verification), replacing the
+**Traits are now editable live**, replacing the
 earlier read-only state. The 2026-09-15 bytecode probe found that `InitializeTraits` calls
 `Server_AddTraitBuff` using each trait row's buff handle, but also grants starting items and
 skill XP, so replaying it whole is unsuitable for an incremental edit. `general.trait.set`
@@ -1450,9 +1441,9 @@ in-game concept to change. The desktop app hides that section's CHANGE button wh
 and shows the connected player's own id (the live directory id `players.list` handed out - a
 SteamID64 for a Steam player) as a plain readout instead.
 
-## `appearance.get` / `appearance.set` / `appearance.save` - character look (2026-09-16)
+## `appearance.get` / `appearance.set` / `appearance.save` - character look
 
-**Appearance is now editable live** (implemented, awaiting in-game verification). The file
+**Appearance is now editable live**. The file
 editor edits `ScientistCustomization`; live editing instead writes the running
 `HumanCustomizationComponent`'s own fields, the same ones `Server_ApplyCustomizationChange`
 assigns, then calls each field's real `OnRep_<Property>` so local meshes refresh immediately
@@ -1485,7 +1476,7 @@ game's own `SaveGameToSlot` API (so platform-specific save storage is still hand
 after first backing up the existing profile to a `.bak` slot; a failed save restores the backed-up
 values.
 
-## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks (round 77)
+## `worldunlocks.get` / `worldunlocks.set` - world-wide (not per-player) unlocks
 
 The live counterpart to the file editor's world-recipes browser (`WorldStoryTab`'s "WORLD RECIPES"
 section, `WorldSaveSession.GlobalRecipes` / the save's `GlobalUnlocks` struct). `worldunlocks.get`
@@ -1519,7 +1510,7 @@ world recipe editing, and both properties are marked dirty for replication. Othe
 unlock lists remain read-only. The shared story tab now calls the session interface for
 single and bulk recipe edits, retaining its existing story prerequisite gate.
 
-**Round 106: the six `FArrayProperty` global lists are settable too** (`itemsPickedUp`,
+(`itemsPickedUp`,
 `emailsRead`, `journalEntries`, `compendiumEmail`, `compendiumNarrative`,
 `compendiumExploration`), independent of the recipe `TSet`s' extra runtime-capability check.
 `worldunlocks.get` now also reports `canEditGlobalLists` and, when false,
@@ -1593,9 +1584,9 @@ inspection confirms its delayed inventory update and equipment callback path, bu
 prove multiplayer replication or backpack-capacity behavior in a running game.
 
 See the [live guide](/guide/live-editing#an-item-exists-but-is-invisible) for repairing items
-written by an older agent. These changes require updating the installed agent scripts.
+written by an older agent. The installed agent scripts must support these command variants before the editor sends them.
 
-## Expanded inventory and codex edits (2026-09-15)
+## Expanded inventory and codex edits
 
 Player and container slot responses include optional `details`:
 
@@ -1624,7 +1615,7 @@ Direct replicated writes use [UNetPushModelHelpers.MarkPropertyDirty](https://de
 These additions pass the stub harness, but actual multiplayer propagation and save/reload
 persistence still require an installed-game verification run.
 
-## Complete item instance metadata, and moving items into a container (2026-09-16)
+## Complete item instance metadata, and moving items into a container
 
 **Implemented, awaiting in-game verification.** `Scripts/item_metadata.lua` extends `details`
 with `instanceMetadata`, the same complete per-instance state a save-file edit already keeps

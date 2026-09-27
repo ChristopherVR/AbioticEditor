@@ -104,10 +104,9 @@ player's own `Unlocks.sav` etc is exactly the kind of thing a silent overwrite m
 
 ## `containers.index` is a sync protocol, not a file listing
 
-This is the part that matters most, and the part the editor got wrong for a long time. The index is
-one half of a conversation with the Xbox cloud service. It records what the service should believe
-about each container. Getting it wrong does not fail loudly at write time; it loses an argument
-later, out of sight, and takes the edit with it.
+The index is one half of a conversation with the Xbox cloud service. It records what the service
+should believe about each container. The local editor can inspect and update this metadata, while
+the service remains authoritative for cloud versions and ETags.
 
 Layout (little-endian):
 
@@ -147,36 +146,19 @@ Then one entry per container:
 | 4 | undefined |
 | 5 | Created. Made locally, never uploaded, so no ETag |
 
-**Two public reverse-engineering lineages disagree about 2, 4 and 5**, and picking the wrong one
-writes something that means the opposite. The mapping above follows
-[libNOM.io](https://github.com/zencq/libNOM.io) (the engine behind the mainstream No Man's Sky
-editor). [LukeFZ/XblContainerReader](https://github.com/LukeFZ/XblContainerReader) instead calls 5
-"Modified" and 2 "Unknown". Two pieces of evidence settle it:
+**Observation:** public reverse-engineering documentation does not agree on the names for states
+2, 4 and 5. The mapping above follows [libNOM.io](https://github.com/zencq/libNOM.io).
+[LukeFZ/XblContainerReader](https://github.com/LukeFZ/XblContainerReader) uses different names
+for states 2 and 5. This is a documentation discrepancy; observed Abiotic Factor stores and their
+ETag pairing provide context:
 
-- In a real Abiotic Factor store, containers the game itself writes are only ever 1 or 2, never 4
-  or 5, and always carry an ETag.
-- Two independently written parsers (`palworld-xgp-import`, `palworld-save-pal`) hard-error when
-  `state & 4` disagrees with "the ETag is empty". So bit 2 means local-only-never-uploaded, which 4
-  and 5 both are and 2 cannot be.
+- Containers written by the game use state 1 or 2 and carry an ETag.
+- Other parsers associate the Created state with an empty ETag, consistent with the local-only
+  interpretation of states 4 and 5 in the mapping above.
 
 **The write rule follows from that invariant.** A container with an ETag becomes `Modified`; one
 without stays `Created`. Never break the pairing, and never mint an ETag: only the service issues
 them, and it uses the one you echo back to recognise which cloud version your copy was based on.
-
-::: danger The bug this documents
-The editor used to treat this field as a **write counter** and increment it on every save. Live
-stores were found with the world container at 7, having marched through `Deleted` (3) and out past
-the end of the range. A container claiming to be deleted, or carrying a value nothing defines, is
-one the service and the game are entitled to ignore. That is what "my world stopped loading after I
-edited it" was.
-
-It also minted its own ETag as `"0x{ToFileTimeUtc():X}"`, while the game writes a token of
-`DateTime.Ticks` magnitude (`0x8DE…` against our `0x1DD…`, roughly 4.7x smaller, which reads as the
-year 1826). So every edit also looked decades old to the cloud.
-
-Both are fixed, and `gamepass repair` resets containers left in an undefined or `Deleted` state, or
-whose state and ETag contradict each other.
-:::
 
 ### Sync flags
 

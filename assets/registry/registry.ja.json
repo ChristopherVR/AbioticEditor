@@ -88431,29 +88431,6 @@
       "XpGain": 480
     },
     {
-      "Id": "MoonFish_AllDay",
-      "ItemId": "fish_moon",
-      "IsRare": false,
-      "UnlockRecipeId": "recipe_bait_moonfish",
-      "MidnightMult": 2,
-      "DawnMult": 0.25,
-      "NoonMult": 0.25,
-      "DuskMult": 0.5,
-      "XpGain": 150
-    },
-    {
-      "Id": "MoonFish_rare1_AllDay",
-      "ItemId": "fish_moon",
-      "IsRare": true,
-      "UnlockRecipeId": "recipe_bait_moonfish",
-      "RequiredBaitTag": "Fishing.Bait.MoonFish",
-      "MidnightMult": 2,
-      "DawnMult": 0.25,
-      "NoonMult": 0.25,
-      "DuskMult": 0.5,
-      "XpGain": 400
-    },
-    {
       "Id": "Eel",
       "ItemId": "fish_eel",
       "IsRare": false,
