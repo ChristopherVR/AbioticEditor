@@ -18,8 +18,9 @@ Status reviewed 27 September 2026 against the current save readers/writers, edit
 
 - **Story rewind consequences:** rewinding chapter flags clears forward progression and related codex/player state, but physical consequences such as opened doors or dead characters are not generally reversed. Build a reviewed consequence map and make any rollback preview explicit before adding writes.
 - **Narrative character details:** the saved NPC map has fields such as health maps, custom names, and dynamic properties that do not have a complete semantic editor. Do not turn arbitrary script stages or the saved `IsDead` field into universal story/alive controls without verified per-character meaning.
-- **World-state maps expose only selected fields:** the existing tabs cover many maps, but some values stay display-only when their meaning or valid choices are unclear. Known examples include vehicle transforms and on-board inventory contents, power-socket timer modes, tram stations that are not represented by any currently parked tram, and actor positions that cannot safely be moved by editing only the save record. Research each map and expose only fields with a verified write contract.
-- **Server entitlements:** metadata can contain `ServerEntitlements`, but there is no admin/entitlement editor. Establish the intended server semantics and permission model first.
+- **Complete tram destinations:** the offline station picker derives its choices from stations occupied by trams in the save. It cannot enumerate empty stations. Extract the full station catalog and track connections from level assets, label destinations, and validate which destinations each tram can reach.
+- **Static world-object placement:** moving a saved position does not necessarily move an actor placed in a level asset. Define which objects can be relocated, which require runtime operations, and which can only be located on the map.
+- **Per-player recipe entitlements:** the metadata `UserEntitlements` map contains player-specific recipe tokens but has no dedicated editor. Resolve these against recipe catalogs and establish their relationship to player and world recipe unlocks before offering changes.
 - **Unmodeled fields vary by game build and save:** readers preserve unknown properties, but preserved data is not automatically editable. Use the compatibility report and `UNKWN` diagnostics to add concrete fields to this list when a current save or game update reveals them.
 
 ### Deployables, pets, and progression
@@ -27,19 +28,20 @@ Status reviewed 27 September 2026 against the current save readers/writers, edit
 - **Planting and clearing crops:** garden care exposes supported existing plot state, but empty-spot planting/clearing does not have a verified serialized shape. Capture real saves for empty, planted, harvested, watered, and fertilized transitions before adding those actions.
 - **Pet feeding and mutation choices:** the editor provides species information and mutation guidance, but a complete semantic editor for feeding timers and mutation targets is not available. Verify the saved food identity, cooldown, progress, and valid mutation graph before adding controls.
 - **Offline chemistry production:** flask contents and recipe context can be inspected and edited, but processing timers are runtime state. There is no offline control that starts a batch or fabricates elapsed production time.
-- **Character story-stage names:** saved script phases can be displayed and selected, but there is no universal friendly mapping for those values. Add named controls only for character-specific stages verified from current game data.
+- **Character story-stage names:** saved script phases have no universal friendly mapping or verified per-character editing workflow. Add named controls only for character-specific stages verified from current game data.
 
 ### Live-editing gaps
 
 Live support is separate from offline save support and depends on host authority, the running game, and the installed agent version. Keep these limits visible where a shared editor surface is used.
 
-- The live power-socket surface is read-only because the game’s timer enum and write behavior are not sufficiently verified.
-- Some deployed-object care and world-list operations are offline-only or capability-gated live. In particular, chemistry processing is not offered as a live action, and recipe/list writes depend on the connected host and agent runtime capabilities.
+- **Durable live power changes:** socket timer fields are reset by the game's socket-save function. A live routing editor needs the actual connection and disconnection operations and proof that its changes survive the next game save; changing timer fields alone cannot provide that.
+- **Offline chemistry transfers:** there is no offline flask-transfer workflow through the live transfer path. Define a staged transfer that preserves complete item/flask metadata and saves both endpoints together.
+- **Unloaded actors:** live discovery sees loaded actors. A full-level map needs to distinguish loaded live objects, saved objects, and static asset placements, including when live data becomes stale after streaming or a region change.
 - Actions that depend on server RPCs, replication notifications, or game-thread behavior need in-game verification before being described as supported. Stub-harness success alone does not establish multiplayer propagation or save/reload persistence.
 
 ## Base-building editor
 
-The current Bases experience helps find and name bench-based bases on a map. It is not a full construction editor: it does not provide a 3D scene for all placed objects or a safe workflow for moving, rotating, duplicating, snapping, and deleting arbitrary build pieces.
+The missing construction workflow is a spatial editor for individual pieces and whole bases: place, move, rotate, duplicate, delete, align, and connect objects on a full level plan, with an optional 3D view.
 
 ### Data sources and boundaries
 
@@ -66,10 +68,93 @@ The current Bases experience helps find and name bench-based bases on a map. It 
 - A saved scene agrees with the in-game result for the verified classes and transformations.
 - Large regions remain usable through asset caching, culling, and incremental loading.
 
-## Work order
+## Full level maps and object locations
 
-1. Close high-value account and character gaps with verified schemas and fixture-backed writers.
-2. Complete the story-rewind consequence map and explicitly separate reversible progression from physical world consequences.
-3. Improve semantic coverage for deployed maps and pets only where the game’s persisted contract is known.
-4. Establish the base-building schema and coordinate proofs before implementing 3D write tools.
-5. Track each gap with evidence, player impact, data layout, implementation owner/status, and verification state. Keep unresolved hypotheses out of editable controls.
+**Gap:** there is no complete, floor-aware blueprint-style map of every level shared by all object editors. A coordinate readout or a marker on a sector illustration does not provide enough context to locate an object in the actual rooms, corridors, or vertical spaces.
+
+### Required map experience
+
+- Provide a readable plan for each level, streamed sublevel, portal world, and floor. Include walls, rooms, corridors, doors, stairs, lifts, landmarks, and connections between floors/levels where those can be established from assets.
+- Add **Show on map** to NPCs, creatures, doors, dropped items, containers, resource nodes, sockets, deployables, and other locatable entities. Open the correct level and floor, center the selected object, and retain the selection when switching between its editor and the map.
+- Clicking a map marker should open that object's details and supported editing actions. Support search, category filters, overlapping-marker selection, and height/floor filtering.
+- Distinguish static placements, spawn points, last saved positions, and current live positions. An item carried by a player or stored in a container should locate its owner/container; it has no independent floor position. An unspawned creature or potential loot spawn must not be shown as a confirmed present entity.
+- Identify unresolved locations explicitly. Missing geometry, unloaded actors, obsolete actor paths, or unsupported assets must not produce a marker at an invented origin.
+- Respect discovery/spoiler settings for unexplored rooms, characters, and content. Offer an explicit full-map view for users who want it.
+
+### Work required
+
+1. Inventory level packages, streaming relationships, root/component transforms, floors, and geometry suitable for floor-plan extraction. A usmap supplies type information; room geometry and actor placements come from level assets.
+2. Build a shared location index keyed by region, level, actor path, and save identity. Join fixed placements to saved state, and overlay live positions when available. Resolve duplicate actor names within their full level context.
+3. Generate readable 2D plans or tiled floor slices from geometry, with versioned calibration and metadata. Use the same coordinates for a Three.js view so selection remains consistent between 2D and 3D.
+4. Extend asset extraction and caching for maps and geometry. Plan a desktop extraction path and a versioned fallback for browser use or absent game installations; record asset provenance and review what can be distributed.
+5. Wire map navigation into each editor and verify reference positions on every supported level and floor. Track coverage per level, including failed exports and unresolved actors, rather than describing partial coverage as a complete map.
+
+**Done when:** selecting a resolvable entity opens its correct location on the right level/floor, selecting its marker returns to the same entity, and unresolved or historical locations are clearly labeled. Every supported level has a reviewed floor plan and coordinate alignment.
+
+## Power routing and network construction
+
+**Gap:** sockets need a full power-building workflow: creating extensions, configuring socket/strip combinations, connecting devices, rerouting branches, and inspecting the resulting network on the level map.
+
+### Required building experience
+
+- Show the connection graph over the floor plan: source sockets, extensions/cables, plug strips, batteries, switches, and consuming devices, for the device types confirmed by the game data.
+- Select any socket or device to trace its upstream source and downstream connections. Show disconnected branches, missing endpoints, and powered/unpowered status with the source of that status identified.
+- Place supported extension devices, choose compatible input/output endpoints, connect/disconnect them, reroute a branch, and configure multi-device combinations. Moving, duplicating, or deleting a connected object must update its references coherently.
+- Support connections across streamed levels or region saves. Keep them selectable when an endpoint is outside the current map view.
+- Offer a proposed-connection preview, undo/revert, and a grouped save for all affected records/files. Report unresolved endpoints before applying changes.
+
+### Research and implementation plan
+
+1. Trace `PowerSocketMap.PowerSocket_`, `PluggedInDeviceAssetID_`, and `ExtraPoweredDeviceAssetIDs_` into deployable identities, component data, and runtime actor references. Identify which side owns each link and whether reciprocal records are required.
+2. Capture real before/after examples for connecting a device, adding an extension, branching through a strip, inserting a battery, disconnecting, relocating, and removing a device. Inspect game functions for their side effects and save behavior.
+3. Establish endpoint types, maximum connections, distance limits, branching/loop rules, and day/night or battery behavior from game data and observed operations. Treat these as unresolved rules until verified; do not assume an electrical simulation from field names.
+4. Create a Core graph model and validator that handles missing devices and cross-save links. A stored relationship, a live powered state, and a predicted power result must remain distinguishable.
+5. Add graph visualization and inspection, then staged offline connection edits and device placement. Validate all touched records before writing and recover the whole operation if a multi-file save fails.
+6. Add live operations through the game's supported connection functions, with host/capability checks, refresh after each operation, and save/reload verification. Timer values alone are insufficient: the socket-save function resets them.
+7. Integrate the power graph with the construction tools so duplicating a base remaps internal identities and asks how to handle connections to devices outside the selection.
+
+**Done when:** a user can build and reroute a verified power network from the map, trace its devices across files/levels, and see the same connections after loading and saving in-game. Unsupported device types and uncertain simulation results remain explicit.
+
+## Compatibility across game versions
+
+**Gap:** compatibility reporting does not yet establish a tested editing contract for each supported older game build. The registry records world/metadata save version 3 and character version 1 against one validated build. Its classification does not reject versions below the recorded minimum, and a matching header does not prove matching field layouts, defaults, catalogs, or gameplay behavior.
+
+- **Support matrix:** define the older game builds to support, then record read, unchanged round-trip, each editing area, and in-game reload separately for Steam, Game Pass, and dedicated-server fixtures. Record unsupported and unverified combinations explicitly.
+- **Version detection:** combine available game-build, engine/custom-version, save-class, and schema evidence. Permit an unknown result where a save header cannot identify the exact game build; do not infer it from the installed game alone.
+- **Version-specific fields and defaults:** audit exact hash-suffixed property names, missing/default-valued tags, structs, enums, and item metadata. Writers must select layouts appropriate to the target save instead of inserting a current-build tag into an older structure.
+- **Matching game data:** associate mappings, catalogs, level maps, extracted art, and geometry with their source game build. Prevent current item rows, recipes, actors, or building pieces from being offered as valid writes to an older game without evidence.
+- **Migration policy:** distinguish editing a save in its original format from deliberately upgrading it. Define supported migrations and report unsupported downgrade requests. Changing a version number alone is not a migration.
+- **Modded and unknown content:** preserve unknown rows and component state through edits, transfers, and base duplication. Show which operations are unavailable when the defining mod or compatible assets are missing.
+- **Live compatibility:** track game build, agent protocol/capabilities, and UE4SS runtime independently. Enable an action only when the combination supports its required operation.
+- **Regression fixtures:** maintain sanitized saves from the supported releases and confirm unchanged round-trips, narrow edits, newly created objects, and multi-file consistency. Add in-game reload evidence where serialization checks alone cannot establish behavior.
+
+**Done when:** the editor can explain which operations are supported for the selected save/game combination and avoid unsupported writes without preventing known-safe inspection. Each claimed older-version editing capability has fixtures and recorded verification.
+
+## Additional gaps to track
+
+- **Group operations and linked identities:** whole-base copy, cross-world placement, and power-network duplication need identity remapping for containers, beds/owners, teleporters, and connected devices. Define how external references are retained, rebound, or reported before a group operation is applied.
+- **Power device navigation:** cables, batteries, and plug strips need a useful inspector and navigation target, including endpoints in other save files. A raw asset ID or a container-only jump is insufficient for network editing.
+- **Summoned companions:** armor-set summons have no supported persistent add/move/edit workflow. Research their lifecycle and ownership before treating them as ordinary saved pets.
+- **Map and asset completeness:** account for undecodable textures, unsupported meshes/materials, absent actor positions, and missing portraits. Track these by class/level/build so extraction failures become actionable gaps.
+- **Coverage audit:** compare current save/property inventories, blueprint classes, catalogs, and actual UI actions. Record whether each gap is missing serialization, missing semantics, missing UI, unavailable live behavior, or missing in-game verification. Historical research lists must be checked against current code before adding an item.
+
+## Work order and review checkpoints
+
+1. Define the compatibility matrix and collect the save/asset evidence needed by the map and power work.
+2. Build the shared level/actor location index and full 2D floor plans; add Show on map throughout the editor.
+3. Implement power graph discovery, cross-file endpoint resolution, and network inspection on those maps.
+4. Prove base transforms and connection semantics, then add staged placement and power-routing edits with undo and grouped saves.
+5. Add whole-base operations and the optional Three.js construction view using the same identities and coordinate system.
+6. Close the remaining character/account, crop/pet, story-consequence, and live-operation gaps in independently reviewable increments.
+
+For each task, record its player-facing outcome, dependencies, evidence, remaining unknowns, and completion check. A task leaves this roadmap only when that outcome is delivered and its required verification is recorded.
+
+## Evidence used for this review
+
+These are implementation pointers for reviewing the gaps, not a list of completed features:
+
+- [Compatibility registry](../src/AbioticEditor.Core/Services/Compatibility/SaveVersionRegistry.cs) and [analyzer](../src/AbioticEditor.Core/Services/Compatibility/CompatibilityAnalyzer.cs).
+- [Level actor position resolver](../src/AbioticEditor.Core/Services/World/DoorLocationResolver.cs).
+- [Socket save fields and device links](../src/AbioticEditor.Core/Services/WorldMapFeatures/PowerSocketMapFeature.cs) and [live socket constraints](../src/AbioticEditor.Core/LiveEditing/World/LivePowerSocketsChannel.cs).
+- [Tram destination limitation](../src/AbioticEditor.Core/Services/WorldMapFeatures/TramMapFeature.cs).
+- [Unsurfaced per-player recipe entitlements](../src/AbioticEditor.Core/Services/WorldMapFeatures/ServerEntitlementsFeature.cs).
