@@ -57,6 +57,9 @@ public sealed class GardenPlotsFeature : DeployedCareFeature
         "Plant_Antelight_orange", "Plant_Antelight_blue", "Plant_Antelight_RGB", "Plant_Antelight_space",
         "Plant_Pumpkin", "Plant_GlowTulip", "Plant_Shadowberry", "Plant_Carrot",
     ];
+    /// <summary>Shared (reference-stable) option list for plots that support planting and clearing.</summary>
+    private static readonly string[] ClearableCropRows = [EmptyOption, .. CropRows];
+
     public override string Id => "garden-plots";
     public override string DisplayName => "Garden plots";
     public override string Description => "Water, fertilizer and planted crops. Save changes before opening the world in game.";
@@ -71,11 +74,15 @@ public sealed class GardenPlotsFeature : DeployedCareFeature
         for (var i = 0; i < fertilizer.Length; i++)
             if (int.TryParse(fertilizer[i], out var value))
                 fields.Add(new($"fertilizer:{i}", $"Spot {i + 1} fertilizer", Number(value), WorldFieldKind.Integer, true, Hint: "0 means none; 1,000 means a 1x fertilizer multiplier."));
+        if (GardenPlotPlanting.IsSupported(props) && !GardenPlotPlanting.IsPlanted(props, GardenPlotPlanting.SupportedSpot))
+            fields.Add(WorldMapField.Choice($"crop:{GardenPlotPlanting.SupportedSpot}", "Spot 1 crop", EmptyOption, ClearableCropRows,
+                hint: "Choose a crop to plant it fully grown, the only planted state confirmed from real saves. Not yet tested in game."));
         foreach (var proxy in Elements(props, "ItemProxies_"))
         {
             if (proxy.FindByPrefix("SpotIndex_")?.Property?.Value is not int spot) continue;
             var crop = Struct(proxy, "ItemRow_")?.FindByPrefix("RowName")?.Property?.Value?.ToString();
-            fields.Add(WorldMapField.Choice($"crop:{spot}", $"Spot {spot + 1} crop", crop, CropRows,
+            fields.Add(WorldMapField.Choice($"crop:{spot}", $"Spot {spot + 1} crop", crop,
+                GardenPlotPlanting.IsSupported(props) ? ClearableCropRows : CropRows,
                 hint: "Changing the crop resets this spot's growth back to a fresh planting."));
             var changeable = Struct(proxy, "ChangeableData_");
             if (Dynamic(changeable, "GrowthStage") is int stage)
@@ -88,6 +95,22 @@ public sealed class GardenPlotsFeature : DeployedCareFeature
     private static int WaterCapacity(IList<FPropertyTag> props)
         => ClassName(props).Contains("GardenPlot_Large.", StringComparison.Ordinal) ? 3300
             : ClassName(props).Contains("GardenPlot_Medium.", StringComparison.Ordinal) ? 1650 : 400;
+    /// <summary>Shown for a supported plot's spot when nothing is planted; choosing it on a planted spot clears the spot.</summary>
+    public const string EmptyOption = "(Empty)";
+
+    protected override WorldEditResult ApplyField(SaveGame save, IList<FPropertyTag> props, string fieldId, string? value)
+    {
+        if (fieldId == $"crop:{GardenPlotPlanting.SupportedSpot}" && GardenPlotPlanting.IsSupported(props))
+        {
+            var planted = GardenPlotPlanting.IsPlanted(props, GardenPlotPlanting.SupportedSpot);
+            if (value == EmptyOption)
+                return planted ? GardenPlotPlanting.Clear(props, GardenPlotPlanting.SupportedSpot) : WorldEditResult.NoChange;
+            if (!planted && !string.IsNullOrWhiteSpace(value))
+                return GardenPlotPlanting.Plant(save, props, GardenPlotPlanting.SupportedSpot, value);
+        }
+        return ApplyField(props, fieldId, value);
+    }
+
     protected override WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value)
     {
         var field = ReadFields(props).FirstOrDefault(f => f.Id == fieldId && f.Editable);
