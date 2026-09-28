@@ -22,6 +22,7 @@ internal static class WorldCommands
         cmd.Subcommands.Add(BuildShow(quiet));
         cmd.Subcommands.Add(BuildSet(quiet));
         cmd.Subcommands.Add(BuildAddRegion(quiet));
+        cmd.Subcommands.Add(PlacedObjectCommands.BuildCensus(quiet));
         return cmd;
     }
 
