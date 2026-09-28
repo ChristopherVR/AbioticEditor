@@ -427,6 +427,13 @@
   <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORT RAW JSON</value></data>
   <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>Advanced data</value></data>
   <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>This save is too big to edit comfortably here. EXPORT RAW JSON writes it all out next to the save and shows it in your file manager. Edit it in any text editor, then press IMPORT RAW JSON to put it back.</value></data>
+  <data name="PlayerRaw_SavedExtras" xml:space="preserve"><value>Saved extras (view only)</value></data>
+  <data name="PlayerRaw_SavedExtrasHelp" xml:space="preserve"><value>Things the game remembers about this character that the editor keeps as they are: the hotbar slot last selected, effects currently on the character, starred inventory slots, items already run through the distillery and per-slot cosmetic flags.</value></data>
+  <data name="PlayerRaw_LastHotbarSlot" xml:space="preserve"><value>Last selected hotbar slot</value></data>
+  <data name="PlayerRaw_StarredSlots" xml:space="preserve"><value>Starred inventory slots</value></data>
+  <data name="PlayerRaw_TransmogFlags" xml:space="preserve"><value>Cosmetic slot flags</value></data>
+  <data name="PlayerRaw_DistilledItems" xml:space="preserve"><value>Distilled before</value></data>
+  <data name="PlayerRaw_ActiveEffects" xml:space="preserve"><value>Active effects</value></data>
 
   <!-- PlayerRecipes -->
   <data name="PlayerRecipes_CraftedAt" xml:space="preserve"><value>CRAFTED AT</value></data>
