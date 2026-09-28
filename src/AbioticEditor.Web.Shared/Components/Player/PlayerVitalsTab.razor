@@ -22,5 +22,13 @@
             <VitalSlider Label="@L.Resource("PlayerVitals_Head")" @bind-Value="Vitals.Head" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_Torso")" @bind-Value="Vitals.Torso" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftArm")" @bind-Value="Vitals.LeftArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightArm")" @bind-Value="Vitals.RightArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftLeg")" @bind-Value="Vitals.LeftLeg" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightLeg")" @bind-Value="Vitals.RightLeg" OnChanged="Changed" WholeNumbers="true" />
         </div>
     </section>
+    @if (Saved is not null)
+    {
+        <section class="editor-card saved-view-card" aria-label="@L.Resource("PlayerVitals_ActiveEffects")">
+            <span class="amber-field-label">@L.Resource("PlayerVitals_ActiveEffects")</span>
+            <p class="muted">@L.Resource("PlayerVitals_ActiveEffectsHelp")</p>
+            <p>@(Saved.ActiveBuffs.Count == 0 ? "-" : string.Join(", ", Saved.ActiveBuffs.Select(buff => buff.BuffRow)))</p>
+        </section>
+    }
 </div>
-@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task HealAll() { Vitals.HealAll(); await Changed(); } }
+@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task HealAll() { Vitals.HealAll(); await Changed(); } }

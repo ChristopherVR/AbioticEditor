@@ -129,6 +129,15 @@
     }
 </section>
 
+@if (Saved is not null)
+{
+    <section class="editor-card saved-view-card" aria-label="@L.Resource("PlayerRecipes_DistilledItems")">
+        <span class="amber-field-label">@L.Resource("PlayerRecipes_DistilledItems")</span>
+        <p class="muted">@L.Resource("PlayerRecipes_DistilledItemsHelp")</p>
+        <p>@(Saved.ItemsDistilled.Count == 0 ? "-" : string.Join(", ", Saved.ItemsDistilled))</p>
+    </section>
+}
+
 @code {
     /// <summary>
     /// The open recipe, rendered into the editor's right-hand pane instead of a column beside
@@ -231,6 +240,7 @@
     /// only) - see <c>IPlayerRecipesSession</c>'s remarks.</summary>
     [Parameter, EditorRequired] public IPlayerRecipesSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; }
 
     private enum Show { All, Locked, Unlocked }
 

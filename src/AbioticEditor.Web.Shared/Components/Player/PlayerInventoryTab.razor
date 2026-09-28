@@ -134,10 +134,23 @@
     }
 </section>
 
+@if (Saved is not null)
+{
+    <section class="editor-card saved-view-card" aria-label="@L.Resource("PlayerInventory_SavedSelection")">
+        <span class="amber-field-label">@L.Resource("PlayerInventory_SavedSelection")</span>
+        <p class="muted">@L.Resource("PlayerInventory_SavedSelectionHelp")</p>
+        <ul>
+            <li>@L.Resource("PlayerInventory_LastHotbarSlot"): @(Saved.LastHotbarSelection is { } hotbar ? (hotbar + 1).ToString() : "-")</li>
+            <li>@L.Resource("PlayerInventory_StarredSlots"): @Saved.FavoritedSlots.Count(starred => starred) / @Saved.FavoritedSlots.Count</li>
+        </ul>
+    </section>
+}
+
 @code {
     [Parameter, EditorRequired] public IPlayerInventorySession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? WorldSession { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; }
 
     // A live session (Session.AppliesImmediately) has no save file to key the lookup by and no
     // world session ever attached here, so the sibling-bench scan (a file-only convenience for

@@ -22,14 +22,14 @@
         @LoadingContent
     }
     else if (ActiveTab == "general") { <PlayerGeneralTab General="Session" Recipes="Session" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" Saved="SavedData" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "character") { <PlayerCharacterTab Session="Session" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" Saved="SavedData" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "spawn") { <PlayerSpawnTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "inventory") { <PlayerInventoryTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "inventory") { <PlayerInventoryTab Session="Session" WorldSession="TransferWorldSession" Saved="SavedData" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "companions") { <PlayerCompanionsTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "skills") { <PlayerSkillsTab Session="Session" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "recipes") { <PlayerRecipesTab Session="Session" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "recipes") { <PlayerRecipesTab Session="Session" Saved="SavedData" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "gatepal") { <PlayerCodexTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "achievements" && Session is PlayerSaveSession fileSessionForAchievements) { <PlayerAchievementsTab Session="fileSessionForAchievements" /> }
     else if (ActiveTab == "data" && Session is PlayerSaveSession fileSessionForData) { <PlayerRawDataTab Session="fileSessionForData" /> }
@@ -68,6 +68,9 @@
     [Parameter] public string Title { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IPlayerEditorSession Session { get; set; } = null!;
     [Parameter] public WorldSaveSession? TransferWorldSession { get; set; }
+    // The save as read from disk, for the view-only fields each tab shows (hotbar slot, starred
+    // slots, cosmetic flags, active effects, distilled items). Live sessions have no file, so null.
+    private AbioticEditor.Core.PlayerSaves.PlayerSaveData? SavedData => (Session as PlayerSaveSession)?.SavedData;
     [Parameter] public EventCallback OnChanged { get; set; }
     // Fires whenever the active tab changes, before that tab's content renders - lets a live-editing
     // host (see LiveConnect's own page component) lazily connect the corresponding area on demand,

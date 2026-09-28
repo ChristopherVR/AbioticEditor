@@ -427,13 +427,17 @@
   <data name="PlayerRaw_ImportJsonToSave" xml:space="preserve"><value>IMPORT RAW JSON</value></data>
   <data name="PlayerRaw_RawSaveJson" xml:space="preserve"><value>Advanced data</value></data>
   <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>This save is too big to edit comfortably here. EXPORT RAW JSON writes it all out next to the save and shows it in your file manager. Edit it in any text editor, then press IMPORT RAW JSON to put it back.</value></data>
-  <data name="PlayerRaw_SavedExtras" xml:space="preserve"><value>Saved extras (view only)</value></data>
-  <data name="PlayerRaw_SavedExtrasHelp" xml:space="preserve"><value>Things the game remembers about this character that the editor keeps as they are: the hotbar slot last selected, effects currently on the character, starred inventory slots, items already run through the distillery and per-slot cosmetic flags.</value></data>
-  <data name="PlayerRaw_LastHotbarSlot" xml:space="preserve"><value>Last selected hotbar slot</value></data>
-  <data name="PlayerRaw_StarredSlots" xml:space="preserve"><value>Starred inventory slots</value></data>
-  <data name="PlayerRaw_TransmogFlags" xml:space="preserve"><value>Cosmetic slot flags</value></data>
-  <data name="PlayerRaw_DistilledItems" xml:space="preserve"><value>Distilled before</value></data>
-  <data name="PlayerRaw_ActiveEffects" xml:space="preserve"><value>Active effects</value></data>
+
+  <data name="PlayerInventory_SavedSelection" xml:space="preserve"><value>Saved selection (view only)</value></data>
+  <data name="PlayerInventory_SavedSelectionHelp" xml:space="preserve"><value>What the game remembers about your hotbar and starred slots. Shown as saved; the editor keeps it as it is.</value></data>
+  <data name="PlayerInventory_LastHotbarSlot" xml:space="preserve"><value>Last selected hotbar slot</value></data>
+  <data name="PlayerInventory_StarredSlots" xml:space="preserve"><value>Starred inventory slots</value></data>
+  <data name="PlayerTransmog_SlotFlags" xml:space="preserve"><value>Cosmetic slot flags (view only)</value></data>
+  <data name="PlayerTransmog_SlotFlagsHelp" xml:space="preserve"><value>One flag per gear slot, as saved. What each flag does in game has not been confirmed yet, so they cannot be changed here.</value></data>
+  <data name="PlayerVitals_ActiveEffects" xml:space="preserve"><value>Active effects (view only)</value></data>
+  <data name="PlayerVitals_ActiveEffectsHelp" xml:space="preserve"><value>Buffs and debuffs on the character when the game was saved.</value></data>
+  <data name="PlayerRecipes_DistilledItems" xml:space="preserve"><value>Distilled before (view only)</value></data>
+  <data name="PlayerRecipes_DistilledItemsHelp" xml:space="preserve"><value>Items this character has already run through the distillery.</value></data>
 
   <!-- PlayerRecipes -->
   <data name="PlayerRecipes_CraftedAt" xml:space="preserve"><value>CRAFTED AT</value></data>
