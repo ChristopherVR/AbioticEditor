@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.18.1] - 2026-09-28
+
+### Miscellaneous Tasks
+- Point bucket at v2.18.0 [skip ci]
+
+
 ## [2.18.0] - 2026-09-28
 
 ### Bug Fixes
