@@ -55,6 +55,40 @@ public static partial class PlayerSaveWriter
     }
 
     /// <summary>
+    /// Sets <c>LastHotbarSelection_</c>, the hotbar slot the character has selected when the
+    /// save loads. The int property is created under its exact full name when the save is
+    /// delta-serialized without it. <paramref name="slot"/> must lie inside the hotbar
+    /// (0 to hotbar length - 1); anything else is rejected rather than written.
+    /// </summary>
+    public static void ApplyLastHotbarSelection(PlayerSaveData data, int slot)
+    {
+        var hotbarLength = data.Inventory.Hotbar.Count;
+        if (slot < 0 || slot >= hotbarLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slot), slot, $"Hotbar slot must be 0 to {hotbarLength - 1}.");
+        }
+        var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        SetInt(root, "LastHotbarSelection_", slot, FullNames.LastHotbarSelection);
+    }
+
+    /// <summary>
+    /// Patches the 13 <c>TransmogDisabledArray_</c> bool flags in place, matched by index
+    /// (never resized; missing property skipped). Same shape as
+    /// <see cref="ApplyTransmogVisibility"/>. The meaning of each flag is not yet confirmed
+    /// (see docs/reference/research/research-player-slot-flags-and-effects.md), so the editor UI does not call this.
+    /// </summary>
+    public static void ApplyTransmogDisabled(PlayerSaveData data, IReadOnlyList<bool> flags)
+    {
+        var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        if (root.FindByPrefix("TransmogDisabledArray_")?.Property is not ArrayProperty array || array.Value is null) return;
+
+        for (var i = 0; i < array.Value.Length && i < flags.Count; i++)
+        {
+            array.Value.SetValue(flags[i], i);
+        }
+    }
+
+    /// <summary>
     /// The row name Abiotic Factor writes into an empty inventory slot's
     /// <c>ItemDataTable_.RowName</c> (see <see cref="InventoryItemSlot.IsEmpty"/>).
     /// </summary>

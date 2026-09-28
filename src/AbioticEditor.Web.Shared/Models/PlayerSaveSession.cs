@@ -244,6 +244,13 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The loaded save as read from disk, for read-only displays of properties the editor
+    /// models but does not stage (favorites, distillery history, active effects, ...).
+    /// Reflects the file, not unsaved edits.
+    /// </summary>
+    public PlayerSaveData SavedData => _data;
+
     public IReadOnlyList<RawSaveProperty> RawProperties => RawSavePropertyEditor.List(_data.Raw)
         .Select(property => _rawEdits.TryGetValue(property.Name, out var staged)
             ? property with { Value = staged } : property).ToArray();

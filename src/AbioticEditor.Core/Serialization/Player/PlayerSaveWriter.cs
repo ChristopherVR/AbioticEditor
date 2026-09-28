@@ -34,6 +34,8 @@ public static partial class PlayerSaveWriter
         public const string Fatigue = "Fatigue_9_D4A267F046B9CD6F07518AAF88356DBE";
         public const string Continence = "Continence_11_29DC4A474C89E8B517691D8C627AA2F9";
         public const string CurrentMoney = "CurrentMoney_85_7425E5BF43364C11279E4C8C26F5A7CA";
+        // Verbatim from the newest-format fixture (Chrissie world player); absent from older saves.
+        public const string LastHotbarSelection = "LastHotbarSelection_75_9D56EAE8464F9FFF52C04AA7B388D489";
 
         // ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 members. The game writes
         // these sparsely too (an empty transmog slot carries only AssetID_), so slot

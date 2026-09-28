@@ -22,8 +22,26 @@
     @if (!string.IsNullOrWhiteSpace(_jsonStatus)) { <p class="raw-json-status" role="status">@_jsonStatus</p> }
 </section>
 
+@* Read-only inspector for character-save properties the editor understands but does not
+   edit: hotbar selection, active effects, starred slots, distillery history, transmog flags. *@
+<section class="editor-card saved-extras-card" aria-label="@L.Resource("PlayerRaw_SavedExtras")">
+    <h3>@L.Resource("PlayerRaw_SavedExtras")</h3>
+    <p class="muted">@L.Resource("PlayerRaw_SavedExtrasHelp")</p>
+    <ul class="saved-extras-list">
+        <li>@L.Resource("PlayerRaw_LastHotbarSlot"): @(Saved.LastHotbarSelection is { } hb ? (hb + 1).ToString() : "-")</li>
+        <li>@L.Resource("PlayerRaw_StarredSlots"): @(Saved.FavoritedSlots.Count(x => x)) / @Saved.FavoritedSlots.Count</li>
+        <li>@L.Resource("PlayerRaw_TransmogFlags"): @string.Concat(Saved.TransmogDisabled.Select(x => x ? '1' : '0'))</li>
+        <li>@L.Resource("PlayerRaw_DistilledItems"): @(Saved.ItemsDistilled.Count == 0 ? "-" : string.Join(", ", Saved.ItemsDistilled))</li>
+        <li>@L.Resource("PlayerRaw_ActiveEffects"):
+            @if (Saved.ActiveBuffs.Count == 0) { <span>-</span> }
+            else { <span>@string.Join(", ", Saved.ActiveBuffs.Select(b => b.BuffRow))</span> }
+        </li>
+    </ul>
+</section>
+
 @code {
     [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    private AbioticEditor.Core.PlayerSaves.PlayerSaveData Saved => Session.SavedData;
     private string? _jsonStatus;
     private bool _jsonBusy;
 
