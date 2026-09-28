@@ -150,7 +150,7 @@ public sealed class InventoryTransferSessionTests
     [Fact]
     public void Ground_drop_stages_both_sessions_and_reverts()
     {
-        var player = OpenPlayer();
+        var player = OpenPlayerWithBackpackItems();
         var world = OpenWorld();
         var source = player.Backpack.First(slot => !slot.IsEmpty);
         var original = source.ToInventorySlot();
@@ -200,7 +200,21 @@ public sealed class InventoryTransferSessionTests
         return new PlayerSaveSession(PlayerSaveReader.ReadFromFile(path), path);
     }
 
-    private static WorldSaveSession OpenWorld()
+    // Directory enumeration order is not guaranteed, and some fixture characters carry an empty
+    // backpack, so a test that needs an item picks a character that has one (in a stable order).
+    private static PlayerSaveSession OpenPlayerWithBackpackItems()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav")
+                     .Order(StringComparer.Ordinal))
+        {
+            var session = new PlayerSaveSession(PlayerSaveReader.ReadFromFile(path), path);
+            if (session.Backpack.Any(slot => !slot.IsEmpty)) return session;
+        }
+        throw new InvalidOperationException("No Cascade fixture character has a backpack item.");
+    }
+
+        private static WorldSaveSession OpenWorld()
     {
         Assert.NotNull(Fixtures.CascadeDir);
         var path = Path.Combine(Fixtures.CascadeDir!, "WorldSave_Facility.sav");

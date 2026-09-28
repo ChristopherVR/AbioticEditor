@@ -85,11 +85,14 @@ public sealed class WorldLivePetsSpeciesChangeContractTests
     }
 
     [Fact]
-    public void Live_editing_protocol_doc_describes_the_round_109_species_change_closure()
+    public void Live_editing_protocol_doc_describes_the_species_change_closure()
     {
+        // The protocol doc no longer carries round numbers; it must still explain how species change
+        // works for matched pets (the SpawnPet path fed by an engine-returned transform).
         var doc = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "docs", "reference", "live-editing-protocol.md"));
         Assert.Contains("K2_GetActorTransform", doc, StringComparison.Ordinal);
-        Assert.Contains("Round 109", doc, StringComparison.Ordinal);
+        Assert.Contains("Abiotic_Survival_GameMode_C.SpawnPet", doc, StringComparison.Ordinal);
+        Assert.Contains("supportsSpeciesChange", doc, StringComparison.Ordinal);
     }
 
     [Fact]
