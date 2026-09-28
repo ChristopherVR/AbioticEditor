@@ -2,6 +2,62 @@
 
 All notable changes to this project are documented here.
 
+## [2.18.0] - 2026-09-28
+
+### Bug Fixes
+- Show saved character extras on the tabs they belong to
+
+
+### Documentation
+- Fix broken links that stopped the documentation site from building
+- Record what the roadmap work delivered and what is still open
+- Record what saves do and do not say about gardens, pets, chemistry, story phases and summons
+- Note that active effects and the last hotbar slot are now read
+- Write up what the sample saves show about world objects
+- Record which placed objects the save positions really control
+- Write down how the game stores power connections
+- Map out how Game Pass save support is split up
+- Record what has been proven for each kind of save
+- Describe how level floor plans could be built from game files
+- Plan reusable Game Pass support and modding extensions
+- Plan full level maps and power network building
+- Clarify editor gaps and refresh game data
+
+
+### Features
+- Read-only view of what a saved pet remembers
+- Plant or clear the spot on an empty small garden plot
+- Count which save fields the editor does not read yet
+- Read every saved detail of story characters
+- Preview what a story rewind would leave behind
+- Show recipe-style entitlements per player, read-only
+- Show power connections for each socket
+- Trace how power devices connect across save files
+- Check what a copied group of objects would lose
+- Prepare safe moving and turning of placed objects
+- Add a read-only census of placed base objects
+- Show saved character extras in the Advanced data tab
+- Read favorites, distillery history, effects and hotbar choice from character saves
+- Warn when a save is older than any the editor was tested with
+- Read your account unlocks, stats and settings files
+- Add a shared location index behind future show-on-map
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.17.2 [skip ci]
+
+
+### Refactor
+- Use the standalone Game Pass storage library
+- Move Xbox save folder handling into its own reusable library
+
+
+### Testing
+- Make two editor checks reliable again
+- Check the new Xbox save library on its own
+- Pin down how Xbox save containers are read and written today
+
+
 ## [2.17.2] - 2026-09-27
 
 ### Miscellaneous Tasks
