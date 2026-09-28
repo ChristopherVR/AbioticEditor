@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" />
     <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Cli\AbioticEditor.Cli.csproj" />
     <ProjectReference Include="..\..\src\AbioticEditor.Updater\AbioticEditor.Updater.csproj" />
     <ProjectReference Include="..\..\src\AbioticEditor.Web\AbioticEditor.Web.csproj" />
     <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" />
