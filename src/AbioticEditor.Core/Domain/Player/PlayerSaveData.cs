@@ -45,8 +45,18 @@ public sealed class PlayerSaveData
         bool completedIntro = false,
         double lastControlRotationPitch = 0,
         double lastControlRotationYaw = 0,
-        double lastControlRotationRoll = 0)
+        double lastControlRotationRoll = 0,
+        IReadOnlyList<bool>? transmogDisabled = null,
+        IReadOnlyList<bool>? favoritedSlots = null,
+        IReadOnlyList<string>? itemsDistilled = null,
+        IReadOnlyList<ActiveBuff>? activeBuffs = null,
+        int? lastHotbarSelection = null)
     {
+        TransmogDisabled = transmogDisabled ?? Array.Empty<bool>();
+        FavoritedSlots = favoritedSlots ?? Array.Empty<bool>();
+        ItemsDistilled = itemsDistilled ?? Array.Empty<string>();
+        ActiveBuffs = activeBuffs ?? Array.Empty<ActiveBuff>();
+        LastHotbarSelection = lastHotbarSelection;
         NewestRecipes = newestRecipes ?? Array.Empty<string>();
         CompendiumUnread = compendiumUnread ?? Array.Empty<string>();
         JournalUnread = journalUnread ?? Array.Empty<string>();
@@ -222,7 +232,47 @@ public sealed class PlayerSaveData
 
     /// <summary><c>LastControlRotation_</c>.Z - the last saved camera/control roll, in degrees (normally 0).</summary>
     public double LastControlRotationRoll { get; }
+
+    /// <summary>
+    /// <c>TransmogDisabledArray_</c>: 13 bools (the length of the equipment array, not the 6
+    /// transmog slots or the 12 visibility flags). What <c>true</c> means and how each index
+    /// maps to a gear slot is unconfirmed - see docs/reference/research/research-player-slot-flags-and-effects.md.
+    /// Empty when the save has no such array.
+    /// </summary>
+    public IReadOnlyList<bool> TransmogDisabled { get; }
+
+    /// <summary>
+    /// <c>FavoritedSlots_</c>: one bool per starred inventory slot. The length varies with
+    /// the backpack (24, 30, 35, 36 and 37 seen) and does not always equal the
+    /// <c>Inventory_</c> length, so the index base is unconfirmed. Empty when absent.
+    /// </summary>
+    public IReadOnlyList<bool> FavoritedSlots { get; }
+
+    /// <summary>
+    /// <c>ItemsDistilled_</c>: item row names (lower-case, e.g. <c>food_milksac</c>) the
+    /// character has run through the distillery, in discovery order. Empty when absent.
+    /// </summary>
+    public IReadOnlyList<string> ItemsDistilled { get; }
+
+    /// <summary>
+    /// <c>CurrentBuffDebuffs_</c>: the effects on the character when the save was written
+    /// (read-only). Empty when the struct is absent.
+    /// </summary>
+    public IReadOnlyList<ActiveBuff> ActiveBuffs { get; }
+
+    /// <summary>
+    /// <c>LastHotbarSelection_</c>: the hotbar slot the character last had selected (the
+    /// hotbar has 8 slots); null when the save does not carry the property.
+    /// </summary>
+    public int? LastHotbarSelection { get; }
 }
+
+/// <summary>
+/// One <c>BuffDebuffEntry</c> from <c>CurrentBuffDebuffs_</c>: a buff-table row name
+/// (e.g. <c>Debuff_Stinky</c>), the limb it is attached to (e.g. <c>EBodyLimbs::AllBones</c>)
+/// and its expiry timestamp (-1 = no expiry; otherwise a game-time value, not a duration).
+/// </summary>
+public sealed record ActiveBuff(string BuffRow, string? ParentLimb, float ExpireTime);
 
 /// <summary>
 /// One <c>CompendiumKillCount</c> struct: a DT_Compendium row + how many the player

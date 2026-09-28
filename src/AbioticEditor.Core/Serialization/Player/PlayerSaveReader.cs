@@ -98,7 +98,12 @@ public static class PlayerSaveReader
             completedIntro: root.GetBool("CompletedIntro_"),
             lastControlRotationPitch: lastControlRotation.X,
             lastControlRotationYaw: lastControlRotation.Y,
-            lastControlRotationRoll: lastControlRotation.Z);
+            lastControlRotationRoll: lastControlRotation.Z,
+            transmogDisabled: ReadBoolArray(root, "TransmogDisabledArray_"),
+            favoritedSlots: ReadBoolArray(root, "FavoritedSlots_"),
+            itemsDistilled: ReadNameArray(root, "ItemsDistilled_"),
+            activeBuffs: ReadActiveBuffs(root),
+            lastHotbarSelection: root.FindByPrefix("LastHotbarSelection_")?.Property?.Value is int hb ? hb : null);
 
         LogUnmodeledKeys(root);
         return data;
@@ -125,6 +130,8 @@ public static class PlayerSaveReader
         // Understood bookkeeping, intentionally preserved rather than edited: UI slot
         // favorites, distillery history, per-slot transmog disables.
         "FavoritedSlots_", "ItemsDistilled_", "TransmogDisabledArray_",
+        // Modeled (see PlayerSaveData.ActiveBuffs / LastHotbarSelection).
+        "CurrentBuffDebuffs_", "LastHotbarSelection_",
     };
 
     private static void LogUnmodeledKeys(IList<FPropertyTag> root)
@@ -199,6 +206,45 @@ public static class PlayerSaveReader
             {
                 result.Add(new KillCount(row!, count));
             }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Reads <c>CurrentBuffDebuffs_</c> (a <c>BuffSave_Struct</c>) whose <c>Buffs_</c> array holds
+    /// <c>BuffDebuffEntry</c> structs: <c>BuffRow.RowName</c> (a row of the game's buff table),
+    /// <c>ParentLimb</c> (an <c>EBodyLimbs::</c> enum) and <c>BuffExpireTime</c> (a float;
+    /// -1 on the one permanent entry in the fixtures). The whole struct is absent when the
+    /// character has no active effects (delta serialization).
+    /// </summary>
+    private static IReadOnlyList<ActiveBuff> ReadActiveBuffs(IList<FPropertyTag> root)
+    {
+        if (root.FindByPrefix("CurrentBuffDebuffs_")?.Property is not StructProperty sp
+            || sp.Value is not PropertiesStruct ps
+            || ps.Properties.FindByPrefix("Buffs_")?.Property is not ArrayProperty array
+            || array.Value is null)
+        {
+            return Array.Empty<ActiveBuff>();
+        }
+
+        var result = new List<ActiveBuff>(array.Value.Length);
+        for (var i = 0; i < array.Value.Length; i++)
+        {
+            if (array.Value.GetValue(i) is not StructProperty esp || esp.Value is not PropertiesStruct eps)
+                continue;
+
+            string? row = null;
+            if (eps.Properties.FindByPrefix("BuffRow")?.Property is StructProperty rowSp
+                && rowSp.Value is PropertiesStruct rowPs)
+            {
+                row = rowPs.Properties.GetString("RowName");
+            }
+            if (string.IsNullOrEmpty(row)) continue;
+
+            result.Add(new ActiveBuff(
+                row!,
+                eps.Properties.GetEnumString("ParentLimb"),
+                eps.Properties.GetFloat("BuffExpireTime")));
         }
         return result;
     }
