@@ -5,7 +5,7 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// <summary>
 /// Convenience base for the common map shape (entries of
 /// <c>StructProperty -&gt; PropertiesStruct</c>). A concrete feature only supplies its metadata
-/// plus <see cref="ReadFields"/> (entry struct → typed fields) and <see cref="ApplyField"/>
+/// plus <see cref="ReadFields"/> (entry struct → typed fields) and <see cref="ApplyField(IList{FPropertyTag}, string, string)"/>
 /// (patch one field); this base wires the <see cref="IWorldMapFeature"/> plumbing - entry
 /// enumeration, key→entry lookup, and a readable per-entry label.
 /// </summary>
@@ -65,7 +65,7 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
         {
             return WorldEditResult.Failure($"no entry '{entryKey}' in {MapName}.");
         }
-        return ApplyField(props, fieldId, value);
+        return ApplyField(save, props, fieldId, value);
     }
 
     /// <inheritdoc/>
@@ -92,6 +92,14 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
 
     /// <summary>Patches one field of one entry's struct. Validate here; never throw.</summary>
     protected abstract WorldEditResult ApplyField(IList<FPropertyTag> props, string fieldId, string? value);
+
+    /// <summary>
+    /// Save-aware variant for features whose edit needs a game-authored template from elsewhere in
+    /// the same save (for example planting, which clones an existing planted spot). Defaults to
+    /// the entry-only overload.
+    /// </summary>
+    protected virtual WorldEditResult ApplyField(SaveGame save, IList<FPropertyTag> props, string fieldId, string? value)
+        => ApplyField(props, fieldId, value);
 
     /// <summary>
     /// A short, readable name for an entry. Override the ordinal overload for map-specific
