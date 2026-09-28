@@ -29,6 +29,19 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// save). In practice the facility's trams cover the reachable stations, so this is enough to
 /// re-park a tram at any station another tram has visited.</para>
 ///
+/// <para><b>What complete destinations would need (research, no code path yet).</b> Fixture evidence
+/// (docs/research/world-and-placed-object-state.md): across the four Facility saves the
+/// occupied-station option set differs from world to world (17 distinct
+/// <c>TramSystem_Station_C_N</c> numbers overall, only 10 trams per save), so the true station set
+/// is larger than any one save shows. The instance numbers are assigned by the level asset and no
+/// save or catalog names them. Getting the full list needs the game install: read the
+/// <c>Facility</c> level package (<c>AbioticFactor/Content/Maps/Facility.umap</c>), enumerate every
+/// <c>TramSystem_Station_C</c> export and its location, read the rail/track actors to learn which
+/// stations connect, and label each station from the level or a related <c>Tram_*</c> flag
+/// (<see cref="TramStationCatalog.UnlockFlags"/>, the only station names the repository holds).
+/// Until then the option set stays the occupied stations, because offering an instance number the
+/// running build does not have would write an invalid reference.</para>
+///
 /// <para>Schema: map key = tram actor path (e.g.
 /// <c>/Game/Maps/Facility…Tram_ParentBP_C_0</c>); value = StructProperty → PropertiesStruct
 /// with the following leaves:</para>
