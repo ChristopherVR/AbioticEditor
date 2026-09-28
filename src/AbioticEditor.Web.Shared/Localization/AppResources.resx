@@ -4369,4 +4369,19 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="AppError_Action" xml:space="preserve"><value>The last action did not go through.</value></data>
   <data name="AppError_Guidance" xml:space="preserve"><value>Try it again; if it keeps failing, reopen the save or reconnect to the game.</value></data>
   <data name="Transfer_PairedSaveHint" xml:space="preserve"><value>Save or revert in the header applies to both sides of a transfer.</value></data>
+  <data name="Power_Connections" xml:space="preserve"><value>POWER CONNECTIONS</value></data>
+  <data name="Power_StoredNote" xml:space="preserve"><value>What the save files record: which socket supplies which device, including devices saved in other region files. Live power state and predicted results are not part of this list.</value></data>
+  <data name="Power_BelongsTo" xml:space="preserve"><value>OUTLET OF</value></data>
+  <data name="Power_NoConnections" xml:space="preserve"><value>Nothing is plugged into this socket.</value></data>
+  <data name="Power_Supplies" xml:space="preserve"><value>SUPPLIES</value></data>
+  <data name="Power_SuppliedBy" xml:space="preserve"><value>SUPPLIED BY</value></data>
+  <data name="Power_Missing" xml:space="preserve"><value>not found in the loaded save files</value></data>
+  <data name="Power_OpenSave" xml:space="preserve"><value>Open {0}</value></data>
+  <data name="Power_FedBy" xml:space="preserve"><value>FED BY</value></data>
+  <data name="Power_Feeds" xml:space="preserve"><value>FEEDS ONWARD</value></data>
+  <data name="Power_EndsAtLevelSocket" xml:space="preserve"><value>built-in socket</value></data>
+  <data name="Power_Loop" xml:space="preserve"><value>already listed above</value></data>
+  <data name="Power_MoreHops" xml:space="preserve"><value>and {0} more</value></data>
+  <data name="Power_LiveUnknown" xml:space="preserve"><value>Live power state: not observed. Connect to the running game to read it.</value></data>
+  <data name="Power_PredictedUnknown" xml:space="preserve"><value>Predicted power result: unknown. The save does not hold the power rules of the game (capacity, drain, ordering), so none is guessed.</value></data>
 </root>
