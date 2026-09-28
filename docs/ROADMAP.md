@@ -4,7 +4,7 @@ Status reviewed 27 September 2026 and updated 28 September 2026 against the curr
 
 ## Progress on 28 September 2026
 
-Work landed on every section below. No item has left the roadmap yet: nothing was verified in-game, and most of what landed is read-only inspection or research that narrows the item. Research notes are under [reference/research](reference/research/).
+Work landed on every section below. No item has left the roadmap yet: nothing was verified in-game, and most of what landed is read-only inspection or research that narrows the item. Research notes are listed under **Research notes** in the [technical reference](reference/index.md) sidebar.
 
 | Area | Landed | Still open |
 | --- | --- | --- |
@@ -213,10 +213,10 @@ For each task, record its player-facing outcome, dependencies, evidence, remaini
 
 These are implementation pointers for reviewing the gaps, not a list of completed features:
 
-- [Compatibility registry](../src/AbioticEditor.Core/Services/Compatibility/SaveVersionRegistry.cs) and [analyzer](../src/AbioticEditor.Core/Services/Compatibility/CompatibilityAnalyzer.cs).
-- [Level actor position resolver](../src/AbioticEditor.Core/Services/World/DoorLocationResolver.cs).
-- [Socket save fields and device links](../src/AbioticEditor.Core/Services/WorldMapFeatures/PowerSocketMapFeature.cs) and [live socket constraints](../src/AbioticEditor.Core/LiveEditing/World/LivePowerSocketsChannel.cs).
-- [Tram destination limitation](../src/AbioticEditor.Core/Services/WorldMapFeatures/TramMapFeature.cs).
-- [Unsurfaced per-player recipe entitlements](../src/AbioticEditor.Core/Services/WorldMapFeatures/ServerEntitlementsFeature.cs).
+- [Compatibility registry](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/Compatibility/SaveVersionRegistry.cs) and [analyzer](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/Compatibility/CompatibilityAnalyzer.cs).
+- [Level actor position resolver](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/World/DoorLocationResolver.cs).
+- [Socket save fields and device links](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/WorldMapFeatures/PowerSocketMapFeature.cs) and [live socket constraints](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/LiveEditing/World/LivePowerSocketsChannel.cs).
+- [Tram destination limitation](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/WorldMapFeatures/TramMapFeature.cs).
+- [Unsurfaced per-player recipe entitlements](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Services/WorldMapFeatures/ServerEntitlementsFeature.cs).
 
-- [Game Pass adapter and codecs](../src/AbioticEditor.Core/Infrastructure/GamePass), the [GamePassStorage library](https://github.com/ChristopherVR/GamePassStorage), [format findings](reference/game-pass-format.md), and [save operation runner](../src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs).
+- [Game Pass adapter and codecs](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Infrastructure/GamePass), the [GamePassStorage library](https://github.com/ChristopherVR/GamePassStorage), [format findings](reference/game-pass-format.md), and [save operation runner](https://github.com/ChristopherVR/AbioticEditor/blob/main/src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs).
