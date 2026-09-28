@@ -17,6 +17,9 @@ start with the [player guides](/guide/).
 - [Player save schema](./player-save-schema)
 - [World save schema](./world-save-schema)
 - [Game Pass container format](./game-pass-format)
+- [Compatibility support matrix](./compatibility-support-matrix): what is proven per platform and game build.
+- [Save migration policy](./save-migration-policy): editing in place versus upgrading.
+- [Coverage audit](./coverage-audit): each known gap classified by what is missing.
 
 ## Plugins
 

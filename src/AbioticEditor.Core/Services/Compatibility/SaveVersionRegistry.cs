@@ -76,11 +76,13 @@ public static class SaveVersionRegistry
     {
         // The build the mappings and every write path were validated against.
         new KnownEngineBuild(5, 4, 4, 1030002, "++DF+ABF", EngineBuildStatus.Validated,
-            "Dedicated-server tree and current Steam client saves."),
-        // Older Steam standalone fixtures (tests/fixtures/SteamSaves/Legacy). Byte-exact
-        // round-trip is proven by a fixture test; no per-area edit fixtures are recorded.
+            "Every dedicated-server fixture and most Steam fixtures."),
+        // The one earlier changelist seen in fixtures: the whole Steam client "Chrissie" world
+        // plus two Legacy/Cascade regions. The stamp is per file (the game only restamps a
+        // region when it saves it), so one world can mix builds. Byte-exact round-trip is proven
+        // by a fixture test; no per-area edit fixtures are recorded.
         new KnownEngineBuild(5, 4, 4, 1030001, "++DF+ABF", EngineBuildStatus.ObservedRoundTripOnly,
-            "Steam Legacy/Cascade world and some Chrissie client saves."),
+            "Steam client Chrissie world; Legacy WorldSave_Facility_DF_RadWaste and WorldSave_V_Dummy."),
     };
 
     /// <summary>
