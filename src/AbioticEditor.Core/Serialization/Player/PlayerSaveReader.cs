@@ -134,6 +134,13 @@ public static class PlayerSaveReader
         "CurrentBuffDebuffs_", "LastHotbarSelection_",
     };
 
+    /// <summary>
+    /// True when <paramref name="propertyName"/> (a <c>CharacterSaveData</c> member) is one this
+    /// reader consumes. Used by the unmodeled-field census; the same test drives the UNKWN log.
+    /// </summary>
+    public static bool IsModeledKey(string propertyName)
+        => ConsumedPrefixes.Any(p => propertyName.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
     private static void LogUnmodeledKeys(IList<FPropertyTag> root)
     {
         foreach (var tag in root)

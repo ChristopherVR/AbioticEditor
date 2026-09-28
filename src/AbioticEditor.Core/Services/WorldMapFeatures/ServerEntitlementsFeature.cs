@@ -22,6 +22,12 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// carries a sibling map, <c>UserEntitlements</c>, keyed the same way but holding the player's
 /// recipe entitlements (hundreds of <c>recipe_*</c> tokens). That map is NOT yet surfaced by any
 /// feature - see docs/PROGRESS.md ("UserEntitlements") for the open follow-up.</para>
+///
+/// <para><b>Correction from the fixture census:</b> no fixture carries a top-level
+/// <c>UserEntitlements</c> map, and no entitlement token in any fixture looks like a recipe.
+/// <c>UserEntitlements</c> is only the struct TYPE name of each <c>ServerEntitlements</c> value.
+/// Recipe-shaped tokens, if a future build writes them, are shown read-only here (see
+/// <see cref="PlayerEntitlementReport"/> and docs/research/world-and-placed-object-state.md).</para>
 /// </summary>
 public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
 {
@@ -34,6 +40,11 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         ("EarlyAccess", "Early Access"),
         ("SupportersEdition", "Supporter's Edition"),
     };
+
+    /// <summary>The friendly label for a known ownership entitlement id, or null when it is not one.</summary>
+    public static string? KnownLabel(string id)
+        => Known.Where(k => string.Equals(k.Id, id, StringComparison.OrdinalIgnoreCase))
+            .Select(k => k.Label).FirstOrDefault();
 
     // Steam persona names (owner id -> name) from the local machine, loaded once. Empty when the
     // accounts file isn't present (e.g. a headless dedicated server), in which case keys show bare.
@@ -79,6 +90,16 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
         {
             fields.Add(WorldMapField.Bool(extra, extra, value: true,
                 hint: "An entitlement this editor doesn't have a friendly name for; left as-is unless you turn it off."));
+        }
+
+        // Read-only recipe summary, shown only when a token looks like (or resolves to) a recipe.
+        var recipeTokens = held.Where(PlayerEntitlementReport.LooksLikeRecipe).Order(StringComparer.OrdinalIgnoreCase).ToList();
+        if (recipeTokens.Count > 0)
+        {
+            fields.Add(WorldMapField.ReadOnly("recipeEntitlements", "Recipe entitlements",
+                $"{recipeTokens.Count}: {string.Join(", ", recipeTokens.Take(12))}{(recipeTokens.Count > 12 ? ", ..." : string.Empty)}",
+                hint: "Recipe-shaped tokens held by this player. Read-only: how the game uses them next to "
+                    + "the player's own recipe unlocks is not established from any save."));
         }
 
         // Free-text add field, so a future/unknown entitlement can be granted without a code change.

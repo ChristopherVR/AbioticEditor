@@ -92,6 +92,15 @@ public static partial class WorldSaveReader
         "SaveIdentifier", "SaveVersion",
     };
 
+    /// <summary>
+    /// True when a top-level world/metadata save property is consumed by this reader or owned by
+    /// a registered world-map feature. Used by the unmodeled-field census; the same test drives
+    /// the UNKWN log.
+    /// </summary>
+    public static bool IsModeledTopLevelKey(string propertyName)
+        => ConsumedPrefixes.Any(p => propertyName.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+           || Features.WorldMapFeatures.IsKnownMap(propertyName);
+
     private static void LogUnmodeledKeys(SaveGame save)
     {
         if (save.Properties is null) return;
