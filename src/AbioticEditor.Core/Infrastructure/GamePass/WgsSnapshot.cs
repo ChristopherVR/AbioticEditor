@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+using Storage = AbioticEditor.GamePass.Storage;
 
 namespace AbioticEditor.Core.GamePass;
 
@@ -23,22 +23,11 @@ public sealed record WgsSnapshot(long IndexFileTime, IReadOnlyList<WgsContainerS
     /// whose blob can't be read is recorded with its Error rather than aborting the whole snapshot).</summary>
     public static WgsSnapshot Capture(string folder)
     {
-        var store = WgsContainerStore.Open(folder);
-        var states = new List<WgsContainerState>();
-        foreach (var c in store.Containers)
-        {
-            string? sha = null, error = null;
-            try
-            {
-                sha = Convert.ToHexString(SHA256.HashData(store.ReadBlob(c)));
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-            }
-            states.Add(new WgsContainerState(c.Name, c.ContainerNumber, c.State, c.BlobSize, sha, error));
-        }
-        return new WgsSnapshot(store.IndexFileTime, states);
+        var snap = Storage.WgsSnapshot.Capture(Storage.WgsStore.Open(folder, WgsContainerStore.StorageOptions));
+        return new WgsSnapshot(
+            snap.IndexFileTime,
+            snap.Containers.Select(c => new WgsContainerState(
+                c.Name, c.Number, (WgsEntryState)(uint)c.State, c.BlobSize, c.BlobSha256, c.Error)).ToList());
     }
 
     /// <summary>
@@ -48,50 +37,9 @@ public sealed record WgsSnapshot(long IndexFileTime, IReadOnlyList<WgsContainerS
     /// CHANGED. An empty result means the two snapshots are identical.
     /// </summary>
     public static IReadOnlyList<string> Compare(WgsSnapshot before, WgsSnapshot after)
-    {
-        var lines = new List<string>();
-        var afterByName = after.Containers.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
-        var beforeByName = before.Containers.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+        => Storage.WgsSnapshot.Compare(ToStorage(before), ToStorage(after));
 
-        foreach (var b in before.Containers)
-        {
-            if (!afterByName.TryGetValue(b.Name, out var a))
-            {
-                lines.Add($"DROPPED   {b.Name} - removed from the index (Xbox sync discarded it)");
-                continue;
-            }
-            // The container NUMBER is what advances on each write (container.170 -> container.171).
-            // It is a byte and wraps at 255, so a single backwards step across that boundary reads
-            // as a jump forward; content is compared regardless, which is what catches it.
-            if (a.Number < b.Number)
-            {
-                lines.Add($"ROLLED BACK {b.Name} - container {b.Number} -> {a.Number} (reverted to an older copy)");
-            }
-            else if (!string.Equals(a.BlobSha256, b.BlobSha256, StringComparison.OrdinalIgnoreCase))
-            {
-                lines.Add($"CHANGED   {b.Name} - content differs (container {b.Number} -> {a.Number}, {b.BlobSize} -> {a.BlobSize} bytes)");
-            }
-            else if (b.State == WgsEntryState.Modified && a.State == WgsEntryState.Synced)
-            {
-                // Same bytes, but Xbox now considers the container settled. Either the edit
-                // uploaded, or the service decided the cloud copy was the right one and this is
-                // what "my change was there and then it wasn't" looks like at the moment it happens.
-                lines.Add($"RESOLVED  {b.Name} - Xbox marked it synced (content unchanged)");
-            }
-        }
-        foreach (var a in after.Containers)
-        {
-            if (!beforeByName.ContainsKey(a.Name))
-            {
-                lines.Add($"ADDED     {a.Name} - new container appeared");
-            }
-        }
-
-        if (after.IndexFileTime != before.IndexFileTime)
-        {
-            var dir = after.IndexFileTime > before.IndexFileTime ? "advanced" : "WENT BACKWARDS";
-            lines.Add($"index timestamp {dir}: {before.IndexFileTime} -> {after.IndexFileTime}");
-        }
-        return lines;
-    }
+    private static Storage.WgsSnapshot ToStorage(WgsSnapshot s)
+        => new(s.IndexFileTime, s.Containers.Select(c => new Storage.WgsContainerState(
+            c.Name, c.Number, (Storage.WgsEntryState)(uint)c.State, c.BlobSize, c.BlobSha256, c.Error)).ToList());
 }

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generic Xbox Connected Storage ("wgs") container layer: containers.index, container.N
+    manifests and GUID blobs, ETag/state handling, snapshots, orphan discovery, write ordering
+    and atomic replacement. Deliberately game-agnostic and free of any AbioticEditor.Core
+    dependency: game-specific payload handling plugs in through the adapter interfaces
+    (IWgsBlobInspector, IWgsWriteGate). Filesystem, clock and logging are injectable.
+    See docs/reference/game-pass-extraction-inventory.md for the boundary this package draws.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>AbioticEditor.GamePass.Storage</RootNamespace>
+    <AssemblyName>AbioticEditor.GamePass.Storage</AssemblyName>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+
+    <!-- Not yet published on its own (see docs/ROADMAP.md, migration step 7). AbioticEditor.Core
+         bundles this DLL into its NuGet package when packing (PackSubmodules=true), the same way
+         it bundles the submodule assemblies, so the Core package needs no unpublished dependency. -->
+    <IsPackable>true</IsPackable>
+    <PackageId>AbioticEditor.GamePass.Storage</PackageId>
+    <Title>Xbox Connected Storage (wgs) container layer</Title>
+    <Description>A game-agnostic reader/writer for Xbox Connected Storage (wgs) save folders used by Game Pass titles: containers.index, container manifests, blobs, ETag and sync-state handling, snapshots, orphan discovery and safe write ordering. Game-specific payload handling plugs in through adapter interfaces.</Description>
+    <PackageTags>xbox;game-pass;connected-storage;wgs;save-editor;game-tools</PackageTags>
+  </PropertyGroup>
+
+</Project>
