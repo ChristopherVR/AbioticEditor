@@ -413,7 +413,7 @@ public sealed class Base3DViewerTests
         var doc = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx"));
         var mine = doc.Root!.Elements("data").Where(e => ((string)e.Attribute("name")!).StartsWith("World3D_", StringComparison.Ordinal)).ToList();
         Assert.NotEmpty(mine);
-        Assert.All(mine, e => Assert.DoesNotContain('—',(string)e.Element("value")!));
+        Assert.All(mine, e => Assert.DoesNotContain('\u2014',(string)e.Element("value")!));
 
         var english = HostLanguageService.ResourceFor("en", "World3D_MoveOptIn");
         Assert.Equal("Experimental: move objects", english);

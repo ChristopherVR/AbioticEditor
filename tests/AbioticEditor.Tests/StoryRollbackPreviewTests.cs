@@ -21,7 +21,7 @@ public sealed class StoryRollbackPreviewTests(ITestOutputHelper output)
         {
             Assert.False(string.IsNullOrWhiteSpace(c.Detail));
             Assert.False(string.IsNullOrWhiteSpace(c.Evidence));
-            Assert.DoesNotContain('—', c.Detail + c.Title + c.Evidence);
+            Assert.DoesNotContain('\u2014', c.Detail + c.Title + c.Evidence);
         });
 
         // The four things the rewind really writes must be exactly the reversed set.
