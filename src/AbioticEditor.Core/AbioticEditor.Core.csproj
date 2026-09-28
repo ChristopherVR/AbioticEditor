@@ -40,6 +40,14 @@
          (and supplies UeSaveGame, which it bundles, so Core does NOT bundle UeSaveGame again). -->
     <ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
 
+    <!-- Generic Xbox Connected Storage (wgs) container layer. Not published on its own yet, so like
+         the submodule assemblies it is bundled into this package when packing (PackSubmodules=true)
+         instead of becoming a dependency on an unpublished package (see _BundleSubmoduleAssemblies).
+         On a normal build it flows transitively to the App and CLI like the submodules do. -->
+    <ProjectReference Include="..\AbioticEditor.GamePass.Storage\AbioticEditor.GamePass.Storage.csproj">
+      <PrivateAssets Condition="'$(PackSubmodules)' == 'true'">all</PrivateAssets>
+    </ProjectReference>
+
     <!-- Submodule project references. When packing (PackSubmodules=true, set by the release
          workflow's pack step) PrivateAssets=all keeps them out of the package's dependency
          list and their DLLs are bundled instead (see _BundleSubmoduleAssemblies). On a NORMAL
@@ -107,6 +115,7 @@
     <ItemGroup>
       <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
         Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and (
+                   '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'AbioticEditor.GamePass.Storage.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'UeSaveGame.Json.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'CUE4Parse.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'CUE4Parse-Conversion.dll')" />

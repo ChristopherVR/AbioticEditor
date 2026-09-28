@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/AbioticEditor.Web/**'
       - 'src/AbioticEditor.Core/**'
+      - 'src/AbioticEditor.GamePass.Storage/**'
       - 'src/AbioticEditor.Ui.Abstractions/**'
       - 'src/AbioticEditor.Updater/**'
       - 'assets/Mappings.usmap'
@@ -18,6 +19,7 @@ on:
     paths:
       - 'src/AbioticEditor.Web/**'
       - 'src/AbioticEditor.Core/**'
+      - 'src/AbioticEditor.GamePass.Storage/**'
       - 'src/AbioticEditor.Ui.Abstractions/**'
       - 'src/AbioticEditor.Updater/**'
       - 'assets/Mappings.usmap'

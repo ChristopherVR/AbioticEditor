@@ -18,6 +18,7 @@ on:
       # out meant a change to any editor screen never reached the published site.
       - src/AbioticEditor.Web.Shared/**
       - src/AbioticEditor.Core/**
+      - src/AbioticEditor.GamePass.Storage/**
       - src/AbioticEditor.Ui.Abstractions/**
       - src/AbioticEditor.Plugins.Abstractions/**
       - submodules/**
