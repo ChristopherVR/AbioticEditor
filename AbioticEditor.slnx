@@ -10,7 +10,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AbioticEditor.Core/AbioticEditor.Core.csproj" />
-    <Project Path="src/AbioticEditor.GamePass.Storage/AbioticEditor.GamePass.Storage.csproj" />
+    <Project Path="submodules/GamePassStorage/src/GamePassStorage/GamePassStorage.csproj" />
     <Project Path="src/AbioticEditor.Cli/AbioticEditor.Cli.csproj" />
     <Project Path="src/AbioticEditor.Plugins.Abstractions/AbioticEditor.Plugins.Abstractions.csproj" />
     <Project Path="src/AbioticEditor.Ui.Abstractions/AbioticEditor.Ui.Abstractions.csproj" />

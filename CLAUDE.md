@@ -156,6 +156,10 @@ under `plugins/` and build into standalone DLLs/`.js` (not part of the app).
 - Why submodules (not NuGet): the editor needs current-`master` CUE4Parse behavior and byte-exact
   UeSaveGame serialization, and must be debuggable into both; pinned commits guarantee a
   tested combination. UeSaveGame isn't on NuGet at all.
+- `submodules/GamePassStorage` is our own game-agnostic Xbox Connected Storage (wgs) library
+  ([ChristopherVR/GamePassStorage](https://github.com/ChristopherVR/GamePassStorage)). It must never
+  depend on this repo: change it in its own repository, then bump the submodule pointer here.
+  Core's `Infrastructure/GamePass` keeps the Abiotic-specific adapter and forwarding wrappers.
 - Plugin dev env vars: `ABIOTIC_PLUGINS_DIR` (point at a dev plugins folder),
   `ABIOTIC_NO_PLUGINS=1` (disable loading).
 

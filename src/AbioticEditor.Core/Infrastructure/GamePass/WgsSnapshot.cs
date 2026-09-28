@@ -1,4 +1,4 @@
-using Storage = AbioticEditor.GamePass.Storage;
+using Storage = GamePassStorage;
 
 namespace AbioticEditor.Core.GamePass;
 

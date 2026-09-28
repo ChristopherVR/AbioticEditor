@@ -300,7 +300,7 @@ jobs:
             # The Core package bundles UeSaveGame.Json + CUE4Parse, re-declares their NuGet
             # deps from Directory.Packages.props, and compiles against the SDK (so any SDK
             # change implies a Core rebuild too).
-            core_paths='^(src/AbioticEditor\.Core/|src/AbioticEditor\.GamePass\.Storage/|src/AbioticEditor\.Plugins\.Abstractions/|submodules/UeSaveGame(/|$)|submodules/CUE4Parse(/|$)|Directory\.Packages\.props|README\.md|THIRD-PARTY-NOTICES\.txt|Directory\.Build\.props)'
+            core_paths='^(src/AbioticEditor\.Core/|submodules/GamePassStorage(/|$)|src/AbioticEditor\.Plugins\.Abstractions/|submodules/UeSaveGame(/|$)|submodules/CUE4Parse(/|$)|Directory\.Packages\.props|README\.md|THIRD-PARTY-NOTICES\.txt|Directory\.Build\.props)'
             if echo "$files" | grep -Eq "$core_paths"; then core=true; fi
             if [ "$abs" = "true" ]; then core=true; fi
           fi

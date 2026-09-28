@@ -4,3 +4,6 @@
 [submodule "submodules/CUE4Parse"]
 	path = submodules/CUE4Parse
 	url = https://github.com/FabianFG/CUE4Parse.git
+[submodule "submodules/GamePassStorage"]
+	path = submodules/GamePassStorage
+	url = https://github.com/ChristopherVR/GamePassStorage.git

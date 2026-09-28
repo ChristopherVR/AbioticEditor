@@ -1,5 +1,5 @@
 using System.Text;
-using AbioticEditor.GamePass.Storage;
+using GamePassStorage;
 
 namespace AbioticEditor.Core.GamePass;
 

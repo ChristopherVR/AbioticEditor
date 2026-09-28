@@ -8,7 +8,7 @@ table, lists the single-title assumptions that must not become public API, and r
 
 Boundaries used below:
 
-- **Storage** - the shared Xbox storage package (`AbioticEditor.GamePass.Storage`): wgs index,
+- **Storage** - the shared Xbox storage library, [GamePassStorage](https://github.com/ChristopherVR/GamePassStorage) (its own repository, included here as the `submodules/GamePassStorage` submodule, with no dependency on Abiotic Editor): wgs index,
   manifests, container/blob identities, ETag and state handling, snapshots, write ordering.
 - **Platform** - package/account discovery, process checks, lock and write-availability handling.
 - **Adapter** - game-specific payload: bundles, compression, headers, save classes, member names,
@@ -83,7 +83,7 @@ Boundaries used below:
   resolution). Not covered by real fixtures: locked files (needs Windows sharing semantics; covered
   through fault injection in the package tests), interrupted sync with two live blobs (existing
   `GamePassSafetyTests`), and any second game.
-- **Step 3, contracts** (`src/AbioticEditor.GamePass.Storage`): inspect and read (`Open`,
+- **Step 3, contracts** (the `GamePassStorage` library): inspect and read (`Open`,
   `TryOpen`, `TryReadBlob`), enumerate (`Containers`, `OrphanedContainers`), plan (`PlanWrite`),
   validate (`AssessWrite`, `Diagnose`), commit (`TryWriteBlob`, `TryAddOrReplaceContainer`,
   `WriteBlob`, `AddOrReplaceContainer`), backup (`CopyStoreTo`), diagnose (`Diagnose`,
@@ -93,8 +93,12 @@ Boundaries used below:
   `IWgsBlobInspector`, `IWgsWriteGate`. A restore call is not provided: restoring is copying the
   backup folder back over the store, which is an Editor decision.
 - **Step 4, extraction**: Core routes every wgs read and write through the package. Public Core
-  types and namespaces are unchanged. The Core NuGet package bundles the package DLL (like the
-  submodule assemblies) so it needs no unpublished dependency.
+  types and namespaces are unchanged. The library now lives in its own repository,
+  [ChristopherVR/GamePassStorage](https://github.com/ChristopherVR/GamePassStorage), with its own
+  tests, CI and format reference (`docs/wgs-format.md` there). This repo pins it as a submodule,
+  like UeSaveGame and CUE4Parse, and the Core NuGet package bundles its DLL so it needs no
+  unpublished dependency. Only the seam tests (no Abiotic dependency, enum parity) and the
+  characterization tests of Core's wrappers stay here.
 
 ## Remaining
 
@@ -103,8 +107,8 @@ Boundaries used below:
   or modded data.
 - Step 6: a second real game with sanitized fixtures. The `IWgsFileSystem` in-memory tests show the
   boundary, they do not count as support.
-- Step 7: package naming and versioning, publishing workflow (a `nuget` pack step and a change
-  detector for `src/AbioticEditor.GamePass.Storage/`), dependency licences, supported platforms,
-  CLI or example adapter.
+- Step 7: versioning and a NuGet publishing workflow in the GamePassStorage repository (its CI
+  already packs a `.nupkg` artifact), dependency licences, supported platforms, CLI or example
+  adapter. Once it is on NuGet, Core can reference the package instead of the submodule.
 - Platform split: discovery and the process scan take the title's package name and process names
   as data; then they can leave Core.

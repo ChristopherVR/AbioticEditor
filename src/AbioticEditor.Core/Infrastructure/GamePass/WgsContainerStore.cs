@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Storage = AbioticEditor.GamePass.Storage;
+using Storage = GamePassStorage;
 
 namespace AbioticEditor.Core.GamePass;
 
@@ -60,7 +60,7 @@ public enum WgsSyncState : uint
 
 /// <summary>
 /// One logical container in an Xbox "wgs" (Connected Storage) folder. A thin view over the
-/// generic container in <c>AbioticEditor.GamePass.Storage</c>: every property reads and writes the
+/// generic container in <c>GamePassStorage</c> (submodules/GamePassStorage): every property reads and writes the
 /// underlying entry, so edits made through this type are what the store writes.
 /// </summary>
 public sealed class WgsContainer
@@ -155,7 +155,7 @@ public sealed record WgsOrphanedContainer(
 /// payload). See <c>docs/reference/game-pass-format.md</c> for the byte layout.
 ///
 /// <para>This type is Abiotic Factor's adapter over the generic container layer in
-/// <c>AbioticEditor.GamePass.Storage</c> (<see cref="Storage.WgsStore"/>): the container I/O, ETag
+/// <c>GamePassStorage</c> (submodules/GamePassStorage) (<see cref="Storage.WgsStore"/>): the container I/O, ETag
 /// and state handling, write ordering and orphan discovery live there. What stays here is what is
 /// specific to this title and this machine: the package family name, recognising an
 /// <c>ABF_SAVE_VERSION</c> world bundle (to name orphaned worlds), the process/Connected Storage

@@ -40,11 +40,13 @@
          (and supplies UeSaveGame, which it bundles, so Core does NOT bundle UeSaveGame again). -->
     <ProjectReference Include="..\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" />
 
-    <!-- Generic Xbox Connected Storage (wgs) container layer. Not published on its own yet, so like
-         the submodule assemblies it is bundled into this package when packing (PackSubmodules=true)
+    <!-- Generic Xbox Connected Storage (wgs) container layer, from its own repository
+         (github.com/ChristopherVR/GamePassStorage, the submodules/GamePassStorage submodule). It has
+         no dependency on this repo. Not published on NuGet yet, so like the other submodule
+         assemblies it is bundled into this package when packing (PackSubmodules=true)
          instead of becoming a dependency on an unpublished package (see _BundleSubmoduleAssemblies).
          On a normal build it flows transitively to the App and CLI like the submodules do. -->
-    <ProjectReference Include="..\AbioticEditor.GamePass.Storage\AbioticEditor.GamePass.Storage.csproj">
+    <ProjectReference Include="..\..\submodules\GamePassStorage\src\GamePassStorage\GamePassStorage.csproj">
       <PrivateAssets Condition="'$(PackSubmodules)' == 'true'">all</PrivateAssets>
     </ProjectReference>
 
@@ -115,7 +117,7 @@
     <ItemGroup>
       <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
         Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and (
-                   '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'AbioticEditor.GamePass.Storage.dll' or
+                   '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'GamePassStorage.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'UeSaveGame.Json.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'CUE4Parse.dll' or
                    '%(ReferenceCopyLocalPaths.FileName)%(ReferenceCopyLocalPaths.Extension)' == 'CUE4Parse-Conversion.dll')" />
