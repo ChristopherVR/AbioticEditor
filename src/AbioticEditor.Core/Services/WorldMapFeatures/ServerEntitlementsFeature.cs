@@ -27,7 +27,7 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// <c>UserEntitlements</c> map, and no entitlement token in any fixture looks like a recipe.
 /// <c>UserEntitlements</c> is only the struct TYPE name of each <c>ServerEntitlements</c> value.
 /// Recipe-shaped tokens, if a future build writes them, are shown read-only here (see
-/// <see cref="PlayerEntitlementReport"/> and docs/research/world-and-placed-object-state.md).</para>
+/// <see cref="PlayerEntitlementReport"/> and docs/reference/research/world-and-placed-object-state.md).</para>
 /// </summary>
 public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
 {

@@ -1,5 +1,37 @@
 # Abiotic Editor - Session history
 
+## Round-131: roadmap fan-out across every section (2026-09-28)
+
+Nine parallel workstreams, one per `docs/ROADMAP.md` area; the roadmap's new "Progress on
+28 September 2026" table is the summary and links each research note.
+
+- Character saves: transmog disable flags, favorites, distillery history, active effects and last
+  hotbar slot are read and shown view-only on the Transmog, Inventory, Vitals and Recipes tabs
+  (initially placed on Advanced data, then moved at the owner's request).
+- Account saves: read-only readers for `Unlocks.sav`, `PlayerStatsSave.sav`, `UserSettings.sav`.
+- World state: entitlement report, story rewind consequence catalog and preview, narrative
+  character inspector, tram station and placement catalogs, unmodeled-field census.
+- Gardens: plant or clear spot 0 of a small plot, cloning a planted crop from the same save
+  (refused without one). Read-only pet care state.
+- Compatibility: older-than-tested saves flagged, header evidence, unknown-build result,
+  per-area operation support (CLI `info`), live compatibility fields, support matrix, migration
+  policy, coverage audit, every-fixture byte round-trip test.
+- Base building: `world census` CLI, placed-object census, staged transform model plus an in-place
+  transform writer with no UI, group reference analyzer.
+- Level maps: shared location index with explicit unresolved reasons and a coverage report.
+- Power: link tracing, graph and validator, connections inspector in the Power Sockets tab.
+- Game Pass: the wgs storage layer moved to the standalone
+  [GamePassStorage](https://github.com/ChristopherVR/GamePassStorage) repository (no dependency on
+  this repo), consumed as `submodules/GamePassStorage`. Core keeps the Abiotic adapter and its
+  public wrappers; the library's own tests live in that repository.
+
+Validation: web host build clean; full suite 1976 passed, 1 skipped, and the same 2 failures as the
+base (`InventoryTransferSessionTests.Ground_drop_stages_both_sessions_and_reverts`,
+`WorldLivePetsSpeciesChangeContractTests.Live_editing_protocol_doc_describes_the_round_109_species_change_closure`).
+Nothing was verified in-game. Follow-ups: the new UI cards and the power connections panel have
+not been viewed in a running app. `docs/reference/world-save-schema.md` now lists
+`ConstructionMode_`/`ConstructionLevel_` as Bool/Double, matching every fixture (it said ByteProperty).
+
 ## Round-130: prominent Game Pass offline warning (2026-09-27)
 
 - Every offline Game Pass open now requires a fresh acknowledgment, including after a
@@ -5008,6 +5040,9 @@ labelled hundreds of ordinary hinged doors story-controlled.
   (hundreds of `recipe_*` tokens); it is NOT surfaced by any feature yet. A `UserEntitlementsFeature`
   (or generalizing `ServerEntitlementsFeature` over both maps) would close the gap - design how it
   relates to existing `GlobalRecipes` / player recipe-unlock editing before building.
+  **Correction (2026-09-28):** a census of every current fixture found no such map. `UserEntitlements`
+  is only the struct type of `ServerEntitlements` values, and every token is `EarlyAccess` or
+  `SupportersEdition`. See `reference/research/world-and-placed-object-state.md`.
 - **Build hygiene**: silenced vendored-submodule warnings (CUE4Parse `CS8602/CS0169`, transitive
   `NU1903` from Microsoft.Bcl.Memory) via `submodules/Directory.Build.targets` + `NuGetAuditMode=direct`
   at the repo root, so `dotnet test` output is clean. Our `src/`/`tests/` keep full warnings + WoE.

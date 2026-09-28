@@ -8,7 +8,7 @@ namespace AbioticEditor.Tests;
 /// <summary>
 /// Sweeps every fixture save and records which properties the editor's readers do not consume.
 /// The printed report is the source of the census table in
-/// docs/research/world-and-placed-object-state.md; the assertions pin the headline findings so a
+/// docs/reference/research/world-and-placed-object-state.md; the assertions pin the headline findings so a
 /// reader change (or a new fixture) that alters them is noticed and the doc is refreshed.
 /// </summary>
 public sealed class UnmodeledFieldCensusTests(ITestOutputHelper output)

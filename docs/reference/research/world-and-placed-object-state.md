@@ -207,7 +207,7 @@ It round-trips byte-exact (readers preserve unknown properties) but is not edita
 
 When this census was first taken, `CurrentBuffDebuffs` (2 saves) and `LastHotbarSelection`
 (1 save) were also unmodeled. The character-save work now reads both (see
-[research-player-slot-flags-and-effects.md](../reference/research/research-player-slot-flags-and-effects.md)).
+[research-player-slot-flags-and-effects.md](research-player-slot-flags-and-effects.md)).
 
 ### Members inside modeled maps that no reader references by name
 

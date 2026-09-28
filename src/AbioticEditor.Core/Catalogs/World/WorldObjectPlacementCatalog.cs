@@ -36,7 +36,7 @@ public sealed record MapPlacement(string Map, PlacementAuthority Authority, stri
 /// <summary>
 /// Which saved positions are authoritative and which objects are only located by their level.
 /// The classification is exactly what the fixture census proves (map key shape, and whether an entry
-/// member holds a position); see docs/research/world-and-placed-object-state.md and
+/// member holds a position); see docs/reference/research/world-and-placed-object-state.md and
 /// <c>WorldObjectPlacementCatalogTests</c>.
 /// </summary>
 /// <remarks>

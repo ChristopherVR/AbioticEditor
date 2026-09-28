@@ -1,6 +1,22 @@
 # Known editing gaps and base-building roadmap
 
-Status reviewed 27 September 2026 against the current save readers/writers, editor surfaces, and the documented fixture and game-data audits. The list focuses on known gaps. It is a working plan and should be updated as each item is researched and completed.
+Status reviewed 27 September 2026 and updated 28 September 2026 against the current save readers/writers, editor surfaces, and the documented fixture and game-data audits. The list focuses on known gaps. It is a working plan and should be updated as each item is researched and completed.
+
+## Progress on 28 September 2026
+
+Work landed on every section below. No item has left the roadmap yet: nothing was verified in-game, and most of what landed is read-only inspection or research that narrows the item. Research notes are under [reference/research](reference/research/).
+
+| Area | Landed | Still open |
+| --- | --- | --- |
+| Character saves | Transmog disable flags, favorites, distillery history, active effects and last hotbar slot are read and shown (view only) on the Transmog, Inventory, Vitals and Recipes tabs. [Notes](reference/research/research-player-slot-flags-and-effects.md) | Meaning of each transmog flag index, favorites remapping, buff expiry units. Writers for the transmog flags and hotbar slot exist but are not offered in the UI. |
+| Account saves | Read-only readers for `Unlocks.sav`, `PlayerStatsSave.sav` and `UserSettings.sav`; the host password is never carried in the model. [Notes](reference/research/research-account-saves.md) | No editor screen or writes. Relationship to Steam achievements. |
+| World state | Entitlement report, story rewind consequence catalog and preview, narrative character inspector, tram station and placement catalogs, unmodeled-field census. [Notes](reference/research/world-and-placed-object-state.md) | The fixtures contain no per-player recipe entitlement map (only `EarlyAccess`/`SupportersEdition` tokens), so that item is re-scoped below. Station identities and track links need level assets. |
+| Crops, pets, chemistry | Planting and clearing spot 0 of a small garden plot, proven byte-for-byte against fixtures (copies a planted crop from the same save). Read-only pet care state. [Notes](reference/research/research-garden-planting-and-pet-feeding.md) | Other plot sizes, growth stages 0-3, harvest and fertilizer states, pet feeding captures, chemistry mid-mix captures, summon persistence. |
+| Compatibility | Older-than-tested saves are flagged; header evidence and an explicit unknown-build result; per-area operation support; live compatibility fields. [Matrix](reference/compatibility-support-matrix.md), [migration policy](reference/save-migration-policy.md), [coverage audit](reference/coverage-audit.md) | Per-area evidence, version-specific layouts, build-matched catalogs, older fixtures, a UI surface for the report. |
+| Base building | `world census` CLI and placed-object census, coordinate-space findings, staged move/rotate model and a proven in-place transform writer (no UI), group reference analyzer. [Census](reference/research/base-building-placed-object-census.md), [coordinates](reference/research/base-building-coordinate-spaces.md), [group operations](reference/research/base-building-group-operations.md) | Phases 3 and 5 to 7; in-game coordinate proof. |
+| Level maps | Shared location index with explicit unresolved reasons and a coverage report. [Extraction plan](reference/research/floor-plan-extraction-plan.md) | Floor plans and "Show on map" (no shared map exists yet to center). |
+| Power | Link tracing, power graph and validator, connections inspector under the Power Sockets tab. [Notes](reference/research/research-power-network-links.md) | Offline connection writes, live connect/disconnect operations, placement. |
+| Game Pass package | Characterization tests, then extraction of the storage layer into the standalone [GamePassStorage](https://github.com/ChristopherVR/GamePassStorage) repository (no dependency on this repo), consumed here as a submodule. [Inventory](reference/game-pass-extraction-inventory.md) | Migration steps 5 to 7: Abiotic adapter extraction, a second real game, NuGet publishing. |
 
 ## Known gaps
 
@@ -20,7 +36,7 @@ Status reviewed 27 September 2026 against the current save readers/writers, edit
 - **Narrative character details:** the saved NPC map has fields such as health maps, custom names, and dynamic properties that do not have a complete semantic editor. Do not turn arbitrary script stages or the saved `IsDead` field into universal story/alive controls without verified per-character meaning.
 - **Complete tram destinations:** the offline station picker derives its choices from stations occupied by trams in the save. It cannot enumerate empty stations. Extract the full station catalog and track connections from level assets, label destinations, and validate which destinations each tram can reach.
 - **Static world-object placement:** moving a saved position does not necessarily move an actor placed in a level asset. Define which objects can be relocated, which require runtime operations, and which can only be located on the map.
-- **Per-player recipe entitlements:** the metadata `UserEntitlements` map contains player-specific recipe tokens but has no dedicated editor. Resolve these against recipe catalogs and establish their relationship to player and world recipe unlocks before offering changes.
+- **Per-player entitlements:** no fixture has a top-level `UserEntitlements` map; the name is only the struct type of `ServerEntitlements` values, and every observed token is `EarlyAccess` or `SupportersEdition`. A read-only per-player report now exists. Capture a save that holds recipe-style entitlement tokens before designing any recipe-entitlement editor.
 - **Unmodeled fields vary by game build and save:** readers preserve unknown properties, but preserved data is not automatically editable. Use the compatibility report and `UNKWN` diagnostics to add concrete fields to this list when a current save or game update reveals them.
 
 ### Deployables, pets, and progression
@@ -203,4 +219,4 @@ These are implementation pointers for reviewing the gaps, not a list of complete
 - [Tram destination limitation](../src/AbioticEditor.Core/Services/WorldMapFeatures/TramMapFeature.cs).
 - [Unsurfaced per-player recipe entitlements](../src/AbioticEditor.Core/Services/WorldMapFeatures/ServerEntitlementsFeature.cs).
 
-- [Game Pass storage and codecs](../src/AbioticEditor.Core/Infrastructure/GamePass), [format findings](reference/game-pass-format.md), and [save operation runner](../src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs).
+- [Game Pass adapter and codecs](../src/AbioticEditor.Core/Infrastructure/GamePass), the [GamePassStorage library](https://github.com/ChristopherVR/GamePassStorage), [format findings](reference/game-pass-format.md), and [save operation runner](../src/AbioticEditor.Core/Plugins/SaveOperationRunner.cs).

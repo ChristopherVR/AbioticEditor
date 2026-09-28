@@ -12,7 +12,7 @@ namespace AbioticEditor.Core.WorldSaves;
 /// the six <c>Tram_*</c> world flags below (plus <c>Pens_OpenTramStation</c>), which gate stations by
 /// place name. Nothing links a flag to an instance number without reading the level, so the editor
 /// cannot say which <c>TramSystem_Station_C_N</c> is "Containment". Fixture evidence and the
-/// extraction work needed are in docs/research/world-and-placed-object-state.md.
+/// extraction work needed are in docs/reference/research/world-and-placed-object-state.md.
 /// </remarks>
 public static class TramStationCatalog
 {

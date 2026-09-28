@@ -33,7 +33,7 @@ public sealed record RewindConsequence(
 /// plus the region-to-chapter table used to attribute a region save's leftovers to a chapter.
 /// </summary>
 /// <remarks>
-/// Built from the existing catalogs and writers (see docs/research/world-and-placed-object-state.md):
+/// Built from the existing catalogs and writers (see docs/reference/research/world-and-placed-object-state.md):
 /// <list type="bullet">
 ///   <item>What a rewind clears is exactly what <c>StoryFlagSync.PlanClearForwardFlags</c>,
 ///   <c>CodexRevert</c> and <c>PlayerRespawnRevert</c> write.</item>

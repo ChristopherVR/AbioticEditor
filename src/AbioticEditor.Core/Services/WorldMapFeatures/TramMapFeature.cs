@@ -30,7 +30,7 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// re-park a tram at any station another tram has visited.</para>
 ///
 /// <para><b>What complete destinations would need (research, no code path yet).</b> Fixture evidence
-/// (docs/research/world-and-placed-object-state.md): across the four Facility saves the
+/// (docs/reference/research/world-and-placed-object-state.md): across the four Facility saves the
 /// occupied-station option set differs from world to world (17 distinct
 /// <c>TramSystem_Station_C_N</c> numbers overall, only 10 trams per save), so the true station set
 /// is larger than any one save shows. The instance numbers are assigned by the level asset and no

@@ -69,9 +69,9 @@ counts equal to the object count for all 18). Types are as the GVAS tag declares
 
 Notes and corrections:
 
-- `docs/reference/world-save-schema.md` still lists `ConstructionMode_` / `ConstructionLevel_` as
-  `ByteProperty (enum)`. Every fixture here, including the newer Steam build, declares Bool and Double. The
-  schema doc predates that; the coordinator should reconcile it.
+- `docs/reference/world-save-schema.md` used to list `ConstructionMode_` / `ConstructionLevel_` as
+  `ByteProperty (enum)`. Every fixture here, including the newer Steam build, declares Bool and Double,
+  and the schema doc has been corrected to match.
 - "Persistent" means an existing reader or writer already treats the member as meaningful (identity,
   placement, user-authored state). "Likely runtime" is a heuristic from the member's name and the values
   seen (all defaults or empty in the fixtures); it is **not** proven that the game re-derives them, and no

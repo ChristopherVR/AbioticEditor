@@ -52,7 +52,7 @@ public sealed record PlayerEntitlements(
 /// resolved against the recipe catalog when one is available.
 /// </summary>
 /// <remarks>
-/// Fixture finding (see docs/research/world-and-placed-object-state.md): in every fixture the only
+/// Fixture finding (see docs/reference/research/world-and-placed-object-state.md): in every fixture the only
 /// per-player map is <c>ServerEntitlements</c>, and it holds only ownership tokens. <c>UserEntitlements</c>
 /// appears solely as the struct TYPE of those values; no fixture carries a per-player recipe-token
 /// map. This report handles a real <c>UserEntitlements</c> map and recipe tokens anyway, so a save

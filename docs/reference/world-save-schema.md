@@ -48,8 +48,8 @@ BrokeWhenPackaged_63_*    BoolProperty
 HasBeenPackaged_59_*      BoolProperty
 Transform_50_*            StructProperty       Transform (location/rotation/scale)
 DeployedByPlayer_71_*     BoolProperty
-ConstructionMode_82_*     ByteProperty (enum)
-ConstructionLevel_85_*    ByteProperty (enum)
+ConstructionMode_82_*     BoolProperty
+ConstructionLevel_85_*    DoubleProperty
 ContainerInventories_110_*  ArrayProperty<SaveData_Inventories_Struct>
 ActiveSeats_135_*         ArrayProperty
 ItemProxies_149_*         ArrayProperty
