@@ -196,16 +196,18 @@ variant in 5 saves), `PowerSocketMap`, `ResourceNodeMap` (12457), `SaveIdentifie
 `MinutesPassed`, `LastPlayed`, `StoryProgressionRow`, `SaveIdentifier`, `SaveVersion` (no
 `GlobalUnlocks`, no entitlements).
 
-### Player saves (13 saves): 3 unmodeled members of `CharacterSaveData`
+### Player saves (13 saves): 1 unmodeled member of `CharacterSaveData`
 
 | Property | Type | Saves | Elements |
 |---|---|---|---|
 | `Compendium_Kill` | ArrayProperty | 3 | 10 |
-| `CurrentBuffDebuffs` | StructProperty | 2 | 2 |
-| `LastHotbarSelection` | IntProperty | 1 | 1 |
 
-All three round-trip byte-exact (readers preserve unknown properties) but are not editable.
+It round-trips byte-exact (readers preserve unknown properties) but is not editable.
 `Compendium_Kill` is a separate member from the modeled `Compendium_KillCount`.
+
+When this census was first taken, `CurrentBuffDebuffs` (2 saves) and `LastHotbarSelection`
+(1 save) were also unmodeled. The character-save work now reads both (see
+[research-player-slot-flags-and-effects.md](../reference/research/research-player-slot-flags-and-effects.md)).
 
 ### Members inside modeled maps that no reader references by name
 
