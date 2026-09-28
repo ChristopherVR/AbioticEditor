@@ -59,6 +59,9 @@ So a link reads: "outlet N of device O (or a fixed level socket) supplies device
 
 * 355 plugged links: 254 resolve in the same save, 37 resolve in a DIFFERENT save (all level sockets in region
   saves pointing at devices in `WorldSave_Facility.sav`), 64 resolve nowhere.
+* The 64 unresolved plugged ids are unexplained. One candidate is fixed facility equipment that ships with a level
+  and has no `DeployedObjectMap` record (the host UI text for a "not player-built" device says the same); the
+  fixtures cannot confirm it, so the model only reports them as missing from the supplied saves.
 * 236 of the 507 device-owned sockets have an owner GUID that appears in NO save (159 distinct owners; the GUID
   appears only in the socket key). These are orphaned socket records. Almost all are unplugged; 2 still plug a
   device. The cause is not known from data (hypotheses: the owning device was packaged or destroyed and its

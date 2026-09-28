@@ -36,6 +36,13 @@ public interface IWorldFeaturesSession
 
     /// <summary>Removes one entry, when the feature supports it.</summary>
     Task<WorldEditResult> RemoveMapFeatureEntry(string featureId, string entryKey);
+
+    /// <summary>
+    /// The loaded save's raw tree, used only to read the stored power network (never written).
+    /// Null for sessions with no loaded save file (every live session), so they show no
+    /// connection inspector.
+    /// </summary>
+    UeSaveGame.SaveGame? PowerNetworkSource => null;
 }
 
 /// <summary>Shared chemistry-bench surface used by both staged saves and live worlds.</summary>

@@ -265,3 +265,26 @@ public sealed class PowerGraphTests
         Assert.Equal(PredictedPowerState.Unknown, PowerGraph.Predict(bat).State);
     }
 }
+
+/// <summary>The read-only power inspector in the Razor host must only use text that exists in the catalog.</summary>
+public sealed class PowerConnectionsPanelContractTests
+{
+    [Fact]
+    public void Every_power_text_key_the_panel_uses_exists_in_the_base_resource_catalog()
+    {
+        var panel = UiSource.ReadAllText("Components", "World", "PowerConnectionsPanel.razor");
+        var catalog = UiSource.ReadAllText("Localization", "AppResources.resx");
+        var used = System.Text.RegularExpressions.Regex.Matches(panel, "\"(Power_[A-Za-z]+)\"")
+            .Select(m => m.Groups[1].Value).Distinct().ToList();
+        Assert.NotEmpty(used);
+        Assert.All(used, key => Assert.Contains($"name=\"{key}\"", catalog, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_panel_never_writes_to_a_save()
+    {
+        var panel = UiSource.ReadAllText("Components", "World", "PowerConnectionsPanel.razor");
+        Assert.DoesNotContain("SetMapFeatureField", panel, StringComparison.Ordinal);
+        Assert.DoesNotContain("NotifyEdited", panel, StringComparison.Ordinal);
+    }
+}

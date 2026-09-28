@@ -1,0 +1,154 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+
+@* Read-only inspector for one power socket: what it belongs to, what it supplies, the chain of
+   stored links on either side, and what the validator noticed. Everything shown is the STORED
+   relationship read from the saves. Live power state and a predicted result are separate lines that
+   say plainly when nothing is known; nothing here writes to a save. *@
+@if (Inspection is { } view)
+{
+    <section class="power-connections" aria-label="@L.Resource("Power_Connections")">
+        <hr class="world-feature-divider" />
+        <p class="eyebrow">@L.Resource("Power_Connections")</p>
+        <p class="world-feature-hint">@L.Resource("Power_StoredNote")</p>
+
+        @if (view.Socket is { OwnerDeviceId: { } ownerId } socket && Graph.FindDevice(ownerId) is { } owner)
+        {
+            <p class="power-connection-line">
+                <span class="eyebrow">@L.Resource("Power_BelongsTo")</span>
+                @Describe(owner)
+                @if (TargetOf(owner) is { } ownerTarget)
+                {
+                    <button class="secondary" type="button" @onclick="() => Navigate(ownerTarget)">@NavLabel(ownerTarget)</button>
+                }
+            </p>
+        }
+
+        @if (view.Connections.Count == 0)
+        {
+            <p class="world-feature-hint">@L.Resource("Power_NoConnections")</p>
+        }
+        else
+        {
+            <ul class="power-connection-list">
+                @foreach (var connection in view.Connections)
+                {
+                    <li>
+                        <span class="eyebrow">@L.Resource(connection.IsOutgoing ? "Power_Supplies" : "Power_SuppliedBy")</span>
+                        @connection.FarEndLabel
+                        @if (connection.FarEndStatus == PowerEndpointStatus.MissingInSuppliedSaves)
+                        {
+                            <span class="power-connection-missing">@L.Resource("Power_Missing")</span>
+                        }
+                        else if (connection.FarEnd is { } farEnd && !SameFile(farEnd))
+                        {
+                            <span class="feature-area">@farEnd.FileName</span>
+                        }
+                        @if (connection.FarEnd is { } target && CanNavigate(target))
+                        {
+                            <button class="secondary" type="button" @onclick="() => Navigate(target)">@NavLabel(target)</button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @RenderChain("Power_FedBy", Upstream)
+        @RenderChain("Power_Feeds", Downstream)
+
+        @if (view.Issues.Count > 0)
+        {
+            <ul class="power-connection-list">
+                @foreach (var issue in view.Issues)
+                {
+                    <li class="@(issue.Severity == PowerIssueSeverity.Warning ? "power-connection-missing" : "world-feature-hint")">@issue.Message</li>
+                }
+            </ul>
+        }
+
+        <p class="world-feature-hint">@L.Resource("Power_LiveUnknown")</p>
+        <p class="world-feature-hint">@L.Resource("Power_PredictedUnknown")</p>
+    </section>
+}
+
+@code {
+    private const int MaxChainLines = 10;
+
+    [Parameter, EditorRequired] public PowerGraph Graph { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<PowerIssue> Issues { get; set; } = [];
+    /// <summary>The socket key being inspected.</summary>
+    [Parameter, EditorRequired] public string SocketKey { get; set; } = string.Empty;
+    /// <summary>The name of the save file this editor is showing, so other-file endpoints can be marked.</summary>
+    [Parameter, EditorRequired] public string CurrentFile { get; set; } = string.Empty;
+    /// <summary>Asked to take the user to an endpoint. The host decides how (same list, container tab, or another save).</summary>
+    [Parameter] public EventCallback<PowerNavigationTarget> OnNavigate { get; set; }
+    /// <summary>Which targets the host can actually open; a target it cannot open shows no button.</summary>
+    [Parameter] public Func<PowerNavigationTarget, bool>? CanOpen { get; set; }
+
+    private PowerInspection? Inspection => Graph is null ? null : PowerConnectionInspector.Inspect(Graph, SocketKey, Issues);
+
+    private PowerTrace? Upstream => Graph?.Trace(SocketKey, PowerTraceDirection.Upstream);
+    private PowerTrace? Downstream => Graph?.Trace(SocketKey, PowerTraceDirection.Downstream);
+
+    private bool SameFile(PowerNavigationTarget target)
+        => string.Equals(target.FileName, CurrentFile, StringComparison.OrdinalIgnoreCase);
+
+    private bool CanNavigate(PowerNavigationTarget target) => CanOpen?.Invoke(target) ?? false;
+
+    private string NavLabel(PowerNavigationTarget target)
+        => SameFile(target) ? L.Resource("WorldFeature_Open", target.Label) : L.Resource("Power_OpenSave", target.FileName);
+
+    private Task Navigate(PowerNavigationTarget target) => OnNavigate.InvokeAsync(target);
+
+    private static PowerNavigationTarget? TargetOf(PowerDeviceNode device) => PowerConnectionInspector.TargetOf(device);
+
+    private string Describe(PowerDeviceNode device)
+        => device.IsMissing ? L.Resource("Power_Missing")
+            : device.Location is { } where && !string.Equals(where.FileName, CurrentFile, StringComparison.OrdinalIgnoreCase)
+                ? L.Resource("WorldFeature_DeviceInFile", device.FriendlyName, where.FileName)
+                : device.FriendlyName;
+
+    private string HopText(PowerTraceHop hop)
+    {
+        var socket = PowerConnectionInspector.TargetOf(Graph, hop.Link.Socket).Label;
+        var device = Graph.FindDevice(hop.Link.DeviceId);
+        var end = device is null ? L.Resource("Power_Missing") : Describe(device);
+        var suffix = hop.Outcome switch
+        {
+            PowerTraceOutcome.EndsAtLevelSocket => " (" + L.Resource("Power_EndsAtLevelSocket") + ")",
+            PowerTraceOutcome.RevisitsEarlierNode => " (" + L.Resource("Power_Loop") + ")",
+            _ => string.Empty,
+        };
+        return $"{socket} > {end}{suffix}";
+    }
+
+    private RenderFragment RenderChain(string headingKey, PowerTrace? trace) => builder =>
+    {
+        if (trace is null || trace.Hops.Count == 0)
+        {
+            return;
+        }
+        var seq = 0;
+        builder.OpenElement(seq++, "p");
+        builder.AddAttribute(seq++, "class", "eyebrow");
+        builder.AddContent(seq++, L.Resource(headingKey));
+        builder.CloseElement();
+        builder.OpenElement(seq++, "ul");
+        builder.AddAttribute(seq++, "class", "power-connection-list");
+        foreach (var hop in trace.Hops.Take(MaxChainLines))
+        {
+            builder.OpenElement(seq++, "li");
+            builder.AddAttribute(seq++, "style", $"margin-left:{Math.Min(hop.Depth, 8) * 12}px");
+            builder.AddContent(seq++, HopText(hop));
+            builder.CloseElement();
+        }
+        if (trace.Hops.Count > MaxChainLines || trace.Truncated)
+        {
+            builder.OpenElement(seq++, "li");
+            builder.AddAttribute(seq++, "class", "world-feature-hint");
+            builder.AddContent(seq++, L.Resource("Power_MoreHops", Math.Max(0, trace.Hops.Count - MaxChainLines)));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+}

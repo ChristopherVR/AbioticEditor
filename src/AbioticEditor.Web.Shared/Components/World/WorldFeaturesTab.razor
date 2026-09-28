@@ -94,6 +94,12 @@ else
                     {
                         <div class="editor-actions"><button class="secondary" type="button" @onclick="() => OnOpenLink.InvokeAsync(linkTarget)">@linkLabel</button></div>
                     }
+                    @if (IsPowerSockets && _powerGraph is not null)
+                    {
+                        <PowerConnectionsPanel Graph="_powerGraph" Issues="_powerIssues" SocketKey="@selected.Key"
+                                               CurrentFile="@CurrentFileName" CanOpen="CanOpenPowerTarget"
+                                               OnNavigate="NavigatePowerTarget" />
+                    }
                     @* The panel opens straight into the settings: the "nothing is written until
                        you press SAVE" reminder is already at the top of this tab. *@
                     <hr class="world-feature-divider" />
@@ -233,6 +239,8 @@ else
             _deployablesById = null;
             _crossRegionDevices.Clear();
             _crossRegionStarted = false;
+            _powerGraph = null;
+            _powerIssues = [];
         }
         _renderedSession = Session;
         RefreshSnapshot();
@@ -245,6 +253,11 @@ else
     private readonly Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo?> _crossRegionDevices
         = new(StringComparer.OrdinalIgnoreCase);
     private bool _crossRegionStarted;
+
+    // The stored power network (this save plus its siblings), built in the same pass that scans the
+    // siblings for device names. Read-only: it feeds the connection inspector under a socket.
+    private Core.WorldSaves.PowerGraph? _powerGraph;
+    private IReadOnlyList<Core.WorldSaves.PowerIssue> _powerIssues = [];
 
     /// <summary>
     /// Finds the names of devices this region's sockets power but that live in a sibling region's
@@ -262,7 +275,8 @@ else
             .Where(id => !DeployablesById.ContainsKey(id))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        if (pending.Count == 0) return;
+        var powerSource = Session.PowerNetworkSource;
+        if (pending.Count == 0 && powerSource is null) return;
         _crossRegionStarted = true;
 
         var siblings = (Workspace.Current?.Saves ?? [])
@@ -276,17 +290,26 @@ else
             if (task.IsFaulted) return;
             foreach (var id in pending)
             {
-                _crossRegionDevices[id] = task.Result.TryGetValue(id, out var info) ? info : null;
+                _crossRegionDevices[id] = task.Result.Index.TryGetValue(id, out var info) ? info : null;
             }
+            _powerGraph = task.Result.Graph;
+            _powerIssues = task.Result.Issues;
             _ = InvokeAsync(StateHasChanged);
         }, TaskScheduler.Default);
 
         // Reads through the host's file system rather than System.IO, so the browser resolves
         // names out of the folder the player opened instead of a path it cannot reach. Parsing
         // still happens off the UI thread, one sibling at a time.
-        async Task<Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>> ResolveAsync()
+        async Task<(Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo> Index,
+            Core.WorldSaves.PowerGraph? Graph, IReadOnlyList<Core.WorldSaves.PowerIssue> Issues)> ResolveAsync()
         {
             var index = new Dictionary<string, Core.WorldSaves.PowerSocketDeviceResolver.DeviceInfo>(StringComparer.OrdinalIgnoreCase);
+            var graphBuilder = powerSource is null ? null : new Core.WorldSaves.PowerGraphBuilder();
+            if (graphBuilder is not null)
+            {
+                var current = SaveName(Session.Path);
+                await Task.Run(() => graphBuilder.AddSave(current, powerSource!));
+            }
             foreach (var path in siblings)
             {
                 try
@@ -295,6 +318,7 @@ else
                     var data = await Task.Run(() =>
                         Core.WorldSaves.WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)));
                     Core.WorldSaves.PowerSocketDeviceResolver.MergeSave(index, SaveName(path), data.Raw);
+                    graphBuilder?.AddSave(SaveName(path), data.Raw);
                 }
                 catch (Exception caught) when (caught is IOException or UnauthorizedAccessException or InvalidDataException)
                 {
@@ -302,7 +326,8 @@ else
                     Core.Diagnostics.EditorLog.Warn("PowerSockets", $"Could not scan '{path}' for plugged-in devices.", caught);
                 }
             }
-            return index;
+            var graph = graphBuilder?.Build();
+            return (index, graph, graph is null ? [] : Core.WorldSaves.PowerGraphValidator.Validate(graph));
         }
 
         // The workspace's own name for a save, since its path may be a browser handle name
@@ -311,6 +336,49 @@ else
             => (Workspace.Current?.Saves ?? []).FirstOrDefault(save =>
                    string.Equals(save.Path, path, StringComparison.OrdinalIgnoreCase))?.Name
                ?? System.IO.Path.GetFileName(path);
+    }
+
+    private string CurrentFileName
+        => (Workspace.Current?.Saves ?? []).FirstOrDefault(save =>
+               string.Equals(save.Path, Session.Path, StringComparison.OrdinalIgnoreCase))?.Name
+           ?? System.IO.Path.GetFileName(Session.Path);
+
+    private WorkspaceSave? WorkspaceSaveNamed(string fileName)
+        => (Workspace.Current?.Saves ?? []).FirstOrDefault(save =>
+            string.Equals(save.Name, fileName, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>A power endpoint can be opened when it is a socket or container in this save, or any
+    /// endpoint that lives in another save the workspace has loaded (that opens the save).</summary>
+    private bool CanOpenPowerTarget(Core.WorldSaves.PowerNavigationTarget target)
+    {
+        if (string.Equals(target.FileName, CurrentFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return target.Surface == Core.WorldSaves.PowerNavigationSurface.PowerSockets
+                ? _snapshot?.Entries.Any(entry => string.Equals(entry.Key, target.Key, StringComparison.Ordinal)) == true
+                : target.IsContainer && OnOpenLink.HasDelegate;
+        }
+        return WorkspaceSaveNamed(target.FileName) is not null;
+    }
+
+    private async Task NavigatePowerTarget(Core.WorldSaves.PowerNavigationTarget target)
+    {
+        if (string.Equals(target.FileName, CurrentFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            if (target.Surface == Core.WorldSaves.PowerNavigationSurface.PowerSockets)
+            {
+                await Select(target.Key);
+            }
+            else if (target.IsContainer)
+            {
+                await OnOpenLink.InvokeAsync(target.Key);
+            }
+            return;
+        }
+        // Another save file: switch the editor to it. Its own tabs take over from there.
+        if (WorkspaceSaveNamed(target.FileName) is { } other)
+        {
+            await Workspace.SelectAsync(other.Path);
+        }
     }
 
     private void RefreshSnapshot()

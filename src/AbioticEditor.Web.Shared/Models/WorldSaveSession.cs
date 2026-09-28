@@ -983,6 +983,10 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
     Task<WorldEditResult> IWorldFeaturesSession.RemoveMapFeatureEntry(string featureId, string entryKey)
         => Task.FromResult(RemoveMapFeatureEntry(featureId, entryKey));
 
+    // Read-only source for the power connection inspector. The committed tree is used because a
+    // staged feature edit (the timer flag) never changes which device a socket supplies.
+    UeSaveGame.SaveGame? IWorldFeaturesSession.PowerNetworkSource => _data.Raw;
+
     /// <summary>World-wide (<c>GlobalUnlocks</c>) array prefixes, metadata save only.</summary>
     private static class GlobalUnlockPrefix
     {
