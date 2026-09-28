@@ -30,9 +30,12 @@ public enum SaveKind
 /// <list type="bullet">
 /// <item><see cref="Exact"/> - the save kind is known, its ABF_SAVE_VERSION is within the
 /// validated range (or the kind carries no version header), and no unknown content was
-/// observed. Versions <em>below</em> the validated range also classify as Exact: the game
-/// migrates old saves forward and a lower version means strictly fewer fields, not
-/// different ones.</item>
+/// observed.</item>
+/// <item><see cref="OlderVersion"/> - ABF_SAVE_VERSION is below the lowest version any
+/// validation fixture carried. A lower version can mean missing tags, different defaults
+/// or a different struct layout, and nothing has been tested against it, so writes are not
+/// supported (inspection still is). This used to classify as Exact; that was wrong because
+/// the editor has never seen such a file.</item>
 /// <item><see cref="NewerMinor"/> - the version is known but the save contains content
 /// this build has no model for (unknown quest flags, unmodeled property keys, unknown
 /// enum values, an unknown story chapter). Everything unknown is preserved verbatim on
@@ -58,4 +61,11 @@ public enum CompatibilitySeverity
 
     /// <summary>Unrecognized save class (or unreadable version) - editing not recommended.</summary>
     Unknown,
+
+    /// <summary>
+    /// ABF_SAVE_VERSION below the lowest validated version - read-only inspection is fine,
+    /// writes are not supported because no fixture establishes the older layout.
+    /// Appended last so the numeric values of the existing members do not change.
+    /// </summary>
+    OlderVersion,
 }

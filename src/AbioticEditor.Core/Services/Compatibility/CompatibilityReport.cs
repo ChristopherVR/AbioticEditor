@@ -19,6 +19,26 @@ public sealed class CompatibilityReport
     /// <summary>The registry's knowledge for this kind, or null when the kind is unknown.</summary>
     public SaveVersionInfo? Known { get; init; }
 
+    /// <summary>
+    /// Version evidence from the GVAS header (engine version, changelist, branch, custom-version
+    /// table), or null when it could not be read.
+    /// </summary>
+    public SaveHeaderEvidence? Header { get; init; }
+
+    /// <summary>
+    /// What the header says about the build. <see cref="BuildIdentification.Unknown"/> when there
+    /// is no header evidence; never inferred from the installed game.
+    /// </summary>
+    public BuildIdentification BuildIdentification { get; init; } = BuildIdentification.Unknown;
+
+    /// <summary>The recorded engine build the header matched, when it matched one.</summary>
+    public KnownEngineBuild? MatchedEngineBuild { get; init; }
+
+    /// <summary>Per-area write support derived from this report (inspection is always listed first).</summary>
+    public OperationSupport Operations => _operations ??= OperationSupportEvaluator.Evaluate(this);
+
+    private OperationSupport? _operations;
+
     /// <summary>Overall verdict - see <see cref="CompatibilitySeverity"/> for the rules.</summary>
     public required CompatibilitySeverity Severity { get; init; }
 
@@ -55,6 +75,8 @@ public sealed class CompatibilityReport
         CompatibilitySeverity.NewerVersion => CompatibilityMessages.NewerVersionWarning(
             VersionSeen ?? 0, Known?.MaxKnownVersion ?? 0),
         CompatibilitySeverity.NewerMinor => CompatibilityMessages.NewerMinorWarning(this),
+        CompatibilitySeverity.OlderVersion => CompatibilityMessages.OlderVersionWarning(
+            VersionSeen ?? 0, Known?.MinKnownVersion ?? 0),
         _ => null,
     };
 
@@ -66,7 +88,10 @@ public sealed class CompatibilityReport
             var kindLabel = Known?.DisplayName ?? $"Unrecognized save ({SaveClassName ?? "no class"})";
             var version = VersionSeen is int v ? $" v{v}" : string.Empty;
             var unknowns = HasUnknownContent ? $", {UnknownContentCount} unknown item(s)" : string.Empty;
-            return $"{kindLabel}{version} - {Severity}{unknowns} (validated against game build {SaveVersionRegistry.ValidatedGameBuild})";
+            var build = BuildIdentification == BuildIdentification.Unknown
+                ? "game build not identified"
+                : $"engine build {Header?.EngineLabel}";
+            return $"{kindLabel}{version} - {Severity}{unknowns} ({build}; validated against game build {SaveVersionRegistry.ValidatedGameBuild})";
         }
     }
 }
@@ -81,6 +106,10 @@ internal static class CompatibilityMessages
     internal static string UnknownClassWarning(string? saveClassName)
         => $"This save's class '{saveClassName ?? "(none)"}' is not one this editor recognizes. " +
            "Its custom header could not be interpreted; editing it is not recommended - a .bak backup is always kept.";
+
+    internal static string OlderVersionWarning(int versionSeen, int minKnownVersion)
+        => $"This save is version {versionSeen}; the oldest version this editor was tested against is {minKnownVersion}. " +
+           "You can inspect it, but writes are blocked because its field layout has not been verified.";
 
     internal static string NewerVersionWarning(int versionSeen, int knownGoodVersion)
         => $"This save is version {versionSeen}; this editor was built against version {knownGoodVersion} " +

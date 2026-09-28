@@ -32,12 +32,14 @@ public static class SaveCompatibility
     {
         ArgumentNullException.ThrowIfNull(save);
         var kind = SaveVersionRegistry.KindOf(save);
-        var knownGood = SaveVersionRegistry.Find(kind)?.MaxKnownVersion;
-        return Compute(
-            SaveVersionRegistry.GetAbfVersion(save),
-            knownGood,
-            save.CustomSaveClass is not null,
-            save.SaveClass?.Value);
+        var entry = SaveVersionRegistry.Find(kind);
+        var version = SaveVersionRegistry.GetAbfVersion(save);
+        var warning = Compute(version, entry?.MaxKnownVersion, save.CustomSaveClass is not null, save.SaveClass?.Value);
+        if (warning is null && version is int v && entry?.MinKnownVersion is int min && v < min)
+        {
+            return CompatibilityMessages.OlderVersionWarning(v, min);
+        }
+        return warning;
     }
 
     /// <summary>

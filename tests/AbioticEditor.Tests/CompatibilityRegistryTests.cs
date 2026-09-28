@@ -80,9 +80,9 @@ public class CompatibilityRegistryTests
     {
         var worldMax = SaveVersionRegistry.Find(SaveKind.World)!.MaxKnownVersion!.Value;
 
-        // Exact: known kind, version in (or below) range, nothing unknown.
+        // Exact: known kind, version in range, nothing unknown. OlderVersion: below the tested minimum.
         Assert.Equal(CompatibilitySeverity.Exact, SaveVersionRegistry.Classify(SaveKind.World, worldMax, hasUnknownContent: false));
-        Assert.Equal(CompatibilitySeverity.Exact, SaveVersionRegistry.Classify(SaveKind.World, worldMax - 1, hasUnknownContent: false));
+        Assert.Equal(CompatibilitySeverity.OlderVersion, SaveVersionRegistry.Classify(SaveKind.World, worldMax - 1, hasUnknownContent: false));
 
         // NewerMinor: known version but unknown content present.
         Assert.Equal(CompatibilitySeverity.NewerMinor, SaveVersionRegistry.Classify(SaveKind.World, worldMax, hasUnknownContent: true));

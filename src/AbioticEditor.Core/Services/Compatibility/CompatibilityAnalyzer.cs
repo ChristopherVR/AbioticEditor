@@ -64,8 +64,24 @@ public static class CompatibilityAnalyzer
         IEnumerable<string>? worldFlags = null,
         string? storyProgressionRow = null,
         UnknownContentCollector? collected = null)
+        => Analyze(save, worldFlags, storyProgressionRow, collected, header: null);
+
+    /// <summary>
+    /// As <see cref="Analyze(SaveGame, IEnumerable{string}?, string?, UnknownContentCollector?)"/>,
+    /// with header evidence supplied by the caller (for example parsed straight from the file).
+    /// When <paramref name="header"/> is null it is recovered from the loaded save's own header parts.
+    /// The build is never inferred from the installed game.
+    /// </summary>
+    public static CompatibilityReport Analyze(
+        SaveGame save,
+        IEnumerable<string>? worldFlags,
+        string? storyProgressionRow,
+        UnknownContentCollector? collected,
+        SaveHeaderEvidence? header)
     {
         ArgumentNullException.ThrowIfNull(save);
+        header ??= SaveHeaderEvidence.FromLoaded(save);
+        var identification = SaveVersionRegistry.IdentifyBuild(header, out var matchedBuild);
 
         var kind = SaveVersionRegistry.KindOf(save);
         var version = SaveVersionRegistry.GetAbfVersion(save);
@@ -92,6 +108,9 @@ public static class CompatibilityAnalyzer
             VersionSeen = version,
             Known = known,
             Severity = SaveVersionRegistry.Classify(kind, version, hasUnknownContent),
+            Header = header,
+            BuildIdentification = identification,
+            MatchedEngineBuild = matchedBuild,
             UnknownFlags = unknownFlags,
             UnknownPropertyKeys = unknownKeys,
             UnknownEnumValues = unknownEnums,
