@@ -56,7 +56,7 @@ internal static class InfoCommand
     private static int PlayerInfo(string path, bool json)
     {
         var data = PlayerSaveReader.ReadFromFile(path);
-        WarnIfNewer(SaveCompatibility.WarningFor(data.Raw));
+        WarnCompatibility(data.Raw);
 
         var steamId = PlayerSaveIdentity.GetSaveIdentifier(data.Raw)
             ?? (PlayerIdentifier.TryParseFromPlayerFileName(path, out var fileId) ? fileId : null);
@@ -96,7 +96,7 @@ internal static class InfoCommand
     private static int WorldInfo(string path, string saveClass, bool json)
     {
         var data = WorldSaveReader.ReadFromFile(path);
-        WarnIfNewer(SaveCompatibility.WarningFor(data.Raw));
+        WarnCompatibility(data.Raw);
 
         var isMetadata = saveClass.Contains("WorldMetadataSave", StringComparison.Ordinal);
 
@@ -138,6 +138,17 @@ internal static class InfoCommand
             }
         }
         return Cli.Ok;
+    }
+
+    /// <summary>Warns (on stderr) about version problems and which editing areas are not verified or blocked.</summary>
+    private static void WarnCompatibility(UeSaveGame.SaveGame raw)
+    {
+        var report = CompatibilityAnalyzer.Analyze(raw);
+        WarnIfNewer(report.Warning);
+        foreach (var area in report.Operations.Areas.Where(a => a.Level != OperationSupportLevel.Supported))
+        {
+            Cli.Warn($"{area.Area}: {area.Level.ToString().ToLowerInvariant()} - {area.Reason}");
+        }
     }
 
     private static void WarnIfNewer(string? warning)

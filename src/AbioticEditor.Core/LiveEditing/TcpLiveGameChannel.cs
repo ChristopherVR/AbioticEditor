@@ -75,6 +75,8 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
                 throw new LiveAgentException(
                     $"The live-agent mod speaks protocol version {hello.ProtocolVersion}, this editor speaks 1.");
 
+            AgentHandshake = new LiveCompatibilityInfo(
+                GameBuild: null, hello.ProtocolVersion, hello.AgentVersion, AgentCapabilities: null, Ue4ssVersion: null);
             State = LiveConnectionState.Connected;
             EditorLog.Info("LiveAgent", $"Connected to {info.Host}:{info.Port} (agent {hello.AgentVersion}).");
         }
@@ -87,8 +89,16 @@ public sealed class TcpLiveGameChannel : ILiveGameChannel
         }
     }
 
+    /// <summary>
+    /// What the last successful <c>hello</c> reported (protocol and agent version); the game
+    /// build, capability list and UE4SS version stay null because the handshake does not carry them.
+    /// Null until connected. Feed it to <see cref="LiveCompatibilityEvaluator"/>.
+    /// </summary>
+    public LiveCompatibilityInfo? AgentHandshake { get; private set; }
+
     public Task DisconnectAsync()
     {
+        AgentHandshake = null;
         var wasConnected = _client is not null;
         _reader?.Dispose();
         _writer?.Dispose();

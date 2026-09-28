@@ -10,9 +10,9 @@ namespace AbioticEditor.Core.Compatibility;
 /// <param name="Kind">The save kind this entry describes.</param>
 /// <param name="DisplayName">Human label for messages ("World save", ...).</param>
 /// <param name="MinKnownVersion">
-/// Lowest ABF_SAVE_VERSION observed in validation fixtures. Versions below this still
-/// load fine (the game only ever adds fields between versions), so they are NOT treated
-/// as a compatibility risk - the value is documentation of what was actually tested.
+/// Lowest ABF_SAVE_VERSION observed in validation fixtures. A loaded save below this
+/// classifies as <see cref="CompatibilitySeverity.OlderVersion"/>: it may still parse, but
+/// no fixture establishes its field layout or defaults, so writes are not supported.
 /// </param>
 /// <param name="MaxKnownVersion">
 /// Highest validated ABF_SAVE_VERSION. A loaded save above this classifies as
@@ -65,6 +65,45 @@ public static class SaveVersionRegistry
 
     private static readonly Dictionary<SaveKind, SaveVersionInfo> ByKind =
         Entries.ToDictionary(e => e.Kind);
+
+    /// <summary>
+    /// Engine builds (the changelist stored in every GVAS header) that have been seen in real
+    /// fixtures. The header holds the engine version and branch only: it carries neither the
+    /// game's own version string nor the build hash, so it can never prove an exact game
+    /// build. See <see cref="IdentifyBuild"/>.
+    /// </summary>
+    public static IReadOnlyList<KnownEngineBuild> KnownEngineBuilds { get; } = new[]
+    {
+        // The build the mappings and every write path were validated against.
+        new KnownEngineBuild(5, 4, 4, 1030002, "++DF+ABF", EngineBuildStatus.Validated,
+            "Dedicated-server tree and current Steam client saves."),
+        // Older Steam standalone fixtures (tests/fixtures/SteamSaves/Legacy). Byte-exact
+        // round-trip is proven by a fixture test; no per-area edit fixtures are recorded.
+        new KnownEngineBuild(5, 4, 4, 1030001, "++DF+ABF", EngineBuildStatus.ObservedRoundTripOnly,
+            "Steam Legacy/Cascade world and some Chrissie client saves."),
+    };
+
+    /// <summary>
+    /// Identifies what the header evidence says about the build. Returns
+    /// <see cref="BuildIdentification.Unknown"/> when there is no header evidence, and never
+    /// consults the installed game.
+    /// </summary>
+    public static BuildIdentification IdentifyBuild(SaveHeaderEvidence? header, out KnownEngineBuild? match)
+    {
+        match = null;
+        if (header is null) return BuildIdentification.Unknown;
+        foreach (var known in KnownEngineBuilds)
+        {
+            if (known.Matches(header))
+            {
+                match = known;
+                return known.Status == EngineBuildStatus.Validated
+                    ? BuildIdentification.ValidatedEngineBuild
+                    : BuildIdentification.ObservedEngineBuild;
+            }
+        }
+        return BuildIdentification.UnrecognizedEngineBuild;
+    }
 
     /// <summary>The registry row for <paramref name="kind"/>, or null for <see cref="SaveKind.Unknown"/>.</summary>
     public static SaveVersionInfo? Find(SaveKind kind)
@@ -150,6 +189,7 @@ public static class SaveVersionRegistry
         {
             if (versionSeen is not int v) return CompatibilitySeverity.Unknown;
             if (v > entry.MaxKnownVersion) return CompatibilitySeverity.NewerVersion;
+            if (v < entry.MinKnownVersion) return CompatibilitySeverity.OlderVersion;
         }
 
         return hasUnknownContent ? CompatibilitySeverity.NewerMinor : CompatibilitySeverity.Exact;
