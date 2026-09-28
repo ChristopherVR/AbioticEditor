@@ -176,7 +176,7 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         => $"Teleporter Pad {ordinal}: {TeleporterTagCatalog.Label(frequency)}";
 
     /// <summary>True when a deployable entry's class is the teleporter pad blueprint.</summary>
-    private static bool IsPad(IList<FPropertyTag> deployableProps)
+    internal static bool IsPad(IList<FPropertyTag> deployableProps)
     {
         var classValue = deployableProps.FindByPrefix("Class_")?.Property?.Value;
         var name = classValue switch
@@ -218,7 +218,7 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         return null;
     }
 
-    private static int? GetFrequency(IList<FPropertyTag> deployableProps)
+    internal static int? GetFrequency(IList<FPropertyTag> deployableProps)
     {
         var entry = DynamicPropertyEntry(deployableProps);
         // Tolerate whatever integer width the build stored the value as (Int/Int64/byte), so a
@@ -233,7 +233,7 @@ public sealed class TeleporterPadFeature : IWorldMapFeature
         };
     }
 
-    private static bool SetFrequency(IList<FPropertyTag> deployableProps, int frequency)
+    internal static bool SetFrequency(IList<FPropertyTag> deployableProps, int frequency)
     {
         var entry = DynamicPropertyEntry(deployableProps);
         if (entry?.FindByPrefix("Value")?.Property is not { } valueProp)

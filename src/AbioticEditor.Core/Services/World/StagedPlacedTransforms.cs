@@ -86,14 +86,7 @@ public sealed class StagedPlacedTransforms
     public bool RotateYawBy(WorldSaveData data, string key, double degrees)
     {
         if (Current(data, key) is not { Rotation: { } q }) return false;
-        var half = degrees * Math.PI / 360.0;
-        var (sz, cz) = (Math.Sin(half), Math.Cos(half));
-        // Hamilton product qz * q: apply q, then a world-space yaw.
-        var r = new PlacedQuaternion(
-            (cz * q.X) - (sz * q.Y),
-            (cz * q.Y) + (sz * q.X),
-            (cz * q.Z) + (sz * q.W),
-            (cz * q.W) - (sz * q.Z));
+        var r = PlacementMath.ComposeYaw(q, degrees);
         var translation = _pending.TryGetValue(key, out var s) ? s.Translation : null;
         Stage(key, translation, r);
         return true;

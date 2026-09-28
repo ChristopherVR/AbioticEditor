@@ -29,6 +29,16 @@ public static partial class WorldSaveWriter
         {
             return false;
         }
+        return ApplyTransformToProps(props, translation, rotation);
+    }
+
+    /// <summary>
+    /// The same in-place rewrite as <see cref="ApplyPlacedObjectTransform"/>, on an entry's property list
+    /// (used both for live entries and for a detached copy being built).
+    /// </summary>
+    internal static bool ApplyTransformToProps(
+        IList<FPropertyTag> props, PlacedVector? translation, PlacedQuaternion? rotation)
+    {
         if (props.FindByPrefix("Transform_")?.Property is not StructProperty tsp || tsp.Value is not PropertiesStruct tps)
         {
             return false;
