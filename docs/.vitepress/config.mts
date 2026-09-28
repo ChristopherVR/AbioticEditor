@@ -121,6 +121,7 @@ export default defineConfig({
             { text: 'Player save schema', link: '/reference/player-save-schema' },
             { text: 'World save schema', link: '/reference/world-save-schema' },
             { text: 'Game Pass format', link: '/reference/game-pass-format' },
+            { text: 'Game Pass extraction inventory', link: '/reference/game-pass-extraction-inventory' },
           ],
         },
         {
