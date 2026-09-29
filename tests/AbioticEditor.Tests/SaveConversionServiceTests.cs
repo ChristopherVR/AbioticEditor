@@ -5,6 +5,10 @@ using AbioticEditor.Ui;
 
 namespace AbioticEditor.Tests;
 
+// Game Pass to Steam conversions write to the real Steam save location, named after the world, so
+// two of them from the same fixture land in one folder and one test's cleanup deletes the other's
+// output. Sharing a collection makes those tests run one at a time.
+[Collection(SteamConversionOutput.Name)]
 public sealed class SaveConversionServiceTests
 {
     [SkippableFact]
