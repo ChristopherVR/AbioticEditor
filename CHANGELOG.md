@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.19.1] - 2026-09-29
+
+### Miscellaneous Tasks
+- Point bucket at v2.19.0 [skip ci]
+
+
+### Testing
+- Stop two Game Pass conversion checks from tripping over each other
+
+
 ## [2.19.0] - 2026-09-29
 
 ### Bug Fixes
