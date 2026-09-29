@@ -23,6 +23,9 @@ const CATEGORY_SIZES = [
     [0.3, 0.5, 0.3], [1.5, 1.2, 0.3], [0.6, 0.8, 0.6],
 ];
 const LEVEL_PLACED_DIM = 0.5;
+// Staged base edits: an object staged for deletion is drawn red, a staged copy (not in the save yet) cyan.
+const MARK_DELETED_COLOR = 0xff3b30;
+const MARK_COPY_COLOR = 0x22e6e6;
 const MAX_LABELS = 70;
 
 export function isWebGlAvailable() {
@@ -71,16 +74,17 @@ export function createView(host, dotnet) {
     let visible = [];
     let meshes = []; // per category InstancedMesh
     let instanceToObject = []; // per category: instance id -> object index
-    let selectedKey = null;
+    let selectedKey = null; // the primary selection (the gizmo and the inspector follow it)
+    let selectedKeys = new Set(); // every selected key, primary included
     let labelsOn = false;
     let disposed = false;
     let dirty = false; // true while a frame is already scheduled
 
-    const selectionBox = new THREE.LineSegments(edgesGeometry,
-        new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
-    selectionBox.renderOrder = 10;
-    selectionBox.visible = false;
-    scene.add(selectionBox);
+    // One outline per selected object; the primary is white, the rest amber.
+    const selectionGroup = new THREE.Group();
+    scene.add(selectionGroup);
+    const primaryMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true });
+    const secondaryMaterial = new THREE.LineBasicMaterial({ color: 0xffb020, depthTest: false, transparent: true });
 
     // A fixed-size dot per drawn object, so far-away or tiny objects stay visible when the box is
     // smaller than a pixel. Boxes are still what gets picked.
@@ -97,6 +101,14 @@ export function createView(host, dotnet) {
     const tmpLift = new THREE.Matrix4();
     const tmpSize = new THREE.Matrix4();
     const tmpColor = new THREE.Color();
+
+    function baseColor(o) {
+        if (o.mark === 1) return tmpColor.setHex(MARK_DELETED_COLOR);
+        if (o.mark === 2) return tmpColor.setHex(MARK_COPY_COLOR);
+        tmpColor.setHex(CATEGORY_COLORS[o.cat]);
+        if (!o.built) tmpColor.multiplyScalar(LEVEL_PLACED_DIM);
+        return tmpColor;
+    }
 
     function boxMatrix(target, o) {
         const [w, h, d] = CATEGORY_SIZES[o.cat] ?? CATEGORY_SIZES[0];
@@ -167,9 +179,7 @@ export function createView(host, dotnet) {
             list.forEach((objIndex, i) => {
                 const o = objects[objIndex];
                 mesh.setMatrixAt(i, boxMatrix(m, o));
-                tmpColor.setHex(CATEGORY_COLORS[cat]);
-                if (!o.built) tmpColor.multiplyScalar(LEVEL_PLACED_DIM);
-                mesh.setColorAt(i, tmpColor);
+                mesh.setColorAt(i, baseColor(o));
             });
             mesh.instanceMatrix.needsUpdate = true;
             if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
@@ -193,8 +203,7 @@ export function createView(host, dotnet) {
         visible.forEach((idx, i) => {
             const o = objects[idx];
             positions.set(o.p, i * 3);
-            tmpColor.setHex(CATEGORY_COLORS[o.cat]);
-            if (!o.built) tmpColor.multiplyScalar(LEVEL_PLACED_DIM);
+            baseColor(o);
             colors.set([tmpColor.r, tmpColor.g, tmpColor.b], i * 3);
         });
         const geometry = new THREE.BufferGeometry();
@@ -220,15 +229,17 @@ export function createView(host, dotnet) {
     }
 
     function updateSelectionBox() {
-        const idx = selectedKey === null ? undefined : keyToIndex.get(selectedKey);
-        if (idx === undefined) {
-            selectionBox.visible = false;
-            return;
+        for (const child of [...selectionGroup.children]) selectionGroup.remove(child);
+        for (const key of selectedKeys) {
+            const idx = keyToIndex.get(key);
+            if (idx === undefined) continue;
+            const line = new THREE.LineSegments(edgesGeometry, key === selectedKey ? primaryMaterial : secondaryMaterial);
+            line.renderOrder = 10;
+            line.matrixAutoUpdate = false;
+            boxMatrix(line.matrix, objects[idx]);
+            line.matrixWorldNeedsUpdate = true;
+            selectionGroup.add(line);
         }
-        boxMatrix(selectionBox.matrix, objects[idx]);
-        selectionBox.matrixAutoUpdate = false;
-        selectionBox.matrixWorldNeedsUpdate = true;
-        selectionBox.visible = true;
     }
 
     function updateGrid() {
@@ -322,7 +333,7 @@ export function createView(host, dotnet) {
             el.textContent = o.label;
             el.style.display = "block";
             el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -100%)`;
-            el.classList.toggle("selected", o.key === selectedKey);
+            el.classList.toggle("selected", selectedKeys.has(o.key));
             used++;
         }
         for (let i = used; i < labelPool.length; i++) labelPool[i].style.display = "none";
@@ -356,15 +367,22 @@ export function createView(host, dotnet) {
         downAt = null;
         if (moved > 4) return;
         const hit = pick(e.clientX, e.clientY);
-        select(hit ? hit.key : null, true);
+        const additive = e.ctrlKey || e.shiftKey || e.metaKey;
+        if (additive && !hit) return; // a modified click on nothing keeps the selection
+        // C# owns the selection (it also drives the list and the inspector) and pushes it back.
+        dotnet.invokeMethodAsync("OnPicked", hit ? hit.key : null, additive);
     });
 
-    function select(key, notify) {
-        selectedKey = key !== null && keyToIndex.has(key) ? key : null;
+    function setSelection(keys, primary) {
+        selectedKeys = new Set((keys ?? []).filter(k => keyToIndex.has(k)));
+        selectedKey = primary !== null && primary !== undefined && selectedKeys.has(primary) ? primary : (selectedKeys.size ? [...selectedKeys].pop() : null);
         updateSelectionBox();
         attachGizmo();
         requestRender();
-        if (notify) dotnet.invokeMethodAsync("OnSelected", selectedKey);
+    }
+
+    function select(key) {
+        setSelection(key === null || key === undefined ? [] : [key], key);
     }
 
     // ---- gizmo -------------------------------------------------------------------------------
@@ -390,7 +408,7 @@ export function createView(host, dotnet) {
 
     function attachGizmo() {
         const idx = selectedKey === null ? undefined : keyToIndex.get(selectedKey);
-        if (gizmoMode === null || idx === undefined) {
+        if (gizmoMode === null || idx === undefined || selectedKeys.size > 1) {
             transform.detach();
             gizmoHelper.visible = false;
             return;
@@ -462,7 +480,7 @@ export function createView(host, dotnet) {
             updateGrid();
             visible = list.map((_, i) => i);
             rebuildInstances();
-            if (selectedKey !== null && !keyToIndex.has(selectedKey)) select(null, false);
+            setSelection([...selectedKeys], selectedKey);
             attachGizmo();
         },
         /** Which object indexes are drawn (filters live in C#). */
@@ -479,7 +497,7 @@ export function createView(host, dotnet) {
             updateOneInstance(idx);
             if (key === selectedKey) attachGizmo();
         },
-        /** Wire boxes showing where staged objects were saved. Each {cat, p, q, s}. */
+        /** Wire boxes showing where staged objects were saved. Each {cat, p, q, s, color?}. */
         setGhosts(list) {
             for (const child of [...ghostGroup.children]) {
                 ghostGroup.remove(child);
@@ -488,7 +506,7 @@ export function createView(host, dotnet) {
             const m = new THREE.Matrix4();
             for (const g of list) {
                 const line = new THREE.LineSegments(edgesGeometry,
-                    new THREE.LineBasicMaterial({ color: 0xff5ec4, depthTest: false, transparent: true, opacity: 0.8 }));
+                    new THREE.LineBasicMaterial({ color: g.color ?? 0xff5ec4, depthTest: false, transparent: true, opacity: 0.8 }));
                 boxMatrix(m, g);
                 line.matrixAutoUpdate = false;
                 line.matrix.copy(m);
@@ -497,13 +515,15 @@ export function createView(host, dotnet) {
             }
             requestRender();
         },
-        select(key) { select(key, false); },
+        select(key) { select(key); },
+        /** Replaces the whole selection: every selected key, and which one is primary (gizmo and inspector). */
+        setSelection(keys, primary) { setSelection(keys, primary); },
         setLabels(on) { labelsOn = !!on; requestRender(); },
         /** mode: null | "translate" | "rotate". */
         setGizmo(mode) { gizmoMode = mode; attachGizmo(); requestRender(); },
         frameSelection() {
-            const idx = selectedKey === null ? undefined : keyToIndex.get(selectedKey);
-            if (idx !== undefined) frameIndices([idx]);
+            const list = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined);
+            if (list.length) frameIndices(list);
         },
         /** Frames every drawn object; with robust=true, the densest 85% (ignores far outliers). */
         frameVisible(robust) { frameIndices(visible, !!robust); },
@@ -524,6 +544,9 @@ export function createView(host, dotnet) {
                 drawCalls: renderer.info.render.calls,
                 instancedMeshes: meshes.filter(m => m.count > 0).length,
                 selected: selectedKey,
+                selectedCount: selectedKeys.size,
+                deleted: objects.filter(o => o.mark === 1).length,
+                copies: objects.filter(o => o.mark === 2).length,
                 gizmo: gizmoMode,
             };
         },

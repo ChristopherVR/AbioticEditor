@@ -12,6 +12,7 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
     private readonly string _path;
     private readonly AbioticEditor.Web.Services.ISaveFileSystem? _files;
     private readonly IReadOnlyList<string> _siblingWorldSavePaths;
+    private readonly string? _siblingMetadataPath;
     private HashSet<string> _originalFlags;
     private HashSet<string> _originalGlobalRecipes;
     private Dictionary<string, WorldDoor> _originalDoors;
@@ -73,10 +74,15 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
     /// or null on every other path, where <see cref="ContainmentDirectory.Survey"/> walks the
     /// real disk itself.
     /// </param>
+    /// <param name="siblingMetadataPath">
+    /// The <c>WorldSave_MetaData.sav</c> of the same workspace, when there is one. Only read (never
+    /// written) by the base-edit reference scan on a host that cannot walk the folder itself.
+    /// </param>
     public WorldSaveSession(
         WorldSaveData data, string path, AbioticEditor.Web.Services.ISaveFileSystem? files = null,
-        IReadOnlyList<string>? siblingWorldSavePaths = null)
+        IReadOnlyList<string>? siblingWorldSavePaths = null, string? siblingMetadataPath = null)
     {
+        _siblingMetadataPath = siblingMetadataPath;
         _data = data;
         _path = path;
         _files = files;
@@ -242,7 +248,7 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
             feature.RemoveActionLabel,
             feature.Read(ReadableFeatureRaw));
     }
-    public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0 || HasStagedPlacedTransforms;
+    public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0 || HasStagedBaseEdits;
     public string? Status { get; private set; }
 
     public void SetFlag(string flag, bool enabled)
@@ -1316,7 +1322,8 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         foreach (var edit in _rawEdits)
             if (!RawSavePropertyEditor.TryApply(workingData.Raw, edit.Key, edit.Value, out var error))
                 throw new InvalidOperationException($"Raw edit '{edit.Key}' is no longer valid: {error}");
-        var movedObjects = ApplyStagedPlacedTransforms(workingData);
+        if (_baseEdits.Deletions.Count > 0) await LoadOtherSavesAsync().ConfigureAwait(false);
+        var baseEditResult = ApplyStagedBaseEdits(workingData);
         await AbioticEditor.Web.Services.SaveFilePersistence
             .WriteAsync(_files, _path, workingData.Raw, cancellationToken).ConfigureAwait(false);
         // A unit also keeps its own note of which creature it holds, and that note lives in the
@@ -1354,7 +1361,7 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
             };
         }
         _data = workingData;
-        CommitPlacedTransforms(movedObjects);
+        CommitBaseEdits(baseEditResult, workingData);
         _originalFlags = new HashSet<string>(Flags, StringComparer.Ordinal);
         _originalGlobalRecipes = new HashSet<string>(GlobalRecipes, StringComparer.Ordinal);
         _originalDoors = new Dictionary<string, WorldDoor>(_doors, StringComparer.Ordinal);
@@ -1412,7 +1419,8 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         _featureOperations.Clear();
         _benchUpgradeOperations.Clear();
         _rawEdits.Clear();
-        ClearPlacedTransforms();
+        ClearBaseEdits();
+        ReleaseOtherSaves();
         _featureData = null;
         Status = "Changes reverted.";
     }

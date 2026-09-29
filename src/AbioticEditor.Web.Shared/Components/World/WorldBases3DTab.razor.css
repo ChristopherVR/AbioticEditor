@@ -38,6 +38,28 @@
 .b3d-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-top: 12px; }
 .b3d-object-list { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
 .b3d-object-row { display: flex; align-items: center; gap: 6px; text-align: left; }
+.b3d-numbers3 { grid-template-columns: 1fr 1fr 1fr; }
+.b3d-danger { border-color: #d14a30; }
+.b3d-axis { width: auto; }
+.b3d-selection-list { max-height: 180px; }
+.b3d-selection-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; border-bottom: 1px solid var(--line, #224158); }
+.b3d-selection-row.primary { background: rgba(240, 132, 24, 0.16); }
+.b3d-selection-name { text-align: left; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b3d-list { margin: 0; padding-left: 18px; font-size: 12px; max-height: 200px; overflow-y: auto; }
+.b3d-op { border-color: rgba(240, 132, 24, 0.6); }
+.b3d-op-delete { border-color: #d14a30; }
+.b3d-policies { display: flex; flex-direction: column; gap: 8px; }
+.b3d-policy { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.b3d-policy select { width: 100%; box-sizing: border-box; }
+.b3d-feedback { margin: 0; font-size: 12px; color: var(--accent, #f08418); }
+.b3d-refusal { margin-top: 12px; border: 2px solid #d14a30; }
+.b3d-panel ::deep .b3d-issues { list-style: none; padding-left: 0; }
+.b3d-panel ::deep .b3d-issue { padding: 2px 6px; margin-bottom: 2px; border-left: 3px solid var(--line, #224158); font-size: 12px; }
+.b3d-panel ::deep .b3d-issue.warning { border-left-color: #f5d020; }
+.b3d-panel ::deep .b3d-issue.blocking { border-left-color: #ff3b30; background: rgba(255, 59, 48, 0.16); font-weight: 600; color: #ffb4ac; }
+.b3d-panel ::deep .b3d-issue.info { color: var(--muted, #a9cbe0); }
+.b3d-panel ::deep .b3d-hints { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.b3d-table-delete tr td:first-child, .b3d-table-copy tr td:first-child { white-space: nowrap; }
 
 @media (max-width: 900px) {
     .b3d-layout { grid-template-columns: minmax(0, 1fr); }
