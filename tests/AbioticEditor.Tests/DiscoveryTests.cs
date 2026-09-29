@@ -94,6 +94,37 @@ public class DiscoveryTests
     }
 
     [Fact]
+    public void ApplyActiveBuffs_RemovesEffectsAndDropsTheStructWhenNoneRemain()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        var exercised = false;
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav"))
+        {
+            var original = File.ReadAllBytes(path);
+            var probe = PlayerSaveReader.ReadFromFile(path);
+            if (probe.ActiveBuffs.Count == 0)
+            {
+                // Nothing staged: no change and no bytes touched.
+                Assert.False(PlayerSaveWriter.ApplyActiveBuffs(probe, probe.ActiveBuffs));
+                continue;
+            }
+            exercised = true;
+
+            var unchanged = PlayerSaveReader.ReadFromFile(path);
+            Assert.False(PlayerSaveWriter.ApplyActiveBuffs(unchanged, unchanged.ActiveBuffs));
+
+            var cleared = PlayerSaveReader.ReadFromFile(path);
+            Assert.True(PlayerSaveWriter.ApplyActiveBuffs(cleared, Array.Empty<ActiveBuff>()));
+            using var ms = new MemoryStream();
+            cleared.Raw.WriteTo(ms);
+            ms.Position = 0;
+            Assert.Empty(PlayerSaveReader.ReadFromStream(ms).ActiveBuffs);
+            Assert.NotEqual(original.Length, ms.Length);
+        }
+        _output.WriteLine(exercised ? "exercised" : "no fixture had active effects");
+    }
+
+    [Fact]
     public void MapCatalog_LoadsPamphlets()
     {
         using var provider = GameAssetProvider.CreateForLocalInstall();

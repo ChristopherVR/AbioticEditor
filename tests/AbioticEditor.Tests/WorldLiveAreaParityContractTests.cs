@@ -187,7 +187,9 @@ public sealed class WorldLiveAreaParityContractTests
         // These actor fields have no verified universal mapping to alive/dead or quest progress.
         // Keep them diagnostic rather than exposing arbitrary story mutations.
         var source = WorldSource("WorldNpcsTab.razor");
-        Assert.Contains("Saved removal flag", source, StringComparison.Ordinal);
+        // The flag is only ever surfaced as a "Removed by story" badge when set, never as an editable field.
+        Assert.Contains("Removed by story", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Removal flag not set", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Session.SetNpcAsync", source, StringComparison.Ordinal);
         Assert.Contains("WorldNpcs_ScriptPhaseTooltip", source, StringComparison.Ordinal);
     }

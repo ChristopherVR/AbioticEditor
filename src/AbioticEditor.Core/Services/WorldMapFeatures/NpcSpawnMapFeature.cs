@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Saves;
 using UeSaveGame;
 
@@ -59,6 +60,62 @@ public sealed class NpcSpawnMapFeature : WorldMapFeatureBase
     /// disabled. Edit the cooldown/spawn fields instead.
     /// </summary>
     public override bool SupportsRemoval => false;
+
+    /// <summary>
+    /// "Peccary spawner 2" instead of <c>NPCSpawn_Peccary_C_2</c>. The spawner's own name carries
+    /// the creature it spawns; the friendly name comes from the game's NPC list when it has a
+    /// matching row, and is otherwise just the name with its underscores turned into spaces.
+    /// </summary>
+    protected override string LabelFor(string key, IList<FPropertyTag> props)
+        => FriendlyLabel(ShortLabel(key), NpcNames);
+
+    private static IReadOnlyDictionary<string, string>? _npcNames;
+    private static bool _npcNamesLoaded;
+    private static IReadOnlyDictionary<string, string>? NpcNames
+    {
+        get
+        {
+            if (_npcNamesLoaded) return _npcNames;
+            try { _npcNames = GameDataRegistry.LoadBundled()?.NpcDisplayNames; }
+            catch (Exception) { _npcNames = null; }
+            _npcNamesLoaded = true;
+            return _npcNames;
+        }
+    }
+
+    /// <summary>Same, resolving names from the bundled game data (for live sessions).</summary>
+    public static string FriendlyLabel(string actorName) => FriendlyLabel(actorName, NpcNames);
+
+    /// <summary>Friendly label for a spawner actor name such as <c>NPCSpawn_Pest_Volatile_C_7</c>;
+    /// the raw name unchanged when it does not have that shape.</summary>
+    public static string FriendlyLabel(string actorName, IReadOnlyDictionary<string, string>? npcNames)
+    {
+        var match = SpawnerName.Match(actorName);
+        if (!match.Success) return actorName;
+        var creature = match.Groups["creature"].Value;
+        var friendly = ResolveCreature(creature, npcNames) ?? creature.Replace('_', ' ');
+        return match.Groups["n"].Success ? $"{friendly} spawner {match.Groups["n"].Value}" : $"{friendly} spawner";
+    }
+
+    private static string? ResolveCreature(string creature, IReadOnlyDictionary<string, string>? npcNames)
+    {
+        if (npcNames is null || npcNames.Count == 0) return null;
+        if (npcNames.TryGetValue("NPC_" + creature, out var exact)) return exact;
+        // The game's rows often carry a category segment the spawner name leaves out
+        // (NPC_Monster_Pest for NPCSpawn_Pest), so accept one extra leading segment.
+        var suffix = "_" + creature;
+        var candidates = npcNames
+            .Where(pair => pair.Key.StartsWith("NPC_", StringComparison.OrdinalIgnoreCase)
+                && pair.Key.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+                && pair.Key.IndexOf('_', 4) == pair.Key.Length - suffix.Length)
+            .Select(pair => pair.Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return candidates.Count == 1 ? candidates[0] : null;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex SpawnerName = new(
+        @"^NPCSpawn_(?<creature>.+?)_C(?:_(?<n>\d+))?$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <inheritdoc/>
     protected override IReadOnlyList<WorldMapField> ReadFields(IList<FPropertyTag> props)

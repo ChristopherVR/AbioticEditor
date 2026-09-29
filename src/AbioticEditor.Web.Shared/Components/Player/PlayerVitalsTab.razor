@@ -22,7 +22,29 @@
             <VitalSlider Label="@L.Resource("PlayerVitals_Head")" @bind-Value="Vitals.Head" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_Torso")" @bind-Value="Vitals.Torso" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftArm")" @bind-Value="Vitals.LeftArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightArm")" @bind-Value="Vitals.RightArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftLeg")" @bind-Value="Vitals.LeftLeg" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightLeg")" @bind-Value="Vitals.RightLeg" OnChanged="Changed" WholeNumbers="true" />
         </div>
     </section>
-    @if (Saved is not null)
+    @if (FileSession is not null)
+    {
+        <section class="editor-card" aria-label="Active effects">
+            <div class="card-title-row"><span class="amber-field-label">Active effects</span>
+                <button class="heal-all-button" type="button" disabled="@(FileSession.ActiveBuffs.Count == 0)" @onclick="ClearEffects">Clear all</button></div>
+            <p class="muted">Effects the character currently has. You can remove them here; adding new ones is not supported. Changes stage until you press SAVE.</p>
+            @if (FileSession.ActiveBuffs.Count == 0)
+            {
+                <p>-</p>
+            }
+            else
+            {
+                <ul class="effects-list">
+                    @foreach (var buff in FileSession.ActiveBuffs.ToArray())
+                    {
+                        <li><span>@AbioticEditor.Web.Components.Shared.PlainNames.Words(buff.BuffRow)<small class="muted"> @buff.BuffRow</small></span>
+                            <button type="button" class="secondary" @onclick="() => RemoveEffect(buff)">Remove</button></li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+    else if (Saved is not null)
     {
         <section class="editor-card saved-view-card" aria-label="@L.Resource("PlayerVitals_ActiveEffects")">
             <span class="amber-field-label">@L.Resource("PlayerVitals_ActiveEffects")</span>
@@ -31,4 +53,4 @@
         </section>
     }
 </div>
-@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task HealAll() { Vitals.HealAll(); await Changed(); } }
+@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public AbioticEditor.Web.Models.PlayerSaveSession? FileSession { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task RemoveEffect(AbioticEditor.Core.PlayerSaves.ActiveBuff buff) { FileSession?.RemoveActiveBuff(buff); await Changed(); } private async Task ClearEffects() { FileSession?.ClearActiveBuffs(); await Changed(); } private async Task HealAll() { Vitals.HealAll(); await Changed(); } }

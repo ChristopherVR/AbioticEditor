@@ -2270,3 +2270,7 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 button.ws-recipe-open{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 button.ws-recipe-open:hover strong{text-decoration:underline}
 .ws-recipe-row.selected{outline:1px solid var(--orange)}
+
+/* Active effects list (VITALS) */
+.effects-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.effects-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:6px}

@@ -12,6 +12,7 @@
 @inject AbioticEditor.Web.Services.SiblingWorldBedService Beds
 @inject AbioticEditor.Web.Services.SaveWorkspaceSessionService Workspace
 @inject IJSRuntime Js
+@inject AbioticEditor.Web.Services.ItemUpgradeVocabularyService UpgradeData
 
 @* Faithful port of the native PlayerInventoryTab: the AF-style paper-doll layout.
    Equipment paper-doll on the left, the vertical numbered hotbar beside the character,
@@ -666,6 +667,17 @@
         }
         _status = L.Resource("PlayerUi_PickupStaged", AreaLabel(PlayerInventoryArea.Backpack), target.Index);
         await OnChanged.InvokeAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Same on-demand pattern as the Recipes tab: the upgrade graph comes from the game's
+        // paks, which opening a save must not scan, so it loads off-thread when this tab opens.
+        // Without it the slot editor's UPGRADE / DOWNGRADE buttons never appear.
+        if (Session is PlayerSaveSession fileSession && fileSession.ItemUpgrades.Count == 0)
+        {
+            fileSession.ApplyItemUpgrades(UpgradeData.TryGet(out var loaded) ? loaded : await Task.Run(UpgradeData.Get));
+        }
     }
 
     protected override void OnInitialized()

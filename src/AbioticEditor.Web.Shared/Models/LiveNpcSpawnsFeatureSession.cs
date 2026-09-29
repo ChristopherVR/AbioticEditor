@@ -122,7 +122,7 @@ public sealed class LiveNpcSpawnsFeatureSession : IWorldFeaturesSession
         if (!string.Equals(featureId, NpcSpawnsFeatureId, StringComparison.Ordinal)) return null;
         var entries = Spawners.Select(s => new WorldMapEntry(
             s.Id,
-            s.Label,
+            AbioticEditor.Core.WorldSaves.Features.NpcSpawnMapFeature.FriendlyLabel(s.Label),
             new[]
             {
                 BoolInfo("onCooldown", "On cooldown", s.OnCooldown, "Whether this spawner is currently waiting out its cooldown."),

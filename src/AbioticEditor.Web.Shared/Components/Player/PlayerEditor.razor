@@ -22,7 +22,7 @@
         @LoadingContent
     }
     else if (ActiveTab == "general") { <PlayerGeneralTab General="Session" Recipes="Session" OnChanged="NotifyChanged" /> }
-    else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" Saved="SavedData" OnChanged="NotifyChanged" /> }
+    else if (ActiveTab == "vitals") { <PlayerVitalsTab Vitals="Session.Vitals" Saved="SavedData" FileSession="Session as PlayerSaveSession" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "character") { <PlayerCharacterTab Session="Session" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "transmog") { <PlayerTransmogTab Session="Session" Saved="SavedData" OnChanged="NotifyChanged" /> }
     else if (ActiveTab == "spawn") { <PlayerSpawnTab Session="Session" WorldSession="TransferWorldSession" OnChanged="NotifyChanged" /> }

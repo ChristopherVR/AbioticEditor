@@ -23,6 +23,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private HashSet<string> _originalCraftedItems;
     private HashSet<string> _originalMapsUnlocked;
     private HashSet<string> _originalItemsDistilled;
+    private List<ActiveBuff> _originalActiveBuffs;
     private PlayerRespawnEdit _originalRespawn = null!;
     private HashSet<string> _originalEmails;
     private HashSet<string> _originalJournals;
@@ -76,6 +77,8 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalMapsUnlocked = new(MapsUnlocked, StringComparer.Ordinal);
         ItemsDistilled = data.ItemsDistilled.ToHashSet(StringComparer.OrdinalIgnoreCase);
         _originalItemsDistilled = new(ItemsDistilled, StringComparer.OrdinalIgnoreCase);
+        ActiveBuffs = data.ActiveBuffs.ToList();
+        _originalActiveBuffs = data.ActiveBuffs.ToList();
         Equipment = data.Inventory.Equipment.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
         Hotbar = data.Inventory.Hotbar.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
         Backpack = data.Inventory.Main.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
@@ -101,7 +104,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalRotationYaw = LastControlRotationYaw;
         _originalRotationRoll = LastControlRotationRoll;
         SteamIdentifier = PlayerIdentifier.TryParseFromPlayerFileName(path, out var id) ? id : null;
-        ItemUpgrades = itemUpgrades ?? ItemUpgradeCatalog.Empty;
+        _itemUpgrades = itemUpgrades ?? ItemUpgradeCatalog.Empty;
         ItemsSeen = new DelegateDiscoverySection(() => ItemsPickedUp, canDiscoverAll: true,
             vocabulary => { DiscoverAllItems(vocabulary); return Task.CompletedTask; });
         ItemsCrafted = new DelegateDiscoverySection(() => CraftedItems, canDiscoverAll: true,
@@ -197,6 +200,25 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
 
     /// <summary>Lower-case item row names the distillery has seen (<c>ItemsDistilled_</c>).</summary>
     public HashSet<string> ItemsDistilled { get; }
+
+    /// <summary>The character's active effects (<c>CurrentBuffDebuffs_</c>). Effects can be
+    /// removed but not added: the expiry unit is unverified, see
+    /// <see cref="PlayerSaveWriter.ApplyActiveBuffs"/>.</summary>
+    public List<ActiveBuff> ActiveBuffs { get; }
+
+    /// <summary>Stages the removal of one active effect.</summary>
+    public void RemoveActiveBuff(ActiveBuff buff)
+    {
+        if (ActiveBuffs.Remove(buff)) MarkChanged();
+    }
+
+    /// <summary>Stages the removal of every active effect.</summary>
+    public void ClearActiveBuffs()
+    {
+        if (ActiveBuffs.Count == 0) return;
+        ActiveBuffs.Clear();
+        MarkChanged();
+    }
 
     /// <summary>Stages one item as distilled (or not).</summary>
     public void SetDistilled(string itemId, bool distilled)
@@ -329,7 +351,15 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     public string Path => _path;
     public string JsonPath => _path + ".json";
     public bool JsonFileExists => File.Exists(JsonPath);
-    public ItemUpgradeCatalog ItemUpgrades { get; }
+    private ItemUpgradeCatalog _itemUpgrades;
+    public ItemUpgradeCatalog ItemUpgrades => _itemUpgrades;
+
+    /// <summary>Supplies the upgrade graph once it has been loaded on demand (opening a save
+    /// deliberately does not read the game's paks). Ignored when it has nothing.</summary>
+    public void ApplyItemUpgrades(ItemUpgradeCatalog catalog)
+    {
+        if (catalog.Count > 0) _itemUpgrades = catalog;
+    }
     public int UnlockedRecipeCount => Recipes.Count(recipe => recipe.IsUnlocked);
     public int RecipeCount => Recipes.Count;
     public bool IsDirty => !SameVitals(Vitals, _original) || Skills.Any(skill => skill.IsDirty)
@@ -340,6 +370,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         || !CraftedItems.SetEquals(_originalCraftedItems)
         || !MapsUnlocked.SetEquals(_originalMapsUnlocked)
         || !ItemsDistilled.SetEquals(_originalItemsDistilled)
+        || !ActiveBuffs.SequenceEqual(_originalActiveBuffs)
         || AllInventorySlots().Any(slot => slot.IsDirty) || Transmog.Any(slot => slot.IsDirty)
         || TransmogVisibility.Any(toggle => toggle.IsDirty) || Respawn.IsDifferentFrom(_originalRespawn)
         || CarriedPets.Any(pet => pet.IsDirty)
@@ -380,6 +411,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
                 .Where(id => !kept.Contains(id, StringComparer.OrdinalIgnoreCase))
                 .OrderBy(id => id, StringComparer.Ordinal)).ToList());
         }
+        if (!ActiveBuffs.SequenceEqual(_originalActiveBuffs)) PlayerSaveWriter.ApplyActiveBuffs(_data, ActiveBuffs);
         PlayerSaveWriter.ApplyMapsUnlocked(_data, MapsUnlocked.OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyInventory(_data, new PlayerInventory(
             Equipment.Select(slot => slot.ToInventorySlot()).ToList(),
@@ -420,6 +452,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalCraftedItems = new(CraftedItems, StringComparer.Ordinal);
         _originalMapsUnlocked = new(MapsUnlocked, StringComparer.Ordinal);
         _originalItemsDistilled = new(ItemsDistilled, StringComparer.OrdinalIgnoreCase);
+        _originalActiveBuffs = ActiveBuffs.ToList();
         foreach (var slot in AllInventorySlots()) slot.AcceptCurrentAsBaseline();
         foreach (var slot in Transmog) slot.AcceptCurrentAsBaseline();
         foreach (var toggle in TransmogVisibility) toggle.AcceptCurrentAsBaseline();
@@ -453,6 +486,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         ResetSet(CraftedItems, _originalCraftedItems);
         ResetSet(MapsUnlocked, _originalMapsUnlocked);
         ResetSet(ItemsDistilled, _originalItemsDistilled);
+        ActiveBuffs.Clear(); ActiveBuffs.AddRange(_originalActiveBuffs);
         foreach (var slot in AllInventorySlots()) slot.Revert();
         foreach (var slot in Transmog) slot.Revert();
         foreach (var toggle in TransmogVisibility) toggle.Revert();

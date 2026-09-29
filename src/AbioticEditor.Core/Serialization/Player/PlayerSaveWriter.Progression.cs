@@ -102,6 +102,51 @@ public static partial class PlayerSaveWriter
             items.Count > 0 ? FullNames.ItemsDistilled : null, "StrProperty");
     }
 
+    /// <summary>
+    /// Removes active effects (<c>CurrentBuffDebuffs_</c>) so only <paramref name="keep"/> remain.
+    /// Removal only: the entries that stay are the game's own untouched structs. When nothing is
+    /// kept the whole struct is dropped, which is how the game stores a character with no
+    /// effects (it delta-serializes an empty list away). Adding an effect is deliberately not
+    /// supported: the unit of <c>BuffExpireTime</c> is unverified, and a wrong value either
+    /// removes the effect instantly or makes it permanent.
+    /// </summary>
+    public static bool ApplyActiveBuffs(PlayerSaveData data, IReadOnlyList<ActiveBuff> keep)
+    {
+        var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        var tag = root.FindByPrefix("CurrentBuffDebuffs_");
+        if (tag?.Property is not StructProperty sp || sp.Value is not PropertiesStruct ps
+            || ps.Properties.FindByPrefix("Buffs_")?.Property is not ArrayProperty array || array.Value is null)
+        {
+            return false;
+        }
+
+        var remaining = keep.ToList();
+        var kept = new List<object>();
+        for (var i = 0; i < array.Value.Length; i++)
+        {
+            var element = array.Value.GetValue(i);
+            if (element is not StructProperty esp || esp.Value is not PropertiesStruct eps) { kept.Add(element!); continue; }
+            var row = eps.Properties.FindByPrefix("BuffRow")?.Property is StructProperty rowSp && rowSp.Value is PropertiesStruct rowPs
+                ? rowPs.Properties.GetString("RowName") : null;
+            var entry = new ActiveBuff(row ?? string.Empty, eps.Properties.GetEnumString("ParentLimb"), eps.Properties.GetFloat("BuffExpireTime"));
+            var match = remaining.FindIndex(b => b == entry);
+            if (match < 0) continue;
+            remaining.RemoveAt(match);
+            kept.Add(element!);
+        }
+        if (kept.Count == array.Value.Length) return false;
+
+        if (kept.Count == 0)
+        {
+            root.Remove(tag);
+            return true;
+        }
+        var rebuilt = Array.CreateInstance(array.Value.GetType().GetElementType()!, kept.Count);
+        for (var i = 0; i < kept.Count; i++) rebuilt.SetValue(kept[i], i);
+        array.Value = rebuilt;
+        return true;
+    }
+
     /// <summary>Replaces the <c>MapsUnlocked_</c> name array (DT_MapPamphlets rows).</summary>
     public static void ApplyMapsUnlocked(PlayerSaveData data, IReadOnlyList<string> maps)
     {
