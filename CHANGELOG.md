@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [2.21.0] - 2026-09-29
+
+### Bug Fixes
+- Bring back upgrade and downgrade buttons and tidy world screens
+
+
+### Features
+- Remove active effects, friendlier spawner names, and fix the missing upgrade buttons
+- Click a world-wide seen entry to read about it
+- New Distilled app in the GATEPal tab
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.20.0 [skip ci]
+
+
 ## [2.20.0] - 2026-09-29
 
 ### Bug Fixes
