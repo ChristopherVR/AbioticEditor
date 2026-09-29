@@ -26,12 +26,13 @@ internal static class GvasTags
     /// anything simply has no such tag, and silently doing nothing there loses the edit.
     /// </summary>
     public static void ReplaceNameArray(
-        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null)
+        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null,
+        string elementType = "NameProperty")
     {
         if (tags.FindByPrefix(prefix)?.Property is not ArrayProperty array)
         {
             if (createFullName is null) return;
-            array = CreateNameArray(tags, createFullName);
+            array = CreateNameArray(tags, createFullName, elementType);
         }
 
         var items = new FString[values.Count];
@@ -68,10 +69,10 @@ internal static class GvasTags
     /// takes it from, so an array created without it writes a file that cannot be read back
     /// ("Failed to read item type for ArrayProperty").
     /// </summary>
-    private static ArrayProperty CreateNameArray(IList<FPropertyTag> tags, string fullName)
+    private static ArrayProperty CreateNameArray(IList<FPropertyTag> tags, string fullName, string elementType)
     {
         var name = new FString(fullName);
-        var itemType = new FPropertyTypeName(new FString("NameProperty"));
+        var itemType = new FPropertyTypeName(new FString(elementType));
         var type = new FPropertyTypeName(new FString("ArrayProperty"), [itemType]);
         var array = (ArrayProperty)FProperty.Create(name, type);
         array.ItemType = itemType;

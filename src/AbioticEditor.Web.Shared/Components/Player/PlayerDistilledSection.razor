@@ -1,0 +1,98 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@inject ItemCatalogService Catalog
+
+@* The distillery history: every item the character has put through a distillery. It is one
+   yes/no per item, so it is a tile grid you click, with a shortcut to mark everything. *@
+<div class="distilled-section">
+    <p class="muted">Items this character has already distilled. Click a tile to toggle it. Changes stage until you press SAVE.</p>
+    <div class="distilled-toolbar">
+        <input type="search" @bind="_filter" @bind:event="oninput" placeholder="Search items" aria-label="Search items" />
+        <div class="distilled-chips" role="group" aria-label="Show">
+            <button type="button" class="chip-button @(_mode == Mode.All ? "active" : null)" @onclick="() => _mode = Mode.All">All</button>
+            <button type="button" class="chip-button @(_mode == Mode.Distilled ? "active" : null)" @onclick="() => _mode = Mode.Distilled">Distilled</button>
+            <button type="button" class="chip-button @(_mode == Mode.NotYet ? "active" : null)" @onclick="() => _mode = Mode.NotYet">Not yet</button>
+        </div>
+        <span class="distilled-count">@Session.ItemsDistilled.Count of @Entries.Count distilled</span>
+        <button type="button" class="accent-hazard" @onclick="MarkAll">Mark all distilled</button>
+        <button type="button" class="secondary" disabled="@(Session.ItemsDistilled.Count == 0)" @onclick="ClearAll">Clear all</button>
+    </div>
+    @if (Visible.Count == 0)
+    {
+        <p class="muted codex-empty">Nothing matches.</p>
+    }
+    else
+    {
+        <div class="distilled-grid">
+            @foreach (var (entry, key) in RenderKeys.With(Visible.Take(Cap), e => e.Id))
+            {
+                var on = Session.ItemsDistilled.Contains(entry.Id);
+                <button type="button" class="distilled-tile @(on ? "on" : null)" @key="key" aria-pressed="@(on ? "true" : "false")"
+                        title="@entry.Id" @onclick="() => Toggle(entry.Id, !on)">
+                    <span class="distilled-icon"><ItemIcon ItemId="@entry.Id" Alt="@entry.Name" /></span>
+                    <span class="distilled-name">@entry.Name</span>
+                    <span class="distilled-state">@(on ? "Distilled" : "Not yet")</span>
+                </button>
+            }
+        </div>
+        @if (Visible.Count > Cap)
+        {
+            <p class="muted">Showing the first @Cap of @Visible.Count. Search to narrow it down.</p>
+        }
+    }
+</div>
+
+@code {
+    private const int Cap = 300;
+    private enum Mode { All, Distilled, NotYet }
+
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private string _filter = string.Empty;
+    private Mode _mode = Mode.All;
+
+    private sealed record Entry(string Id, string Name);
+
+    // Every known item plus anything already in the save, keyed by the lower-case row name the
+    // save stores, so items the catalog does not know are still shown and can be untoggled.
+    private IReadOnlyList<Entry> Entries => Session.ItemVocabulary
+        .Concat(Session.ItemsDistilled)
+        .Select(id => id.Trim().ToLowerInvariant())
+        .Where(id => id.Length > 0)
+        .Distinct(StringComparer.Ordinal)
+        .Select(id => new Entry(id, Catalog.Find(id)?.DisplayName ?? id))
+        .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
+        .ToList();
+
+    private List<Entry> Visible => Entries
+        .Where(e => _mode switch
+        {
+            Mode.Distilled => Session.ItemsDistilled.Contains(e.Id),
+            Mode.NotYet => !Session.ItemsDistilled.Contains(e.Id),
+            _ => true,
+        })
+        .Where(e => _filter.Length == 0
+            || e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)
+            || e.Id.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private async Task Toggle(string id, bool distilled)
+    {
+        Session.SetDistilled(id, distilled);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task MarkAll()
+    {
+        Session.DistillAll(Entries.Select(e => e.Id));
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task ClearAll()
+    {
+        Session.ClearDistilled();
+        await OnChanged.InvokeAsync();
+    }
+}

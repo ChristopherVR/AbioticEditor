@@ -22,6 +22,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private HashSet<string> _originalItemsPickedUp;
     private HashSet<string> _originalCraftedItems;
     private HashSet<string> _originalMapsUnlocked;
+    private HashSet<string> _originalItemsDistilled;
     private PlayerRespawnEdit _originalRespawn = null!;
     private HashSet<string> _originalEmails;
     private HashSet<string> _originalJournals;
@@ -73,6 +74,8 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalItemsPickedUp = new(ItemsPickedUp, StringComparer.Ordinal);
         _originalCraftedItems = new(CraftedItems, StringComparer.Ordinal);
         _originalMapsUnlocked = new(MapsUnlocked, StringComparer.Ordinal);
+        ItemsDistilled = data.ItemsDistilled.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _originalItemsDistilled = new(ItemsDistilled, StringComparer.OrdinalIgnoreCase);
         Equipment = data.Inventory.Equipment.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
         Hotbar = data.Inventory.Hotbar.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
         Backpack = data.Inventory.Main.Select(slot => new PlayerInventorySlotEdit(slot)).ToList();
@@ -191,6 +194,31 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     public HashSet<string> ItemsPickedUp { get; }
     public HashSet<string> CraftedItems { get; }
     public HashSet<string> MapsUnlocked { get; }
+
+    /// <summary>Lower-case item row names the distillery has seen (<c>ItemsDistilled_</c>).</summary>
+    public HashSet<string> ItemsDistilled { get; }
+
+    /// <summary>Stages one item as distilled (or not).</summary>
+    public void SetDistilled(string itemId, bool distilled)
+    {
+        var id = itemId.Trim().ToLowerInvariant();
+        if (id.Length == 0) return;
+        if (distilled ? ItemsDistilled.Add(id) : ItemsDistilled.Remove(id)) MarkChanged();
+    }
+
+    /// <summary>Stages every listed item as distilled.</summary>
+    public void DistillAll(IEnumerable<string> itemIds)
+    {
+        foreach (var id in itemIds) ItemsDistilled.Add(id.Trim().ToLowerInvariant());
+        MarkChanged();
+    }
+
+    /// <summary>Stages the distillery history as empty.</summary>
+    public void ClearDistilled()
+    {
+        ItemsDistilled.Clear();
+        MarkChanged();
+    }
     public IReadOnlyList<PlayerInventorySlotEdit> Equipment { get; }
     public IReadOnlyList<PlayerInventorySlotEdit> Hotbar { get; }
     public IReadOnlyList<PlayerInventorySlotEdit> Backpack { get; }
@@ -311,6 +339,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         || !ItemsPickedUp.SetEquals(_originalItemsPickedUp)
         || !CraftedItems.SetEquals(_originalCraftedItems)
         || !MapsUnlocked.SetEquals(_originalMapsUnlocked)
+        || !ItemsDistilled.SetEquals(_originalItemsDistilled)
         || AllInventorySlots().Any(slot => slot.IsDirty) || Transmog.Any(slot => slot.IsDirty)
         || TransmogVisibility.Any(toggle => toggle.IsDirty) || Respawn.IsDifferentFrom(_originalRespawn)
         || CarriedPets.Any(pet => pet.IsDirty)
@@ -343,6 +372,14 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         if (!string.IsNullOrWhiteSpace(Background)) PlayerSaveWriter.ApplyPhd(_data, Background);
         PlayerSaveWriter.ApplyItemsPickedUp(_data, ItemsPickedUp.OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyCraftedItems(_data, CraftedItems.OrderBy(id => id, StringComparer.Ordinal).ToList());
+        // Keep the game's own discovery order for entries that stay; new ones go on the end.
+        if (!ItemsDistilled.SetEquals(_originalItemsDistilled))
+        {
+            var kept = _data.ItemsDistilled.Where(ItemsDistilled.Contains).ToList();
+            PlayerSaveWriter.ApplyItemsDistilled(_data, kept.Concat(ItemsDistilled
+                .Where(id => !kept.Contains(id, StringComparer.OrdinalIgnoreCase))
+                .OrderBy(id => id, StringComparer.Ordinal)).ToList());
+        }
         PlayerSaveWriter.ApplyMapsUnlocked(_data, MapsUnlocked.OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyInventory(_data, new PlayerInventory(
             Equipment.Select(slot => slot.ToInventorySlot()).ToList(),
@@ -382,6 +419,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalItemsPickedUp = new(ItemsPickedUp, StringComparer.Ordinal);
         _originalCraftedItems = new(CraftedItems, StringComparer.Ordinal);
         _originalMapsUnlocked = new(MapsUnlocked, StringComparer.Ordinal);
+        _originalItemsDistilled = new(ItemsDistilled, StringComparer.OrdinalIgnoreCase);
         foreach (var slot in AllInventorySlots()) slot.AcceptCurrentAsBaseline();
         foreach (var slot in Transmog) slot.AcceptCurrentAsBaseline();
         foreach (var toggle in TransmogVisibility) toggle.AcceptCurrentAsBaseline();
@@ -414,6 +452,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         ResetSet(ItemsPickedUp, _originalItemsPickedUp);
         ResetSet(CraftedItems, _originalCraftedItems);
         ResetSet(MapsUnlocked, _originalMapsUnlocked);
+        ResetSet(ItemsDistilled, _originalItemsDistilled);
         foreach (var slot in AllInventorySlots()) slot.Revert();
         foreach (var slot in Transmog) slot.Revert();
         foreach (var toggle in TransmogVisibility) toggle.Revert();

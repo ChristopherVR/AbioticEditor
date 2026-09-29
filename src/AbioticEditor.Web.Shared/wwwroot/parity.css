@@ -2250,3 +2250,18 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .world-editor-summary .world-summary-readouts { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
 .world-editor-summary .world-summary-readouts > div { padding:10px 12px; border:1px solid var(--line,rgba(255,255,255,.12)); border-radius:6px; background:rgba(255,255,255,.03); }
 .world-editor-summary .world-clock-editor, .world-editor-summary .world-day-discovered { padding:12px; border:1px solid var(--line,rgba(255,255,255,.12)); border-top-width:1px; border-radius:6px; background:rgba(255,255,255,.03); }
+
+/* GATEPal DISTILLED app: clickable tile grid */
+.distilled-section{display:grid;gap:12px}
+.distilled-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.distilled-toolbar input[type=search]{flex:1 1 200px;min-width:160px}
+.distilled-chips{display:flex;gap:6px}
+.distilled-count{color:var(--muted);font-size:12px;margin-left:auto}
+.distilled-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.distilled-tile{display:grid;justify-items:center;gap:4px;padding:10px 8px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:8px;background:var(--elevated);color:var(--ink);text-align:center;cursor:pointer}
+.distilled-tile:hover{background:var(--hover)}
+.distilled-tile.on{border-color:var(--orange);box-shadow:inset 0 0 0 1px var(--orange)}
+.distilled-icon{display:grid;place-items:center;width:44px;height:44px}
+.distilled-name{font-size:12px;line-height:1.2;overflow-wrap:anywhere}
+.distilled-state{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.distilled-tile.on .distilled-state{color:var(--orange)}

@@ -90,6 +90,18 @@ public static partial class PlayerSaveWriter
         ReplaceNameArray(root, "CraftedItems_", items);
     }
 
+    /// <summary>
+    /// Replaces the <c>ItemsDistilled_</c> array (lower-case item row names the distillery has
+    /// seen). Created from its full name when the character has never distilled anything,
+    /// because the game omits an empty array.
+    /// </summary>
+    public static void ApplyItemsDistilled(PlayerSaveData data, IReadOnlyList<string> items)
+    {
+        var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        ReplaceNameArray(root, "ItemsDistilled_", items,
+            items.Count > 0 ? FullNames.ItemsDistilled : null, "StrProperty");
+    }
+
     /// <summary>Replaces the <c>MapsUnlocked_</c> name array (DT_MapPamphlets rows).</summary>
     public static void ApplyMapsUnlocked(PlayerSaveData data, IReadOnlyList<string> maps)
     {

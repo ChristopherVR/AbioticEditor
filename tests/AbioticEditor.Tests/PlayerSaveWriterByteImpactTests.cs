@@ -34,6 +34,7 @@ public sealed class PlayerSaveWriterByteImpactTests(ITestOutputHelper output)
                 ("ApplyItemsPickedUp", d => PlayerSaveWriter.ApplyItemsPickedUp(d, d.ItemsPickedUp)),
                 ("ApplyCraftedItems", d => PlayerSaveWriter.ApplyCraftedItems(d, d.CraftedItems)),
                 ("ApplyMapsUnlocked", d => PlayerSaveWriter.ApplyMapsUnlocked(d, d.MapsUnlocked)),
+                ("ApplyItemsDistilled", d => PlayerSaveWriter.ApplyItemsDistilled(d, d.ItemsDistilled)),
                 ("ApplyInventory", d => PlayerSaveWriter.ApplyInventory(d, d.Inventory)),
                 ("ApplyTransmogSlots", d => PlayerSaveWriter.ApplyTransmogSlots(d, d.TransmogSlots)),
                 ("ApplyTransmogVisibility", d => PlayerSaveWriter.ApplyTransmogVisibility(d, d.TransmogVisibility)),

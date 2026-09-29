@@ -11,8 +11,9 @@ namespace AbioticEditor.Core.PlayerSaves;
 public static partial class PlayerSaveWriter
 {
     private static void ReplaceNameArray(
-        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null)
-        => GvasTags.ReplaceNameArray(tags, prefix, values, createFullName);
+        IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null,
+        string elementType = "NameProperty")
+        => GvasTags.ReplaceNameArray(tags, prefix, values, createFullName, elementType);
 
     /// <summary>
     /// Finds the property matching <paramref name="prefix"/>. When absent and

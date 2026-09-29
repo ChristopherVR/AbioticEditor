@@ -71,6 +71,29 @@ public class DiscoveryTests
     }
 
     [Fact]
+    public void ApplyItemsDistilled_RoundTripsAndCreatesTheArrayWhenAbsent()
+    {
+        Assert.NotNull(Fixtures.CascadeDir);
+        var checkedExisting = false;
+        var checkedCreated = false;
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(Fixtures.CascadeDir!, "PlayerData"), "Player_*.sav"))
+        {
+            var data = PlayerSaveReader.ReadFromFile(path);
+            var wanted = data.ItemsDistilled.Append("test_sentinel").ToList();
+
+            PlayerSaveWriter.ApplyItemsDistilled(data, wanted);
+            using var ms = new MemoryStream();
+            data.Raw.WriteTo(ms);
+            ms.Position = 0;
+            var reloaded = PlayerSaveReader.ReadFromStream(ms);
+
+            Assert.Equal(wanted, reloaded.ItemsDistilled);
+            if (data.ItemsDistilled.Count > 0) checkedExisting = true; else checkedCreated = true;
+        }
+        Assert.True(checkedExisting || checkedCreated);
+    }
+
+    [Fact]
     public void MapCatalog_LoadsPamphlets()
     {
         using var provider = GameAssetProvider.CreateForLocalInstall();

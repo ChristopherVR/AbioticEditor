@@ -22,13 +22,23 @@
     </header>
     <div class="journal-rule" aria-hidden="true"></div>
     <div class="gatepal-body">
-        <div class="gatepal-markall"><button class="accent-hazard" type="button" @onclick="MarkAll">@L.Resource("PlayerCodex_MarkAllRead")</button></div>
+        <div class="gatepal-markall" hidden="@(Active == "distilled")"><button class="accent-hazard" type="button" @onclick="MarkAll">@L.Resource("PlayerCodex_MarkAllRead")</button></div>
         <div class="gatepal-apps" role="tablist">
             <button type="button" role="tab" class="gatepal-app @(Active == "emails" ? "active" : null)" aria-selected="@(Active == "emails" ? "true" : "false")" @onclick='() => SelectSection("emails")'>✉ E-MAIL</button>
             <button type="button" role="tab" class="gatepal-app @(Active == "journals" ? "active" : null)" aria-selected="@(Active == "journals" ? "true" : "false")" @onclick='() => SelectSection("journals")'>✎ NOTES</button>
             <button type="button" role="tab" class="gatepal-app @(Active == "compendium" ? "active" : null)" aria-selected="@(Active == "compendium" ? "true" : "false")" @onclick='() => SelectSection("compendium")'>◈ COMPENDIUM</button>
             <button type="button" role="tab" class="gatepal-app @(Active == "fish" ? "active" : null)" aria-selected="@(Active == "fish" ? "true" : "false")" @onclick='() => SelectSection("fish")'>🐟 FISH</button>
+            @if (Session is PlayerSaveSession)
+            {
+                <button type="button" role="tab" class="gatepal-app @(Active == "distilled" ? "active" : null)" aria-selected="@(Active == "distilled" ? "true" : "false")" @onclick='() => SelectSection("distilled")'>⚗ DISTILLED</button>
+            }
         </div>
+        @if (Active == "distilled" && Session is PlayerSaveSession distilledSession)
+        {
+            <PlayerDistilledSection Session="distilledSession" OnChanged="OnChanged" />
+        }
+        else
+        {
         <div class="gatepal-search">
             <input type="search" @bind="Filter" @bind:event="oninput" placeholder="@L.Resource("PlayerCodex_SearchPlaceholder")" aria-label="@L.Resource("PlayerCodex_SearchPlaceholder")" />
             <label class="unread-only"><input type="checkbox" @bind="UnreadOnly" /> @L.Resource("PlayerCodex_UnreadOnly")</label>
@@ -53,6 +63,7 @@
             </div>
         </div>
         <p class="muted gatepal-footer">@L.Resource("PlayerCodex_FooterHelp")</p>
+        }
         @if (Session.AppliesImmediately)
         {
             <p class="muted gatepal-footer live-warning">@L.Resource("PlayerCodex_LiveMarkKnownOnlyHelp")</p>

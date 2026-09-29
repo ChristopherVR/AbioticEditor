@@ -68,6 +68,7 @@ public static partial class PlayerSaveWriter
         public const string CompendiumUnread = "Compendium_Unread_149_38D44AA044D8087E1B4026B3D3723202";
         public const string JournalUnread = "Journal_Unread_158_D78ED364437E5F530D2BD9A60F06DCE7";
         public const string FishUnread = "Fish_Unread_157_A91CA2374071D28DF6671F9816A63CA5";
+        public const string ItemsDistilled = "ItemsDistilled_162_360CC93D4F1B4060A4AB61AC1E77FFC0";
         public const string RecipesRequiringResearch = "RecipesRequiringResearch_89_0A2778A74B6F1090075D8A9BEE7A0361";
         public const string CompletedIntro = "CompletedIntro_26_7F0FCDEA4BA0DD4D229BF38724FF442C";
         public const string LastControlRotation = "LastControlRotation_69_33E2359F425EBFDFB5CE2D84DCE6AD1B";
