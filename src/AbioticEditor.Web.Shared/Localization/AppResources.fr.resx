@@ -1585,7 +1585,7 @@ Choisissez le dossier d'installation du jeu, ou le dossier AbioticFactor qu'il c
     <value>Ce n'est pas un identifiant Steam, donc les extras Steam (nom affiché, succès) restent désactivés. Vous pouvez tout de même le changer ici.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(trait inutilisé/supprimé - le jeu n'a ni description ni entrée de créateur pour lui)</value>
+    <value>(trait inutilisé, retiré du jeu)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>Modifier le SteamID ?</value>

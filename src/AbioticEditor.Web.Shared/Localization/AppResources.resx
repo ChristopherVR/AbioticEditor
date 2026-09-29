@@ -432,8 +432,6 @@
   <data name="PlayerInventory_SavedSelectionHelp" xml:space="preserve"><value>What the game remembers about your hotbar and starred slots. Shown as saved; the editor keeps it as it is.</value></data>
   <data name="PlayerInventory_LastHotbarSlot" xml:space="preserve"><value>Last selected hotbar slot</value></data>
   <data name="PlayerInventory_StarredSlots" xml:space="preserve"><value>Starred inventory slots</value></data>
-  <data name="PlayerTransmog_SlotFlags" xml:space="preserve"><value>Cosmetic slot flags (view only)</value></data>
-  <data name="PlayerTransmog_SlotFlagsHelp" xml:space="preserve"><value>One flag per gear slot, as saved. What each flag does in game has not been confirmed yet, so they cannot be changed here.</value></data>
   <data name="PlayerVitals_ActiveEffects" xml:space="preserve"><value>Active effects (view only)</value></data>
   <data name="PlayerVitals_ActiveEffectsHelp" xml:space="preserve"><value>Buffs and debuffs on the character when the game was saved.</value></data>
   <data name="PlayerRecipes_DistilledItems" xml:space="preserve"><value>Distilled before (view only)</value></data>
@@ -535,9 +533,6 @@
   <data name="Slot_VariantRow" xml:space="preserve"><value>VISUAL VARIANT</value></data>
   <data name="Slot_VariantRowHint" xml:space="preserve"><value>Which reviewed color, artwork, or model variant this item shows.</value></data>
   <data name="Slot_VariantDefault" xml:space="preserve"><value>Default appearance</value></data>
-  <data name="Slot_VariantManual" xml:space="preserve"><value>Manual visual variant</value></data>
-  <data name="Slot_VariantRowName" xml:space="preserve"><value>VARIANT ROW</value></data>
-  <data name="Slot_VariantManualHint" xml:space="preserve"><value>Advanced: choose any known game row or type a newer row name. A row made for another item may render incorrectly.</value></data>
   <data name="Slot_ChaptersAreStrictlyLinearAQuestCantReallyBeginUntilEveryEarlierTriggerFlagIsSetStageSaveToWrite" xml:space="preserve"><value>The story runs in order, so a chapter cannot really begin until the earlier ones have happened. Press SAVE to write your changes.</value></data>
   <data name="Slot_ChooseABench" xml:space="preserve"><value>Choose a bench...</value></data>
   <data name="Slot_ConfirmDismantle" xml:space="preserve"><value>CONFIRM DISMANTLE</value></data>
@@ -2097,7 +2092,7 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
     <value>This is not a Steam ID, so the Steam-only extras (persona name, achievements) stay switched off. You can still change the id here.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(unused/cut trait - the game never finished it: no in-game description, no character-creator entry, and in most cases no icon either)</value>
+    <value>(unused trait, cut from the game)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>Change SteamID?</value>

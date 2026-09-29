@@ -1585,7 +1585,7 @@ Wählen Sie den Ordner, in dem das Spiel installiert ist, oder den darin enthalt
     <value>Dies ist keine Steam-ID, daher bleiben die Steam-Extras (Anzeigename, Erfolge) aus. Die ID lässt sich hier trotzdem ändern.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(ungenutztes/entferntes Merkmal - das Spiel hat dafür keine Beschreibung oder keinen Editor-Eintrag)</value>
+    <value>(ungenutztes Merkmal, aus dem Spiel entfernt)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>SteamID ändern?</value>

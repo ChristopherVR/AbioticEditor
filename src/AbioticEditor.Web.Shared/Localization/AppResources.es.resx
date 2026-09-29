@@ -1586,7 +1586,7 @@ Elige la carpeta donde está instalado el juego, o la carpeta AbioticFactor que 
     <value>Este no es un ID de Steam, así que los extras de Steam (nombre, logros) siguen desactivados. Aun así puedes cambiar el ID aquí.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(rasgo no usado/eliminado - el juego no tiene descripción ni entrada del creador para él)</value>
+    <value>(rasgo sin usar, eliminado del juego)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>¿Cambiar SteamID?</value>

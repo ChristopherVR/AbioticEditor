@@ -427,8 +427,10 @@ public sealed class Base3DViewerTests
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("<WorldBases3DTab", surface, StringComparison.Ordinal);
         Assert.Contains("<WorldBasesTab", surface, StringComparison.Ordinal);
-        Assert.Contains("OnOpen3D=\"Open3DBases\"", surface, StringComparison.Ordinal);
+        Assert.Contains("Open3DBases", surface, StringComparison.Ordinal);
         Assert.Contains("Add(\"bases3d\"", surface, StringComparison.Ordinal);
+        // Experimental: hidden unless the player opts in under Settings > Editor > Advanced.
+        Assert.Contains("Advanced.Enable3DBaseView", surface, StringComparison.Ordinal);
 
         // The live host renders the 2D tab without the 3D entry point (no staged file session there).
         var live = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");

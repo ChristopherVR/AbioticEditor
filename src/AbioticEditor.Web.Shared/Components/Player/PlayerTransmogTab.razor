@@ -98,15 +98,6 @@
     }
 </section>
 
-@if (Saved is { TransmogDisabled.Count: > 0 })
-{
-    <section class="editor-card saved-view-card" aria-label="@L.Resource("PlayerTransmog_SlotFlags")">
-        <span class="amber-field-label">@L.Resource("PlayerTransmog_SlotFlags")</span>
-        <p class="muted">@L.Resource("PlayerTransmog_SlotFlagsHelp")</p>
-        <code>@string.Concat(Saved.TransmogDisabled.Select(flag => flag ? '1' : '0'))</code>
-    </section>
-}
-
 @code {
     [Parameter, EditorRequired] public IPlayerTransmogSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }

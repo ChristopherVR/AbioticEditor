@@ -1585,7 +1585,7 @@
     <value>Это не Steam ID, поэтому возможности Steam (имя профиля, достижения) остаются отключёнными. Изменить идентификатор здесь всё равно можно.</value>
   </data>
   <data name="PlayerEditor_CutTraitDescription" xml:space="preserve">
-    <value>(неиспользуемая/вырезанная черта - у игры нет для неё описания или записи создателя)</value>
+    <value>(неиспользуемая черта, вырезана из игры)</value>
   </data>
   <data name="PlayerGeneral_ChangeSteamIdTitle" xml:space="preserve">
     <value>Изменить SteamID?</value>

@@ -226,19 +226,6 @@
                     </label>
                     <small class="slot-editor-hint">@L.Resource("Slot_VariantRowHint")</small>
                 }
-                <details class="slot-variant-manual">
-                    <summary>@L.Resource("Slot_VariantManual")</summary>
-                    <label>@L.Resource("Slot_VariantRowName")
-                        <input list="item-variant-rows" @bind="selected.VariantRowName" @bind:after="Changed" />
-                        <datalist id="item-variant-rows">
-                            @foreach (var variant in Catalog.Variants.Entries)
-                            {
-                                <option value="@variant.RowName">@variant.DisplayName</option>
-                            }
-                        </datalist>
-                    </label>
-                    <small class="slot-editor-hint">@L.Resource("Slot_VariantManualHint")</small>
-                </details>
             </div>
 
             @* The COUNT box above is the only stack-size control. There were -1 / +1 / HALVE /

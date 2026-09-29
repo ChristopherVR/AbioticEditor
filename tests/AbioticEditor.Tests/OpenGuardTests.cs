@@ -234,7 +234,7 @@ public sealed class OpenGuardTests
     }
 
     [Fact]
-    public async Task The_browser_host_asks_before_every_open_and_never_remembers_the_answer()
+    public async Task The_browser_gate_itself_asks_every_time_it_is_called()
     {
         var modals = new ModalService();
         var gate = new BrowserModDisclaimerGate(modals, new HostLanguageService());
@@ -247,8 +247,7 @@ public sealed class OpenGuardTests
         Assert.Equal(1, opened);
         modals.Close();
 
-        // There is deliberately no "don't show again" -
-        // the very next open asks again.
+        // The gate keeps no memory; the sidebar decides when it is called (once per world).
         await gate.ShowAsync(() => { opened++; return Task.CompletedTask; });
         var second = Assert.IsType<ModalRequest>(modals.Current);
         Assert.NotNull(second.OnConfirm);
@@ -282,7 +281,7 @@ public sealed class OpenGuardTests
     /// session.
     /// </summary>
     [Theory]
-    [InlineData("() => Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync)")]
+    [InlineData("() => { _disclaimerAcknowledgedFor = worldFolder; return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync); }")]
     [InlineData("() => Unsaved.ConfirmAsync(() => OpenOfflinePlayerAsync(save), DoneSwitchingSaveAsync)")]
     public void Switching_saves_in_the_sidebar_asks_the_mod_disclaimer_first(string innerProceed)
     {
