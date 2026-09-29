@@ -2244,3 +2244,9 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .power-connection-list li{margin:2px 0}
 .power-connection-line{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .power-connection-missing{color:var(--alert)}
+
+/* World details: always open, readouts as tiles (was a collapsed <details>) */
+.world-editor-summary { gap:14px; }
+.world-editor-summary .world-summary-readouts { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.world-editor-summary .world-summary-readouts > div { padding:10px 12px; border:1px solid var(--line,rgba(255,255,255,.12)); border-radius:6px; background:rgba(255,255,255,.03); }
+.world-editor-summary .world-clock-editor, .world-editor-summary .world-day-discovered { padding:12px; border:1px solid var(--line,rgba(255,255,255,.12)); border-top-width:1px; border-radius:6px; background:rgba(255,255,255,.03); }

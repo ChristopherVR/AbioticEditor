@@ -4,7 +4,8 @@ namespace AbioticEditor.Core.WorldSaves;
 /// Verified character portraits for named story characters and holograms. These are character references,
 /// not claims that every recording uses the same scene or costume. File names are from the
 /// official Abiotic Factor Wiki's Compendium Images category and Abe Stern infobox,
-/// except <c>Hologram.PNG</c>, which is named on the Derek Manse page.
+/// except <c>Hologram.PNG</c>, which is named on the Derek Manse page, and the Unlost entries,
+/// which are the infobox images of their own wiki pages.
 /// </summary>
 public static class HologramPortraitCatalog
 {
@@ -33,6 +34,9 @@ public static class HologramPortraitCatalog
         ("Marion", ["T_Compendium_Marion.png"]),
         ("Order Interfector", ["Order_Interfector.png"]),
         ("Interfector", ["Order_Interfector.png"]),
+        ("Sister of the Unlost", ["Sister_of_the_Unlost.png"]),
+        ("Mystagogue Eye", ["Mystagogue_Eye_of_the_Unlost.png"]),
+        ("Mystagogue", ["Mage_of_the_Unlost.png"]),
     ];
 
     /// <summary>Every verified file used by this catalog, for the offline image bundle.</summary>

@@ -71,7 +71,7 @@
                                 <strong>@CharacterName(npc)</strong>
                                 <small>@CharacterSecondary(npc)</small>
                             </span>
-                            <span class="wt-row-status">@(npc.IsDead ? "Removal flag set" : "Removal flag not set")</span>
+                            @if (npc.IsDead) { <span class="wt-row-status">Removed by story</span> }
                         </button>
                     }
                 </div>
@@ -103,19 +103,14 @@
                             <span class="wt-muted">X @selected.X.ToString("0"), Y @selected.Y.ToString("0"), Z @selected.Z.ToString("0")</span>
                         </div>
                         }
-                        @* Research shows IsDead is primarily a story-scripted removal flag, so
-                           this screen never offers a player-facing kill switch. *@
+                        @* The removal flag is a story-scripted field the player cannot change, so it is
+                           only mentioned (as a row badge) when it is set. *@
                         <div class="wt-field">
-                            <span class="wt-label">Saved removal flag</span>
-                            <span class="wt-muted">@(selected.IsDead ? "Set" : "Not set")</span>
-                            <small class="wt-muted">This field can be used by story scripts to remove an appearance; it is not a reliable alive/dead indicator.</small>
-                        </div>
-                        <details>
-                            <summary>@L.Resource("WorldNpcs_ScriptPhase")</summary>
+                            <span class="wt-label">@L.Resource("WorldNpcs_ScriptPhase")</span>
                             <p class="wt-muted" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhaseTooltip")</p>
                             <span class="wt-muted">Saved raw phase: @selected.State</span>
                             <small class="wt-muted">This is a per-character dialogue or behavior phase. We have not verified what each value means for this character, so it is diagnostic only.</small>
-                        </details>
+                        </div>
                     }
                 </div>
             </div>
@@ -164,11 +159,11 @@
                         <h3 class="wt-h3">@CharacterName(selected)</h3>
                         <p class="wt-muted">Class: @NpcClassName(selected), instance: @NpcInstanceName(selected)</p>
                         <p class="wt-muted">This saved entry is a scripted projection. Its raw phase belongs to this instance's dialogue or scene script; we have not verified what each value means, and it is not a global quest progress value.</p>
-                        <details>
-                            <summary>@L.Resource("WorldNpcs_ScriptPhase")</summary>
+                        <div class="wt-field">
+                            <span class="wt-label">@L.Resource("WorldNpcs_ScriptPhase")</span>
                             <p class="wt-muted" title="@L.Resource("WorldNpcs_ScriptPhaseTooltip")">@L.Resource("WorldNpcs_ScriptPhaseTooltip")</p>
                             <span class="wt-muted">Stage @StageNumber(selected.State)</span>
-                        </details>
+                        </div>
                     }
                 </div>
             </div>

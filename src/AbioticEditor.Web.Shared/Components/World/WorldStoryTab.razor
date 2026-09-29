@@ -531,7 +531,7 @@
                        the target), so this stays file-only rather than rendering a button whose
                        handler silently no-ops live (UnlockThroughAsync returns early without a
                        FileSession). *@
-                    @if (FileSession is not null)
+                    @if (FileSession is not null && FlagsThrough(chapter).Any(flag => !HasWorldFlag(flag)))
                     {
                         <button type="button" class="wm-hazard-btn" disabled="@_settingChapter"
                                 title="@L.Resource("Slot_AddsEveryChapterTriggerFlagFromTheStartOfTheStoryThroughThisChapterTheDependencySafeWayToUnlockItAdditiveOnlyNeverRemovesFlags")"

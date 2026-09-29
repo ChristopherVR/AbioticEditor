@@ -810,7 +810,10 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 _recipeVocabulary.TryGetRecipes(out var recipes);
                 _progressionVocabulary.TryGet(out var items, out var maps);
                 _codexVocabulary.TryGet(out var codex);
-                _itemUpgradeVocabulary.TryGet(out var upgrades);
+                // Get, not TryGet: TryGet is empty until something else has loaded the graph, which
+                // left UPGRADE / DOWNGRADE missing from the slot editor unless the Recipes tab had
+                // been opened first. This already runs off the caller's thread.
+                var upgrades = _itemUpgradeVocabulary.Get();
                 return new SaveSelection(PlayerSummary(save, data),
                     new PlayerSaveSession(data, save.Path, recipes, items, maps, codex, upgrades,
                         _language is null ? null : _language.Resource, _files), null);

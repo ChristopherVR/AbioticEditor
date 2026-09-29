@@ -25,8 +25,7 @@
             }
             @if (workspace.WorldSession is { } world)
             {
-                <details class="world-editor-summary editor-card">
-                    <summary>@Languages.Resource("Editing_WorldOverview")</summary>
+                <section class="world-editor-summary editor-card" aria-label="@Languages.Resource("Editing_WorldOverview")">
                     <header class="world-summary-heading">
                         <h2>@Languages.Resource(world.IsMetadataSave ? "WorldEditor_TabStory" : "WorldEditor_WorldSave")</h2>
                         <span>@Path.GetFileName(world.Path)</span>
@@ -56,7 +55,7 @@
                             <small>@Languages.Resource("WorldEditor_DayDiscoveredHelp")</small>
                         </div>
                     }
-                </details>
+                </section>
                 <label class="editor-section-picker world-section-picker">@Languages.Resource("Editing_Section")
                     <select value="@_worldTab" @onchange="e => SelectWorldTab(e.Value?.ToString() ?? _worldTab)">
                         @foreach (var tab in WorldTabsFor(world)) { <option value="@tab.Id">@tab.Label</option> }
