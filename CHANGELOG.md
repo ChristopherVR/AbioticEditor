@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented here.
 
+## [2.19.0] - 2026-09-29
+
+### Bug Fixes
+- REVERT ALL in the 3D view now undoes every staged edit
+- Copies of a turned base object now keep the turn
+
+
+### Documentation
+- Note that base editing now works from the 3D view
+- Record the 3D view and the new base editing tools
+
+
+### Features
+- Delete, copy and arrange base objects in the 3D view
+- Command line tools to move, turn, copy and delete base objects
+- Safer delete, copy and group moves for base objects
+- Add an experimental 3D view of the objects in a world region
+
+
+### Miscellaneous Tasks
+- Bring in the 3D view and base editing work
+- Point bucket at v2.18.1 [skip ci]
+
+
+### Testing
+- Spell the dash checks without the dash itself
+
+
 ## [2.18.1] - 2026-09-28
 
 ### Miscellaneous Tasks
