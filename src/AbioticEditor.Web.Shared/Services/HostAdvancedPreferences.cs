@@ -7,12 +7,15 @@ public sealed class HostAdvancedPreferences
 {
     private readonly string _path;
     private bool _skipEquipSlotValidation;
+    private bool _enable3DBaseView;
 
     public HostAdvancedPreferences() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "webadvanced.json")) { }
     public HostAdvancedPreferences(string path)
     {
         _path = path;
-        _skipEquipSlotValidation = Read(path).SkipEquipSlotValidation;
+        var stored = Read(path);
+        _skipEquipSlotValidation = stored.SkipEquipSlotValidation;
+        _enable3DBaseView = stored.Enable3DBaseView;
     }
 
     /// <summary>
@@ -27,19 +30,29 @@ public sealed class HostAdvancedPreferences
         set { if (_skipEquipSlotValidation != value) { _skipEquipSlotValidation = value; Save(); } }
     }
 
+    /// <summary>
+    /// Shows the experimental 3D base view (the "3D VIEW" world tab and the button that opens it).
+    /// Off by default: the 3D view is unfinished, so it stays hidden until the player opts in.
+    /// </summary>
+    public bool Enable3DBaseView
+    {
+        get => _enable3DBaseView;
+        set { if (_enable3DBaseView != value) { _enable3DBaseView = value; Save(); } }
+    }
+
     private void Save()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        File.WriteAllText(_path, JsonSerializer.Serialize(new Stored(_skipEquipSlotValidation)));
+        File.WriteAllText(_path, JsonSerializer.Serialize(new Stored(_skipEquipSlotValidation, _enable3DBaseView)));
     }
 
     private static Stored Read(string path)
     {
-        try { return File.Exists(path) ? JsonSerializer.Deserialize<Stored>(File.ReadAllText(path)) ?? new(false) : new(false); }
-        catch (IOException) { return new(false); }
-        catch (UnauthorizedAccessException) { return new(false); }
-        catch (JsonException) { return new(false); }
+        try { return File.Exists(path) ? JsonSerializer.Deserialize<Stored>(File.ReadAllText(path)) ?? new(false, false) : new(false, false); }
+        catch (IOException) { return new(false, false); }
+        catch (UnauthorizedAccessException) { return new(false, false); }
+        catch (JsonException) { return new(false, false); }
     }
 
-    private sealed record Stored(bool SkipEquipSlotValidation);
+    private sealed record Stored(bool SkipEquipSlotValidation, bool Enable3DBaseView);
 }

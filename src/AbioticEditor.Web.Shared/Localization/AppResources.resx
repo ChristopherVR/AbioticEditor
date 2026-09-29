@@ -2289,6 +2289,12 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_SkipEquipSlotValidationHint" xml:space="preserve">
     <value>Normally the editor blocks putting an item where the game wouldn't allow it (a helmet in the legs slot, for example). Turning this on lets you place any item in any equipment, transmog or hotbar slot, with no compatibility checks.</value>
   </data>
+  <data name="Settings_Enable3DBaseView" xml:space="preserve">
+    <value>Show the experimental 3D base view</value>
+  </data>
+  <data name="Settings_Enable3DBaseViewHint" xml:space="preserve">
+    <value>The 3D view of your base is still experimental and hidden by default. Turn this on to get a 3D VIEW tab next to the base list.</value>
+  </data>
   <data name="Settings_ManagePlugins" xml:space="preserve">
     <value>MANAGE PLUGINS</value>
   </data>

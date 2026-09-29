@@ -101,6 +101,8 @@
                             <p class="muted">@R("Settings_AdvancedHint")</p>
                             <label class="settings-switch-row"><span>@R("Settings_SkipEquipSlotValidation")</span><input type="checkbox" role="switch" checked="@Advanced.SkipEquipSlotValidation" @onchange="SetSkipEquipSlotValidation" /></label>
                             <p class="muted">@R("Settings_SkipEquipSlotValidationHint")</p>
+                            <label class="settings-switch-row"><span>@R("Settings_Enable3DBaseView")</span><input type="checkbox" role="switch" checked="@Advanced.Enable3DBaseView" @onchange="SetEnable3DBaseView" /></label>
+                            <p class="muted">@R("Settings_Enable3DBaseViewHint")</p>
                         </article>
                         break;
                     case SettingsTab.GameData:
@@ -384,6 +386,7 @@
     }
     private void SetSpoilerProtection(ChangeEventArgs e) => Spoilers.Enabled = e.Value as bool? ?? false;
     private void ResealSpoilers() => Spoilers.Reseal();
+    private void SetEnable3DBaseView(ChangeEventArgs e) => Advanced.Enable3DBaseView = e.Value as bool? ?? false;
     private void SetSkipEquipSlotValidation(ChangeEventArgs e) => Advanced.SkipEquipSlotValidation = e.Value as bool? ?? false;
     private async Task RevealLogsAsync()
     {
