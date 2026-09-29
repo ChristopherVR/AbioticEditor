@@ -522,10 +522,21 @@
         if (string.Equals(save.Path, Workspace.Current?.SelectedSave?.Path, StringComparison.OrdinalIgnoreCase))
             return Task.CompletedTask;
         _switchingSave = true;
+        // Once per opened world: switching between files of the world already acknowledged goes
+        // straight through. A reload, or opening a different world, changes the world folder and asks again.
+        var worldFolder = Workspace.Current?.WorldFolder;
+        if (worldFolder is not null && string.Equals(worldFolder, _disclaimerAcknowledgedFor, StringComparison.OrdinalIgnoreCase))
+            return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync);
         return ModDisclaimer.ShowAsync(
-            () => Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync),
+            () =>
+            {
+                _disclaimerAcknowledgedFor = worldFolder;
+                return Unsaved.ConfirmAsync(() => OpenAsync(save), DoneSwitchingSaveAsync);
+            },
             DoneSwitchingSaveAsync);
     }
+
+    private string? _disclaimerAcknowledgedFor;
 
     /// <summary>A player row is "live" only when it is BOTH currently connected to the running
     /// game AND we are live-connected ourselves - an offline player (in the world folder but not

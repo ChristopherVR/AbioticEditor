@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Components.Rendering;
 namespace AbioticEditor.Web.Services;
 
 /// <summary>
-/// The browser build's mod-content warning, shown before every save open (not just once per
-/// browser - there is no "don't show again"). The web app can never mount the installed game's
+/// The browser build's mod-content warning, shown once each time a world is opened (again after a
+/// reload or when a different world is opened; there is no "don't show again"). The web app can never mount the installed game's
 /// paks the way the desktop host's <c>GameAssetProvider</c> does, so it has no way to tell whether
 /// a save was played with mods; editing modded content here can leave it in a state the game
 /// itself would never produce.
