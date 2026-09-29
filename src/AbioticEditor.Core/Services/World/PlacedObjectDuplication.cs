@@ -257,6 +257,12 @@ public static partial class PlacedObjectDuplication
                             "Rotation member is omitted in the save; the editor does not create it, so this object cannot be rotated.", source));
                     }
                 }
+                else if (before?.Rotation is { } staged
+                    && PlacedObjectCensus.ReadTransform(props)?.Rotation is { } savedRotation && staged != savedRotation)
+                {
+                    // The source is turned by a staged edit: the copy is made from that turned object, as it is for the position.
+                    newR = staged;
+                }
                 if (!pivotResolved)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "pivot", "The pivot could not be resolved (no position).", source));
