@@ -140,7 +140,7 @@
                         <div class="b3d-policies" data-b3d="delete-policies">
                             @foreach (var row in DeletePolicyRows())
                             {
-                                <label class="b3d-policy" @key="row.Id">
+                                <label class="b3d-policy" @key="row.LabelKey">
                                     <span>@L.Resource(row.LabelKey)</span>
                                     <select class="wt-input" data-b3d="@row.Id" @onchange="e => row.Set(ParsePolicy(e.Value?.ToString()))">
                                         @foreach (var option in row.Allowed)
@@ -198,7 +198,7 @@
                     <div class="b3d-policies" data-b3d="duplicate-policies">
                         @foreach (var row in DuplicatePolicyRows())
                         {
-                            <label class="b3d-policy" @key="row.Id">
+                            <label class="b3d-policy" @key="row.LabelKey">
                                 <span>@L.Resource(row.LabelKey)</span>
                                 <select class="wt-input" data-b3d="@row.Id" @onchange="e => row.Set(ParsePolicy(e.Value?.ToString()))">
                                     @foreach (var option in row.Allowed)
