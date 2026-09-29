@@ -17,8 +17,12 @@
 
 Validation: full suite green. Nothing verified in-game; the open questions (fresh GUIDs, actor path
 numbers, outlet records, teleporter tags, emptied containers, sublevels, yaw sign) are listed in
-`reference/research/base-building-group-operations.md`. Follow-up: wire delete/duplicate into the 3D
-view at its marked extension point.
+`reference/research/base-building-group-operations.md`. Follow-up (done the same round): the 3D view now
+stages delete, duplicate and group edits (multi-select, pivot turn, snap, align, distribute) through
+one `StagedBaseEdits` on the session, with policy choosers, red/cyan scene marks, a refused save
+that writes nothing, and a read-only reference scan of sibling saves. A headless run re-read the
+saved file: 947 to 951 objects, exact 90 degree group turn, copies at the offset with the new yaw,
+`.bak` identical to the original. It also fixed copies of a turned object keeping the old facing.
 
 ## Round-131: roadmap fan-out across every section (2026-09-28)
 
