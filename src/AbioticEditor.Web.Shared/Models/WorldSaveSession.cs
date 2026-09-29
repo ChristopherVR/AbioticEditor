@@ -6,7 +6,7 @@ using AbioticEditor.Core.WorldSaves.Features;
 namespace AbioticEditor.Web.Models;
 
 /// <summary>Razor-hosted staged edit session for a world save.</summary>
-public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession, IWorldNpcsSession, IWorldTradersSession
+public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContainersSession, IWorldDroppedItemsSession, IWorldFlagsSession, IWorldStorySession, IWorldBasesSession, IWorldVehiclesSession, IWorldPetsSession, IWorldContainmentSession, IWorldFeaturesSession, IWorldNpcsSession, IWorldTradersSession
 {
     private WorldSaveData _data;
     private readonly string _path;
@@ -242,7 +242,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
             feature.RemoveActionLabel,
             feature.Read(ReadableFeatureRaw));
     }
-    public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0;
+    public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0 || HasStagedPlacedTransforms;
     public string? Status { get; private set; }
 
     public void SetFlag(string flag, bool enabled)
@@ -1316,6 +1316,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         foreach (var edit in _rawEdits)
             if (!RawSavePropertyEditor.TryApply(workingData.Raw, edit.Key, edit.Value, out var error))
                 throw new InvalidOperationException($"Raw edit '{edit.Key}' is no longer valid: {error}");
+        var movedObjects = ApplyStagedPlacedTransforms(workingData);
         await AbioticEditor.Web.Services.SaveFilePersistence
             .WriteAsync(_files, _path, workingData.Raw, cancellationToken).ConfigureAwait(false);
         // A unit also keeps its own note of which creature it holds, and that note lives in the
@@ -1353,6 +1354,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
             };
         }
         _data = workingData;
+        CommitPlacedTransforms(movedObjects);
         _originalFlags = new HashSet<string>(Flags, StringComparer.Ordinal);
         _originalGlobalRecipes = new HashSet<string>(GlobalRecipes, StringComparer.Ordinal);
         _originalDoors = new Dictionary<string, WorldDoor>(_doors, StringComparer.Ordinal);
@@ -1410,6 +1412,7 @@ public sealed class WorldSaveSession : IWorldDoorsSession, IWorldContainersSessi
         _featureOperations.Clear();
         _benchUpgradeOperations.Clear();
         _rawEdits.Clear();
+        ClearPlacedTransforms();
         _featureData = null;
         Status = "Changes reverted.";
     }

@@ -23,6 +23,7 @@ internal static class WorldCommands
         cmd.Subcommands.Add(BuildSet(quiet));
         cmd.Subcommands.Add(BuildAddRegion(quiet));
         cmd.Subcommands.Add(PlacedObjectCommands.BuildCensus(quiet));
+        cmd.Subcommands.Add(PlacedObjectEditCommands.Build(quiet));
         return cmd;
     }
 

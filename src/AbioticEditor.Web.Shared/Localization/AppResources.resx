@@ -4384,4 +4384,83 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Power_MoreHops" xml:space="preserve"><value>and {0} more</value></data>
   <data name="Power_LiveUnknown" xml:space="preserve"><value>Live power state: not observed. Connect to the running game to read it.</value></data>
   <data name="Power_PredictedUnknown" xml:space="preserve"><value>Predicted power result: unknown. The save does not hold the power rules of the game (capacity, drain, ordering), so none is guessed.</value></data>
+  <data name="WorldEditor_Tab3DView" xml:space="preserve"><value>3D view</value></data>
+  <data name="World3D_Title" xml:space="preserve"><value>3D BASE VIEW</value></data>
+  <data name="World3D_Intro" xml:space="preserve"><value>Every object saved in this region, drawn as a coloured box at its saved position. Drag to orbit, right-drag to pan, scroll to zoom, and click a box to inspect it. The boxes are placeholders: the real models are not loaded.</value></data>
+  <data name="World3D_Open3D" xml:space="preserve"><value>Open 3D view</value></data>
+  <data name="World3D_Open2D" xml:space="preserve"><value>Open 2D bases</value></data>
+  <data name="World3D_NoWebGl" xml:space="preserve"><value>This window cannot draw 3D graphics (WebGL is not available), so the 3D view cannot be shown. The 2D bases view still works.</value></data>
+  <data name="World3D_Loading" xml:space="preserve"><value>Loading 3D view...</value></data>
+  <data name="World3D_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="World3D_SearchPlaceholder" xml:space="preserve"><value>Name, class, key or owner</value></data>
+  <data name="World3D_FrameSelection" xml:space="preserve"><value>Frame selection</value></data>
+  <data name="World3D_FrameAll" xml:space="preserve"><value>Frame all shown</value></data>
+  <data name="World3D_Labels" xml:space="preserve"><value>Show labels</value></data>
+  <data name="World3D_Filters" xml:space="preserve"><value>FILTERS</value></data>
+  <data name="World3D_PlayerBuilt" xml:space="preserve"><value>Player-built</value></data>
+  <data name="World3D_LevelPlaced" xml:space="preserve"><value>Level-placed</value></data>
+  <data name="World3D_Category_Bench" xml:space="preserve"><value>Benches</value></data>
+  <data name="World3D_Category_Container" xml:space="preserve"><value>Containers</value></data>
+  <data name="World3D_Category_Power" xml:space="preserve"><value>Power devices</value></data>
+  <data name="World3D_Category_Light" xml:space="preserve"><value>Lights</value></data>
+  <data name="World3D_Category_Structure" xml:space="preserve"><value>Structures</value></data>
+  <data name="World3D_Category_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="World3D_Category_Unknown" xml:space="preserve"><value>Unknown class</value></data>
+  <data name="World3D_HeightBand" xml:space="preserve"><value>Height band (saved Z, cm)</value></data>
+  <data name="World3D_HeightFrom" xml:space="preserve"><value>From</value></data>
+  <data name="World3D_HeightTo" xml:space="preserve"><value>To</value></data>
+  <data name="World3D_ResetFilters" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="World3D_ShowingFormat" xml:space="preserve"><value>Showing {0} of {1} objects</value></data>
+  <data name="World3D_AxesHint" xml:space="preserve"><value>Grid axes: red is the save's X, blue is the save's Y, green is up (Z). Dim boxes are level-placed, bright boxes are player-built. A pink outline marks where a moved object was saved.</value></data>
+  <data name="World3D_UnresolvedTitle" xml:space="preserve"><value>NO SAVED LOCATION ({0})</value></data>
+  <data name="World3D_UnresolvedIntro" xml:space="preserve"><value>These objects have no usable location in the save, so they are listed here and never drawn at the origin.</value></data>
+  <data name="World3D_UnresolvedReasonFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="World3D_Inspector" xml:space="preserve"><value>INSPECTOR</value></data>
+  <data name="World3D_NothingSelected" xml:space="preserve"><value>Click a box in the view (or a name in the list) to inspect it.</value></data>
+  <data name="World3D_Class" xml:space="preserve"><value>Class</value></data>
+  <data name="World3D_Key" xml:space="preserve"><value>Key</value></data>
+  <data name="World3D_ActorPath" xml:space="preserve"><value>Actor path</value></data>
+  <data name="World3D_SubLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="World3D_Origin" xml:space="preserve"><value>Placed by</value></data>
+  <data name="World3D_OriginPlayer" xml:space="preserve"><value>a player (player-built)</value></data>
+  <data name="World3D_OriginLevel" xml:space="preserve"><value>the level (level-placed)</value></data>
+  <data name="World3D_Position" xml:space="preserve"><value>Position (cm)</value></data>
+  <data name="World3D_Rotation" xml:space="preserve"><value>Rotation (deg)</value></data>
+  <data name="World3D_Scale" xml:space="preserve"><value>Scale</value></data>
+  <data name="World3D_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="World3D_Owner" xml:space="preserve"><value>Owner</value></data>
+  <data name="World3D_Items" xml:space="preserve"><value>Items stored</value></data>
+  <data name="World3D_PoweredBy" xml:space="preserve"><value>Powered through</value></data>
+  <data name="World3D_OpenContainer" xml:space="preserve"><value>Open in Containers</value></data>
+  <data name="World3D_OpenPower" xml:space="preserve"><value>Open Power sockets</value></data>
+  <data name="World3D_Move" xml:space="preserve"><value>MOVE OBJECTS</value></data>
+  <data name="World3D_MoveOptIn" xml:space="preserve"><value>Experimental: move objects</value></data>
+  <data name="World3D_MoveWarning" xml:space="preserve"><value>Experimental. Moving a piece rewrites its saved position and rotation. Whether the game accepts the new position when it loads the save has NOT been verified in-game, and a moved piece can end up inside walls or lose its supports. Only move pieces on a copy of your save you can afford to lose. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_MoveLevelRefused" xml:space="preserve"><value>This object is placed by the level itself, not built by a player, so it cannot be moved. The level puts it back where it belongs when the game loads.</value></data>
+  <data name="World3D_MoveOmittedRefused" xml:space="preserve"><value>The save leaves out this object's position or rotation, and the editor never invents one, so it cannot be moved.</value></data>
+  <data name="World3D_MoveNotFound" xml:space="preserve"><value>This object is no longer in the save.</value></data>
+  <data name="World3D_MoveGizmo" xml:space="preserve"><value>Drag handle</value></data>
+  <data name="World3D_GizmoOff" xml:space="preserve"><value>Off</value></data>
+  <data name="World3D_GizmoTranslate" xml:space="preserve"><value>Move</value></data>
+  <data name="World3D_GizmoRotate" xml:space="preserve"><value>Turn (vertical axis only)</value></data>
+  <data name="World3D_X" xml:space="preserve"><value>X (cm)</value></data>
+  <data name="World3D_Y" xml:space="preserve"><value>Y (cm)</value></data>
+  <data name="World3D_Z" xml:space="preserve"><value>Z (cm)</value></data>
+  <data name="World3D_Yaw" xml:space="preserve"><value>Yaw (deg)</value></data>
+  <data name="World3D_StageNumbers" xml:space="preserve"><value>Stage these values</value></data>
+  <data name="World3D_RevertObject" xml:space="preserve"><value>Revert this object</value></data>
+  <data name="World3D_RevertAll" xml:space="preserve"><value>Revert all moves</value></data>
+  <data name="World3D_Staged" xml:space="preserve"><value>STAGED MOVES</value></data>
+  <data name="World3D_NoStaged" xml:space="preserve"><value>No moves staged.</value></data>
+  <data name="World3D_StagedFormat" xml:space="preserve"><value>{0} object(s) staged. They are written when you press SAVE.</value></data>
+  <data name="World3D_ColObject" xml:space="preserve"><value>Object</value></data>
+  <data name="World3D_ColBefore" xml:space="preserve"><value>Before (X, Y, Z cm, yaw)</value></data>
+  <data name="World3D_ColAfter" xml:space="preserve"><value>After (X, Y, Z cm, yaw)</value></data>
+  <data name="World3D_ColMoved" xml:space="preserve"><value>Moved (cm)</value></data>
+  <data name="World3D_ColTurned" xml:space="preserve"><value>Turned (deg)</value></data>
+  <data name="World3D_ColWarnings" xml:space="preserve"><value>Notes</value></data>
+  <data name="World3D_DeleteDuplicateSoon" xml:space="preserve"><value>Delete and duplicate are not available yet.</value></data>
+  <data name="World3D_Select" xml:space="preserve"><value>Select</value></data>
+  <data name="World3D_ViewLabel" xml:space="preserve"><value>3D view of placed objects</value></data>
+  <data name="World3D_InvalidNumber" xml:space="preserve"><value>Enter numbers for X, Y, Z and yaw.</value></data>
 </root>

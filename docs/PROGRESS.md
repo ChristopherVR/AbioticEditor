@@ -1,5 +1,25 @@
 # Abiotic Editor - Session history
 
+## Round-132: base building in 3D, delete and duplicate (2026-09-28)
+
+- **3D view** tab next to Bases (Three.js 0.186.1 vendored under `Web.Shared/wwwroot/lib/three`,
+  MIT notice added). One instanced mesh per category, search, filters (player-built/level-placed,
+  category, height band), inspector with jumps to Containers and Power sockets. Save-to-viewer
+  space math lives in Core (`PlacedSceneSpace`), tested round-trip.
+- **Experimental move/rotate** (opt-in, player-built only): numeric entry and a gizmo stage through
+  `StagedPlacedTransforms` on the world session; SAVE uses the normal path and `.bak`.
+- **Core `StagedBaseEdits`**: delete (refuses by default when anything external points at the
+  object; owned outlets dropped), duplicate (fresh GUID keys and actor paths, outlet and teleporter
+  remap, contents empty by default, bed claims never copied), group move/rotate, snap, align,
+  distribute, proximity hints. CLI `world object move|rotate|delete|duplicate` with `--dry-run`.
+- Fixture proofs: exact added/removed/changed entry sets per operation; duplicate-then-delete
+  restores the file byte for byte; refusals change zero bytes.
+
+Validation: full suite green. Nothing verified in-game; the open questions (fresh GUIDs, actor path
+numbers, outlet records, teleporter tags, emptied containers, sublevels, yaw sign) are listed in
+`reference/research/base-building-group-operations.md`. Follow-up: wire delete/duplicate into the 3D
+view at its marked extension point.
+
 ## Round-131: roadmap fan-out across every section (2026-09-28)
 
 Nine parallel workstreams, one per `docs/ROADMAP.md` area; the roadmap's new "Progress on
