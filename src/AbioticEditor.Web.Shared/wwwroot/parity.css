@@ -2265,3 +2265,8 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .distilled-name{font-size:12px;line-height:1.2;overflow-wrap:anywhere}
 .distilled-state{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .distilled-tile.on .distilled-state{color:var(--orange)}
+
+/* World-wide seen rows: the name is a button that opens details */
+button.ws-recipe-open{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+button.ws-recipe-open:hover strong{text-decoration:underline}
+.ws-recipe-row.selected{outline:1px solid var(--orange)}

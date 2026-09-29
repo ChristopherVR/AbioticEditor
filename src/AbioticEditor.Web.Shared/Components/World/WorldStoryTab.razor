@@ -253,7 +253,7 @@
                 @foreach (var (row, globalRowRenderKey) in RenderKeys.With(VisibleGlobalListRows, r => r.Id))
                 {
                     var present = GlobalListRowIsPresent(row.Id);
-                    <div class="ws-recipe-row" @key="globalRowRenderKey">
+                    <div class="ws-recipe-row @(_selectedGlobalId == row.Id ? "selected" : null)" @key="globalRowRenderKey">
                         <input type="checkbox" checked="@present" aria-label="@row.DisplayName" disabled="@(!Session.CanEditGlobalLists)"
                                @onchange="e => SetGlobalListRowAsync(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">
@@ -262,10 +262,10 @@
                                 <ItemIcon ItemId="@row.Id" Alt="" />
                             }
                         </span>
-                        <span class="ws-recipe-text">
+                        <button type="button" class="ws-recipe-text ws-recipe-open" title="View details" @onclick="() => SelectGlobalRow(row)">
                             <strong>@row.DisplayName</strong>
                             <small>@row.Id</small>
-                        </span>
+                        </button>
                         <span class="ws-recipe-status">@L.Resource(present ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
                     </div>
                 }
@@ -351,14 +351,24 @@
             _selectedWorldRecipeId = null;
             _ = InvokeAsync(StateHasChanged);
         }
+        if (_selectedGlobalId is { } globalId
+            && Selection.DetailKey != GlobalKey(globalId)
+            && !(_globalShowsItemCard && Selection.EncyclopediaItemId == globalId))
+        {
+            _selectedGlobalId = null;
+            _globalShowsItemCard = false;
+            _ = InvokeAsync(StateHasChanged);
+        }
     }
 
     public void Dispose()
     {
         Selection.Changed -= SelectionChanged;
         if (Selection.DetailKey?.StartsWith("story-chapter:", StringComparison.Ordinal) == true
-            || Selection.DetailKey?.StartsWith("story-recipe:", StringComparison.Ordinal) == true)
+            || Selection.DetailKey?.StartsWith("story-recipe:", StringComparison.Ordinal) == true
+            || Selection.DetailKey?.StartsWith("story-global:", StringComparison.Ordinal) == true)
             Selection.CloseDetail();
+        if (_globalShowsItemCard) Selection.CloseEncyclopedia();
     }
 
     // ---------- chapter checklist state (native StoryChapterItemViewModel) ----------
@@ -1071,6 +1081,62 @@
     // CodexVocabularyService (Emails/Journals/Compendium) for the other five.
 
     private sealed record GlobalListRow(string Id, string DisplayName);
+
+    private string? _selectedGlobalId;
+    private bool _globalShowsItemCard;
+
+    private string GlobalKey(string id) => $"story-global:{CurrentGlobalListDef.Kind}:{id}";
+
+    /// <summary>Click a row to read about it in the shared right-hand pane: items open the same
+    /// encyclopedia card the inventory uses; the other kinds open a small card with the text the
+    /// game's own tables carry. A second click on the open row closes it.</summary>
+    private void SelectGlobalRow(GlobalListRow row)
+    {
+        var isItem = CurrentGlobalListDef.Kind == "itemsPickedUp";
+        if (_selectedGlobalId == row.Id
+            && (isItem ? Selection.EncyclopediaItemId == row.Id : Selection.DetailKey == GlobalKey(row.Id)))
+        {
+            if (isItem) Selection.CloseEncyclopedia(); else Selection.CloseDetail();
+            _selectedGlobalId = null;
+            _globalShowsItemCard = false;
+            return;
+        }
+        _selectedGlobalId = row.Id;
+        _globalShowsItemCard = isItem;
+        if (isItem) Selection.ShowEncyclopedia(row.Id);
+        else Selection.ShowDetail(GlobalKey(row.Id), GlobalDetail(row));
+    }
+
+    private RenderFragment GlobalDetail(GlobalListRow row) =>
+        @<aside class="ws-chapter-detail detail-card--orange" aria-label="@row.DisplayName">
+            <header class="ws-detail-head">
+                <span class="ws-detail-title"><strong>@row.DisplayName</strong><small>@row.Id</small></span>
+                <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="() => SelectGlobalRow(row)">✕</button>
+            </header>
+            @foreach (var paragraph in GlobalDetailText(row.Id))
+            {
+                <p class="ws-detail-summary">@paragraph</p>
+            }
+        </aside>;
+
+    private IEnumerable<string> GlobalDetailText(string id)
+    {
+        switch (CurrentGlobalListDef.Kind)
+        {
+            case "emailsRead" when _codexVocabulary.Emails.FirstOrDefault(e => e.Id == id) is { } email:
+                foreach (var section in email.Sections)
+                    yield return string.IsNullOrWhiteSpace(section.Sender) ? section.Text : $"{section.Sender}: {section.Text}";
+                break;
+            case "journalEntries" when _codexVocabulary.Journals.FirstOrDefault(j => j.Id == id) is { } journal:
+                yield return journal.Note;
+                break;
+            case var kind when kind.StartsWith("compendium", StringComparison.Ordinal)
+                && _codexVocabulary.Compendium.FirstOrDefault(c => c.Id == id) is { } entry:
+                if (!string.IsNullOrWhiteSpace(entry.Subtitle)) yield return entry.Subtitle;
+                foreach (var text in entry.SectionTexts) yield return text;
+                break;
+        }
+    }
 
     private sealed record GlobalListDef(string Kind, string LabelKey,
         Func<IWorldStorySession, IReadOnlyCollection<string>> Ids, Func<string, string> Name, Func<IEnumerable<string>> KnownIds);
