@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.20.0] - 2026-09-29
+
+### Bug Fixes
+- Tidy up transmog and character screens
+- Show the mod warning once per world instead of on every save you click
+
+
+### Features
+- Hide the experimental 3D base view unless you turn it on
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.19.1 [skip ci]
+
+
 ## [2.19.1] - 2026-09-29
 
 ### Miscellaneous Tasks
