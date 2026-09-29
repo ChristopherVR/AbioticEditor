@@ -4449,9 +4449,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_Yaw" xml:space="preserve"><value>Yaw (deg)</value></data>
   <data name="World3D_StageNumbers" xml:space="preserve"><value>Stage these values</value></data>
   <data name="World3D_RevertObject" xml:space="preserve"><value>Revert this object</value></data>
-  <data name="World3D_RevertAll" xml:space="preserve"><value>Revert all moves</value></data>
-  <data name="World3D_Staged" xml:space="preserve"><value>STAGED MOVES</value></data>
-  <data name="World3D_NoStaged" xml:space="preserve"><value>No moves staged.</value></data>
+  <data name="World3D_RevertAll" xml:space="preserve"><value>Revert all staged edits</value></data>
+  <data name="World3D_Staged" xml:space="preserve"><value>STAGED EDITS</value></data>
+  <data name="World3D_NoStaged" xml:space="preserve"><value>No edits staged.</value></data>
   <data name="World3D_StagedFormat" xml:space="preserve"><value>{0} object(s) staged. They are written when you press SAVE.</value></data>
   <data name="World3D_ColObject" xml:space="preserve"><value>Object</value></data>
   <data name="World3D_ColBefore" xml:space="preserve"><value>Before (X, Y, Z cm, yaw)</value></data>
@@ -4459,7 +4459,101 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_ColMoved" xml:space="preserve"><value>Moved (cm)</value></data>
   <data name="World3D_ColTurned" xml:space="preserve"><value>Turned (deg)</value></data>
   <data name="World3D_ColWarnings" xml:space="preserve"><value>Notes</value></data>
-  <data name="World3D_DeleteDuplicateSoon" xml:space="preserve"><value>Delete and duplicate are not available yet.</value></data>
+  <data name="World3D_Axis" xml:space="preserve"><value>Axis</value></data>
+  <data name="World3D_Blocking" xml:space="preserve"><value>BLOCKING:</value></data>
+  <data name="World3D_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="World3D_CannotStage" xml:space="preserve"><value>This cannot be staged as it is: fix the blocking findings above (for example by changing a policy) first.</value></data>
+  <data name="World3D_ClearSelection" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="World3D_ColCopiedTo" xml:space="preserve"><value>Copied to (X, Y, Z cm, yaw)</value></data>
+  <data name="World3D_ColItems" xml:space="preserve"><value>Items</value></data>
+  <data name="World3D_ColLinks" xml:space="preserve"><value>Links</value></data>
+  <data name="World3D_CopyInspectorFormat" xml:space="preserve"><value>A staged copy: it is not in the save yet. New key {0}.</value></data>
+  <data name="World3D_CopyLabelFormat" xml:space="preserve"><value>{0} (copy)</value></data>
+  <data name="World3D_DeleteActions" xml:space="preserve"><value>What will happen</value></data>
+  <data name="World3D_DeleteButtonFormat" xml:space="preserve"><value>Delete ({0})...</value></data>
+  <data name="World3D_DeleteItemList" xml:space="preserve"><value>Items deleted with these objects</value></data>
+  <data name="World3D_DeleteItemsDeleted" xml:space="preserve"><value>Items deleted with them</value></data>
+  <data name="World3D_DeleteObjectsRemoved" xml:space="preserve"><value>Objects removed</value></data>
+  <data name="World3D_DeleteReferenceList" xml:space="preserve"><value>References affected</value></data>
+  <data name="World3D_DeleteReferences" xml:space="preserve"><value>References affected</value></data>
+  <data name="World3D_DeleteTitleFormat" xml:space="preserve"><value>DELETE {0} OBJECT(S)</value></data>
+  <data name="World3D_DupContentsWarning" xml:space="preserve"><value>Copying contents duplicates every stored item inside the copied containers. Only do this if you really want the extra items.</value></data>
+  <data name="World3D_DupCopyContents" xml:space="preserve"><value>Copy contents (duplicates the stored items)</value></data>
+  <data name="World3D_DupItemsCopied" xml:space="preserve"><value>Items duplicated</value></data>
+  <data name="World3D_DupObjectsCreated" xml:space="preserve"><value>Objects created</value></data>
+  <data name="World3D_DupOffset" xml:space="preserve"><value>Offset from the original (cm)</value></data>
+  <data name="World3D_DupOutlets" xml:space="preserve"><value>Power outlets created</value></data>
+  <data name="World3D_DuplicateButtonFormat" xml:space="preserve"><value>Duplicate ({0})...</value></data>
+  <data name="World3D_DuplicateTitleFormat" xml:space="preserve"><value>DUPLICATE {0} OBJECT(S)</value></data>
+  <data name="World3D_EditNeedsOptIn" xml:space="preserve"><value>Turn on "Experimental: move objects" to delete, duplicate or arrange objects.</value></data>
+  <data name="World3D_EditUnverified" xml:space="preserve"><value>Experimental. Deleting, copying and moving base objects rewrites the save in ways that have NOT been verified in-game. Coordinates, new object ids and power links are written as they are, and the game may reject, repair or lose them. Work on a copy of your save you can afford to lose. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_GroupAlignYaw" xml:space="preserve"><value>Align yaw to the primary</value></data>
+  <data name="World3D_GroupArrange" xml:space="preserve"><value>Align and distribute</value></data>
+  <data name="World3D_GroupDistribute" xml:space="preserve"><value>Distribute along axis</value></data>
+  <data name="World3D_GroupMove" xml:space="preserve"><value>Move the selection by (cm)</value></data>
+  <data name="World3D_GroupMoveButton" xml:space="preserve"><value>Stage move</value></data>
+  <data name="World3D_GroupRotate" xml:space="preserve"><value>Turn the selection</value></data>
+  <data name="World3D_GroupRotateButton" xml:space="preserve"><value>Stage turn</value></data>
+  <data name="World3D_GroupSnap" xml:space="preserve"><value>Snap to grid (leave a step empty to skip it)</value></data>
+  <data name="World3D_GroupSnapButton" xml:space="preserve"><value>Stage snap</value></data>
+  <data name="World3D_GroupStagedFormat" xml:space="preserve"><value>Staged {0} object(s).</value></data>
+  <data name="World3D_GroupTools" xml:space="preserve"><value>GROUP TOOLS</value></data>
+  <data name="World3D_GroupToolsIntro" xml:space="preserve"><value>These act on every selected player-built object. Level-placed objects are skipped. Turns use the pivot you choose.</value></data>
+  <data name="World3D_GroupYawDegrees" xml:space="preserve"><value>Yaw (degrees)</value></data>
+  <data name="World3D_HintFormat" xml:space="preserve"><value>{0} and {1} would sit {2} cm apart (centre to centre).</value></data>
+  <data name="World3D_Hints" xml:space="preserve"><value>Proximity hints ({0})</value></data>
+  <data name="World3D_Issues" xml:space="preserve"><value>Findings</value></data>
+  <data name="World3D_MakePrimary" xml:space="preserve"><value>Make this the primary object (the pivot for align, and the one the gizmo follows)</value></data>
+  <data name="World3D_MultiSelectHint" xml:space="preserve"><value>Ctrl-click or Shift-click adds or removes an object from the selection.</value></data>
+  <data name="World3D_NoIssues" xml:space="preserve"><value>No findings.</value></data>
+  <data name="World3D_NothingToEdit" xml:space="preserve"><value>None of the selected objects can be edited (level-placed objects cannot be deleted or copied).</value></data>
+  <data name="World3D_Pivot" xml:space="preserve"><value>Pivot</value></data>
+  <data name="World3D_PivotCentroid" xml:space="preserve"><value>Centre of the selection</value></data>
+  <data name="World3D_PolicyBedClaims" xml:space="preserve"><value>A bed a player has claimed</value></data>
+  <data name="World3D_PolicyExternalPower" xml:space="preserve"><value>Outlets that feed devices outside the copy</value></data>
+  <data name="World3D_PolicyExternalTeleporters" xml:space="preserve"><value>Teleporters whose tag other pads share</value></data>
+  <data name="World3D_PolicyHelpBedClaims" xml:space="preserve"><value>Deleting a claimed bed discards the claim (player saves are not touched).</value></data>
+  <data name="World3D_PolicyHelpExternalPower" xml:space="preserve"><value>Drop leaves the copy's outlet unplugged. Keep points it at the original device (two outlets, one device: unverified in-game).</value></data>
+  <data name="World3D_PolicyHelpExternalTeleporters" xml:space="preserve"><value>Drop gives the copy no tag. Keep lets the copy join the original teleporter network.</value></data>
+  <data name="World3D_PolicyHelpInboundPlugs" xml:space="preserve"><value>Sockets outside the deleted set that still feed a deleted object. Drop unplugs them (this save only).</value></data>
+  <data name="World3D_PolicyHelpOtherRefs" xml:space="preserve"><value>Any other record that names a deleted object cannot be rewritten safely. Keep leaves it dangling.</value></data>
+  <data name="World3D_PolicyHelpOwnedSockets" xml:space="preserve"><value>Power outlet records the deleted objects own. Drop removes them; Keep leaves them behind.</value></data>
+  <data name="World3D_PolicyHelpSharedInventories" xml:space="preserve"><value>A Void chest's contents are stored outside the chest and are not deleted with it.</value></data>
+  <data name="World3D_PolicyHelpTeleporterPeers" xml:space="preserve"><value>Pads that share a tag with a deleted pad and are not being deleted are left unpaired.</value></data>
+  <data name="World3D_PolicyInboundPlugs" xml:space="preserve"><value>Sockets that still feed a deleted object</value></data>
+  <data name="World3D_PolicyOtherRefs" xml:space="preserve"><value>Other records that name a deleted object</value></data>
+  <data name="World3D_PolicyOwnedSockets" xml:space="preserve"><value>Power outlets the deleted objects own</value></data>
+  <data name="World3D_PolicySharedInventories" xml:space="preserve"><value>Shared (Void) inventories</value></data>
+  <data name="World3D_PolicyTeleporterPeers" xml:space="preserve"><value>Teleporters other pads share a tag with</value></data>
+  <data name="World3D_PolicyTitle" xml:space="preserve"><value>Policies</value></data>
+  <data name="World3D_Policy_Drop" xml:space="preserve"><value>Drop (remove or clear it)</value></data>
+  <data name="World3D_Policy_Keep" xml:space="preserve"><value>Keep (leave it as it is)</value></data>
+  <data name="World3D_Policy_Refuse" xml:space="preserve"><value>Refuse (stop)</value></data>
+  <data name="World3D_RefInboundFormat" xml:space="preserve"><value>a socket in {0} ({1}) still feeds it</value></data>
+  <data name="World3D_RefOwnedFormat" xml:space="preserve"><value>owns {0} power outlet record(s)</value></data>
+  <data name="World3D_RemoveFromSelection" xml:space="preserve"><value>Remove from the selection</value></data>
+  <data name="World3D_RevertCopy" xml:space="preserve"><value>Revert copy</value></data>
+  <data name="World3D_SaveRefusedIntro" xml:space="preserve"><value>SAVE wrote nothing because these staged edits cannot be applied. Everything is still staged: fix or revert them and save again.</value></data>
+  <data name="World3D_SaveRefusedTitle" xml:space="preserve"><value>SAVE REFUSED</value></data>
+  <data name="World3D_ScanningOtherSaves" xml:space="preserve"><value>Looking through the other saves of this world for references to these objects...</value></data>
+  <data name="World3D_ScopeOtherSavesFormat" xml:space="preserve"><value>References were checked in this save and in {0} other save(s) of this world (region saves and the metadata save; hover for their names).</value></data>
+  <data name="World3D_ScopeThisSaveOnly" xml:space="preserve"><value>Only this save was checked for references. Links stored in other region saves or the metadata save are not visible here.</value></data>
+  <data name="World3D_ScopeUnreadableFormat" xml:space="preserve"><value>Could not read: {0}, so the check is incomplete.</value></data>
+  <data name="World3D_SelectAllShown" xml:space="preserve"><value>Select all shown</value></data>
+  <data name="World3D_SelectionFormat" xml:space="preserve"><value>SELECTION ({0})</value></data>
+  <data name="World3D_SelectionMoreFormat" xml:space="preserve"><value>...and {0} more</value></data>
+  <data name="World3D_SkipLevelFormat" xml:space="preserve"><value>{0} level-placed object(s) were skipped: the level puts them back where they belong.</value></data>
+  <data name="World3D_SkipOtherFormat" xml:space="preserve"><value>{0} object(s) were skipped (not in this save, no saved location, or nothing to change).</value></data>
+  <data name="World3D_SnapStepXY" xml:space="preserve"><value>Step X/Y (cm)</value></data>
+  <data name="World3D_SnapStepYaw" xml:space="preserve"><value>Yaw step (deg)</value></data>
+  <data name="World3D_SnapStepZ" xml:space="preserve"><value>Step Z (cm)</value></data>
+  <data name="World3D_StageDelete" xml:space="preserve"><value>Stage deletion</value></data>
+  <data name="World3D_StageDuplicate" xml:space="preserve"><value>Stage copy</value></data>
+  <data name="World3D_StagedCopies" xml:space="preserve"><value>Copies (new objects)</value></data>
+  <data name="World3D_StagedDeletions" xml:space="preserve"><value>Deletions</value></data>
+  <data name="World3D_StagedForDeletion" xml:space="preserve"><value>Staged for deletion.</value></data>
+  <data name="World3D_StagedMoves" xml:space="preserve"><value>Moves and turns</value></data>
+  <data name="World3D_StagedSummaryFormat" xml:space="preserve"><value>{0} move(s), {1} deletion(s), {2} copy(ies). Objects in the save: {3} now, {4} after saving. Items deleted with their objects: {5}. Items duplicated: {6}. Links touched: {7}. Everything is written when you press SAVE.</value></data>
   <data name="World3D_Select" xml:space="preserve"><value>Select</value></data>
   <data name="World3D_ViewLabel" xml:space="preserve"><value>3D view of placed objects</value></data>
   <data name="World3D_InvalidNumber" xml:space="preserve"><value>Enter numbers for X, Y, Z and yaw.</value></data>

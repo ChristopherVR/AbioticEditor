@@ -820,6 +820,13 @@
             // work that went missing - the answer here is to clear the reason, or to insist.
             ShowSaveRefused(refusal);
         }
+        catch (AbioticEditor.Web.Models.BaseEditsRefusedException refusal)
+        {
+            // The staged 3D base edits (move, delete, copy) cannot be applied as they are. Nothing was
+            // written and every edit is still staged, so the findings are shown as they are: the player
+            // fixes or reverts them in the 3D view and saves again.
+            Toasts.Show(Errors.Detail(refusal, "Save base edits", refusal.Message), ToastKind.Error, TimeSpan.FromSeconds(14));
+        }
         catch (Exception exception)
         {
             // SaveSelectedAsync can throw (a locked file, a save missing an expected

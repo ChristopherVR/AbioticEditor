@@ -14,7 +14,21 @@ public sealed record Base3DObject(
     double[] Q,
     double[] S,
     bool Built,
-    string Label);
+    string Label,
+    int Mark = 0)
+{
+    /// <summary><see cref="Mark"/>: an ordinary object.</summary>
+    public const int MarkNone = 0;
+
+    /// <summary><see cref="Mark"/>: staged for deletion (drawn red).</summary>
+    public const int MarkDeleted = 1;
+
+    /// <summary><see cref="Mark"/>: a staged copy that does not exist in the save yet (drawn cyan).</summary>
+    public const int MarkCopy = 2;
+}
+
+/// <summary>A staged copy the scene should draw at its target place (a new object, not in the save).</summary>
+public sealed record Base3DCopy(string Key, string? ClassName, PlacedObjectTransform Transform, string Label);
 
 /// <summary>The view's filter state. Everything is applied in C# so it is testable and the JS side just draws.</summary>
 public sealed record Base3DFilter
@@ -41,7 +55,10 @@ public sealed record Base3DUnresolved(string Key, string Label, string? ClassNam
 /// <summary>Everything the 3D view needs from a region, built from the session's saved and staged state.</summary>
 public sealed class Base3DScene
 {
-    /// <summary>Drawable objects (staged edits applied), aligned with <see cref="Placed"/>.</summary>
+    /// <summary>
+    /// Drawable objects (staged edits applied). The first <see cref="Placed"/>.Count line up with it; any
+    /// staged copies follow them (they have no census row, and the filters never hide them).
+    /// </summary>
     public IReadOnlyList<Base3DObject> Objects { get; }
 
     /// <summary>The census rows behind <see cref="Objects"/>, same order.</summary>
@@ -54,6 +71,9 @@ public sealed class Base3DScene
 
     public double MinZCm { get; }
     public double MaxZCm { get; }
+
+    /// <summary>Number of staged copies at the end of <see cref="Objects"/>.</summary>
+    public int CopyCount => Objects.Count - Placed.Count;
 
     private Base3DScene(
         List<Base3DObject> objects, List<PlacedObjectSummary> placed, List<double> zs,
@@ -69,7 +89,8 @@ public sealed class Base3DScene
 
     /// <summary>Builds the scene. <paramref name="current"/> supplies each key's transform with staged edits applied.</summary>
     public static Base3DScene Build(
-        IEnumerable<PlacedObjectSummary> placed, Func<string, PlacedObjectTransform?> current)
+        IEnumerable<PlacedObjectSummary> placed, Func<string, PlacedObjectTransform?> current,
+        IReadOnlySet<string>? deleted = null, IEnumerable<Base3DCopy>? copies = null)
     {
         var objects = new List<Base3DObject>();
         var rows = new List<PlacedObjectSummary>();
@@ -83,9 +104,14 @@ public sealed class Base3DScene
                     o.Transform is null ? "no saved transform" : "the save omits the location"));
                 continue;
             }
-            objects.Add(ToViewerObject(o, current(o.Key) ?? o.Transform));
+            var drawn = ToViewerObject(o, current(o.Key) ?? o.Transform);
+            objects.Add(deleted is not null && deleted.Contains(o.Key) ? drawn with { Mark = Base3DObject.MarkDeleted } : drawn);
             rows.Add(o);
             zs.Add(saved.Z);
+        }
+        foreach (var copy in copies ?? [])
+        {
+            objects.Add(ToViewerCopy(copy));
         }
         return new Base3DScene(objects, rows, zs, unresolved);
     }
@@ -101,6 +127,17 @@ public sealed class Base3DScene
             o.Key, (int)category,
             [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
             o.DeployedByPlayer == true, LabelOf(o));
+    }
+
+    /// <summary>A staged copy in the viewer's form (always player-built, marked as a copy).</summary>
+    public static Base3DObject ToViewerCopy(Base3DCopy copy)
+    {
+        var p = PlacedSceneSpace.ToViewer(copy.Transform.EffectiveTranslation);
+        var q = PlacedSceneSpace.ToViewer(PlacedSceneSpace.Normalize(copy.Transform.EffectiveRotation));
+        var s = PlacedSceneSpace.ScaleToViewer(copy.Transform.EffectiveScale);
+        var category = PlacedObjectCategoryCatalog.Classify(copy.ClassName, false);
+        return new Base3DObject(copy.Key, (int)category, [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
+            true, copy.Label, Base3DObject.MarkCopy);
     }
 
     /// <summary>Player-given name when there is one, else the class without its blueprint prefix and suffix.</summary>
@@ -130,6 +167,7 @@ public sealed class Base3DScene
         for (var i = 0; i < Objects.Count; i++)
         {
             var o = Objects[i];
+            if (i >= Placed.Count) { result.Add(i); continue; } // staged copies are always shown
             if (o.Built ? !filter.ShowPlayerBuilt : !filter.ShowLevelPlaced) continue;
             if (filter.HiddenCategories.Contains((PlacedObjectCategory)o.Cat)) continue;
             var z = SavedZCm[i];

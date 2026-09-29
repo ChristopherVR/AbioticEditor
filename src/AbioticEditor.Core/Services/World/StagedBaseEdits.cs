@@ -88,6 +88,26 @@ public sealed class StagedBaseEdits
     /// <summary>Pending duplications in staging order.</summary>
     public IReadOnlyList<StagedDuplication> Duplications => _duplications;
 
+    /// <summary>
+    /// A copy of everything staged (moves, deletions, duplications with the identities already minted for
+    /// them, and the settings). Lets a caller apply to the copy, and keep the original staged when the
+    /// apply is refused or the write that follows fails. Nothing is shared between the two.
+    /// </summary>
+    public StagedBaseEdits Clone()
+    {
+        var copy = new StagedBaseEdits(_idFactory)
+        {
+            OverlapHintCm = OverlapHintCm,
+            PrimaryName = PrimaryName,
+            OtherSaves = OtherSaves,
+            _nextId = _nextId,
+        };
+        foreach (var t in Transforms.Pending) copy.Transforms.Stage(t.Key, t.Translation, t.Rotation);
+        foreach (var kv in _deletions) copy._deletions[kv.Key] = kv.Value;
+        copy._duplications.AddRange(_duplications);
+        return copy;
+    }
+
     /// <summary>Distance under which two objects are reported as a proximity hint (centimetres).</summary>
     public double OverlapHintCm { get; set; } = 25;
 

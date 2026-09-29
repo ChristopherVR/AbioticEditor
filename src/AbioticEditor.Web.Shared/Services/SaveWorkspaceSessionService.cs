@@ -793,6 +793,11 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 && !string.Equals(sibling.Path, save.Path, StringComparison.OrdinalIgnoreCase))
             .Select(sibling => sibling.Path)
             .ToArray();
+        var siblingMetadataPath = siblingSaves
+            .Where(sibling => sibling.Kind == SaveDocumentKind.WorldMetadata
+                && !string.Equals(sibling.Path, save.Path, StringComparison.OrdinalIgnoreCase))
+            .Select(sibling => sibling.Path)
+            .FirstOrDefault();
 
         // Parsing a region save is the slow part (the Facility save is ~16 MB), so it stays off
         // the caller's thread exactly as it did when the reader opened the file itself.
@@ -813,7 +818,7 @@ public sealed class SaveWorkspaceSessionService : IDisposable
 
             var world = WorldSaveReader.ReadFromStream(stream);
             return new SaveSelection(WorldSummary(save, world), null,
-                new WorldSaveSession(world, save.Path, _files, siblingRegionSavePaths));
+                new WorldSaveSession(world, save.Path, _files, siblingRegionSavePaths, siblingMetadataPath));
         }, cancellationToken).ConfigureAwait(false);
     }
 
