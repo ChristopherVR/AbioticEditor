@@ -84,13 +84,29 @@
         <div class="wg-list" role="list" aria-label="@L.Resource("WorldDropped_ItemsOnTheGround")">
             @foreach (var (item, itemRenderKey) in RenderKeys.With(Visible, i => i.Id))
             {
-                <div class="wg-row" role="listitem" @key="itemRenderKey" @onclick="() => Inspect(item)">
+                <div class="wg-row @(_sendItemId == item.Id ? "selected" : null)" role="listitem" @key="itemRenderKey" @onclick="() => Inspect(item)"
+                     @oncontextmenu="() => OpenSendChooser(item)" @oncontextmenu:preventDefault="@CanSend">
                     <span class="wg-texts">
                         <button class="world-row-name" type="button" @onclick="() => Inspect(item)" @onclick:stopPropagation>@DisplayName(item)</button>
                         <small>@SubText(item)</small>
                     </span>
+                    @if (CanSend)
+                    {
+                        <button class="wg-send" type="button" disabled="@_busy" @onclick="() => OpenSendChooser(item)" @onclick:stopPropagation>@L.Resource("WorldPets_SendToPlayer")</button>
+                    }
                     <button class="wg-delete" type="button" disabled="@(_busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="() => Delete(item)" @onclick:stopPropagation>@L.Resource("WorldDropped_Delete")</button>
                 </div>
+                @if (_sendItemId == item.Id)
+                {
+                    <div class="editor-actions wg-send-chooser">
+                        <select class="wt-input" value="@_sendTargetPath" @onchange="SelectSendTarget" aria-label="@L.Resource("WorldContainers_SendTarget")">
+                            <option value="">@L.Resource("WorldContainers_SendTargetPlaceholder")</option>
+                            @foreach (var target in PlayerTargets) { <option value="@target.Path">@TargetLabel(target)</option> }
+                        </select>
+                        <button type="button" class="secondary" disabled="@(_sendTarget is null || _busy || _loadingSendTarget)" @onclick="() => SendToPlayer(item)">@L.Resource("WorldContainers_SendToPlayerMenu")</button>
+                        <button type="button" class="secondary" @onclick="CloseSendChooser">@L.Resource("Common_Cancel")</button>
+                    </div>
+                }
             }
             @if (Visible.Count == 0)
             {
@@ -99,6 +115,8 @@
                     : L.Resource("WorldDropped_NoGroundItems"))</p>
             }
         </div>
+        @if (CanSend) { <p class="wc-help">Right-click an item, or use SEND TO PLAYER, to put it in that character's first free backpack or hotbar slot and take it off the ground. Save or revert applies to both.</p> }
+        @if (_sendStatus is not null) { <p class="wc-status">@_sendStatus</p> }
         @if (Session.AppliesImmediately && Session.Status is not null) { <p class="status-text">@Session.Status</p> }
         @if (_liveError is not null) { <p class="error-text" role="alert">@_liveError</p> }
     }
@@ -121,6 +139,76 @@
     /// </summary>
     [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private string _filter = string.Empty;
+
+    // ---- send a ground item to a character (file editing; same idea as the containers tab) ----
+    private string? _sendItemId;
+    private string? _sendTargetPath;
+    private PlayerSaveSession? _sendTarget;
+    private bool _loadingSendTarget;
+    private string? _sendStatus;
+
+    private IEnumerable<WorkspaceSave> PlayerTargets => Workspace.Current?.Saves.Where(save => save.Kind == SaveDocumentKind.Player) ?? [];
+
+    /// <summary>Only a staged file edit can hand an item to a character save: a live session's
+    /// items are in the running game, and putting one in a live inventory is a different call.</summary>
+    private bool CanSend => !Session.AppliesImmediately && Session is WorldSaveSession && PlayerTargets.Any();
+
+    private string TargetLabel(WorkspaceSave save)
+    {
+        var id = AbioticEditor.Core.Steam.SteamPersonaIndex.IdFromPlayerPath(save.Path);
+        return $"{AbioticEditor.Web.Components.Shared.PlainNames.Player(L, id)} ({save.Name})";
+    }
+
+    private void OpenSendChooser(WorldDroppedItem item)
+    {
+        if (!CanSend || _busy) return;
+        _sendItemId = item.Id;
+        _sendTarget = null;
+        _sendTargetPath = null;
+        _sendStatus = null;
+    }
+
+    private void CloseSendChooser() { _sendItemId = null; _sendTarget = null; _sendTargetPath = null; }
+
+    private async Task SelectSendTarget(ChangeEventArgs args)
+    {
+        var path = args.Value?.ToString();
+        _sendTargetPath = path;
+        _sendTarget = null;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        _loadingSendTarget = true;
+        try
+        {
+            var target = await Workspace.GetTransferPlayerAsync(path);
+            if (_sendTargetPath == path) _sendTarget = target;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            _sendStatus = Errors.Present(exception, "Load the selected player.", string.Empty);
+        }
+        finally { _loadingSendTarget = false; }
+    }
+
+    /// <summary>Puts the item in the character's first free backpack (then hotbar) slot and stages
+    /// its removal from the ground. Nothing is written until SAVE, and both saves keep a backup.
+    /// The removal is deliberately not offered to RESTORE, or restoring would leave a copy in the
+    /// character's bag as well; Revert undoes both sides together.</summary>
+    private async Task SendToPlayer(WorldDroppedItem item)
+    {
+        if (_sendTarget is not { } player || Session is not WorldSaveSession sourceWorld) return;
+        var (destination, area, whereKey) = player.Backpack.FirstOrDefault(slot => slot.IsEmpty) is { } backpack
+            ? (backpack, PlayerInventoryArea.Backpack, "PlayerInventory_Backpack")
+            : (player.Hotbar.FirstOrDefault(slot => slot.IsEmpty), PlayerInventoryArea.Hotbar, "PlayerInventory_Hotbar");
+        if (destination is null) { _sendStatus = "That character has no free backpack or hotbar slot."; return; }
+        if (!player.TrySetInventorySlot(area, destination.Index, item.Slot)) return;
+        player.MarkChanged();
+        Workspace.RegisterTransfer(sourceWorld, player);
+        var label = DisplayName(item);
+        await RunAsync(() => Session.RemoveDroppedItemAsync(item.Id));
+        CloseSendChooser();
+        _sendStatus = L.Resource("WorldContainers_SentItemFormat", label,
+            AbioticEditor.Web.Components.Shared.PlainNames.Player(L, player.SteamIdentifier), L.Resource(whereKey));
+    }
     private string _spawnItemId = string.Empty;
     private int _spawnStack = 1;
     private bool _spawnAtMyPosition;
