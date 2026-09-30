@@ -18,9 +18,31 @@
   filtered and sorted about 1500 rows several times per render with a linear presence scan per row
   (now `RenderMemo` plus a hash set) and drew every row (now 150 at a time with "Show more"); the
   DISTILLED grid uses the same memo.
-- Follow-ups: other Razor properties that build lists per read (`PlayerRecipesTab`, containers and
-  bases tabs) were only read, not measured; search boxes still send every keystroke to the
-  server (`@bind:event="oninput"`).
+- The containers tab drew every container in a region (thousands, each with an icon and three
+  computed labels) on every keystroke; it now shows 200 at a time. Recipes, doors, flags, dropped
+  items (already capped at 200) and map features were read and already cache or cap their rows.
+- Release notes lost their VirusTotal section on v2.19.1 and v2.20.0: the upload action stopped at
+  the first refused upload (409 on the sixth of ten) and returned no links at all, and the step is
+  `continue-on-error`, so the job stayed green. The scan step is now a script that retries each
+  archive (four tries, 70 s apart) and always lists what uploaded and names what did not.
+  **Not yet exercised on a real release**: watch the next run's `scan` job (the "Scan zips with
+  VirusTotal" step and the release body).
+
+### Open issues to keep in view (round 133)
+
+- VirusTotal's free API allows four calls a minute and refuses bursts; a release with ten large
+  archives takes about ten minutes to scan and can still leave some without a link (they are named).
+- `ItemCatalog.LoadFrom` is still 1 to 2 s on first use per process (now shared, not removed).
+  Reading it from the bundled registry first and mounting the paks only on demand would remove it.
+- Search boxes send every keystroke to the server (`@bind:event="oninput"`); a debounce would cut
+  round trips on slow links.
+- Active effects: remove works, add does not (expiry clock unverified, see the research note).
+  A saved effect the current game no longer defines is flagged, not removed automatically.
+- DISTILLED lists every known item: the game data does not say which items are distillable.
+- Transfer Items: the loaded two-world layout was built and compiled but never viewed with real
+  saves (the file picker cannot be driven headlessly).
+- Not verified in a running game: upgrade/downgrade buttons after the on-demand load, the Distilled
+  write, effect removal, and the `SaveOnly` handling of legacy effect rows.
 
 ## Round-132: base building in 3D, delete and duplicate (2026-09-28)
 

@@ -59,7 +59,7 @@
             <div class="wc-master" role="list" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
                 @{ var visible = VisibleContainers; }
                 @if (visible.Count == 0) { <p class="wc-empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
-                @foreach (var (container, containerRenderKey) in RenderKeys.With(visible, ContainerKey))
+                @foreach (var (container, containerRenderKey) in RenderKeys.With(visible.Take(ShownContainers), ContainerKey))
                 {
                     var key = (container.Source, container.Id);
                     @* A crate is named for what it is and what is in it. The long reference
@@ -88,6 +88,10 @@
                     </div>
 
 
+                }
+                @if (visible.Count > ShownContainers)
+                {
+                    <button type="button" class="secondary wc-show-more" @onclick="() => _containersShown += ContainerPage">Show more (@(visible.Count - ShownContainers) left)</button>
                 }
             </div>
             <div class="wc-detail">
@@ -323,6 +327,23 @@
 
     /// <summary>Native filter: the container itself OR any item stored inside it, so "find
     /// which crate holds my keypad hacker" is a one-box search. HIDE EMPTY runs first.</summary>
+    // A big region holds thousands of containers; drawing every row (each with an icon and three
+    // computed labels) on every keystroke was the slow part of searching. Show a page at a time;
+    // the search still covers every container, and the page starts over when the filters change.
+    private const int ContainerPage = 200;
+    private int _containersShown = ContainerPage;
+    private string _containersShownFor = string.Empty;
+
+    private int ShownContainers
+    {
+        get
+        {
+            var key = $"{_filter?.Trim()}|{_hideEmpty}|{_nearbyOnly}|{_nearbyRadius}";
+            if (_containersShownFor != key) { _containersShownFor = key; _containersShown = ContainerPage; }
+            return _containersShown;
+        }
+    }
+
     private List<WorldContainer> VisibleContainers
     {
         get
