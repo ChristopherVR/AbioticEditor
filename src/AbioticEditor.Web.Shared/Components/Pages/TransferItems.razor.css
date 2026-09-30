@@ -1,0 +1,48 @@
+/* Two worlds side by side with the "carrying" panel between them; stacks on a narrow window
+   (centre panel first, so what you are carrying stays visible while you scroll). */
+.transfer-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    container-type: inline-size;
+}
+
+.transfer-middle {
+    position: sticky;
+    top: 8px;
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    text-align: center;
+    padding: 16px 12px;
+    border: 1px dashed var(--line, rgba(255, 255, 255, .25));
+    border-radius: 10px;
+    background: var(--elevated);
+}
+
+.transfer-arrow { font-size: 32px; color: var(--orange); line-height: 1; }
+.transfer-carry-title { letter-spacing: .08em; text-transform: uppercase; font-size: 12px; color: var(--section); }
+.transfer-carry-item { font-size: 16px; color: var(--terminal); overflow-wrap: anywhere; }
+.transfer-steps { margin: 0; padding-left: 18px; text-align: left; font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
+
+.transfer-side-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.transfer-badge {
+    display: grid; place-items: center; flex: 0 0 auto;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--orange); color: var(--on-accent); font-weight: 700; font-size: 18px;
+}
+.transfer-side-title { display: grid; min-width: 0; flex: 1 1 auto; }
+.transfer-side-title strong { font-size: 15px; }
+.transfer-side-title small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transfer-dirty { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); }
+
+.transfer-wide { width: min(100%, 1500px); }
+/* Each side is only about a third of the page, so its container list sits above its slot grid. */
+.transfer-side .wc-split { grid-template-columns: minmax(0, 1fr); }
+.transfer-side .wc-master { max-height: 220px; overflow: auto; }
+
+@media (max-width: 1100px) {
+    .transfer-board { grid-template-columns: minmax(0, 1fr); }
+    .transfer-middle { position: static; order: -1; }
+}

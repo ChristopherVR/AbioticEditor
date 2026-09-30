@@ -22,7 +22,7 @@
    of rendering anything here, so a bookmarked/typed URL can never reach the tool. *@
 @if (!IsBrowserHost)
 {
-    <section class="tool-scaffold @(Embedded ? "transfer-embedded" : null)">
+    <section class="tool-scaffold transfer-wide @(Embedded ? "transfer-embedded" : null)">
         <header class="tool-scaffold-heading">
             @if (Embedded) { <button class="secondary" type="button" @onclick="() => OnBack.InvokeAsync()">@L.Resource("Transfer_BackToContainers")</button> }
             <p class="eyebrow">@L.Resource("Transfer_Eyebrow")</p><h1>@L.Resource("Transfer_ScaffoldTitle")</h1>
@@ -43,18 +43,30 @@
             <p class="muted">@L.Resource("Transfer_Description")</p>
             @if (Embedded) { <p class="muted">@L.Resource("Transfer_PairedSaveHint")</p> }
 
-            @SidePanel(_left, other: _right)
-            <section class="compare-card transfer-held-card">
-                @if (_held is { } held)
-                {
-                    <p class="muted">@L.Resource("Transfer_HoldingFormat", held.ItemLabel, held.Side == _left ? "A" : "B")</p>
-                }
-                else
-                {
-                    <p class="muted">@L.Resource("Transfer_HoldingNone")</p>
-                }
-            </section>
-            @SidePanel(_right, other: _left)
+            <div class="transfer-board">
+                @SidePanel(_left, other: _right)
+                <aside class="transfer-middle" aria-live="polite">
+                    <span class="transfer-arrow" aria-hidden="true">⇄</span>
+                    @if (_held is { } held)
+                    {
+                        <strong class="transfer-carry-title">Carrying</strong>
+                        <span class="transfer-carry-item">@held.ItemLabel</span>
+                        <p class="muted">From world @(held.Side == _left ? "A" : "B"). Click an empty slot in world @(held.Side == _left ? "B" : "A") to drop it there.</p>
+                        <button type="button" class="secondary" @onclick="() => _held = null">Put it back</button>
+                    }
+                    else
+                    {
+                        <strong class="transfer-carry-title">Nothing picked up</strong>
+                        <p class="muted">@L.Resource("Transfer_HoldingNone")</p>
+                        <ol class="transfer-steps">
+                            <li>Load a world on each side.</li>
+                            <li>Open a container and click an item to pick it up.</li>
+                            <li>Open a container on the other side and click an empty slot.</li>
+                        </ol>
+                    }
+                </aside>
+                @SidePanel(_right, other: _left)
+            </div>
         }
     </section>
 }
@@ -108,6 +120,15 @@
         // move items out of - pre-fill side A with it rather than making them browse for a
         // file they are currently looking at in another tab.
         if (_left.Session is null && Workspace.Current?.WorldSession is { } open) { _left.Path = open.Path; _left.Session = open; }
+    }
+
+    /// <summary>"Cascade / WorldSave_Facility.sav": the world folder plus the file, so two worlds
+    /// with identically named region saves can still be told apart at a glance.</summary>
+    private static string WorldLabel(string path)
+    {
+        var file = System.IO.Path.GetFileName(path);
+        var world = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path) ?? string.Empty);
+        return string.IsNullOrEmpty(world) ? file : $"{world} / {file}";
     }
 
     private WorldContainer? SelectedContainer(Side side) => side.SelectedKey is { } key
@@ -243,10 +264,17 @@
 
     private RenderFragment SidePanel(Side side, Side other) => __builder =>
     {
-        <section class="compare-card">
-            <h2>@L.Resource("Transfer_SideHeaderFormat", side.Label)</h2>
+        <section class="compare-card transfer-side">
+            <header class="transfer-side-head">
+                <span class="transfer-badge" aria-hidden="true">@side.Label</span>
+                <span class="transfer-side-title">
+                    <strong>@L.Resource("Transfer_SideHeaderFormat", side.Label)</strong>
+                    <small>@(side.Session is null ? (side.Busy ? "Loading..." : "Not loaded yet") : WorldLabel(side.Path))</small>
+                </span>
+                @if (side.Session is { IsDirty: true }) { <span class="transfer-dirty">Unsaved changes</span> }
+            </header>
             <div class="compare-source">
-                <div class="compare-source-path" title="@side.Path">@(string.IsNullOrWhiteSpace(side.Path) ? L.Resource("Compare_NothingSelected") : side.Path)</div>
+                <div class="compare-source-path" title="@side.Path">@(string.IsNullOrWhiteSpace(side.Path) ? L.Resource("Compare_NothingSelected") : System.IO.Path.GetFileName(side.Path))</div>
                 <div class="editor-actions">
                     @if (!(Embedded && ReferenceEquals(side, _left)))
                     {
