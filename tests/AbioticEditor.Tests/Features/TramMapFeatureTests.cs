@@ -110,4 +110,66 @@ public sealed class TramMapFeatureTests
         Assert.True(feature.SetField(save, key, "nope", "anything").IsError);
         Assert.True(feature.SetField(save, "no-such-tram-entry", "lastStation", target).IsError);
     }
+
+    /// <summary>
+    /// The catalog is read from the game's level; this checks it against real saves. In every
+    /// fixture world each tram must be parked at a station on its own line, and no tram may be
+    /// offered a station from another line.
+    /// </summary>
+    [Fact]
+    public void Every_saved_tram_is_parked_on_its_own_line_and_is_offered_only_that_line()
+    {
+        var feature = WorldMapFeatures.Find("trams")!;
+        var checkedTrams = 0;
+        foreach (var (_, d) in AllFixtureSaves.WorldSaves)
+        {
+            if (!feature.AppliesTo(d.Raw)) continue;
+            foreach (var entry in feature.Read(d.Raw))
+            {
+                var line = TramNetworkCatalog.LineFor(entry.Key);
+                Assert.NotNull(line);
+                var field = entry.Fields.Single(f => f.Id == "lastStation");
+                var current = TramStationCatalog.StationNumber(field.Value);
+                Assert.NotNull(current);
+                Assert.Contains(current!.Value, line!.Stations);
+
+                var offered = field.Options!.Select(TramStationCatalog.StationNumber).OfType<int>().ToHashSet();
+                Assert.True(offered.SetEquals(line.Stations), $"{entry.Key} offered {string.Join(",", offered)}");
+                checkedTrams++;
+            }
+        }
+        if (checkedTrams == 0) return; // no fixture
+    }
+
+    [Fact]
+    public void SetField_refuses_a_station_on_a_different_line()
+    {
+        var save = LoadFacility();
+        if (save is null) return;
+        var feature = WorldMapFeatures.Find("trams")!;
+        var entry = feature.Read(save)[0];
+        var ownLine = TramNetworkCatalog.LineFor(entry.Key)!;
+        var foreign = TramNetworkCatalog.Lines.First(line => !ReferenceEquals(line, ownLine)).Stations[0];
+
+        var result = feature.SetField(save, entry.Key, "lastStation", TramNetworkCatalog.Label(foreign));
+        Assert.True(result.IsError, "a station from another line must be refused");
+    }
+
+    [Theory]
+    [InlineData("Cascade Laboratories, station 12", 12)]
+    [InlineData("Station 4", 4)]
+    [InlineData("PersistentLevel.TramSystem_Station_C_9", 9)]
+    public void Station_labels_and_paths_both_give_the_station_number(string text, int expected)
+        => Assert.Equal(expected, TramStationCatalog.StationNumber(text));
+
+    [Fact]
+    public void Network_catalog_covers_every_station_exactly_once_and_names_lines()
+    {
+        var all = TramNetworkCatalog.Lines.SelectMany(l => l.Stations).ToList();
+        Assert.Equal(all.Count, all.Distinct().Count());
+        Assert.Equal(28, all.Count);
+        Assert.Equal(10, TramNetworkCatalog.Lines.Sum(l => l.Trams.Count));
+        Assert.Equal("Cascade Laboratories, station 12", TramNetworkCatalog.Label(12));
+        Assert.Equal("Station 4", TramNetworkCatalog.Label(4));
+    }
 }

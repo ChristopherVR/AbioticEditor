@@ -139,25 +139,25 @@ scripts (see `research-narrative-npcs.md`). The inspector is the basis for a fut
 
 ## 4. Tram destinations
 
-`TramMapFeature` offers, as choices, only the stations some tram currently occupies. Fixture evidence
-that this cannot be complete: each of the four Facility saves has 10 trams parked at 10 distinct
-stations, but the sets differ between saves (17 distinct `TramSystem_Station_C_N` numbers in total:
-1, 2, 3, 5, 6, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 27). The legacy world and Chrissie share
-3/5/12/19/23; the server and client Cascade worlds share 2/11/22/27. The instance numbers are assigned
-by the level asset and no save or catalog names them.
+Resolved (round 133). The Facility level (`AbioticFactor/Content/Maps/Facility.umap`) holds 28
+`TramSystem_Station_C` actors, 18 `TramSystem_Rail_C` actors and 10 trams (`Tram_Default_C_1..7`,
+`Tram_ParentBP_C_0..2`). Each rail joins two stations (`Station1`, `Station2`) and each tram has a
+`StatingStation`. Grouping stations by rail gives **ten separate lines with one tram each**, so a tram
+can only ever stop at a station on its own line. The old option set (every station some tram was
+parked at) offered stations from other lines, which was wrong.
 
-Repository station data is limited to `TramStationCatalog.UnlockFlags`: seven world flags that gate
-named stations (`Tram_Containment`, `Tram_DamOffice`, `Tram_DF_R4`, `Tram_MFWest_Office1`,
-`Tram_Mines_Office1`, `Tram_Plant`, and `Pens_OpenTramStation`). Nothing links a flag to an instance
-number, so the editor cannot say which station is "Containment". Nothing was added to the editable
-choices, because offering an instance number the running build lacks would write an invalid
-reference.
-
-Level-asset extraction needed (game install required): load
-`AbioticFactor/Content/Maps/Facility.umap`, enumerate every `TramSystem_Station_C` export with its
-transform, read the rail/track actors to learn connectivity, label each station (from the level or
-the matching `Tram_*` flag), and validate which stations each tram can reach. The same walk pattern
-already exists in `DoorGateResolver` and `DoorLocationResolver`.
+- `TramNetworkCatalog` holds the lines and the level's own station names (23 of 28 stations have
+  one; the six on the containment line's stations 0, 4, 6, 7, 8, 9 are unnamed, and five stations
+  share "The Office Sector", so labels always end in the station number).
+- The instance numbers and tram actor names are the same ones a save stores (`LastStation_`
+  `PersistentLevel.TramSystem_Station_C_12`, `TramMap` key `...Tram_Default_C_1`).
+- `TramMapFeatureTests` checks every fixture world: each saved tram is parked on its own line, and a
+  station from another line is refused. A tram the catalog does not know (a newer game build) falls
+  back to the occupied-station set.
+- Regenerate with `tests/AbioticEditor.Probes/TramLevelProbeTests.cs` after a game update that adds
+  stations or lines. `StationName` in the level is empty on some stations; that is the game's data.
+- Still open: which station each `Tram_*` unlock flag opens (`TramStationCatalog.UnlockFlags`), and
+  whether a station is usable before its flag is set.
 
 ## 5. Static world-object placement: which saved positions are authoritative
 

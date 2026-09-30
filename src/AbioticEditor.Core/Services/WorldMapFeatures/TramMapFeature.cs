@@ -22,12 +22,13 @@ namespace AbioticEditor.Core.WorldSaves.Features;
 /// (PackageName/AssetName stay untouched) via
 /// <see cref="WorldMapAccessor.SetSoftObjectSubPath"/>.</para>
 ///
-/// <para><b>Known limitation:</b> the option set is the union of stations currently occupied by
-/// some tram. Because each tram is parked at a distinct station, this lists only stations that
-/// at least one tram is sitting at right now - it cannot enumerate empty stations the level
-/// defines but no tram currently occupies (that would require reading the level asset, not the
-/// save). In practice the facility's trams cover the reachable stations, so this is enough to
-/// re-park a tram at any station another tram has visited.</para>
+/// <para><b>Which stations a tram can be re-parked at.</b> Only the stations on that tram's own
+/// line. The Facility is ten separate lines with one tram each (see <see cref="TramNetworkCatalog"/>,
+/// read from the level's rail actors), so a tram cannot stop at a station on another line.
+/// A tram the catalog does not know (a newer game build, a modded map) falls back to the stations
+/// the save's trams currently occupy, which may include stations on other lines; the hint says so.
+/// The tram's current station is always offered, even if the catalog does not list it, so a save is
+/// never shown a choice it cannot represent.</para>
 ///
 /// <para><b>What complete destinations would need (research, no code path yet).</b> Fixture evidence
 /// (docs/reference/research/world-and-placed-object-state.md): across the four Facility saves the
@@ -83,7 +84,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     /// <inheritdoc/>
     public override string Description =>
         "View each tram's on-board inventory count and re-park it at a different station "
-        + "(choose from the stations the save's trams currently occupy).";
+        + "on its own line.";
 
     /// <summary>
     /// Trams cannot be removed: deleting a tram's persisted state would strip the tram from the
@@ -104,20 +105,20 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     /// </remarks>
     public new IReadOnlyList<WorldMapEntry> Read(SaveGame save)
     {
-        // First pass: collect the friendly station labels the save references; this becomes the
-        // editable choice option set (see the class-level limitation note).
-        var labels = GatherStationLabels(save);
+        // The stations the save's trams occupy: the fallback option set for a tram whose line
+        // the catalog does not know.
+        var occupied = GatherStationLabels(save);
 
-        // Second pass: build the rows, threading the shared option set through ReadFields.
         var list = new List<WorldMapEntry>();
         var ordinal = 0;
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
             ordinal++;
+            var known = TramNetworkCatalog.LineFor(entry.Key) is not null;
             list.Add(new WorldMapEntry(
                 entry.Key,
                 LabelFor(ordinal, entry.Key, entry.Props),
-                ReadFieldsWithStations(entry.Props, labels)));
+                ReadFieldsWithStations(entry.Props, OptionsFor(entry.Key, entry.Props, occupied), known)));
         }
         return list;
     }
@@ -142,7 +143,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
         // Only the station field needs the save-wide option set; defer anything else to ApplyField.
         if (string.Equals(fieldId, LastStationFieldId, StringComparison.OrdinalIgnoreCase))
         {
-            var options = GatherStationLabels(save);
+            var options = OptionsFor(entryKey, props, GatherStationLabels(save));
             var check = ResolveChoice(value, options, out var resolvedLabel);
             if (check.IsError)
             {
@@ -157,7 +158,26 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
 
     /// <summary>Trams have no friendly key, so number them for the list.</summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
-        => $"Tram {ordinal}";
+        => TramNetworkCatalog.LineFor(key) is { } line
+            ? $"Tram {ordinal} ({TramNetworkCatalog.LineName(line)})"
+            : $"Tram {ordinal}";
+
+    /// <summary>
+    /// The stations this tram may be re-parked at: its own line when the catalog knows the tram,
+    /// otherwise <paramref name="occupied"/>. The tram's current station is always included.
+    /// </summary>
+    private static IReadOnlyList<string> OptionsFor(string tramKey, IList<FPropertyTag> props, IReadOnlyList<string> occupied)
+    {
+        if (TramNetworkCatalog.LineFor(tramKey) is not { } line) return occupied;
+        var labels = line.Stations.Select(TramNetworkCatalog.Label).ToList();
+        var sub = WorldMapAccessor.GetSoftObjectPath(props, LastStationPrefix)?.SubPath;
+        if (!string.IsNullOrWhiteSpace(sub))
+        {
+            var current = FriendlyStation(sub);
+            if (!labels.Contains(current, StringComparer.OrdinalIgnoreCase)) labels.Add(current);
+        }
+        return labels.OrderBy(l => l, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     /// <summary>
     /// Collects the distinct, friendly station labels referenced by every tram's current
@@ -191,14 +211,14 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
         var options = string.IsNullOrWhiteSpace(sub)
             ? Array.Empty<string>()
             : new[] { FriendlyStation(sub) };
-        return ReadFieldsWithStations(props, options);
+        return ReadFieldsWithStations(props, options, lineKnown: false);
     }
 
     /// <summary>
     /// Builds the per-entry fields given the shared set of station option <paramref name="labels"/>.
     /// </summary>
     private static WorldMapField[] ReadFieldsWithStations(
-        IList<FPropertyTag> props, IReadOnlyList<string> labels)
+        IList<FPropertyTag> props, IReadOnlyList<string> labels, bool lineKnown)
     {
         var sub = WorldMapAccessor.GetSoftObjectPath(props, LastStationPrefix)?.SubPath;
         var current = string.IsNullOrWhiteSpace(sub) ? null : FriendlyStation(sub);
@@ -211,10 +231,12 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
         return new[]
         {
             WorldMapField.Choice(LastStationFieldId, "Last station", current, labels,
-                hint: "Re-park this tram at the chosen station. The save only records each tram's "
-                    + "current station, not which line it runs, so this lists every station the "
-                    + "save's trams occupy - it can't restrict the list to just this tram's stops. "
-                    + "Pick a station on this tram's actual line."),
+                hint: lineKnown
+                    ? "Re-park this tram at another station on its own line. A tram cannot stop at a "
+                        + "station on a different line, so only this line's stations are offered."
+                    : "Re-park this tram at the chosen station. This tram's line is not known to the "
+                        + "editor, so the list is every station the save's trams occupy, which can "
+                        + "include stations on other lines. Pick a station on this tram's actual line."),
             WorldMapField.ReadOnly("inventories", "Container inventories",
                 inventoryCount.ToString(CultureInfo.InvariantCulture),
                 hint: "Number of on-board storage containers attached to this tram."),
@@ -266,9 +288,14 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     /// <c>PersistentLevel.</c> qualifier. Reversible via <see cref="ToSubPath"/>.
     /// </summary>
     private static string FriendlyStation(string subPath)
-        => subPath.StartsWith(PersistentLevelPrefix, StringComparison.Ordinal)
+    {
+        var bare = subPath.StartsWith(PersistentLevelPrefix, StringComparison.Ordinal)
             ? subPath[PersistentLevelPrefix.Length..]
             : subPath;
+        return TramStationCatalog.StationNumber(bare) is { } number && bare.StartsWith(TramStationCatalog.StationActorPrefix, StringComparison.Ordinal)
+            ? TramNetworkCatalog.Label(number)
+            : bare;
+    }
 
     /// <summary>
     /// Maps a chosen value (a friendly label or an already-full SubPathString) back to the full
@@ -278,5 +305,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     private static string ToSubPath(string value)
         => value.Contains('.', StringComparison.Ordinal)
             ? value
-            : PersistentLevelPrefix + value;
+            : TramStationCatalog.StationNumber(value) is { } number
+                ? $"{PersistentLevelPrefix}{TramStationCatalog.StationActorPrefix}{number}"
+                : PersistentLevelPrefix + value;
 }

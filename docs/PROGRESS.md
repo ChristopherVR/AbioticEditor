@@ -28,6 +28,12 @@
   **Not yet exercised on a real release**: watch the next run's `scan` job (the "Scan zips with
   VirusTotal" step and the release body).
 
+- Trams: the offline tram editor listed every occupied station as a destination for every tram.
+  The level shows ten separate lines (see `world-and-placed-object-state.md` section 4); a tram is
+  now offered only its own line's stations, with the level's station names, and cross-line stations
+  are refused. Ground items can be sent to a character (right-click or SEND TO PLAYER); story
+  events, ground items and other list rows no longer zoom or flash on hover and click.
+
 ### Open issues to keep in view (round 133)
 
 - VirusTotal's free API allows four calls a minute and refuses bursts; a release with ten large
