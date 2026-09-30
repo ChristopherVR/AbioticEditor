@@ -57,26 +57,33 @@
 
     // Every known item plus anything already in the save, keyed by the lower-case row name the
     // save stores, so items the catalog does not know are still shown and can be untoggled.
-    private IReadOnlyList<Entry> Entries => Session.ItemVocabulary
+    private readonly RenderMemo<List<Entry>> _entriesMemo = new();
+    private readonly RenderMemo<List<Entry>> _visibleMemo = new();
+
+    private List<Entry> Entries => _entriesMemo.Get((Session.ItemVocabulary.Count, Session.ItemsDistilled.Count), () => Session.ItemVocabulary
         .Concat(Session.ItemsDistilled)
         .Select(id => id.Trim().ToLowerInvariant())
         .Where(id => id.Length > 0)
         .Distinct(StringComparer.Ordinal)
         .Select(id => new Entry(id, Catalog.Find(id)?.DisplayName ?? id))
         .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
-        .ToList();
+        .ToList());
 
-    private List<Entry> Visible => Entries
-        .Where(e => _mode switch
-        {
-            Mode.Distilled => Session.ItemsDistilled.Contains(e.Id),
-            Mode.NotYet => !Session.ItemsDistilled.Contains(e.Id),
-            _ => true,
-        })
-        .Where(e => _filter.Length == 0
-            || e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)
-            || e.Id.Contains(_filter, StringComparison.OrdinalIgnoreCase))
-        .ToList();
+    // The list is read three times per render and re-sorted on every keystroke otherwise; it only
+    // changes when the mode, the search text or the set of distilled items does.
+    private List<Entry> Visible => _visibleMemo.Get(
+        (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Entries), _mode, _filter, Session.ItemsDistilled.Count),
+        () => Entries
+            .Where(e => _mode switch
+            {
+                Mode.Distilled => Session.ItemsDistilled.Contains(e.Id),
+                Mode.NotYet => !Session.ItemsDistilled.Contains(e.Id),
+                _ => true,
+            })
+            .Where(e => _filter.Length == 0
+                || e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)
+                || e.Id.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+            .ToList());
 
     private async Task Toggle(string id, bool distilled)
     {

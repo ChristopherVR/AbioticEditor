@@ -190,7 +190,7 @@
                 {
                     <p class="ws-recipes-empty">@L.Resource("WorldStory_NoRecipes")</p>
                 }
-                @foreach (var (row, recipeRenderKey) in RenderKeys.With(VisibleWorldRecipeRows, r => r.Id))
+                @foreach (var (row, recipeRenderKey) in RenderKeys.With(VisibleWorldRecipeRows.Take(ShownRecipes), r => r.Id))
                 {
                     var unlocked = RecipeIsUnlocked(row.Id);
                     <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="recipeRenderKey"
@@ -210,6 +210,10 @@
                         </span>
                         <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
                     </div>
+                }
+                @if (VisibleWorldRecipeRows.Count > ShownRecipes)
+                {
+                    <button type="button" class="secondary ws-show-more" @onclick="() => _recipesShown += RowPage">Show more (@(VisibleWorldRecipeRows.Count - ShownRecipes) left)</button>
                 }
             </div>
 
@@ -250,7 +254,7 @@
                 {
                     <p class="ws-recipes-empty">@L.Resource("WorldStory_NoWorldWideSeen")</p>
                 }
-                @foreach (var (row, globalRowRenderKey) in RenderKeys.With(VisibleGlobalListRows, r => r.Id))
+                @foreach (var (row, globalRowRenderKey) in RenderKeys.With(VisibleGlobalListRows.Take(ShownGlobal), r => r.Id))
                 {
                     var present = GlobalListRowIsPresent(row.Id);
                     <div class="ws-recipe-row @(_selectedGlobalId == row.Id ? "selected" : null)" @key="globalRowRenderKey">
@@ -268,6 +272,10 @@
                         </button>
                         <span class="ws-recipe-status">@L.Resource(present ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
                     </div>
+                }
+                @if (VisibleGlobalListRows.Count > ShownGlobal)
+                {
+                    <button type="button" class="secondary ws-show-more" @onclick="() => _globalShown += RowPage">Show more (@(VisibleGlobalListRows.Count - ShownGlobal) left)</button>
                 }
             </div>
         }
@@ -291,6 +299,35 @@
     private bool _settingChapter;
     private StoryChapter? _selectedChapter;
     private string _recipeSearch = string.Empty;
+
+    // Both browsers hold well over a thousand rows. Drawing every one of them, each with an icon,
+    // on every keystroke made typing in the search box lag; they show a page at a time instead
+    // (search still reaches every row) and start over when the search or the list changes.
+    private const int RowPage = 150;
+    private int _recipesShown = RowPage;
+    private string _recipesShownFor = string.Empty;
+    private int _globalShown = RowPage;
+    private string _globalShownFor = string.Empty;
+
+    private int ShownRecipes
+    {
+        get
+        {
+            var key = _recipeSearch.Trim();
+            if (_recipesShownFor != key) { _recipesShownFor = key; _recipesShown = RowPage; }
+            return _recipesShown;
+        }
+    }
+
+    private int ShownGlobal
+    {
+        get
+        {
+            var key = _globalListKind + "|" + _globalListSearch.Trim();
+            if (_globalShownFor != key) { _globalShownFor = key; _globalShown = RowPage; }
+            return _globalShown;
+        }
+    }
     private string? _selectedWorldRecipeId;
     private int _gateNonce;
     private IReadOnlySet<string>? _worldFlags;
@@ -809,7 +846,7 @@
 
     /// <summary>Marks the file workspace dirty; meaningless (and skipped) for the live session,
     /// which has nothing staged - every change already applied the moment it was made.</summary>
-    private void NotifyEdited() { if (!Session.AppliesImmediately) Workspace.NotifyEdited(); }
+    private void NotifyEdited() { InvalidateBrowserCaches(); if (!Session.AppliesImmediately) Workspace.NotifyEdited(); }
 
     private async Task RunAsync(Func<Task> action)
     {
@@ -891,30 +928,38 @@
     /// <summary>Every known recipe row (from the installed game's vocabulary) plus any recipe
     /// id already unlocked in this save that the vocabulary doesn't know about (e.g. game data
     /// unavailable, or a renamed/legacy row).</summary>
-    private IEnumerable<WorldRecipeRow> AllWorldRecipeRows
+    private IReadOnlyList<WorldRecipeRow> AllWorldRecipeRows
     {
         get
         {
-            var infosById = RecipeVocabulary.GetRecipeInfos().ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
-            var ids = infosById.Keys.Concat(Session.GlobalRecipeIds).Distinct(StringComparer.Ordinal);
-            return ids.Select(id =>
+            var infos = RecipeVocabulary.GetRecipeInfos();
+            return _recipeRowsMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(infos), Session.GlobalRecipeIds.Count), () =>
             {
-                infosById.TryGetValue(id, out var info);
-                var name = info?.CreatesItemId is { } itemId ? (Items.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId)) : PlainNames.Words(id);
-                return new WorldRecipeRow(id, info, name);
+                var infosById = infos.ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
+                var ids = infosById.Keys.Concat(Session.GlobalRecipeIds).Distinct(StringComparer.Ordinal);
+                return ids.Select(id =>
+                {
+                    infosById.TryGetValue(id, out var info);
+                    var name = info?.CreatesItemId is { } itemId ? (Items.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId)) : PlainNames.Words(id);
+                    return new WorldRecipeRow(id, info, name);
+                }).ToList();
             });
         }
     }
 
-    private IEnumerable<WorldRecipeRow> VisibleWorldRecipeRows
+    private IReadOnlyList<WorldRecipeRow> VisibleWorldRecipeRows
     {
         get
         {
             var term = _recipeSearch.Trim();
-            var rows = AllWorldRecipeRows;
-            if (!string.IsNullOrWhiteSpace(term))
-                rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
-            return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal);
+            var all = AllWorldRecipeRows;
+            return _recipeVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term), () =>
+            {
+                IEnumerable<WorldRecipeRow> rows = all;
+                if (!string.IsNullOrWhiteSpace(term))
+                    rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
+                return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
+            });
         }
     }
 
@@ -1166,32 +1211,63 @@
     private string JournalName(string id) => _codexVocabulary.Journals.FirstOrDefault(j => j.Id == id)?.Title ?? PlainNames.Words(id);
     private string CompendiumName(string id) => _codexVocabulary.Compendium.FirstOrDefault(c => c.Id == id)?.Title ?? PlainNames.Words(id);
 
-    private bool GlobalListRowIsPresent(string id) => CurrentGlobalListDef.Ids(Session).Contains(id, StringComparer.OrdinalIgnoreCase);
+    private readonly RenderMemo<HashSet<string>> _globalPresentMemo = new();
+    private readonly RenderMemo<List<GlobalListRow>> _globalRowsMemo = new();
+    private readonly RenderMemo<List<GlobalListRow>> _globalVisibleMemo = new();
+    private readonly RenderMemo<List<WorldRecipeRow>> _recipeRowsMemo = new();
+    private readonly RenderMemo<List<WorldRecipeRow>> _recipeVisibleMemo = new();
+
+    private void InvalidateBrowserCaches()
+    {
+        _globalPresentMemo.Invalidate(); _globalRowsMemo.Invalidate(); _globalVisibleMemo.Invalidate();
+        _recipeRowsMemo.Invalidate(); _recipeVisibleMemo.Invalidate();
+    }
+
+    /// <summary>Ids present in the selected list, as a set: the presence check runs once per row, so
+    /// a linear scan of the ids for each of ~1500 item rows was millions of comparisons per render.</summary>
+    private HashSet<string> GlobalPresent
+    {
+        get
+        {
+            var def = CurrentGlobalListDef;
+            var ids = def.Ids(Session);
+            return _globalPresentMemo.Get((def.Kind, ids.Count),
+                () => new HashSet<string>(ids, StringComparer.OrdinalIgnoreCase));
+        }
+    }
+
+    private bool GlobalListRowIsPresent(string id) => GlobalPresent.Contains(id);
 
     /// <summary>Every row worth showing for the selected list: every id the installed game's own
     /// data knows for that kind (so an unseen id can be added), plus any id already present in
     /// this world that game data does not recognise (a renamed/legacy row, or game data
     /// unavailable) - the same "known catalog ids plus whatever the save already has" rule
     /// <see cref="AllWorldRecipeRows"/> uses for the recipes browser above.</summary>
-    private IEnumerable<GlobalListRow> AllGlobalListRows
+    private IReadOnlyList<GlobalListRow> AllGlobalListRows
     {
         get
         {
             var def = CurrentGlobalListDef;
-            var ids = def.KnownIds().Concat(def.Ids(Session)).Distinct(StringComparer.OrdinalIgnoreCase);
-            return ids.Select(id => new GlobalListRow(id, def.Name(id)));
+            return _globalRowsMemo.Get(
+                (def.Kind, def.Ids(Session).Count, System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_codexVocabulary)),
+                () => def.KnownIds().Concat(def.Ids(Session)).Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(id => new GlobalListRow(id, def.Name(id))).ToList());
         }
     }
 
-    private IEnumerable<GlobalListRow> VisibleGlobalListRows
+    private IReadOnlyList<GlobalListRow> VisibleGlobalListRows
     {
         get
         {
             var term = _globalListSearch.Trim();
-            var rows = AllGlobalListRows;
-            if (!string.IsNullOrWhiteSpace(term))
-                rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
-            return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal);
+            var all = AllGlobalListRows;
+            return _globalVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term), () =>
+            {
+                IEnumerable<GlobalListRow> rows = all;
+                if (!string.IsNullOrWhiteSpace(term))
+                    rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
+                return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
+            });
         }
     }
 
@@ -1199,8 +1275,7 @@
     {
         get
         {
-            var def = CurrentGlobalListDef;
-            var rows = AllGlobalListRows.ToList();
+            var rows = AllGlobalListRows;
             return rows.Count > 0
                 ? L.Resource("WorldStory_WorldWideSeenCountFormat", rows.Count(row => GlobalListRowIsPresent(row.Id)), rows.Count)
                 : L.Resource("PlayerRecipes_GameDataUnavailable");

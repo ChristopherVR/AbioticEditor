@@ -1,5 +1,27 @@
 # Abiotic Editor - Session history
 
+## Round-133: owner review notes, active effects research, performance pass (2026-09-30)
+
+- Owner notes: unlock-through button hides when nothing is missing; removal-flag text and the
+  collapsed story stage gone from NPCS; Unlost portraits bundled; World details always open;
+  upgrade/downgrade graph now loads when the Inventory tab opens (opening a save must not scan
+  paks, see `SaveSelectionSchedulingTests`); GATEPal DISTILLED app (writes `ItemsDistilled_`);
+  world-wide seen rows open details; friendly NPC spawner labels; Transfer Items redesigned
+  (two worlds side by side, carrying panel).
+- Active effects: `research-active-effects.md`. `DT_BuffsDebuffs` has 543 rows, 39 tagged
+  `Buff.Save`. Remove/clear is written; add is not (expiry clock unverified). `BuffCatalog` names
+  the rows and flags ones the current game no longer has.
+- Performance (measured, `tests/AbioticEditor.Tests` scratch timings): reading the 16 MB Facility
+  save 270 ms, serializing 100 ms, session build and `IsDirty` under 10 ms, so the core is fine.
+  Costs found and fixed: `ItemCatalog.LoadFrom` took 1 to 2 s and ran up to three times per
+  process (now cached per shared provider); the world-wide seen and world recipe browsers rebuilt,
+  filtered and sorted about 1500 rows several times per render with a linear presence scan per row
+  (now `RenderMemo` plus a hash set) and drew every row (now 150 at a time with "Show more"); the
+  DISTILLED grid uses the same memo.
+- Follow-ups: other Razor properties that build lists per read (`PlayerRecipesTab`, containers and
+  bases tabs) were only read, not measured; search boxes still send every keystroke to the
+  server (`@bind:event="oninput"`).
+
 ## Round-132: base building in 3D, delete and duplicate (2026-09-28)
 
 - **3D view** tab next to Bases (Three.js 0.186.1 vendored under `Web.Shared/wwwroot/lib/three`,

@@ -107,6 +107,25 @@ public sealed class ItemCatalog
         if (!provider.HasMappings)
             throw new GameAssetProvider.MappingsRequiredException("ItemTable_Global");
 
+        // The item tables take one to two seconds to read, and the host asks for them from more
+        // than one place (the vocabulary, the dismantle preview, the registry dump), all through
+        // the same shared provider. The catalog is immutable, so read it once per provider; a
+        // changed mod set builds a new provider and therefore a fresh catalog.
+        lock (LoadLock)
+        {
+            if (Loaded.TryGetValue(provider, out var cached)) return cached;
+            var loaded = LoadFromUncached(provider);
+            Loaded.Add(provider, loaded);
+            return loaded;
+        }
+    }
+
+    private static readonly object LoadLock = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameAssetProvider, ItemCatalog> Loaded = new();
+
+    private static ItemCatalog LoadFromUncached(GameAssetProvider provider)
+    {
+
         // Primary table - required. Throws if absent or malformed.
         var pkg = provider.LoadPackageInternal(PrimaryTable);
         var primaryDt = pkg.GetExports().OfType<UDataTable>().FirstOrDefault()
