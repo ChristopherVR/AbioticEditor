@@ -22,22 +22,28 @@ namespace AbioticEditor.Core.WorldSaves;
 /// </remarks>
 public static class TramNetworkCatalog
 {
-    /// <summary>One line: the stations its rails connect, and the tram that runs on it.</summary>
-    public sealed record TramLine(IReadOnlyList<int> Stations, IReadOnlyList<string> Trams);
+    /// <summary>One line: its stations in the order the rails join them, and the tram that runs on it.</summary>
+    /// <param name="Stations">Station numbers from one end of the line to the other.</param>
+    /// <param name="Trams">The tram actor(s) on this line (one in the Facility).</param>
+    /// <param name="IsLift">The line is the containment lift (<c>Tram_ContainmentLift_C</c>), not a tram.</param>
+    public sealed record TramLine(IReadOnlyList<int> Stations, IReadOnlyList<string> Trams, bool IsLift = false);
 
-    /// <summary>Every line in the Facility, ordered by their lowest station number.</summary>
+    /// <summary>
+    /// Every line in the Facility, stations in rail order (each rail's <c>Station1</c>/<c>Station2</c>
+    /// chained end to end), ordered by their lowest station number.
+    /// </summary>
     public static IReadOnlyList<TramLine> Lines { get; } =
     [
-        new([0, 4, 6, 7, 8, 9], ["Tram_ParentBP_C_0"]),
-        new([1, 5], ["Tram_ParentBP_C_1"]),
+        new([0, 4, 6, 7, 8, 9], ["Tram_ParentBP_C_0"], IsLift: true),
+        new([5, 1], ["Tram_ParentBP_C_1"]),
         new([2, 3], ["Tram_ParentBP_C_2"]),
-        new([10, 15, 17], ["Tram_Default_C_4"]),
-        new([11, 12, 14], ["Tram_Default_C_1"]),
+        new([15, 17, 10], ["Tram_Default_C_4"]),
+        new([11, 14, 12], ["Tram_Default_C_1"]),
         new([13, 20], ["Tram_Default_C_2"]),
         new([16, 18], ["Tram_Default_C_3"]),
-        new([19, 27], ["Tram_Default_C_6"]),
-        new([21, 24, 28], ["Tram_Default_C_7"]),
-        new([22, 23, 26], ["Tram_Default_C_5"]),
+        new([27, 19], ["Tram_Default_C_6"]),
+        new([24, 21, 28], ["Tram_Default_C_7"]),
+        new([23, 26, 22], ["Tram_Default_C_5"]),
     ];
 
     private static readonly Dictionary<int, string> StationNames = new()
@@ -86,19 +92,74 @@ public static class TramNetworkCatalog
     public static string? StationName(int station)
         => StationNames.TryGetValue(station, out var name) ? name : null;
 
+    /// <summary>The line a station is on, or null for a station the table does not know.</summary>
+    public static TramLine? LineOfStation(int station)
+        => Lines.FirstOrDefault(line => line.Stations.Contains(station));
+
     /// <summary>
-    /// A player-readable label for a station, always ending in its number because several stations
-    /// share a name (five are called "The Office Sector"): <c>Cascade Laboratories, station 12</c>.
+    /// How a player would name a stop on its line: the level's station name, with the stop number
+    /// along the line added only when two stops on the same line share a name ("Cascade
+    /// Laboratories (stop 3)"). Unnamed stops (the containment lift's) are "Stop 1", "Stop 2", ...
+    /// </summary>
+    public static string StopLabel(TramLine line, int station)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        var index = IndexOf(line, station);
+        var stop = index + 1;
+        var name = StationName(station);
+        if (string.IsNullOrEmpty(name) || index < 0)
+            return string.Create(CultureInfo.InvariantCulture, $"Stop {(index < 0 ? station : stop)}");
+        var shared = line.Stations.Count(s => string.Equals(StationName(s), name, StringComparison.Ordinal)) > 1;
+        return shared ? string.Create(CultureInfo.InvariantCulture, $"{name} (stop {stop})") : name;
+    }
+
+    /// <summary>
+    /// A station's label without a line in hand: its label on its own line, or "Station N" for a
+    /// station the table does not know.
     /// </summary>
     public static string Label(int station)
-        => StationName(station) is { Length: > 0 } name
-            ? string.Create(CultureInfo.InvariantCulture, $"{name}, station {station}")
+        => LineOfStation(station) is { } line
+            ? StopLabel(line, station)
             : string.Create(CultureInfo.InvariantCulture, $"Station {station}");
 
-    /// <summary>A short name for a line, from the distinct place names on it ("Cascade Laboratories / The Office Sector").</summary>
-    public static string LineName(TramLine line)
+    /// <summary>The station on <paramref name="line"/> a <see cref="StopLabel"/> stands for, or null.</summary>
+    public static int? StationForLabel(TramLine line, string? label)
     {
-        var names = line.Stations.Select(StationName).Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.Ordinal).ToArray();
-        return names.Length == 0 ? "Containment" : string.Join(" / ", names);
+        ArgumentNullException.ThrowIfNull(line);
+        if (string.IsNullOrWhiteSpace(label)) return null;
+        foreach (var station in line.Stations)
+        {
+            if (string.Equals(StopLabel(line, station), label.Trim(), StringComparison.OrdinalIgnoreCase)) return station;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// What players call a line: the containment lift, or the places it runs between in rail order
+    /// ("The Office Sector ↔ Cascade Laboratories"), repeated neighbours collapsed. A line that
+    /// touches The Office Sector is written from there, the hub most lines share.
+    /// </summary>
+    public static string RouteName(TramLine line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        if (line.IsLift) return "Containment lift";
+        var names = new List<string>();
+        foreach (var name in line.Stations.Select(StationName))
+        {
+            if (string.IsNullOrEmpty(name) || (names.Count > 0 && names[^1] == name)) continue;
+            names.Add(name);
+        }
+        if (names.Count == 0) return "Unnamed line";
+        if (names[^1] == "The Office Sector" && names[0] != "The Office Sector") names.Reverse();
+        return string.Join(" ↔ ", names);
+    }
+
+    private static int IndexOf(TramLine line, int station)
+    {
+        for (var i = 0; i < line.Stations.Count; i++)
+        {
+            if (line.Stations[i] == station) return i;
+        }
+        return -1;
     }
 }

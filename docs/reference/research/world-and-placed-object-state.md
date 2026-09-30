@@ -156,6 +156,14 @@ parked at) offered stations from other lines, which was wrong.
   back to the occupied-station set.
 - Regenerate with `tests/AbioticEditor.Probes/TramLevelProbeTests.cs` after a game update that adds
   stations or lines. `StationName` in the level is empty on some stations; that is the game's data.
+- Round 134: lines are stored in **rail order** (each rail's `Station1`/`Station2` chained end to
+  end: e.g. `11 -> 14 -> 12`, `23 -> 26 -> 22`). `Tram_ParentBP_C_0` is a `Tram_ContainmentLift_C`:
+  the six-stop line is the containment lift, not a tram. The Trams tab names each tram after its
+  route ("The Office Sector ↔ Hydroplant"), labels stops by name with "(stop N)" only where a
+  route repeats a name (Office -> Cascade Labs -> Cascade Labs), and "Stop N" for the lift's
+  unnamed stops. Labels are resolved back to a station through the tram's own route, because
+  "The Office Sector" is on six routes. There are also 31 `TramSystem_RecallStation_C` call
+  points; they are not saved.
 - Still open: which station each `Tram_*` unlock flag opens (`TramStationCatalog.UnlockFlags`), and
   whether a station is usable before its flag is set.
 

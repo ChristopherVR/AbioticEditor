@@ -1,5 +1,33 @@
 # Abiotic Editor - Session history
 
+## Round-135: 3D view inside Bases, base-edit test run, trams by route (2026-10-01)
+
+- **3D view** is no longer a world tab or a Settings switch: the Bases tab shows a Map / 3D view
+  switch only when the optional game models plugin is available (`SaveEditorSurface.GameModelsAvailable`,
+  `WorldBasesTab.ThreeDView`). `HostAdvancedPreferences.Enable3DBaseView` removed (old files ignored).
+- **Base edits tested end to end** (headless, on a copy of the Cascade fixture world via
+  `ABIOTIC_EDITOR_FOLDER`): numeric move, copy of a powered plug strip (3 new unplugged outlets),
+  delete with the inbound socket dropped, SAVE, `.bak` identical to the original, CLI `compare`
+  confirming exactly the staged entries changed. Found and fixed: numeric move rewrote the untouched
+  axes and yaw with their 2-decimal display (tiny shift and turn); delete panel listed a staged copy's
+  findings; repeated findings (one per outlet) now grouped with a count; the downstream-power warning
+  now names the devices that lose power.
+- **Power rerouting does not exist** (by design so far, `research-power-network-links.md`: no
+  before/after save pair for a rewired plug). There are no base or power "fix-ups" either; the only
+  power write is Disconnect on the Power Sockets tab. Not built this round.
+- **Trams** read as routes: one row per route named after its stops in rail order, the containment
+  lift last, "Parked at" with stops in route order, area chip hidden when every row has the same area
+  (generic, `WorldFeaturesTab`), storage count only when non-zero. Live tab uses the same names.
+  Verified: re-parking the Office ↔ Residence tram at "Residence Sector (stop 2)" wrote station 17.
+- **Save comparison blind spot fixed**: structs without their own `ToString` (soft object paths,
+  gameplay tag containers) all compared equal, so a tram re-park compared as "identical"
+  (`SavePropertyFlattener.Describe`).
+
+### Open issues to keep in view (round 135)
+
+- Power rerouting and power repair need a real before/after save pair from the game first.
+- The 3D view does not follow the Bases tab's selected base; it frames the whole region.
+
 ## Round-134: game models in the 3D view, as an optional plugin (2026-10-01)
 
 - **New SDK capability** `ISceneModelProvider` (`Plugins.Abstractions/Scene`), registered with

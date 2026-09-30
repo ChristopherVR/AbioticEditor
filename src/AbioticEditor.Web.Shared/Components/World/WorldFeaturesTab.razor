@@ -83,7 +83,7 @@ else
                         <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>
                         <p class="world-feature-hint">@_actorLocationText</p>
                     }
-                    @if (AreaFor(selected) is { Length: > 0 } area)
+                    @if (!_singleArea && AreaFor(selected) is { Length: > 0 } area)
                     {
                         <p class="world-feature-arearow"><span class="eyebrow">@L.Resource("WorldFeature_Area")</span> @area</p>
                     }
@@ -391,9 +391,15 @@ else
                     pair.Item, pair.Item.Label, AreaFor(pair.Item) ?? string.Empty, Summary(pair.Item),
                     IsPluggedInSocket(pair.Item), pair.Key))
                 .ToList();
+        // When every entry is in the same area (every tram is "The Facility"), the area chip on
+        // each row says nothing; drop it so the rows show what actually differs.
+        _singleArea = _allRows.Count > 1 && _allRows.Select(r => r.Area).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
+        if (_singleArea) _allRows = _allRows.Select(r => r with { Area = string.Empty }).ToList();
         RebuildVisibleRows();
         StartCrossRegionResolve();
     }
+
+    private bool _singleArea;
 
     private void RebuildVisibleRows()
     {

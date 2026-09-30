@@ -101,10 +101,12 @@ public static class SavePropertyFlattener
                 return true;
             }
 
-            // Any other struct data (Vector, Guid, Color, DateTime, gameplay tags, ...)
-            // has a faithful ToString - compare on that.
+            // Any other struct data (Vector, Guid, Color, DateTime, ...) is compared on its text.
+            // Some struct types (soft object paths, gameplay tag containers) do not override
+            // ToString and would all print their type name, so every change to them compared as
+            // "no difference"; those are described from their public members instead.
             case IStructData sd:
-                return sink.Add(path, sd.ToString() ?? "(struct)", type);
+                return sink.Add(path, Describe(sd, 0), type);
 
             case Array arr:
                 return VisitArray(path, arr, sink);
@@ -151,6 +153,32 @@ public static class SavePropertyFlattener
             if (!VisitValue(entryPath, pair.Value.Value, pair.Value.GetType().Name, sink)) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// A value's text for comparison: its own <c>ToString</c> when the type provides one, otherwise
+    /// its public properties, recursively (a few levels), so two different values never read the same.
+    /// </summary>
+    private static string Describe(object? value, int depth)
+    {
+        if (value is null) return "(none)";
+        var type = value.GetType();
+        if (value is string || type.IsPrimitive || value is FString || value is IFormattable) return FormatScalar(value);
+        var text = value.ToString();
+        if (text is not null && text != type.FullName && text != type.Name) return text;
+        if (depth > 3) return type.Name;
+        if (value is System.Collections.IEnumerable items)
+            return "[" + string.Join(", ", items.Cast<object?>().Take(64).Select(i => Describe(i, depth + 1))) + "]";
+        var members = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.GetIndexParameters().Length == 0 && p.Name is not ("StructTypes" or "KnownPropertyNames"))
+            .Select(p =>
+            {
+                object? v;
+                try { v = p.GetValue(value); }
+                catch (System.Reflection.TargetInvocationException) { v = "?"; }
+                return $"{p.Name}={Describe(v, depth + 1)}";
+            });
+        return "{" + string.Join(", ", members) + "}";
     }
 
     /// <summary>Strips the blueprint hash suffix so the same logical property aligns across saves.</summary>

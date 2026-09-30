@@ -129,16 +129,39 @@ public sealed class TramMapFeatureTests
                 var line = TramNetworkCatalog.LineFor(entry.Key);
                 Assert.NotNull(line);
                 var field = entry.Fields.Single(f => f.Id == "lastStation");
-                var current = TramStationCatalog.StationNumber(field.Value);
+                var current = TramNetworkCatalog.StationForLabel(line!, field.Value);
                 Assert.NotNull(current);
-                Assert.Contains(current!.Value, line!.Stations);
+                Assert.Contains(current!.Value, line.Stations);
 
-                var offered = field.Options!.Select(TramStationCatalog.StationNumber).OfType<int>().ToHashSet();
-                Assert.True(offered.SetEquals(line.Stations), $"{entry.Key} offered {string.Join(",", offered)}");
+                // Offered in route order, exactly this line's stops.
+                var offered = field.Options!.Select(o => TramNetworkCatalog.StationForLabel(line, o)).ToList();
+                Assert.Equal(line.Stations.Cast<int?>(), offered);
+                Assert.Equal(TramNetworkCatalog.RouteName(line), entry.Label);
                 checkedTrams++;
             }
         }
         if (checkedTrams == 0) return; // no fixture
+    }
+
+    /// <summary>
+    /// A re-parked tram changes only a soft object path. The save comparison used to print every
+    /// such path as its type name, so the change compared as "identical"; it must now show.
+    /// </summary>
+    [Fact]
+    public void Reparking_a_tram_shows_up_in_a_save_comparison()
+    {
+        var before = LoadFacility();
+        var after = LoadFacility();
+        if (before is null || after is null) return;
+        var feature = WorldMapFeatures.Find("trams")!;
+        var entry = feature.Read(after).First(e => TramNetworkCatalog.LineFor(e.Key) is { Stations.Count: > 1 });
+        var field = entry.Fields.Single(f => f.Id == "lastStation");
+        var other = field.Options!.First(o => o != field.Value);
+        Assert.False(feature.SetField(after, entry.Key, "lastStation", other).IsError);
+
+        var diff = AbioticEditor.Core.Compare.SaveComparer.Compare(before, after);
+        var change = Assert.Single(diff.Differences);
+        Assert.Contains("LastStation", change.Path, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -156,7 +179,6 @@ public sealed class TramMapFeatureTests
     }
 
     [Theory]
-    [InlineData("Cascade Laboratories, station 12", 12)]
     [InlineData("Station 4", 4)]
     [InlineData("PersistentLevel.TramSystem_Station_C_9", 9)]
     public void Station_labels_and_paths_both_give_the_station_number(string text, int expected)
@@ -169,7 +191,28 @@ public sealed class TramMapFeatureTests
         Assert.Equal(all.Count, all.Distinct().Count());
         Assert.Equal(28, all.Count);
         Assert.Equal(10, TramNetworkCatalog.Lines.Sum(l => l.Trams.Count));
-        Assert.Equal("Cascade Laboratories, station 12", TramNetworkCatalog.Label(12));
-        Assert.Equal("Station 4", TramNetworkCatalog.Label(4));
+        // Stop labels read like the game: a name, a stop number only where a route repeats a name.
+        Assert.Equal("Cascade Laboratories (stop 3)", TramNetworkCatalog.Label(12));
+        Assert.Equal("Cascade Laboratories (stop 2)", TramNetworkCatalog.Label(14));
+        Assert.Equal("Hydroplant", TramNetworkCatalog.Label(13));
+        Assert.Equal("Stop 2", TramNetworkCatalog.Label(4)); // the containment lift's stops are unnamed
+
+        // Route names, one per tram, all different.
+        var names = TramNetworkCatalog.Lines.Select(TramNetworkCatalog.RouteName).ToList();
+        Assert.Equal(names.Count, names.Distinct().Count());
+        Assert.Contains("Containment lift", names);
+        Assert.Contains("The Office Sector ↔ Cascade Laboratories", names);
+        Assert.Contains("Power Services ↔ Dusk Reactor ↔ Gale Reactor", names);
+        Assert.Equal(1, TramNetworkCatalog.Lines.Count(l => l.IsLift));
+    }
+
+    [Fact]
+    public void Stops_are_found_by_label_within_their_own_route_only()
+    {
+        var office = TramNetworkCatalog.LineOfStation(13)!; // Hydroplant <-> The Office Sector
+        Assert.Equal(20, TramNetworkCatalog.StationForLabel(office, "The Office Sector"));
+        var mines = TramNetworkCatalog.LineOfStation(2)!;
+        Assert.Equal(3, TramNetworkCatalog.StationForLabel(mines, "The Office Sector"));
+        Assert.Null(TramNetworkCatalog.StationForLabel(mines, "Hydroplant"));
     }
 }

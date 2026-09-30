@@ -87,16 +87,35 @@ public sealed class LiveTramsFeatureSession : IWorldFeaturesSession
     /// recall station (<see cref="LiveTram.RecallStations"/>) - an honest, per-tram degradation:
     /// the offline feature can pick any station the save has ever referenced, live can only recall
     /// to a station a real placed <c>TramSystem_RecallStation_C</c> actually links to this tram.</summary>
+    /// <summary>
+    /// A station as players know it ("Hydroplant", "Cascade Laboratories (stop 3)") instead of the
+    /// level's actor name (<c>TramSystem_Station_C_13</c>); names the catalog does not know are
+    /// shown as they are. The same labels the offline Trams tab uses.
+    /// </summary>
+    internal static string? StationLabel(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return raw;
+        var bare = raw[(raw.LastIndexOf('.') + 1)..];
+        return bare.StartsWith(TramStationCatalog.StationActorPrefix, StringComparison.Ordinal)
+               && TramStationCatalog.StationNumber(bare) is { } number
+            ? TramNetworkCatalog.Label(number)
+            : raw;
+    }
+
+    /// <summary>The route a tram runs, or the game's own label for a tram the catalog does not know.</summary>
+    internal static string TramLabel(LiveTram t)
+        => TramNetworkCatalog.LineFor(t.Id) is { } line ? TramNetworkCatalog.RouteName(line) : t.Label;
+
     private static WorldMapField LastStationField(LiveTram t)
         => t.RecallStations.Count > 0
-            ? WorldMapField.Choice("lastStation", "Recall to station", t.PreviousStation, t.RecallStations,
+            ? WorldMapField.Choice("lastStation", "Send tram to", StationLabel(t.PreviousStation), t.RecallStations.Select(s => StationLabel(s)!).ToArray(),
                 hint: "Sends this tram toward the chosen station through its own linked recall "
                     + "station (the game's own TramRecallPressed function) - only stations a real "
                     + "recall station links to THIS tram are offered. Refused while the tram is "
                     + "already moving. A distant station can take real travel time and multiple "
                     + "stops to reach; a change that starts the tram moving the right way is "
                     + "accepted, not only an already-arrived state.")
-            : WorldMapField.ReadOnly("lastStation", "Last station", TextOrUnavailable(t.PreviousStation),
+            : WorldMapField.ReadOnly("lastStation", "Parked at", TextOrUnavailable(StationLabel(t.PreviousStation)),
                 hint: "The station this tram last parked at. Read-only for this specific tram: no "
                     + "recall station in the loaded area links to it right now - edit the save file "
                     + "directly to re-park it at an arbitrary station.");
@@ -104,13 +123,16 @@ public sealed class LiveTramsFeatureSession : IWorldFeaturesSession
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
         if (!string.Equals(featureId, TramsFeatureId, StringComparison.Ordinal)) return null;
-        var entries = Trams.Select(t => new WorldMapEntry(
+        var entries = Trams
+            .OrderBy(t => TramNetworkCatalog.LineFor(t.Id) is { } l ? (l.IsLift ? 1 : 0) : 2)
+            .ThenBy(TramLabel, StringComparer.OrdinalIgnoreCase)
+            .Select(t => new WorldMapEntry(
             t.Id,
-            t.Label,
+            TramLabel(t),
             new[]
             {
                 LastStationField(t),
-                WorldMapField.ReadOnly("targetStation", "Heading to", TextOrUnavailable(t.TargetStation),
+                WorldMapField.ReadOnly("targetStation", "Heading to", TextOrUnavailable(StationLabel(t.TargetStation)),
                     hint: "The station this tram is currently travelling toward, or sitting at if not moving."),
                 WorldMapField.ReadOnly("moving", "Moving", BoolTextOrUnavailable(t.Moving),
                     hint: "true while the tram is travelling between stations."),
@@ -149,11 +171,15 @@ public sealed class LiveTramsFeatureSession : IWorldFeaturesSession
         {
             return WorldEditResult.Failure("no recall station links this tram to any station live.");
         }
-        if (string.IsNullOrWhiteSpace(value) || !current.RecallStations.Contains(value, StringComparer.Ordinal))
+        // The choice shows stop names; the game wants its own station name back.
+        var raw = current.RecallStations.FirstOrDefault(s => string.Equals(s, value, StringComparison.Ordinal))
+                  ?? current.RecallStations.FirstOrDefault(s => string.Equals(StationLabel(s), value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(value) || raw is null)
         {
-            return WorldEditResult.Failure($"'{value}' is not a station this tram can be recalled to " +
-                $"(available: {string.Join(", ", current.RecallStations)}).");
+            return WorldEditResult.Failure($"'{value}' is not a stop this tram can be sent to " +
+                $"(available: {string.Join(", ", current.RecallStations.Select(StationLabel))}).");
         }
+        value = raw;
         if (string.Equals(current.PreviousStation, value, StringComparison.Ordinal) && current.Moving != true)
         {
             return WorldEditResult.NoChange;

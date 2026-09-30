@@ -83,8 +83,8 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
 
     /// <inheritdoc/>
     public override string Description =>
-        "View each tram's on-board inventory count and re-park it at a different station "
-        + "on its own line.";
+        "Each tram runs on one route between a few stops. Choose where a tram is parked; only "
+        + "the stops on its own route are offered.";
 
     /// <summary>
     /// Trams cannot be removed: deleting a tram's persisted state would strip the tram from the
@@ -109,18 +109,24 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
         // the catalog does not know.
         var occupied = GatherStationLabels(save);
 
-        var list = new List<WorldMapEntry>();
+        var list = new List<(WorldMapEntry Entry, int Order)>();
         var ordinal = 0;
         foreach (var entry in WorldMapAccessor.Entries(save, MapName))
         {
             ordinal++;
-            var known = TramNetworkCatalog.LineFor(entry.Key) is not null;
-            list.Add(new WorldMapEntry(
+            var line = TramNetworkCatalog.LineFor(entry.Key);
+            list.Add((new WorldMapEntry(
                 entry.Key,
                 LabelFor(ordinal, entry.Key, entry.Props),
-                ReadFieldsWithStations(entry.Props, OptionsFor(entry.Key, entry.Props, occupied), known)));
+                ReadFieldsWithStations(entry.Props, OptionsFor(entry.Key, entry.Props, occupied), line is not null)),
+                // Routes first, then the containment lift, then trams the table does not know.
+                line is null ? 2 : line.IsLift ? 1 : 0));
         }
-        return list;
+        return list
+            .OrderBy(x => x.Order)
+            .ThenBy(x => x.Entry.Label, StringComparer.OrdinalIgnoreCase)
+            .Select(x => x.Entry)
+            .ToList();
     }
 
     /// <summary>
@@ -149,17 +155,26 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
             {
                 return check;
             }
-            // resolvedLabel is the canonical friendly label; ApplyField maps it back to a path.
+            // Stop names repeat across routes ("The Office Sector" is on six), so a label is turned
+            // into a station through this tram's own route, never looked up globally.
+            if (TramNetworkCatalog.LineFor(entryKey) is { } line
+                && TramNetworkCatalog.StationForLabel(line, resolvedLabel) is { } station)
+            {
+                return ApplyField(props, fieldId, StationSubPath(station));
+            }
             return ApplyField(props, fieldId, resolvedLabel);
         }
 
         return ApplyField(props, fieldId, value);
     }
 
-    /// <summary>Trams have no friendly key, so number them for the list.</summary>
+    /// <summary>
+    /// A tram is named after the route it runs ("The Office Sector ↔ Hydroplant"), the way a player
+    /// knows it; there is one tram per route. A tram the table does not know is numbered.
+    /// </summary>
     protected override string LabelFor(int ordinal, string key, IList<FPropertyTag> props)
         => TramNetworkCatalog.LineFor(key) is { } line
-            ? $"Tram {ordinal} ({TramNetworkCatalog.LineName(line)})"
+            ? TramNetworkCatalog.RouteName(line)
             : $"Tram {ordinal}";
 
     /// <summary>
@@ -169,14 +184,15 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     private static IReadOnlyList<string> OptionsFor(string tramKey, IList<FPropertyTag> props, IReadOnlyList<string> occupied)
     {
         if (TramNetworkCatalog.LineFor(tramKey) is not { } line) return occupied;
-        var labels = line.Stations.Select(TramNetworkCatalog.Label).ToList();
+        // In route order, so the list reads like the line itself.
+        var labels = line.Stations.Select(s => TramNetworkCatalog.StopLabel(line, s)).ToList();
         var sub = WorldMapAccessor.GetSoftObjectPath(props, LastStationPrefix)?.SubPath;
         if (!string.IsNullOrWhiteSpace(sub))
         {
             var current = FriendlyStation(sub);
             if (!labels.Contains(current, StringComparer.OrdinalIgnoreCase)) labels.Add(current);
         }
-        return labels.OrderBy(l => l, StringComparer.OrdinalIgnoreCase).ToArray();
+        return labels;
     }
 
     /// <summary>
@@ -228,19 +244,24 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
             ? arr.Value?.Length ?? 0
             : 0;
 
-        return new[]
+        var fields = new List<WorldMapField>
         {
-            WorldMapField.Choice(LastStationFieldId, "Last station", current, labels,
+            WorldMapField.Choice(LastStationFieldId, "Parked at", current, labels,
                 hint: lineKnown
-                    ? "Re-park this tram at another station on its own line. A tram cannot stop at a "
-                        + "station on a different line, so only this line's stations are offered."
-                    : "Re-park this tram at the chosen station. This tram's line is not known to the "
-                        + "editor, so the list is every station the save's trams occupy, which can "
-                        + "include stations on other lines. Pick a station on this tram's actual line."),
-            WorldMapField.ReadOnly("inventories", "Container inventories",
-                inventoryCount.ToString(CultureInfo.InvariantCulture),
-                hint: "Number of on-board storage containers attached to this tram."),
+                    ? "The stop this tram waits at. A tram only runs on its own route, so only that "
+                        + "route's stops are offered."
+                    : "The stop this tram waits at. This tram's route is not known to the editor, so "
+                        + "the list is every stop the save's trams are parked at, which can include "
+                        + "stops on other routes. Pick a stop on this tram's own route."),
         };
+        // Only shown when the tram carries storage; an empty count told players nothing.
+        if (inventoryCount > 0)
+        {
+            fields.Add(WorldMapField.ReadOnly("inventories", "Storage on board",
+                inventoryCount.ToString(CultureInfo.InvariantCulture),
+                hint: "Number of storage containers attached to this tram."));
+        }
+        return [.. fields];
     }
 
     /// <summary>
@@ -264,7 +285,11 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
 
         // Map the chosen label (friendly or full) back to the real SubPathString to write.
         var wantedSubPath = ToSubPath(value.Trim());
-        var wantedLabel = FriendlyStation(wantedSubPath);
+        if (!value.Contains('.', StringComparison.Ordinal)
+            && !wantedSubPath.StartsWith(PersistentLevelPrefix + TramStationCatalog.StationActorPrefix, StringComparison.Ordinal))
+        {
+            return WorldEditResult.Failure($"'{value}' does not name a single stop; several stops share that name.");
+        }
 
         var currentSub = WorldMapAccessor.GetSoftObjectPath(props, LastStationPrefix)?.SubPath;
         if (currentSub is null)
@@ -272,7 +297,7 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
             return WorldEditResult.Failure("the LastStation field is missing from this tram entry.");
         }
 
-        if (string.Equals(FriendlyStation(currentSub), wantedLabel, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(currentSub, wantedSubPath, StringComparison.Ordinal))
         {
             return WorldEditResult.NoChange;
         }
@@ -302,10 +327,18 @@ public sealed class TramMapFeature : WorldMapFeatureBase, IWorldMapFeature
     /// SubPathString to persist. Re-adds the <c>PersistentLevel.</c> qualifier when the value is
     /// a bare station name.
     /// </summary>
+    private static string StationSubPath(int station)
+        => string.Create(CultureInfo.InvariantCulture, $"{PersistentLevelPrefix}{TramStationCatalog.StationActorPrefix}{station}");
+
     private static string ToSubPath(string value)
-        => value.Contains('.', StringComparison.Ordinal)
-            ? value
-            : TramStationCatalog.StationNumber(value) is { } number
-                ? $"{PersistentLevelPrefix}{TramStationCatalog.StationActorPrefix}{number}"
-                : PersistentLevelPrefix + value;
+    {
+        if (value.Contains('.', StringComparison.Ordinal)) return value;
+        if (TramStationCatalog.StationNumber(value) is { } number && value.StartsWith(TramStationCatalog.StationActorPrefix, StringComparison.Ordinal))
+            return StationSubPath(number);
+        // A stop label ("Hydroplant"): the station whose label it is, when only one station has it.
+        var matches = TramNetworkCatalog.Lines.SelectMany(l => l.Stations)
+            .Where(s => string.Equals(TramNetworkCatalog.Label(s), value, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return matches.Count == 1 ? StationSubPath(matches[0]) : PersistentLevelPrefix + value;
+    }
 }

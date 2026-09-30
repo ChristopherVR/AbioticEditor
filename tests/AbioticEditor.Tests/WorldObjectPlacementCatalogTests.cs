@@ -137,9 +137,11 @@ public sealed partial class WorldObjectPlacementCatalogTests
         foreach (var (_, d) in AllFixtureSaves.WorldSaves)
         {
             if (!feature.AppliesTo(d.Raw)) continue;
+            // Stop labels are per route ("The Office Sector" is on six), so resolve each through its tram's line.
             var stations = feature.Read(d.Raw)
-                .Select(e => e.Fields.FirstOrDefault(f => f.Id == "lastStation")?.Value)
-                .Select(TramStationCatalog.StationNumber)
+                .Select(e => TramNetworkCatalog.LineFor(e.Key) is { } line
+                    ? TramNetworkCatalog.StationForLabel(line, e.Fields.FirstOrDefault(f => f.Id == "lastStation")?.Value)
+                    : null)
                 .OfType<int>().ToHashSet();
             perSave.Add(stations);
         }
