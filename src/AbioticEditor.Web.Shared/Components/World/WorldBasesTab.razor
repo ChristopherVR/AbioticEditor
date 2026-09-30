@@ -28,12 +28,21 @@
     @if (Session.AppliesImmediately) { <p class="muted">@L.Resource("WorldBases_LiveUpgradeCaveat")</p> }
     <h2 class="wt-h2">@L.Resource("WorldBases_BaseManager")</h2>
     <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p>
-    @* Opens the 3D view of the same region (WorldBases3DTab). Only offered by the file editor, which
-       is the host that passes OnOpen3D; the 2D view below stays the default. *@
-    @if (OnOpen3D.HasDelegate)
+    @* Map / 3D switch. The 3D view is handed in by the file editor only when the optional game
+       models plugin is available (ThreeDView); otherwise there is no switch and the map is all. *@
+    @if (ThreeDView is not null)
     {
-        <div class="wg-nearby"><button type="button" class="wt-btn" data-b3d="open-3d" @onclick="() => OnOpen3D.InvokeAsync()">@L.Resource("World3D_Open3D")</button></div>
+        <div class="wt-seg bases-view-switch" role="radiogroup" aria-label="@L.Resource("WorldBases_ViewSwitch")" data-b3d="view-switch">
+            <button type="button" role="radio" aria-checked="@(!_show3D)" class="wt-btn @(!_show3D ? "active" : "wt-plain")" data-b3d="view-2d" @onclick="() => _show3D = false">@L.Resource("WorldBases_ViewMap")</button>
+            <button type="button" role="radio" aria-checked="@_show3D" class="wt-btn @(_show3D ? "active" : "wt-plain")" data-b3d="view-3d" @onclick="() => _show3D = true">@L.Resource("WorldBases_View3D")</button>
+        </div>
     }
+    @if (ThreeDView is not null && _show3D)
+    {
+        @ThreeDView
+    }
+    else
+    {
     @* The tab's how-to, worded so it reads the same with a mouse or by touch. *@
     <p class="wt-intro">@L.Resource("WorldBases_HowToHint")</p>
 
@@ -272,6 +281,7 @@
             </div>
         </div>
     }
+    }
 </section>
 
 @code {
@@ -284,8 +294,12 @@
     [Parameter, EditorRequired] public IWorldBasesSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
-    /// <summary>Switches to the 3D view of the same region. Unset (button hidden) for the live host.</summary>
-    [Parameter] public EventCallback OnOpen3D { get; set; }
+    /// <summary>
+    /// The 3D view of the same region, shown behind the tab's Map / 3D switch. Null (no switch) for
+    /// the live host and whenever the optional game models plugin is not available.
+    /// </summary>
+    [Parameter] public RenderFragment? ThreeDView { get; set; }
+    private bool _show3D;
     /// <summary>Round 121: "which bench is closest to me" - same parameter shape and source as
     /// WorldContainersTab/WorldDroppedItemsTab (live: LiveConnect passes the connected player's own
     /// read position; file: SaveEditorSurface passes the workspace's selected player's saved

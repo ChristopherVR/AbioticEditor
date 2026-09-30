@@ -404,7 +404,7 @@ public sealed class Base3DViewerTests
         // Keys built from a prefix in the component (category names, gizmo modes) must exist too.
         foreach (var category in PlacedObjectCategoryCatalog.All) Assert.Contains("World3D_Category_" + category, names);
         foreach (var mode in new[] { "Off", "Translate", "Rotate" }) Assert.Contains("World3D_Gizmo" + mode, names);
-        Assert.Contains("WorldEditor_Tab3DView", names);
+        foreach (var key in new[] { "WorldBases_ViewSwitch", "WorldBases_ViewMap", "WorldBases_View3D" }) Assert.Contains(key, names);
     }
 
     [Fact]
@@ -422,19 +422,26 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
-    public void The_3d_tab_is_wired_into_the_editor_and_the_2d_view_stays()
+    public void The_3d_view_is_a_switch_inside_the_bases_tab_offered_only_with_the_models_plugin()
     {
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("<WorldBases3DTab", surface, StringComparison.Ordinal);
         Assert.Contains("<WorldBasesTab", surface, StringComparison.Ordinal);
-        Assert.Contains("Open3DBases", surface, StringComparison.Ordinal);
-        Assert.Contains("Add(\"bases3d\"", surface, StringComparison.Ordinal);
-        // Experimental: hidden unless the player opts in under Settings > Editor > Advanced.
-        Assert.Contains("Advanced.Enable3DBaseView", surface, StringComparison.Ordinal);
+        // No separate world tab and no settings opt-in: the view comes with the optional plugin.
+        Assert.DoesNotContain("\"bases3d\"", surface, StringComparison.Ordinal);
+        Assert.DoesNotContain("Enable3DBaseView", surface, StringComparison.Ordinal);
+        Assert.Contains("ThreeDView=\"@(GameModelsAvailable ?", surface, StringComparison.Ordinal);
+        Assert.Contains("SceneModelHostService", surface, StringComparison.Ordinal);
+        Assert.DoesNotContain("Enable3DBaseView", UiSource.ReadAllText("Components", "Pages", "Settings.razor"), StringComparison.Ordinal);
 
-        // The live host renders the 2D tab without the 3D entry point (no staged file session there).
+        // The Bases tab shows the Map / 3D switch only when handed a 3D view.
+        var bases = UiSource.ReadAllText("Components", "World", "WorldBasesTab.razor");
+        Assert.Contains("@if (ThreeDView is not null)", bases, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"view-3d\"", bases, StringComparison.Ordinal);
+
+        // The live host renders the Bases tab without a 3D view (no staged file session there).
         var live = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");
-        Assert.DoesNotContain("OnOpen3D", live, StringComparison.Ordinal);
+        Assert.DoesNotContain("ThreeDView", live, StringComparison.Ordinal);
     }
 
     [Fact]

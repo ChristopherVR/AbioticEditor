@@ -2284,12 +2284,6 @@ This writes to the save straight away and reloads the editor, so anything you ha
   <data name="Settings_SkipEquipSlotValidationHint" xml:space="preserve">
     <value>Normally the editor blocks putting an item where the game wouldn't allow it (a helmet in the legs slot, for example). Turning this on lets you place any item in any equipment, transmog or hotbar slot, with no compatibility checks.</value>
   </data>
-  <data name="Settings_Enable3DBaseView" xml:space="preserve">
-    <value>Show the experimental 3D base view</value>
-  </data>
-  <data name="Settings_Enable3DBaseViewHint" xml:space="preserve">
-    <value>The 3D view of your base is still experimental and hidden by default. Turn this on to get a 3D VIEW tab next to the base list.</value>
-  </data>
   <data name="Settings_ManagePlugins" xml:space="preserve">
     <value>MANAGE PLUGINS</value>
   </data>
@@ -4385,21 +4379,21 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Power_MoreHops" xml:space="preserve"><value>and {0} more</value></data>
   <data name="Power_LiveUnknown" xml:space="preserve"><value>Live power state: not observed. Connect to the running game to read it.</value></data>
   <data name="Power_PredictedUnknown" xml:space="preserve"><value>Predicted power result: unknown. The save does not hold the power rules of the game (capacity, drain, ordering), so none is guessed.</value></data>
-  <data name="WorldEditor_Tab3DView" xml:space="preserve"><value>3D view</value></data>
   <data name="World3D_Title" xml:space="preserve"><value>3D BASE VIEW</value></data>
   <data name="World3D_Intro" xml:space="preserve"><value>Every object saved in this region, drawn as a coloured box at its saved position. Drag to orbit, right-drag to pan, scroll to zoom, and click a box to inspect it. The boxes are placeholders: the real models are not loaded.</value></data>
   <data name="World3D_IntroModels" xml:space="preserve"><value>Every object saved in this region, drawn with its model from your game at its saved position. Drag to orbit, right-drag to pan, scroll to zoom, and click an object to inspect it. Objects the game has no model for are drawn as coloured boxes.</value></data>
-  <data name="World3D_Open3D" xml:space="preserve"><value>Open 3D view</value></data>
-  <data name="World3D_Open2D" xml:space="preserve"><value>Open 2D bases</value></data>
   <data name="World3D_NoWebGl" xml:space="preserve"><value>This window cannot draw 3D graphics (WebGL is not available), so the 3D view cannot be shown. The 2D bases view still works.</value></data>
   <data name="World3D_Loading" xml:space="preserve"><value>Loading 3D view...</value></data>
   <data name="World3D_Search" xml:space="preserve"><value>Search</value></data>
   <data name="World3D_SearchPlaceholder" xml:space="preserve"><value>Name, class, key or owner</value></data>
   <data name="World3D_FrameSelection" xml:space="preserve"><value>Frame selection</value></data>
   <data name="World3D_FrameAll" xml:space="preserve"><value>Frame all shown</value></data>
+  <data name="WorldBases_ViewSwitch" xml:space="preserve"><value>How to show the bases</value></data>
+  <data name="WorldBases_ViewMap" xml:space="preserve"><value>Map</value></data>
+  <data name="WorldBases_View3D" xml:space="preserve"><value>3D view</value></data>
+  <data name="World3D_IssueTimesFormat" xml:space="preserve"><value>(x{0})</value></data>
   <data name="World3D_Labels" xml:space="preserve"><value>Show labels</value></data>
   <data name="World3D_ModelsTitle" xml:space="preserve"><value>GAME MODELS</value></data>
-  <data name="World3D_ModelsNotInstalled" xml:space="preserve"><value>Objects are drawn as coloured boxes. Install the optional Game Models plugin to see them as they look in the game, with the level around your base.</value></data>
   <data name="World3D_ModelsNoGame" xml:space="preserve"><value>The Game Models plugin is installed, but it could not read your game files. Check the game folder in Settings.</value></data>
   <data name="World3D_ModelsShow" xml:space="preserve"><value>Show game models</value></data>
   <data name="World3D_ModelsFromFormat" xml:space="preserve"><value>From {0}.</value></data>

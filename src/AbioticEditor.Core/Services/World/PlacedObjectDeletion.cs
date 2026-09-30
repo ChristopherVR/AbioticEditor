@@ -104,6 +104,25 @@ public sealed class DeletionPlan
 /// </summary>
 public static class PlacedObjectDeletion
 {
+    /// <summary>
+    /// Readable names for devices by key ("PlugStrip (DFAEEBC7)"), so a warning says which
+    /// device loses power instead of only how many. A key with no entry keeps just its short id.
+    /// </summary>
+    internal static string DeviceNames(WorldSaveData data, IReadOnlyCollection<string> keys, int max = 6)
+    {
+        var names = keys.Take(max).Select(k =>
+        {
+            var props = WorldMapAccessor.FindEntry(data.Raw, "DeployedObjectMap", k);
+            var cls = props is null ? null : PlacedObjectCensus.ClassNameOf(PlacedObjectCensus.ClassPathOf(props));
+            var shortKey = k.Length > 8 ? k[..8] : k;
+            if (string.IsNullOrEmpty(cls)) return shortKey;
+            if (cls.EndsWith("_C", StringComparison.Ordinal)) cls = cls[..^2];
+            return $"{cls.Replace("Deployed_", "", StringComparison.Ordinal).Replace("Deployable_", "", StringComparison.Ordinal).Replace('_', ' ')} ({shortKey})";
+        });
+        var text = string.Join(", ", names);
+        return keys.Count > max ? $"{text} and {keys.Count - max} more" : text;
+    }
+
     /// <summary>Builds the plan. Never writes.</summary>
     public static DeletionPlan Plan(
         WorldSaveData data,
@@ -182,7 +201,7 @@ public static class PlacedObjectDeletion
                         if (downstream.Count > 0)
                         {
                             issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "downstream-device",
-                                $"{downstream.Count} device(s) are still plugged into this object's outlets; unplug them or choose to drop the outlet records.", key));
+                                $"{downstream.Count} device(s) are still plugged into this object's outlets ({DeviceNames(data, downstream)}); unplug them or choose to drop the outlet records.", key));
                         }
                         else
                         {
@@ -194,7 +213,7 @@ public static class PlacedObjectDeletion
                 if (downstream.Count > 0 && policy.OwnedSocketRecords != ReferencePolicy.Refuse)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "downstream-device",
-                        $"{downstream.Count} device(s) plugged into this object's outlets lose their feed.", key));
+                        $"{downstream.Count} device(s) plugged into this object's outlets lose their power: {DeviceNames(data, downstream)}.", key));
                 }
             }
 

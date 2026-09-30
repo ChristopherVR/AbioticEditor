@@ -138,6 +138,21 @@ public sealed class BaseEditingTests
     }
 
     [Fact]
+    public void Deleting_an_outlet_owner_names_the_devices_that_lose_power()
+    {
+        if (!HasServerFacility) return;
+        var data = Load();
+        var (owner, device, _) = LinkedPair(data);
+        var deviceClass = PlayerBuilt(data).Single(o => o.Key == device).ClassName!;
+        var edits = new StagedBaseEdits();
+        edits.StageDelete([owner], new DeletePolicy { InboundPlugs = ReferencePolicy.Drop });
+        var warning = Assert.Single(edits.Preview(data).Issues, i => i.Code == "downstream-device");
+        Assert.Contains(device[..8], warning.Message, StringComparison.Ordinal);
+        Assert.Contains(deviceClass.Replace("Deployed_", "", StringComparison.Ordinal).Replace("_C", "", StringComparison.Ordinal).Replace('_', ' '),
+            warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Delete_of_the_owner_can_keep_the_outlet_records()
     {
         if (!HasServerFacility) return;

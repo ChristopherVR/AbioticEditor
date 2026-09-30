@@ -7,8 +7,10 @@ Factor**; nothing from the game is shipped with the plugin or the editor.
 
 - **Runtime:** .NET (`GameModels3D.dll`)
 - **Capability:** 3D model provider (`sceneModels`)
-- **Surfaced in:** the desktop editor's 3D view (the CLI and the browser build ignore it)
-- **Not bundled:** the editor works exactly as before without it; install it only if you want it.
+- **Surfaced in:** the desktop editor's **Bases** tab, as a Map / 3D view switch (the CLI and the
+  browser build ignore it)
+- **Not bundled:** without it there is no 3D view at all and the Bases tab shows its map as before;
+  install it only if you want it.
 
 ## Install
 
@@ -22,14 +24,15 @@ Factor**; nothing from the game is shipped with the plugin or the editor.
    - `GameModels3D.dll`
    - `plugin.json`
 3. Start the editor. **Settings, Plugins** lists "Game Models for 3D View".
-4. Turn on **Settings, Editor, Show the experimental 3D base view**, open a world save and pick the
-   **3D view** tab.
+4. Open a world save, go to the **Bases** tab and switch from **Map** to **3D view**.
 
 The editor must be able to read your game files (the same setting that gives you item icons).
 
 ## Using it
 
-The **Game models** card in the 3D view's side panel has:
+The 3D view shows every object in the region with its game model. Turn on **Experimental: move
+objects** to move, turn, delete and copy player-built pieces; nothing is written until SAVE, and a
+`.bak` is kept. The **Game models** card in the side panel has:
 
 - **Show game models**: on by default once the plugin is installed. Objects the game has no
   model for stay as boxes.

@@ -15,10 +15,6 @@
 <section class="world-editor world-native-tab b3d" aria-label="@L.Resource("World3D_Title")">
     <div class="b3d-head">
         <h2 class="wt-h2">@L.Resource("World3D_Title")</h2>
-        @if (OnOpen2D.HasDelegate)
-        {
-            <button type="button" class="wt-btn wt-plain" @onclick="() => OnOpen2D.InvokeAsync()">@L.Resource("World3D_Open2D")</button>
-        }
     </div>
     <p class="wt-intro">@L.Resource(_modelsOn ? "World3D_IntroModels" : "World3D_Intro")</p>
 
@@ -81,11 +77,7 @@
             {
                 <div class="wt-card b3d-panel" data-b3d="models">
                     <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
-                    @if (!ms.Installed)
-                    {
-                        <p class="wt-muted" data-b3d="models-missing">@L.Resource("World3D_ModelsNotInstalled")</p>
-                    }
-                    else if (!ms.Available)
+                    @if (!ms.Available)
                     {
                         <p class="wt-muted" data-b3d="models-nogame">@L.Resource("World3D_ModelsNoGame")</p>
                     }
@@ -195,7 +187,7 @@
                             </ul>
                         }
                         <span class="wt-label">@L.Resource("World3D_Issues")</span>
-                        @IssueList(dp.Issues, "delete-issues")
+                        @IssueList(IssuesFor(dp.Issues, _deleteKeys, includeGeneral: false), "delete-issues")
 
                         <span class="wt-label">@L.Resource("World3D_PolicyTitle")</span>
                         <div class="b3d-policies" data-b3d="delete-policies">
@@ -280,7 +272,7 @@
                             <dt>@L.Resource("World3D_DupOutlets")</dt><dd>@rows.Sum(r => r.Sockets.Count)</dd>
                         </dl>
                         <span class="wt-label">@L.Resource("World3D_Issues")</span>
-                        @IssueList(up.Issues, "duplicate-issues")
+                        @IssueList(IssuesFor(up.Issues, _dupKeys, includeGeneral: true), "duplicate-issues")
                         @HintList(up.ProximityHints)
                         @if (!up.CanApply) { <p class="error-text" role="alert" data-b3d="duplicate-blocked">@L.Resource("World3D_CannotStage")</p> }
                     }
@@ -660,8 +652,6 @@
     /// <summary>True when this save has a power sockets tab to jump to.</summary>
     [Parameter] public bool PowerSocketsAvailable { get; set; }
 
-    /// <summary>Back to the existing 2D bases view.</summary>
-    [Parameter] public EventCallback OnOpen2D { get; set; }
 
     private static readonly string[] GizmoModes = ["off", "translate", "rotate"];
     private const int ListLimit = 150;
@@ -1056,10 +1046,19 @@
             return;
         }
         _numberError = null;
+        // The fields show values rounded to two decimals. A field the player left as it was keeps
+        // the exact saved value, so moving along X alone never rewrites Y, Z or the rotation with
+        // their rounded display (which would nudge the object slightly).
+        if (current?.Translation is { } exact)
+        {
+            if (_xText == Num(exact.X, 2, plain: true)) x = exact.X;
+            if (_yText == Num(exact.Y, 2, plain: true)) y = exact.Y;
+            if (_zText == Num(exact.Z, 2, plain: true)) z = exact.Z;
+        }
         var target = new PlacedVector(x, y, z);
         PlacedVector? newT = current?.Translation is { } now && now == target ? null : target;
         PlacedQuaternion? newR = null;
-        if (current?.Rotation is { } q)
+        if (current?.Rotation is { } q && _yawText != Num(q.YawDegrees, 2, plain: true))
         {
             var delta = ((yaw - q.YawDegrees) % 360.0 + 540.0) % 360.0 - 180.0;
             if (Math.Abs(delta) > 1e-6) newR = PlacedSceneSpace.ComposeYaw(q, delta);
@@ -1127,17 +1126,28 @@
         __builder.AddAttribute(4, "class", "b3d-list b3d-issues");
         __builder.AddAttribute(5, "data-b3d", id);
         var n = 6;
-        foreach (var issue in issues.OrderByDescending(i => i.Severity).Take(40))
+        // The same finding often repeats once per outlet or per object; show it once with a count.
+        foreach (var group in issues.GroupBy(i => (i.Severity, i.Code, i.Message)).OrderByDescending(g => g.Key.Severity).Take(40))
         {
+            var issue = group.First();
             __builder.OpenElement(n++, "li");
             __builder.AddAttribute(n++, "class", "b3d-issue " + issue.Severity.ToString().ToLowerInvariant());
             __builder.AddAttribute(n++, "data-severity", issue.Severity.ToString());
             __builder.AddAttribute(n++, "data-code", issue.Code);
-            __builder.AddContent(n++, (issue.IsBlocking ? L.Resource("World3D_Blocking") + " " : "") + issue.Message);
+            __builder.AddContent(n++, (issue.IsBlocking ? L.Resource("World3D_Blocking") + " " : "") + issue.Message
+                + (group.Count() > 1 ? " " + L.Resource("World3D_IssueTimesFormat", group.Count()) : ""));
             __builder.CloseElement();
         }
         __builder.CloseElement();
     };
+
+    /// <summary>
+    /// The findings about the objects a panel is acting on. A panel's preview includes every edit
+    /// already staged, so without this the delete panel also listed the findings of a staged copy.
+    /// Findings not tied to an object are kept only where they concern the panel's kind of edit.
+    /// </summary>
+    private static List<BaseEditIssue> IssuesFor(IReadOnlyList<BaseEditIssue> issues, IReadOnlyCollection<string> keys, bool includeGeneral)
+        => issues.Where(i => i.Key is null ? includeGeneral || i.Code == "scan-scope" : keys.Contains(i.Key)).ToList();
 
     /// <summary>Proximity hints with the Core disclaimer (hints only, not a collision test).</summary>
     private RenderFragment HintList(IReadOnlyList<ProximityHint> hints) => __builder =>
