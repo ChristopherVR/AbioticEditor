@@ -1030,29 +1030,61 @@ jobs:
         id: vt
         if: steps.gate.outputs.enabled == 'true'
         # The archives are already published and their checksums are in SHA256SUMS.txt; this
-        # scan only adds convenience links to the notes. VirusTotal refused the sixth upload
-        # of ten with a 409 on v2.1.5 and took the whole run red with it, so a bad day at
-        # their end must not mark a good release as failed.
+        # scan only adds convenience links to the notes, so a bad day at VirusTotal's end must
+        # not mark a good release as failed. Every file is retried on its own: the upload action
+        # this replaced stopped at the first refused upload (a 409 on the sixth of ten, seen on
+        # v2.1.5, v2.19.1 and v2.20.0) and then reported NO results at all, even for the files
+        # that had gone through, so the whole VirusTotal section silently vanished from the notes.
+        # Here whatever uploaded is always listed, and what did not is named.
         continue-on-error: true
-        uses: crazy-max/ghaction-virustotal@v5
-        with:
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          # Ten archives of 50-95 MB each is what trips the 409, always on the sixth upload -
-          # at four a minute as well as unthrottled. Anything this size needs two calls (ask
-          # for an upload slot, then use it), so four files a minute is eight calls against a
-          # four-a-minute allowance. Two files a minute matches it.
-          request_rate: 2
-          files: |
-            dist/*.zip
+        timeout-minutes: 75
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          set -uo pipefail
+          : > vt_results.txt
+          : > vt_missing.txt
+
+          for f in dist/*.zip; do
+            [ -e "$f" ] || continue
+            ok=0
+            for attempt in 1 2 3 4; do
+              id=""
+              # Archives of this size need a one-off upload address (two calls per file). The
+              # free API allows four calls a minute, so a refusal is waited out and retried.
+              upload_url=$(curl -sS --fail-with-body -H "x-apikey: ${VT_API_KEY}"                 https://www.virustotal.com/api/v3/files/upload_url | jq -r '.data // empty') || upload_url=""
+              if [ -n "$upload_url" ]; then
+                resp=$(curl -sS --fail-with-body -H "x-apikey: ${VT_API_KEY}" -F "file=@${f}" "$upload_url")                   && id=$(printf '%s' "$resp" | jq -r '.data.id // empty')
+              fi
+              if [ -n "$id" ]; then
+                echo "${f}=https://www.virustotal.com/gui/file-analysis/${id}/detection" >> vt_results.txt
+                echo "Uploaded ${f}"
+                ok=1
+                break
+              fi
+              echo "::warning::VirusTotal refused ${f} (attempt ${attempt} of 4); waiting 70 s before retrying."
+              sleep 70
+            done
+            if [ "$ok" != 1 ]; then
+              echo "${f}" >> vt_missing.txt
+              echo "::warning::${f} could not be sent to VirusTotal after 4 attempts."
+            fi
+            # Stay under the four-calls-a-minute allowance between files.
+            sleep 35
+          done
+
+          echo "analysis=$(paste -sd, vt_results.txt)" >> "$GITHUB_OUTPUT"
+          echo "missing=$(paste -sd, vt_missing.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Append VirusTotal results to the release body
         # Skipped when the scan produced nothing, so a failed scan leaves the notes alone
         # instead of appending an empty section.
-        if: steps.gate.outputs.enabled == 'true' && steps.vt.outputs.analysis != ''
+        if: steps.gate.outputs.enabled == 'true' && (steps.vt.outputs.analysis != '' || steps.vt.outputs.missing != '')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
           ANALYSIS: ${{ steps.vt.outputs.analysis }}
+          MISSING: ${{ steps.vt.outputs.missing }}
         run: |
           set -euo pipefail
 
@@ -1069,6 +1101,16 @@ jobs:
               url="${item#*=}"
               echo "- [\`$(basename "$name")\`](${url})"
             done
+            if [ -n "${MISSING}" ]; then
+              echo
+              echo "VirusTotal refused these archives, so they have no scan link (their checksums are in SHA256SUMS.txt):"
+              echo
+              IFS=',' read -ra missing <<< "${MISSING}"
+              for item in "${missing[@]}"; do
+                [ -z "$item" ] && continue
+                echo "- \`$(basename "$item")\`"
+              done
+            fi
           } > vt_section.md
           echo "----- vt_section.md -----"
           cat vt_section.md
