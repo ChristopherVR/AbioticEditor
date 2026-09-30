@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" />
+    <ProjectReference Include="..\..\plugins\GameModels3D\GameModels3D.csproj" />
     <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame\UeSaveGame.csproj" />
     <ProjectReference Include="..\..\submodules\UeSaveGame\UeSaveGame.Json\UeSaveGame.Json.csproj" />
   </ItemGroup>

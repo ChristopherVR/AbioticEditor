@@ -41,6 +41,22 @@ public sealed class GameAssetProvider : IDisposable
     /// <summary>The on-disk extraction cache. Defaults to <c>%LOCALAPPDATA%/AbioticEditor/assets</c>.</summary>
     public string CacheDirectory => _cacheDir;
 
+    /// <summary>
+    /// Runs <paramref name="read"/> against the underlying CUE4Parse provider while holding the
+    /// provider's load lock (package loading is not thread-safe). For callers, such as plugins,
+    /// that need game data this class has no dedicated method for. Keep the work inside short:
+    /// every other extraction waits on the same lock.
+    /// </summary>
+    public T UseFileProvider<T>(Func<CUE4Parse.FileProvider.IFileProvider, T> read)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ThrowIfDisposed();
+        lock (_providerLoadLock)
+        {
+            return read(_provider);
+        }
+    }
+
     /// <summary>Returns every mounted asset path. Use sparingly - there are ~50k.</summary>
     public IEnumerable<string> AssetPaths => _provider.Files.Keys;
 

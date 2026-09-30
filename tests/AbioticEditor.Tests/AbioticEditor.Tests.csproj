@@ -42,6 +42,8 @@
     <ProjectReference Include="..\..\plugins\RepairNeeds\RepairNeeds.csproj" />
     <ProjectReference Include="..\..\plugins\GrantFlag\GrantFlag.csproj" />
     <ProjectReference Include="..\..\plugins\VersionShim\VersionShim.csproj" />
+    <!-- The optional game-models plugin: its math, formats and loading are tested here. -->
+    <ProjectReference Include="..\..\plugins\GameModels3D\GameModels3D.csproj" />
   </ItemGroup>
 
   <ItemGroup>

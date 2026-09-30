@@ -53,6 +53,9 @@ public sealed class PluginDescriptor
     /// <summary>Menu actions the plugin registered (empty until loaded).</summary>
     public IReadOnlyList<IMenuAction> MenuActions { get; internal set; } = Array.Empty<IMenuAction>();
 
+    /// <summary>3D model providers the plugin registered (empty until loaded).</summary>
+    public IReadOnlyList<AbioticEditor.Plugins.Scene.ISceneModelProvider> SceneModelProviders { get; internal set; } = Array.Empty<AbioticEditor.Plugins.Scene.ISceneModelProvider>();
+
     /// <summary>Event subscriptions the plugin registered (empty until loaded).</summary>
     public IReadOnlyList<PluginEventSubscription> EventHandlers { get; internal set; } = Array.Empty<PluginEventSubscription>();
 
@@ -70,7 +73,7 @@ public sealed class PluginDescriptor
     /// <summary>True if the plugin loaded and exposed at least one capability.</summary>
     public bool HasCapabilities =>
         SaveOperations.Count > 0 || ConsoleCommands.Count > 0
-        || WebTools.Count > 0 || MenuActions.Count > 0 || EventHandlers.Count > 0 || SaveUpgraders.Count > 0
+        || WebTools.Count > 0 || MenuActions.Count > 0 || SceneModelProviders.Count > 0 || EventHandlers.Count > 0 || SaveUpgraders.Count > 0
         || Localizations.Count > 0;
 
     /// <summary>A short, human description of what the plugin provides, for list UIs.</summary>
@@ -88,6 +91,7 @@ public sealed class PluginDescriptor
         if (WebTools.Count > 0) parts.Add($"{WebTools.Count} web tool(s)");
         if (SaveUpgraders.Count > 0) parts.Add($"{SaveUpgraders.Count} upgrader(s)");
         if (MenuActions.Count > 0) parts.Add($"{MenuActions.Count} menu action(s)");
+        if (SceneModelProviders.Count > 0) parts.Add($"{SceneModelProviders.Count} 3D model provider(s)");
         if (EventHandlers.Count > 0) parts.Add($"{EventHandlers.Count} event handler(s)");
         if (Localizations.Count > 0)
         {

@@ -26,6 +26,8 @@
     <Project Path="plugins/RepairNeeds/RepairNeeds.csproj" />
     <Project Path="plugins/GrantFlag/GrantFlag.csproj" />
     <Project Path="plugins/VersionShim/VersionShim.csproj" />
+    <!-- Optional, not bundled with the editor: real game models for the 3D base view. -->
+    <Project Path="plugins/GameModels3D/GameModels3D.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AbioticEditor.Tests/AbioticEditor.Tests.csproj" />

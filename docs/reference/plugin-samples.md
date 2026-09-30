@@ -16,6 +16,7 @@ contains its own README and manifest. Plugins run with full trust; inspect an ex
 | [`WebStats`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/WebStats) | JavaScript | web tool | an offline HTML UI served from a bundled folder |
 | [`ReactDashboard`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/ReactDashboard) | JavaScript | web tool | a React UI (React from a CDN), no build step |
 | [`ReactAppDashboard`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/ReactAppDashboard) | JavaScript | web tool + save op | a full Vite + React app that also drives the editor |
+| [`GameModels3D`](https://github.com/ChristopherVR/AbioticEditor/tree/main/plugins/GameModels3D) | .NET | 3D model provider | the 3D base view drawn with the game's own models and level, read from your install (optional, not bundled) |
 
 
 See [Building and installing](./plugin-building) for setup and the [Authoring guide](./plugin-authoring) for the SDK.

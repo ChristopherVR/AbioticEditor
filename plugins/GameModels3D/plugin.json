@@ -1,0 +1,11 @@
+{
+  "id": "com.abioticeditor.game-models-3d",
+  "name": "Game Models for 3D View",
+  "version": "1.0.0",
+  "author": "Abiotic Editor",
+  "description": "Draws the 3D base view with the game's own models and textures, and the level around your base, read from your installed copy of Abiotic Factor.",
+  "entryAssembly": "GameModels3D.dll",
+  "minHostVersion": "1.0.0",
+  "capabilities": ["sceneModels"],
+  "enabled": true
+}

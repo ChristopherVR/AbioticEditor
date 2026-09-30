@@ -20,7 +20,7 @@
             <button type="button" class="wt-btn wt-plain" @onclick="() => OnOpen2D.InvokeAsync()">@L.Resource("World3D_Open2D")</button>
         }
     </div>
-    <p class="wt-intro">@L.Resource("World3D_Intro")</p>
+    <p class="wt-intro">@L.Resource(_modelsOn ? "World3D_IntroModels" : "World3D_Intro")</p>
 
     @if (_webGlMissing)
     {
@@ -46,6 +46,7 @@
             @if (!_viewReady) { <span class="b3d-loading">@L.Resource("World3D_Loading")</span> }
             <div @ref="_host" class="b3d-canvas" role="img" aria-label="@L.Resource("World3D_ViewLabel")" data-b3d="canvas"></div>
             <p class="wt-muted b3d-hint">@L.Resource("World3D_AxesHint") @L.Resource("World3D_MultiSelectHint")</p>
+            @if (_levelPicked is not null) { <p class="wt-muted b3d-hint" data-b3d="level-picked">@L.Resource("World3D_LevelPickedFormat", _levelPicked)</p> }
         </div>
 
         <aside class="b3d-side">
@@ -75,6 +76,66 @@
                 </div>
                 <button type="button" class="wt-btn wt-plain" @onclick="ResetFilters">@L.Resource("World3D_ResetFilters")</button>
             </div>
+
+            @if (_modelStatus is { } ms)
+            {
+                <div class="wt-card b3d-panel" data-b3d="models">
+                    <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
+                    @if (!ms.Installed)
+                    {
+                        <p class="wt-muted" data-b3d="models-missing">@L.Resource("World3D_ModelsNotInstalled")</p>
+                    }
+                    else if (!ms.Available)
+                    {
+                        <p class="wt-muted" data-b3d="models-nogame">@L.Resource("World3D_ModelsNoGame")</p>
+                    }
+                    else
+                    {
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
+                            @L.Resource("World3D_ModelsShow")
+                        </label>
+                        @if (!string.IsNullOrEmpty(ms.Plugin)) { <small class="wt-muted">@L.Resource("World3D_ModelsFromFormat", ms.Plugin)</small> }
+                        @if (_modelsOn && _modelProgress is not null) { <small class="wt-muted" data-b3d="models-progress">@_modelProgress</small> }
+
+                        @if (LevelRegion is null)
+                        {
+                            <small class="wt-muted">@L.Resource("World3D_LevelNoRegion")</small>
+                        }
+                        else
+                        {
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@_levelOn" data-b3d="level-toggle" @onchange="e => SetLevelAsync(e.Value is true)" />
+                                @L.Resource("World3D_LevelShow")
+                            </label>
+                            @if (_levelOn)
+                            {
+                                <div class="b3d-band">
+                                    <label>@L.Resource("World3D_LevelRadius")
+                                        <select class="wt-input" data-b3d="level-radius" @onchange="e => SetLevelRadiusAsync(e.Value?.ToString())">
+                                            @foreach (var r in LevelRadii)
+                                            {
+                                                <option value="@r" selected="@(r == _levelRadius)">@L.Resource("World3D_MetresFormat", r)</option>
+                                            }
+                                        </select>
+                                    </label>
+                                    <label>@L.Resource("World3D_LevelCut")
+                                        <select class="wt-input" data-b3d="level-cut" @onchange="e => SetLevelCutAsync(e.Value?.ToString())">
+                                            @foreach (var c in LevelCuts)
+                                            {
+                                                <option value="@c" selected="@(c == _levelCut)">@(c == 0 ? L.Resource("World3D_LevelCutOff") : L.Resource("World3D_MetresFormat", c))</option>
+                                            }
+                                        </select>
+                                    </label>
+                                </div>
+                                <button type="button" class="wt-btn" data-b3d="level-reload" @onclick="ReloadLevelAsync">@L.Resource("World3D_LevelReload")</button>
+                                @if (_levelProgress is not null) { <small class="wt-muted" data-b3d="level-progress">@_levelProgress</small> }
+                                <small class="wt-muted">@L.Resource("World3D_LevelHint")</small>
+                            }
+                        }
+                    }
+                </div>
+            }
 
             <div class="wt-card b3d-panel" data-b3d="move-optin">
                 <label class="wt-check b3d-optin">
@@ -680,6 +741,7 @@
                 _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self);
                 _viewReady = true;
                 StateHasChanged();
+                await InitModelsAsync();
             }
             catch (Exception ex) when (ex is JSException or InvalidOperationException or JSDisconnectedException)
             {
@@ -731,10 +793,132 @@
             if (Session.FindPlacedObject(key) is { } row && (Session.CurrentPlacedTransform(key) ?? row.Transform) is { } now)
             {
                 var o = Base3DScene.ToViewerObject(row, now);
-                ghosts.Add(new { o.Cat, o.P, o.Q, o.S, Color = 0xff3b30 });
+                ghosts.Add(new { o.Cat, o.P, o.Q, o.S, o.Cls, Color = 0xff3b30 });
             }
         }
         await _view.InvokeVoidAsync("setGhosts", ghosts);
+    }
+
+    // ---- game models (optional plugin) ---------------------------------------------------------
+    /// <summary>What the host's model endpoint reports (see SceneModelHostService).</summary>
+    public sealed record ModelStatus(bool Available, bool Installed, string? Title, string? Plugin);
+
+    private static readonly int[] LevelRadii = [20, 40, 80, 150];
+    private static readonly int[] LevelCuts = [0, 2, 3, 5, 10];
+
+    private ModelStatus? _modelStatus;
+    private bool _modelsOn;
+    private string? _modelProgress;
+    private bool _levelOn;
+    private int _levelRadius = 40;
+    private int _levelCut = 2;
+    private string? _levelProgress;
+
+    /// <summary>The region this save covers, which names the game level to draw (null for a non-region save).</summary>
+    private string? LevelRegion => Base3DScene.RegionOf(Session.Path);
+
+    /// <summary>
+    /// Game models are on by default whenever the optional plugin can supply them; the level (slow
+    /// the very first time) waits until it is asked for. A failure here only leaves the boxes.
+    /// </summary>
+    private async Task InitModelsAsync()
+    {
+        if (_view is null) return;
+        try
+        {
+            _modelStatus = await _view.InvokeAsync<ModelStatus>("modelStatus");
+            _modelsOn = _modelStatus.Available;
+            if (_modelsOn) await _view.InvokeVoidAsync("setModelsEnabled", true);
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or System.Text.Json.JsonException or NotSupportedException)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("Scene", $"Game models unavailable in the 3D view ({ex.GetType().Name})");
+            _modelStatus = null;
+            _modelsOn = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task SetModelsAsync(bool on)
+    {
+        _modelsOn = on;
+        if (_view is not null) await _view.InvokeVoidAsync("setModelsEnabled", on);
+    }
+
+    private async Task SetLevelAsync(bool on)
+    {
+        _levelOn = on;
+        _levelProgress = null;
+        await PushLevelAsync();
+    }
+
+    private async Task SetLevelRadiusAsync(string? value)
+    {
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r) && LevelRadii.Contains(r)) _levelRadius = r;
+        await PushLevelAsync();
+    }
+
+    private async Task SetLevelCutAsync(string? value)
+    {
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c) && LevelCuts.Contains(c)) _levelCut = c;
+        if (_view is not null) await _view.InvokeVoidAsync("setLevelCut", _levelCut);
+    }
+
+    private async Task ReloadLevelAsync()
+    {
+        if (_view is not null) await _view.InvokeVoidAsync("reloadLevel");
+    }
+
+    private async Task PushLevelAsync()
+    {
+        if (_view is null) return;
+        await _view.InvokeVoidAsync("setLevel", new
+        {
+            enabled = _levelOn && LevelRegion is not null,
+            region = LevelRegion,
+            radius = _levelRadius,
+            cutAbove = _levelCut,
+            excludeActors = _scene.LevelActorNames(),
+        });
+    }
+
+    /// <summary>A click on level geometry (reference only) names the piece; a click elsewhere clears it.</summary>
+    [JSInvokable]
+    public Task OnLevelPicked(string? name)
+    {
+        if (_levelPicked == name) return Task.CompletedTask;
+        _levelPicked = name;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private string? _levelPicked;
+
+    /// <summary>Progress from the viewer while it loads models ("models") or the level ("level").</summary>
+    [JSInvokable]
+    public Task OnModelProgress(string kind, int done, int total, string? note)
+    {
+        if (string.Equals(kind, "models", StringComparison.Ordinal))
+        {
+            _modelProgress = note == "error" ? L.Resource("World3D_ModelsError")
+                : done >= total ? L.Resource("World3D_ModelsDone")
+                : L.Resource("World3D_ModelsProgressFormat", done, total);
+        }
+        else
+        {
+            // For a finished level load, done is the piece count and total the files still being read.
+            _levelProgress = note switch
+            {
+                "query" => L.Resource("World3D_LevelQuerying"),
+                "meshes" => L.Resource("World3D_LevelMeshesFormat", done, total),
+                "none" => L.Resource("World3D_LevelNone"),
+                "error" => L.Resource("World3D_LevelError"),
+                _ when total > 0 => L.Resource("World3D_LevelReadingFormat", done, total),
+                _ => L.Resource("World3D_LevelShownFormat", done),
+            };
+        }
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     // ---- JS callbacks -------------------------------------------------------------------------

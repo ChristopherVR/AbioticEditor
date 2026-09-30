@@ -1,5 +1,43 @@
 # Abiotic Editor - Session history
 
+## Round-134: game models in the 3D view, as an optional plugin (2026-10-01)
+
+- **New SDK capability** `ISceneModelProvider` (`Plugins.Abstractions/Scene`), registered with
+  `IPluginRegistry.AddSceneModelProvider` (default interface method, so older hosts log and
+  ignore it), manifest capability `sceneModels` (the CLI skips such plugins). Everything a
+  provider returns is in viewer space; meshes use the documented `SceneMeshFormat` (ABM1) layout.
+- **Host:** `SceneModelHostService` (Web.Shared) picks the first available provider, caches class
+  answers, and installs `PluginHostEnvironment.GameAssets` so plugins share the one pak mount
+  (`GameAssetProvider.UseFileProvider` gives locked CUE4Parse access). Desktop endpoints
+  `/scene-models/{status,classes,level,asset/**}`; the browser build has none and keeps boxes.
+- **Viewer** (`base3d.js`): per class part `InstancedMesh`es sharing each object's transform,
+  marks as instance tints, picking, gizmo updates, selection outlines from real bounds; level
+  layer (unpickable, click names a piece) around the view centre with a ceiling cut; progress and
+  "still reading" retries reported to the tab. The tab's GAME MODELS card explains the plugin when
+  it is missing.
+- **Plugin** `plugins/GameModels3D` (in the solution, not in any release package): construction
+  script + component overrides with archetype fallback (212/212 fixture classes resolve), simple
+  materials (instance `Texture` parameter first), mesh and texture baking, level index per map
+  (binary cache, bounding spheres), streamed maps placed by `LevelTransform` and gated by their
+  streaming volumes' brush shapes, sky domes and HLOD proxies skipped. Findings:
+  `reference/research/research-game-models-3d.md`.
+- Verified headless (Playwright, real Cascade world, plugin from a temp plugins folder): 944 of
+  945 objects drawn with models, level around a Mines base (4727 pieces) with the office rooms,
+  cave rock and floor under the bench; first-time level read about 9 s with progress.
+  `GameModels3DTests` (22): plugin matrices agree with `PlacedSceneSpace`/Three compose, ABM1
+  layout, level cache round trip, asset id refusal, region naming, plugin loads through
+  `PluginManager`, and game-backed class resolution (skips without the game).
+
+### Open issues to keep in view (round 134)
+
+- Not drawn: landscape terrain, spline meshes (pipes/cables), paint colour and per-object state
+  (open lids, crop growth); skeletal meshes show their bind pose.
+- The plugin is built by hand (README). No release asset or Nexus optional file yet.
+- Default ceiling cut is 2 m above the objects near the view centre; multi-storey bases may
+  want a per-floor control.
+- Only Facility-region saves were viewed; other worlds (portal worlds, Anteverse regions)
+  resolve their maps by name and were not viewed.
+
 ## Round-133: owner review notes, active effects research, performance pass (2026-09-30)
 
 - Owner notes: unlock-through button hides when nothing is missing; removal-flag text and the

@@ -34,6 +34,7 @@ public sealed class PluginManager
     private PluginCapability<IWebTool>[] _webTools = Array.Empty<PluginCapability<IWebTool>>();
     private PluginCapability<ISaveUpgrader>[] _saveUpgraders = Array.Empty<PluginCapability<ISaveUpgrader>>();
     private PluginCapability<IMenuAction>[] _menuActions = Array.Empty<PluginCapability<IMenuAction>>();
+    private PluginCapability<AbioticEditor.Plugins.Scene.ISceneModelProvider>[] _sceneModelProviders = Array.Empty<PluginCapability<AbioticEditor.Plugins.Scene.ISceneModelProvider>>();
 
     /// <summary>Process-wide instance the GUI and CLI use.</summary>
     public static PluginManager Shared { get; } = new();
@@ -72,6 +73,12 @@ public sealed class PluginManager
     public IReadOnlyList<PluginCapability<IMenuAction>> MenuActions
     {
         get { lock (_sync) { return _menuActions; } }
+    }
+
+    /// <summary>All 3D model providers from successfully-loaded plugins (the 3D view uses the first available one).</summary>
+    public IReadOnlyList<PluginCapability<AbioticEditor.Plugins.Scene.ISceneModelProvider>> SceneModelProviders
+    {
+        get { lock (_sync) { return _sceneModelProviders; } }
     }
 
     /// <summary>
@@ -114,6 +121,7 @@ public sealed class PluginManager
         _webTools = Flatten(loaded, d => d.WebTools);
         _saveUpgraders = Flatten(loaded, d => d.SaveUpgraders);
         _menuActions = Flatten(loaded, d => d.MenuActions);
+        _sceneModelProviders = Flatten(loaded, d => d.SceneModelProviders);
     }
 
     private static PluginCapability<T>[] Flatten<T>(
@@ -272,6 +280,7 @@ public sealed class PluginManager
             descriptor.WebTools = registry.WebTools;
             descriptor.SaveUpgraders = registry.SaveUpgraders;
             descriptor.MenuActions = registry.MenuActions;
+            descriptor.SceneModelProviders = registry.SceneModelProviders;
             descriptor.EventHandlers = registry.EventHandlers;
             // A code/JS plugin can contribute translations both at runtime (AddLocalization) and
             // by shipping files declared in its manifest. Merge both, then publish them.

@@ -65,7 +65,8 @@ public partial class WorldBases3DTab
         if (_basePreview is null) return [];
         return _basePreview.Duplications
             .Where(r => r.After?.Translation is not null)
-            .Select(r => new Base3DCopy(r.NewKey, r.ClassName, r.After!, L.Resource("World3D_CopyLabelFormat", Base3DScene.FriendlyClass(r.ClassName))))
+            .Select(r => new Base3DCopy(r.NewKey, r.ClassName, r.After!, L.Resource("World3D_CopyLabelFormat", Base3DScene.FriendlyClass(r.ClassName)),
+                Session.FindPlacedObject(r.SourceKey)?.ClassPath))
             .ToList();
     }
 

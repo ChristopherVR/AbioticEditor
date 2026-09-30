@@ -11,6 +11,12 @@
 //
 // Three.js is vendored under ./lib/three (MIT); nothing is loaded from a CDN so the desktop app
 // works offline.
+//
+// Game models (optional): when the desktop host has a 3D model plugin installed, the host answers
+// under ./scene-models/ with each class's parts (already in this scene's space), mesh geometry in
+// a small binary layout (SceneMeshFormat in the plugin SDK) and PNG textures. Objects whose class
+// has a model are drawn with it; everything else keeps its box. Without the plugin, or in the
+// browser build, those requests fail and nothing changes.
 import * as THREE from "./lib/three/three.module.min.js";
 import { OrbitControls } from "./lib/three/OrbitControls.min.js";
 import { TransformControls } from "./lib/three/TransformControls.min.js";
@@ -27,6 +33,56 @@ const LEVEL_PLACED_DIM = 0.5;
 const MARK_DELETED_COLOR = 0xff3b30;
 const MARK_COPY_COLOR = 0x22e6e6;
 const MAX_LABELS = 70;
+// Game models tint by multiplying the texture, so the marks are lighter than the box colours.
+const MODEL_TINT_DELETED = 0xff6a60;
+const MODEL_TINT_COPY = 0x7ff6f6;
+const MODEL_TINT_LEVEL_PLACED = 0xc4c4c4;
+const MODEL_BASE = "scene-models";
+const MODEL_FETCH_CONCURRENCY = 6;
+const CLASS_BATCH = 120;
+const LEVEL_MAX_INSTANCES = 25000;
+const LEVEL_RETRY_MS = 4000;
+
+/** Fetches with a JSON body and a JSON answer; null for "no content", throws on failure. */
+async function postJson(url, body) {
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (response.status === 204) return null;
+    if (!response.ok) throw new Error(`${url}: ${response.status}`);
+    return response.json();
+}
+
+function assetUrl(id) {
+    return `${MODEL_BASE}/asset/${id.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+/** Decodes one mesh in the ABM1 layout (see SceneMeshFormat) into a BufferGeometry with one group per section. */
+function parseMesh(buffer) {
+    const view = new DataView(buffer);
+    const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+    if (magic !== "ABM1") throw new Error("not an ABM1 mesh");
+    const vertexCount = view.getUint32(4, true);
+    const indexCount = view.getUint32(8, true);
+    const sectionCount = view.getUint32(12, true);
+    const wide = (view.getUint32(16, true) & 1) === 1;
+    let at = 20;
+    const geometry = new THREE.BufferGeometry();
+    const sections = [];
+    for (let i = 0; i < sectionCount; i++, at += 12) {
+        sections.push([view.getUint32(at, true), view.getUint32(at + 4, true), view.getUint32(at + 8, true)]);
+    }
+    const align4 = n => (n + 3) & ~3;
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(buffer, at, vertexCount * 3), 3));
+    at += vertexCount * 12;
+    geometry.setAttribute("normal", new THREE.BufferAttribute(new Int16Array(buffer, at, vertexCount * 3), 3, true));
+    at += align4(vertexCount * 6);
+    geometry.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(buffer, at, vertexCount * 2), 2));
+    at += vertexCount * 8;
+    geometry.setIndex(new THREE.BufferAttribute(wide ? new Uint32Array(buffer, at, indexCount) : new Uint16Array(buffer, at, indexCount), 1));
+    for (const [material, first, count] of sections) geometry.addGroup(first, count, material);
+    geometry.computeBoundingSphere();
+    geometry.computeBoundingBox();
+    return geometry;
+}
 
 export function isWebGlAvailable() {
     try {
@@ -40,6 +96,7 @@ export function isWebGlAvailable() {
 export function createView(host, dotnet) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.localClippingEnabled = true; // the level's ceiling cut
     host.appendChild(renderer.domElement);
     renderer.domElement.classList.add("b3d-canvas-el");
 
@@ -93,6 +150,29 @@ export function createView(host, dotnet) {
     const ghostGroup = new THREE.Group();
     scene.add(ghostGroup);
 
+    // Game models (see the header). classModels: class path -> { state: "pending" | "ready" | "none",
+    // parts: [{ geometry, materials, matrix }], box } in the object's own space.
+    let modelsOn = false;
+    const classModels = new Map();
+    const geometryCache = new Map(); // mesh id -> Promise<BufferGeometry | null>
+    const textureCache = new Map(); // texture id -> Texture
+    const materialCache = new Map(); // material description -> Material
+    let modelMeshes = []; // InstancedMesh per (class, part) for placed objects
+    let objInstances = new Map(); // object index -> [[InstancedMesh, instance id]]
+    let modelRebuildQueued = false;
+    let fetchActive = 0;
+    const fetchWaiting = [];
+
+    // Level geometry around the camera target (context only: never picked or edited).
+    const levelGroup = new THREE.Group();
+    scene.add(levelGroup);
+    const levelClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+    let levelOptions = { enabled: false, region: null, radius: 40, cutAbove: 2, excludeActors: [] };
+    let levelToken = 0;
+    let levelRetry = 0;
+    let levelInstances = 0;
+    let levelCentre = null; // where the level was last loaded around (the ceiling cut follows it)
+
     // ---- helpers -----------------------------------------------------------------------------
     const tmpPos = new THREE.Vector3();
     const tmpQuat = new THREE.Quaternion();
@@ -110,7 +190,29 @@ export function createView(host, dotnet) {
         return tmpColor;
     }
 
+    function readyModel(o) {
+        if (!modelsOn || !o.cls) return null;
+        const model = classModels.get(o.cls);
+        return model && model.state === "ready" ? model : null;
+    }
+
+    /** The object's own transform (position, rotation, per-axis scale). */
+    function objectMatrix(target, o) {
+        tmpPos.set(o.p[0], o.p[1], o.p[2]);
+        tmpQuat.set(o.q[0], o.q[1], o.q[2], o.q[3]);
+        tmpScale.set(o.s?.[0] || 1, o.s?.[1] || 1, o.s?.[2] || 1);
+        return target.compose(tmpPos, tmpQuat, tmpScale);
+    }
+
     function boxMatrix(target, o) {
+        const model = readyModel(o);
+        if (model) {
+            // The unit box stretched over the model's real bounds, in the object's space.
+            const box = model.box;
+            tmpLift.makeTranslation((box.min.x + box.max.x) / 2, (box.min.y + box.max.y) / 2, (box.min.z + box.max.z) / 2);
+            tmpSize.makeScale(Math.max(box.max.x - box.min.x, 0.05), Math.max(box.max.y - box.min.y, 0.05), Math.max(box.max.z - box.min.z, 0.05));
+            return objectMatrix(target, o).multiply(tmpLift).multiply(tmpSize);
+        }
         const [w, h, d] = CATEGORY_SIZES[o.cat] ?? CATEGORY_SIZES[0];
         tmpPos.set(o.p[0], o.p[1], o.p[2]);
         tmpQuat.set(o.q[0], o.q[1], o.q[2], o.q[3]);
@@ -168,9 +270,62 @@ export function createView(host, dotnet) {
         });
     }
 
+    function modelTint(o) {
+        if (o.mark === 1) return tmpColor.setHex(MODEL_TINT_DELETED);
+        if (o.mark === 2) return tmpColor.setHex(MODEL_TINT_COPY);
+        return tmpColor.setHex(o.built ? 0xffffff : MODEL_TINT_LEVEL_PLACED);
+    }
+
+    function disposeModelMeshes() {
+        for (const m of modelMeshes) {
+            scene.remove(m);
+            m.dispose(); // geometry and materials are shared through the caches
+        }
+        modelMeshes = [];
+        objInstances = new Map();
+    }
+
+    /** One InstancedMesh per part of every class that has a ready model and a visible object. */
+    function rebuildModelInstances() {
+        disposeModelMeshes();
+        if (!modelsOn) return;
+        const byClass = new Map();
+        for (const idx of visible) {
+            const o = objects[idx];
+            if (!readyModel(o)) continue;
+            if (!byClass.has(o.cls)) byClass.set(o.cls, []);
+            byClass.get(o.cls).push(idx);
+        }
+        const base = new THREE.Matrix4();
+        const m = new THREE.Matrix4();
+        for (const [cls, list] of byClass) {
+            for (const part of classModels.get(cls).parts) {
+                const mesh = new THREE.InstancedMesh(part.geometry, part.materials, list.length);
+                mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                mesh.userData.objIndexes = list;
+                mesh.userData.part = part.matrix;
+                list.forEach((objIndex, i) => {
+                    const o = objects[objIndex];
+                    mesh.setMatrixAt(i, m.multiplyMatrices(objectMatrix(base, o), part.matrix));
+                    mesh.setColorAt(i, modelTint(o));
+                    if (!objInstances.has(objIndex)) objInstances.set(objIndex, []);
+                    objInstances.get(objIndex).push([mesh, i]);
+                });
+                mesh.instanceMatrix.needsUpdate = true;
+                if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+                mesh.computeBoundingSphere();
+                scene.add(mesh);
+                modelMeshes.push(mesh);
+            }
+        }
+    }
+
     function rebuildInstances() {
         const perCat = CATEGORY_COLORS.map(() => []);
-        for (const idx of visible) perCat[objects[idx].cat].push(idx);
+        for (const idx of visible) {
+            if (!readyModel(objects[idx])) perCat[objects[idx].cat].push(idx);
+        }
+        rebuildModelInstances();
         const m = new THREE.Matrix4();
         instanceToObject = perCat;
         perCat.forEach((list, cat) => {
@@ -224,6 +379,16 @@ export function createView(host, dotnet) {
             mesh.instanceMatrix.needsUpdate = true;
             mesh.computeBoundingSphere();
         }
+        const parts = objInstances.get(objIndex);
+        if (parts) {
+            const base = objectMatrix(new THREE.Matrix4(), o);
+            const m = new THREE.Matrix4();
+            for (const [mesh, instance] of parts) {
+                mesh.setMatrixAt(instance, m.multiplyMatrices(base, mesh.userData.part));
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.computeBoundingSphere();
+            }
+        }
         updateSelectionBox();
         requestRender();
     }
@@ -257,9 +422,225 @@ export function createView(host, dotnet) {
         const divisions = Math.min(200, Math.max(10, Math.round(size / 10)));
         grid = new THREE.GridHelper(size, divisions, 0x3a4a5a, 0x1f2933);
         grid.position.set((box.min.x + box.max.x) / 2, box.min.y - 0.01, (box.min.z + box.max.z) / 2);
+        grid.visible = levelGroup.children.length === 0;
         scene.add(grid);
         axes.position.set(box.min.x, box.min.y, box.min.z);
         axes.scale.setScalar(Math.max(1, Math.min(200, extent / 20)));
+    }
+
+    // ---- game models ---------------------------------------------------------------------------
+    function report(kind, done, total, note) {
+        if (disposed) return;
+        dotnet.invokeMethodAsync("OnModelProgress", kind, done, total, note ?? null).catch(() => { });
+    }
+
+    /** Runs fetches a few at a time so hundreds of meshes do not flood the local host. */
+    async function throttled(task) {
+        if (fetchActive >= MODEL_FETCH_CONCURRENCY) await new Promise(resolve => fetchWaiting.push(resolve));
+        fetchActive++;
+        try {
+            return await task();
+        } finally {
+            fetchActive--;
+            fetchWaiting.shift()?.();
+        }
+    }
+
+    function loadGeometry(id) {
+        if (!geometryCache.has(id)) {
+            geometryCache.set(id, throttled(async () => {
+                const response = await fetch(assetUrl(id));
+                return response.ok ? parseMesh(await response.arrayBuffer()) : null;
+            }).catch(() => null));
+        }
+        return geometryCache.get(id);
+    }
+
+    function textureFor(id) {
+        let texture = textureCache.get(id);
+        if (!texture) {
+            texture = new THREE.TextureLoader().load(assetUrl(id), requestRender);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.flipY = false; // Unreal's texture coordinates start at the top-left, like glTF
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+            textureCache.set(id, texture);
+        }
+        return texture;
+    }
+
+    function materialFor(m, level) {
+        const key = `${level ? "L" : "O"}|${m.texture}|${m.color}|${m.opacity}|${m.twoSided}|${m.masked}|${m.emissive}`;
+        let material = materialCache.get(key);
+        if (!material) {
+            const params = {
+                color: new THREE.Color().setRGB(m.color[0], m.color[1], m.color[2]),
+                side: m.twoSided ? THREE.DoubleSide : THREE.FrontSide,
+            };
+            if (m.texture) params.map = textureFor(m.texture);
+            if (m.opacity < 1) Object.assign(params, { transparent: true, opacity: m.opacity, depthWrite: false });
+            if (m.masked) params.alphaTest = 0.5;
+            if (level) params.clippingPlanes = [levelClip];
+            material = m.emissive ? new THREE.MeshBasicMaterial(params) : new THREE.MeshLambertMaterial(params);
+            materialCache.set(key, material);
+        }
+        return material;
+    }
+
+    function scheduleModelRebuild() {
+        if (modelRebuildQueued || disposed) return;
+        modelRebuildQueued = true;
+        setTimeout(() => {
+            modelRebuildQueued = false;
+            if (!disposed) {
+                rebuildInstances();
+                updateSelectionBox();
+            }
+        }, 120);
+    }
+
+    async function buildClassModel(cls, description) {
+        const parts = await Promise.all(description.parts.map(async part => {
+            const geometry = await loadGeometry(part.mesh);
+            if (!geometry) return null;
+            return {
+                geometry,
+                materials: part.materials.length ? part.materials.map(m => materialFor(m, false)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)],
+                matrix: new THREE.Matrix4().fromArray(part.matrix),
+            };
+        }));
+        const ready = parts.filter(Boolean);
+        if (ready.length === 0) {
+            classModels.set(cls, { state: "none" });
+            return;
+        }
+        const box = new THREE.Box3(new THREE.Vector3(...description.boundsMin), new THREE.Vector3(...description.boundsMax));
+        classModels.set(cls, { state: "ready", parts: ready, box });
+    }
+
+    /** Asks for every class in the scene not asked about yet, and swaps boxes for models as they arrive. */
+    async function loadClassModels() {
+        const wanted = [...new Set(objects.map(o => o.cls).filter(c => c && !classModels.has(c)))];
+        if (!modelsOn || wanted.length === 0) return;
+        for (const cls of wanted) classModels.set(cls, { state: "pending" });
+        let done = 0;
+        report("models", 0, wanted.length);
+        for (let i = 0; i < wanted.length; i += CLASS_BATCH) {
+            const chunk = wanted.slice(i, i + CLASS_BATCH);
+            let answer;
+            try {
+                answer = await postJson(`${MODEL_BASE}/classes`, chunk) ?? {};
+            } catch {
+                for (const cls of chunk) classModels.set(cls, { state: "none" });
+                done += chunk.length;
+                report("models", done, wanted.length, "error");
+                continue;
+            }
+            await Promise.all(chunk.map(async cls => {
+                const description = answer[cls];
+                if (description && description.parts?.length) await buildClassModel(cls, description);
+                else classModels.set(cls, { state: "none" });
+                done++;
+                if (done % 10 === 0 || done === wanted.length) report("models", done, wanted.length);
+                scheduleModelRebuild();
+            }));
+        }
+        report("models", wanted.length, wanted.length);
+    }
+
+    // ---- level geometry -------------------------------------------------------------------------
+    function clearLevel() {
+        for (const child of [...levelGroup.children]) {
+            levelGroup.remove(child);
+            child.dispose();
+        }
+        levelInstances = 0;
+    }
+
+    /** Height (viewer Y) above which the level is cut away, so ceilings and upper floors do not hide the base. */
+    function updateLevelCut() {
+        if (levelOptions.cutAbove === null || levelOptions.cutAbove === undefined || levelOptions.cutAbove <= 0) {
+            levelClip.constant = 1e6;
+        } else {
+            // The top of the objects around the view centre (the base being looked at), not of the
+            // whole region, whose other bases can sit floors higher.
+            const c = levelCentre ?? controls.target;
+            const reach = Math.max(5, levelOptions.radius || 40);
+            let top = -Infinity;
+            for (const i of visible) {
+                const p = objects[i].p;
+                if (Math.hypot(p[0] - c.x, p[2] - c.z) <= reach && Math.abs(p[1] - c.y) <= reach / 2) top = Math.max(top, p[1]);
+            }
+            if (!isFinite(top)) top = c.y;
+            levelClip.constant = top + levelOptions.cutAbove;
+        }
+        requestRender();
+    }
+
+    async function loadLevel() {
+        clearTimeout(levelRetry);
+        const token = ++levelToken;
+        if (!levelOptions.enabled || !levelOptions.region) {
+            clearLevel();
+            if (grid) grid.visible = true;
+            requestRender();
+            return;
+        }
+        const r = Math.max(5, levelOptions.radius || 40);
+        const c = controls.target.clone();
+        levelCentre = c;
+        let slice;
+        report("level", 0, 0, "query");
+        try {
+            slice = await postJson(`${MODEL_BASE}/level`, {
+                region: levelOptions.region,
+                min: [c.x - r, c.y - r / 2, c.z - r],
+                max: [c.x + r, c.y + r / 2, c.z + r],
+                maxInstances: LEVEL_MAX_INSTANCES,
+                excludeActors: levelOptions.excludeActors ?? [],
+            });
+        } catch {
+            if (token === levelToken) report("level", 0, 0, "error");
+            return;
+        }
+        if (token !== levelToken || disposed) return;
+        if (!slice) {
+            clearLevel();
+            report("level", 0, 0, "none");
+            return;
+        }
+        const batches = slice.batches ?? [];
+        const built = [];
+        let loaded = 0;
+        await Promise.all(batches.map(async batch => {
+            const geometry = await loadGeometry(batch.mesh);
+            loaded++;
+            if (loaded % 25 === 0) report("level", loaded, batches.length, "meshes");
+            if (!geometry || token !== levelToken) return;
+            const count = batch.matrices.length / 16;
+            const materials = batch.materials.length ? batch.materials.map(m => materialFor(m, true)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
+            const mesh = new THREE.InstancedMesh(geometry, materials, count);
+            const m = new THREE.Matrix4();
+            for (let i = 0; i < count; i++) mesh.setMatrixAt(i, m.fromArray(batch.matrices, i * 16));
+            mesh.instanceMatrix.needsUpdate = true;
+            mesh.computeBoundingSphere();
+            mesh.name = batch.name ?? "";
+            built.push(mesh);
+        }));
+        if (token !== levelToken || disposed) {
+            for (const mesh of built) mesh.dispose();
+            return;
+        }
+        clearLevel();
+        for (const mesh of built) {
+            levelGroup.add(mesh);
+            levelInstances += mesh.count;
+        }
+        if (grid) grid.visible = built.length === 0;
+        updateLevelCut();
+        report("level", slice.totalInBox ?? levelInstances, slice.pendingMaps ?? 0, slice.note ?? null);
+        // Level files still being read in the background: ask again shortly.
+        if ((slice.pendingMaps ?? 0) > 0) levelRetry = setTimeout(() => { if (token === levelToken) loadLevel(); }, LEVEL_RETRY_MS);
     }
 
     // ---- framing -----------------------------------------------------------------------------
@@ -349,15 +730,28 @@ export function createView(host, dotnet) {
         pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
         raycaster.setFromCamera(pointer, camera);
         let best = null;
-        const hits = raycaster.intersectObjects(meshes.filter(m => m.count > 0), false);
+        const hits = raycaster.intersectObjects([...meshes.filter(m => m.count > 0), ...modelMeshes], false);
         for (const hit of hits) {
             if (hit.instanceId === undefined) continue;
-            const cat = meshes.indexOf(hit.object);
-            const objIndex = instanceToObject[cat][hit.instanceId];
+            const objIndex = hit.object.userData.objIndexes
+                ? hit.object.userData.objIndexes[hit.instanceId]
+                : instanceToObject[meshes.indexOf(hit.object)][hit.instanceId];
             best = objects[objIndex];
             break;
         }
         return best;
+    }
+
+    /** The name of the level piece under a screen point (visible side of the ceiling cut), or null. */
+    function levelNameAt(clientX, clientY) {
+        if (levelGroup.children.length === 0) return null;
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
+        raycaster.setFromCamera(pointer, camera);
+        for (const hit of raycaster.intersectObjects(levelGroup.children, false)) {
+            if (levelClip.distanceToPoint(hit.point) >= 0) return hit.object.name || null;
+        }
+        return null;
     }
 
     renderer.domElement.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
@@ -368,6 +762,8 @@ export function createView(host, dotnet) {
         if (moved > 4) return;
         const hit = pick(e.clientX, e.clientY);
         const additive = e.ctrlKey || e.shiftKey || e.metaKey;
+        // Level pieces are reference only: a click on one names it, and never selects anything.
+        dotnet.invokeMethodAsync("OnLevelPicked", hit ? null : levelNameAt(e.clientX, e.clientY)).catch(() => { });
         if (additive && !hit) return; // a modified click on nothing keeps the selection
         // C# owns the selection (it also drives the list and the inspector) and pushes it back.
         dotnet.invokeMethodAsync("OnPicked", hit ? hit.key : null, additive);
@@ -482,6 +878,42 @@ export function createView(host, dotnet) {
             rebuildInstances();
             setSelection([...selectedKeys], selectedKey);
             attachGizmo();
+            loadClassModels();
+        },
+        /**
+         * Whether game models can be shown: {available, installed, title, plugin}. Never throws; a
+         * host without the endpoints (the browser build) answers "not installed".
+         */
+        async modelStatus() {
+            try {
+                const response = await fetch(`${MODEL_BASE}/status`);
+                if (!response.ok) return { available: false, installed: false };
+                return await response.json();
+            } catch {
+                return { available: false, installed: false };
+            }
+        },
+        /** Draws objects with their game models (true) or boxes (false). */
+        setModelsEnabled(on) {
+            modelsOn = !!on;
+            rebuildInstances();
+            updateSelectionBox();
+            if (modelsOn) loadClassModels();
+        },
+        /**
+         * Level geometry around the view: {enabled, region, radius (m), cutAbove (m above the base, 0 = no cut),
+         * excludeActors}. Any field left out keeps its value. Reloads around the current view centre.
+         */
+        setLevel(options) {
+            levelOptions = { ...levelOptions, ...(options ?? {}) };
+            loadLevel();
+        },
+        /** Reloads the level geometry around the current view centre. */
+        reloadLevel() { loadLevel(); },
+        /** Moves the ceiling cut without reloading (metres above the base's top; 0 or null = no cut). */
+        setLevelCut(metres) {
+            levelOptions.cutAbove = metres;
+            updateLevelCut();
         },
         /** Which object indexes are drawn (filters live in C#). */
         setVisible(indices) {
@@ -536,6 +968,15 @@ export function createView(host, dotnet) {
             const rect = renderer.domElement.getBoundingClientRect();
             return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, depth: v.z };
         },
+        /** Name of the level piece under a page point, or null (diagnostics and tests). */
+        levelNameAt(clientX, clientY) { return levelNameAt(clientX, clientY); },
+        /** The largest level pieces drawn (name, instances, radius in metres, texture), for diagnostics. */
+        levelSummary(limit = 20) {
+            return levelGroup.children
+                .map(m => ({ name: m.name, count: m.count, radius: Math.round(m.boundingSphere?.radius ?? 0), textured: (Array.isArray(m.material) ? m.material : [m.material]).map(x => !!x.map) }))
+                .sort((a, b) => b.radius - a.radius)
+                .slice(0, limit);
+        },
         /** Reports what the view is drawing, for diagnostics and tests. */
         stats() {
             return {
@@ -548,14 +989,26 @@ export function createView(host, dotnet) {
                 deleted: objects.filter(o => o.mark === 1).length,
                 copies: objects.filter(o => o.mark === 2).length,
                 gizmo: gizmoMode,
+                modelsOn,
+                modelClasses: [...classModels.values()].filter(m => m.state === "ready").length,
+                modelMeshes: modelMeshes.length,
+                modelObjects: objInstances.size,
+                levelMeshes: levelGroup.children.length,
+                levelInstances,
             };
         },
         dispose() {
             disposed = true;
+            clearTimeout(levelRetry);
             observer.disconnect();
             transform.dispose();
             controls.dispose();
             disposeMeshes();
+            disposeModelMeshes();
+            clearLevel();
+            for (const p of geometryCache.values()) p.then(g => g?.dispose());
+            for (const t of textureCache.values()) t.dispose();
+            for (const m of materialCache.values()) m.dispose();
             renderer.dispose();
             host.replaceChildren();
         },

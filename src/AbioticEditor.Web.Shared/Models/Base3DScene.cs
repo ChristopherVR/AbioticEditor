@@ -15,7 +15,8 @@ public sealed record Base3DObject(
     double[] S,
     bool Built,
     string Label,
-    int Mark = 0)
+    int Mark = 0,
+    string? Cls = null)
 {
     /// <summary><see cref="Mark"/>: an ordinary object.</summary>
     public const int MarkNone = 0;
@@ -28,7 +29,8 @@ public sealed record Base3DObject(
 }
 
 /// <summary>A staged copy the scene should draw at its target place (a new object, not in the save).</summary>
-public sealed record Base3DCopy(string Key, string? ClassName, PlacedObjectTransform Transform, string Label);
+/// <remarks><paramref name="ClassPath"/> is the source object's full class path, so the copy can be drawn with the same game model.</remarks>
+public sealed record Base3DCopy(string Key, string? ClassName, PlacedObjectTransform Transform, string Label, string? ClassPath = null);
 
 /// <summary>The view's filter state. Everything is applied in C# so it is testable and the JS side just draws.</summary>
 public sealed record Base3DFilter
@@ -126,7 +128,7 @@ public sealed class Base3DScene
         return new Base3DObject(
             o.Key, (int)category,
             [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
-            o.DeployedByPlayer == true, LabelOf(o));
+            o.DeployedByPlayer == true, LabelOf(o), Cls: o.ClassPath);
     }
 
     /// <summary>A staged copy in the viewer's form (always player-built, marked as a copy).</summary>
@@ -137,8 +139,36 @@ public sealed class Base3DScene
         var s = PlacedSceneSpace.ScaleToViewer(copy.Transform.EffectiveScale);
         var category = PlacedObjectCategoryCatalog.Classify(copy.ClassName, false);
         return new Base3DObject(copy.Key, (int)category, [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
-            true, copy.Label, Base3DObject.MarkCopy);
+            true, copy.Label, Base3DObject.MarkCopy, copy.ClassPath);
     }
+
+    /// <summary>
+    /// The region a world save file belongs to (<c>WorldSave_Facility_Office1.sav</c> gives
+    /// <c>Facility_Office1</c>), which names the game level to draw around a base. Null for a file
+    /// that is not a region save (the metadata save, or an unrecognised name).
+    /// </summary>
+    public static string? RegionOf(string? savePath)
+    {
+        if (string.IsNullOrWhiteSpace(savePath)) return null;
+        var name = System.IO.Path.GetFileNameWithoutExtension(savePath);
+        const string prefix = "WorldSave_";
+        if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
+        var region = name[prefix.Length..];
+        return region.Length == 0 || region.Equals("MetaData", StringComparison.OrdinalIgnoreCase)
+               || !region.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')
+            ? null
+            : region;
+    }
+
+    /// <summary>
+    /// Actor names of the level-placed objects this save tracks. The level geometry view leaves
+    /// them out because the scene already draws them from the save (in their saved state).
+    /// </summary>
+    public IReadOnlyList<string> LevelActorNames()
+        => Placed.Where(p => p.DeployedByPlayer != true && !string.IsNullOrEmpty(p.ActorPath))
+            .Select(p => p.ActorPath!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
     /// <summary>Player-given name when there is one, else the class without its blueprint prefix and suffix.</summary>
     public static string LabelOf(PlacedObjectSummary o)

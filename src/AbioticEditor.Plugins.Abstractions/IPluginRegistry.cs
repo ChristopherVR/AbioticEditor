@@ -1,6 +1,7 @@
 using AbioticEditor.Plugins.Cli;
 using AbioticEditor.Plugins.Events;
 using AbioticEditor.Plugins.Saves;
+using AbioticEditor.Plugins.Scene;
 using AbioticEditor.Plugins.Ui;
 
 namespace AbioticEditor.Plugins;
@@ -40,6 +41,14 @@ public interface IPluginRegistry
     /// "keep the editor working across game updates" extension point.
     /// </summary>
     void AddSaveUpgrader(ISaveUpgrader upgrader);
+
+    /// <summary>
+    /// Registers a source of real 3D models for the editor's 3D base view (see
+    /// <see cref="ISceneModelProvider"/>). GUI-only; the CLI ignores it. A host that predates this
+    /// capability logs and ignores the call.
+    /// </summary>
+    void AddSceneModelProvider(ISceneModelProvider provider)
+        => Host.Log.Warn($"this host does not support 3D model providers; '{provider?.Id}' ignored.");
 
     /// <summary>
     /// Registers a click-to-run menu action. The GUI surfaces it as a menu item / button;

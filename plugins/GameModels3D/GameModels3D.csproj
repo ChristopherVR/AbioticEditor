@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Optional plugin: real game models for the 3D base view, read from the player's own game
+       install. Not part of the editor release; built and copied into a plugins folder by hand
+       (see README.md). Same shared-assembly model as the samples: compile against the SDK, Core
+       and CUE4Parse, let the host provide them at runtime. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GameModels3D</AssemblyName>
+    <RootNamespace>AbioticEditor.Plugins.GameModels3D</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AbioticEditor.Plugins.Abstractions\AbioticEditor.Plugins.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\src\AbioticEditor.Core\AbioticEditor.Core.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\submodules\CUE4Parse\CUE4Parse\CUE4Parse.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\submodules\CUE4Parse\CUE4Parse-Conversion\CUE4Parse-Conversion.csproj" Private="false" ExcludeAssets="runtime" />
+    <PackageReference Include="SkiaSharp" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

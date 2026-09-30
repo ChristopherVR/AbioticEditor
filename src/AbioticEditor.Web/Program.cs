@@ -110,6 +110,7 @@ public static class Program
 #endif
         builder.Services.AddSingleton<UserFacingErrorService>();
         builder.Services.AddSingleton<WebToolHostService>();
+        builder.Services.AddSingleton<SceneModelHostService>();
         builder.Services.AddScoped<BrowserSaveImportService>();
         // Self-hosted Razor builds use the local OS for pickers, file reveal, and links.
         // Browser-only deployments retain manual path entry because a remote server cannot
@@ -187,6 +188,30 @@ public static class Program
             using var reader = new StreamReader(request.Body, Encoding.UTF8);
             tools.Log(key, await reader.ReadToEndAsync(cancellationToken));
             return Results.NoContent();
+        });
+        // Real game models for the 3D base view. These answer "not available" unless an optional
+        // model plugin is installed; the view then keeps its boxes. Loopback-only like everything
+        // here, and asset ids are validated by the plugin that issued them.
+        app.MapGet("/scene-models/status", (SceneModelHostService scene) => Results.Json(scene.Status()));
+        app.MapPost("/scene-models/classes", async (HttpRequest request, SceneModelHostService scene, CancellationToken cancellationToken) =>
+        {
+            var paths = await request.ReadFromJsonAsync<string[]>(cancellationToken) ?? [];
+            var models = await Task.Run(() => scene.DescribeClasses(paths), cancellationToken);
+            return Results.Json(models);
+        });
+        app.MapPost("/scene-models/level", async (HttpRequest request, SceneModelHostService scene, CancellationToken cancellationToken) =>
+        {
+            var query = await request.ReadFromJsonAsync<AbioticEditor.Plugins.Scene.SceneLevelQuery>(cancellationToken);
+            if (query is null) return Results.BadRequest();
+            var slice = await Task.Run(() => scene.DescribeLevel(query), cancellationToken);
+            return slice is null ? Results.NoContent() : Results.Json(slice);
+        });
+        app.MapGet("/scene-models/asset/{**id}", async (string id, SceneModelHostService scene, HttpResponse response, CancellationToken cancellationToken) =>
+        {
+            var asset = await Task.Run(() => scene.OpenAsset(Uri.UnescapeDataString(id)), cancellationToken);
+            if (asset is null) return Results.NotFound();
+            response.Headers.CacheControl = "private,max-age=3600";
+            return Results.Bytes(asset.Data, asset.ContentType);
         });
         // Most screens live in AbioticEditor.Web.Shared now (so the browser host can render the
         // same ones). Endpoint routing discovers routable components per assembly and only scans

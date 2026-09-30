@@ -298,6 +298,26 @@ The page gets, from the host-injected bridge:
 To **edit** from a web tool, have the page request an action and run an `ISaveOperation` so the
 write keeps its backup; don't mutate the save from the page.
 
+## 9c. 3D models for the base view
+
+A plugin can supply real models for the desktop editor's 3D base view by implementing
+`ISceneModelProvider` (`AbioticEditor.Plugins.Scene`) and calling
+`registry.AddSceneModelProvider(provider)`. The view keeps all editing (selection, the gizmo,
+delete, duplicate, SAVE); the provider only says what things look like:
+
+- `DescribeClass(classPath)` returns a `SceneClassModel`: parts (a mesh id, a part-to-object
+  matrix and one `SceneMaterial` per slot) and local bounds, or null to keep the box.
+- `DescribeLevel(query)` optionally returns the level around a box, batched by mesh for
+  instanced drawing. Set `PendingMaps` above zero while still reading and the view asks again.
+- `OpenAsset(id)` returns mesh bytes in the `SceneMeshFormat` layout or a PNG texture. Validate
+  every id: the page can send anything.
+
+Everything is in the view's space (right-handed, Y up, metres; Unreal `(X, Z, Y) / 100`) and
+matrices are column-major. A provider that reads game files should use
+`PluginHostEnvironment.GameAssets` (the host's shared archive mount) and
+`GameAssetProvider.UseFileProvider` rather than mounting its own. Declare the `sceneModels`
+capability in `plugin.json` so the CLI skips loading it. See the `GameModels3D` plugin.
+
 **Offline / bundled apps.** Instead of inline HTML, serve a folder (a production SPA build or a
 plain offline page): set `rootDirectory` (relative paths resolve against the plugin folder) and
 `entryFile`. See the `WebStats` sample (`web/index.html`, no CDN). For a managed plugin implement

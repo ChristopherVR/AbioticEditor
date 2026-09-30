@@ -59,6 +59,20 @@ public static class PluginHostEnvironment
         get => _hostUi;
         set => _hostUi = value ?? NullHostUi.Instance;
     }
+
+    private static Func<AbioticEditor.Core.Assets.GameAssetProvider?> _gameAssets = static () => null;
+
+    /// <summary>
+    /// The host's shared mount of the installed game's archives, or null when there is no
+    /// readable install. A plugin that reads game assets (models, textures) must use this rather
+    /// than mounting its own copy: two mounts racing on first use can fail each other, so the
+    /// host owns the one mount. The result is shared and must not be disposed.
+    /// </summary>
+    public static Func<AbioticEditor.Core.Assets.GameAssetProvider?> GameAssets
+    {
+        get => _gameAssets;
+        set => _gameAssets = value ?? (static () => null);
+    }
 }
 
 /// <summary>

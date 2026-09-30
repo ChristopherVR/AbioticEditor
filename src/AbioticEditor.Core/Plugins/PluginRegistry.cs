@@ -2,6 +2,7 @@ using AbioticEditor.Plugins;
 using AbioticEditor.Plugins.Cli;
 using AbioticEditor.Plugins.Events;
 using AbioticEditor.Plugins.Saves;
+using AbioticEditor.Plugins.Scene;
 using AbioticEditor.Plugins.Ui;
 
 namespace AbioticEditor.Core.Plugins;
@@ -33,6 +34,8 @@ internal sealed class PluginRegistry : IPluginRegistry
     public List<ISaveUpgrader> SaveUpgraders { get; } = new();
 
     public List<IMenuAction> MenuActions { get; } = new();
+
+    public List<ISceneModelProvider> SceneModelProviders { get; } = new();
 
     public List<PluginEventSubscription> EventHandlers { get; } = new();
 
@@ -69,6 +72,17 @@ internal sealed class PluginRegistry : IPluginRegistry
             return;
         }
         WebTools.Add(tool);
+    }
+
+    public void AddSceneModelProvider(ISceneModelProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        if (SceneModelProviders.Any(p => string.Equals(p.Id, provider.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            Host.Log.Warn($"duplicate 3D model provider id '{provider.Id}' ignored.");
+            return;
+        }
+        SceneModelProviders.Add(provider);
     }
 
     public void AddSaveUpgrader(ISaveUpgrader upgrader)

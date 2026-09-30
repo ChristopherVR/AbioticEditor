@@ -130,4 +130,7 @@ public static class PluginCapabilities
 
     /// <summary>Contributes UI translations (via the localization runtime or AddLocalization).</summary>
     public const string Localization = "localization";
+
+    /// <summary>Provides one or more <see cref="Scene.ISceneModelProvider"/> (3D models; GUI-only).</summary>
+    public const string SceneModels = "sceneModels";
 }
