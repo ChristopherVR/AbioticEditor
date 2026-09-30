@@ -182,7 +182,7 @@ internal static class PlacedObjectEditCommands
     private static Option<string> PolicyOption(string name, string help, string fallback)
         => new(name) { Description = help, DefaultValueFactory = _ => fallback };
 
-    private static (string Path, WorldSaveData Data, StagedBaseEdits Edits) Open(string? save)
+    internal static (string Path, WorldSaveData Data, StagedBaseEdits Edits) Open(string? save)
     {
         var path = Cli.RequireFile(save, "save file");
         var data = WorldSaveReader.ReadFromFile(path);
@@ -222,7 +222,7 @@ internal static class PlacedObjectEditCommands
         throw new CliUserErrorException($"'{t}' is not a pivot (use centroid, an object key, or x,y,z).");
     }
 
-    private static List<(string Name, WorldSaveData Data)> ReadSiblings(string path)
+    internal static List<(string Name, WorldSaveData Data)> ReadSiblings(string path)
     {
         var dir = Path.GetDirectoryName(path)!;
         var result = new List<(string, WorldSaveData)>();
@@ -246,7 +246,7 @@ internal static class PlacedObjectEditCommands
         foreach (var (key, reason) in result.Skipped) Cli.Warn($"{key}: {reason}");
     }
 
-    private static int Finish(string path, WorldSaveData data, StagedBaseEdits edits, bool dryRun, bool json, bool quiet, string verb)
+    internal static int Finish(string path, WorldSaveData data, StagedBaseEdits edits, bool dryRun, bool json, bool quiet, string verb)
     {
         var preview = edits.Preview(data);
         if (dryRun)
@@ -283,6 +283,9 @@ internal static class PlacedObjectEditCommands
             if (result.Transformed.Count > 0) parts.Add($"{result.Transformed.Count} object(s) {(verb == "rotated" ? "rotated" : "moved")}");
             if (result.Deleted.Count > 0) parts.Add($"{result.Deleted.Count} deleted ({result.SocketRecordsRemoved} outlet record(s) removed)");
             if (result.Created.Count > 0) parts.Add($"{result.Created.Count} copied ({result.SocketRecordsCreated} outlet record(s) created)");
+            if (result.PowerLinksChanged > 0 || (result.Created.Count == 0 && result.SocketRecordsCreated > 0))
+                parts.Add($"{result.PowerLinksChanged} power link(s) changed");
+            if (result.Deleted.Count == 0 && result.SocketRecordsRemoved > 0) parts.Add($"{result.SocketRecordsRemoved} leftover outlet record(s) removed");
             Cli.Info(quiet, $"{string.Join(", ", parts)}. Objects: {result.ObjectsBefore} -> {result.ObjectsAfter}. "
                 + $"Wrote {Path.GetFileName(path)} (previous kept as {Path.GetFileName(path)}.bak).");
             foreach (var c in result.Created) Cli.Info(quiet, $"  {c.SourceKey} -> {c.NewKey}");
@@ -326,6 +329,13 @@ internal static class PlacedObjectEditCommands
             }
             if (c.TeleporterTagBefore is { } tb) sb.AppendLine(CultureInfo.InvariantCulture, $"           teleporter tag {tb} -> {c.TeleporterTagAfter}");
         }
+        foreach (var l in p.PowerLinks)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"  power  {l.SocketLabel}: {l.DeviceBefore ?? "-"} -> {l.DeviceAfter ?? "-"}"
+                + $"{(l.CreatesRecord ? "  (new outlet record)" : string.Empty)}{(l.Blocked ? "  BLOCKED" : string.Empty)}");
+            foreach (var f in l.FeedsCleared) sb.AppendLine(CultureInfo.InvariantCulture, $"           unplugged from {f}");
+        }
+        foreach (var c in p.SocketCleanups) sb.AppendLine(CultureInfo.InvariantCulture, $"  remove leftover outlet record {c}");
         if (p.Issues.Count > 0)
         {
             sb.AppendLine("Findings:");

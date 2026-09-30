@@ -1,0 +1,99 @@
+@namespace AbioticEditor.Web.Components.World
+@using System.Globalization
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+
+@* Power rerouting for one socket: every outlet of its device (including ones nothing was ever plugged
+   into), what each powers after staged changes, and controls to plug a device in or unplug it. A
+   change stages with the other base edits and is written on SAVE with a .bak; the findings below say
+   what else it touches (the device's old socket, a device that loses power). *@
+<section class="power-rewire" aria-label="@L.Resource("PowerRewire_Title")" data-power="rewire">
+    <hr class="world-feature-divider" />
+    <p class="eyebrow">@L.Resource("PowerRewire_Title")</p>
+    <p class="world-feature-hint">@L.Resource("PowerRewire_Intro")</p>
+    <label class="wt-check">
+        <input type="checkbox" checked="@_showAll" data-power="show-all" @onchange="e => { _showAll = e.Value is true; _candidatesRevision = -1; }" />
+        @L.Resource("PowerRewire_ShowAll")
+    </label>
+    @foreach (var outlet in Session.PowerOutletsAround(SocketKey))
+    {
+        var o = outlet;
+        <div class="power-rewire-outlet @(o.SocketId == SocketKey ? "current" : null)" data-power-socket="@o.SocketId">
+            <div class="power-rewire-head">
+                <strong>@o.Label</strong>
+                @if (o.Staged) { <span class="feature-plugged-chip" data-power="staged">@L.Resource("PowerRewire_Staged")</span> }
+            </div>
+            <p class="world-feature-hint">
+                @(o.DeviceLabel is { } d ? L.Resource("PowerRewire_PowersFormat", d) : L.Resource(o.Recorded ? "PowerRewire_Nothing" : "PowerRewire_NeverUsed"))
+            </p>
+            <div class="editor-actions power-rewire-actions">
+                <select aria-label="@L.Resource("PowerRewire_Choose")" data-power="choose" @onchange="e => _choice[o.SocketId] = e.Value?.ToString()">
+                    <option value="">@L.Resource("PowerRewire_Choose")</option>
+                    @foreach (var c in Candidates(o.SocketId))
+                    {
+                        <option value="@c.Key" selected="@(_choice.GetValueOrDefault(o.SocketId) == c.Key)">@CandidateText(c)</option>
+                    }
+                </select>
+                <button class="secondary" type="button" data-power="plug" disabled="@string.IsNullOrEmpty(_choice.GetValueOrDefault(o.SocketId))" @onclick="() => PlugAsync(o.SocketId)">@L.Resource("PowerRewire_Plug")</button>
+                @if (o.DeviceKey is not null)
+                {
+                    <button class="secondary" type="button" data-power="unplug" @onclick="() => UnplugAsync(o.SocketId)">@L.Resource("PowerRewire_Unplug")</button>
+                }
+            </div>
+            @foreach (var issue in Findings(o.SocketId))
+            {
+                <p class="world-feature-hint @(issue.IsBlocking ? "error-text" : null)" data-power="finding" data-code="@issue.Code">@((issue.IsBlocking ? L.Resource("World3D_Blocking") + " " : "") + issue.Message)</p>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+
+    /// <summary>The socket selected in the tab; its device's other outlets are shown too.</summary>
+    [Parameter, EditorRequired] public string SocketKey { get; set; } = string.Empty;
+
+    /// <summary>Raised after a change is staged or reverted, so the tab can refresh.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private readonly Dictionary<string, string?> _choice = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<PowerCandidate>> _candidates = new(StringComparer.Ordinal);
+    private int _candidatesRevision = -1;
+    private bool _showAll;
+
+    private IReadOnlyList<PowerCandidate> Candidates(string socketId)
+    {
+        if (_candidatesRevision != Session.PlacedTransformsRevision)
+        {
+            _candidates.Clear();
+            _candidatesRevision = Session.PlacedTransformsRevision;
+        }
+        if (!_candidates.TryGetValue(socketId, out var list)) _candidates[socketId] = list = Session.PowerCandidatesFor(socketId, _showAll);
+        return list;
+    }
+
+    private string CandidateText(PowerCandidate c)
+    {
+        var text = c.DistanceCm is { } d ? L.Resource("PowerRewire_CandidateFormat", c.Label, (d / 100).ToString("F1", CultureInfo.CurrentCulture)) : c.Label;
+        return c.CurrentlyPowered ? text + " " + L.Resource("PowerRewire_AlreadyPowered") : text;
+    }
+
+    private IEnumerable<BaseEditIssue> Findings(string socketId)
+        => Session.PreviewBaseEdits().PowerLinks.Where(r => r.SocketId == socketId).SelectMany(r => r.Issues)
+            .GroupBy(i => (i.Code, i.Message)).Select(g => g.First());
+
+    private async Task PlugAsync(string socketId)
+    {
+        if (_choice.GetValueOrDefault(socketId) is not { Length: > 0 } device) return;
+        Session.StagePowerPlug(socketId, device);
+        _choice.Remove(socketId);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task UnplugAsync(string socketId)
+    {
+        Session.StagePowerUnplug(socketId);
+        await OnChanged.InvokeAsync();
+    }
+}

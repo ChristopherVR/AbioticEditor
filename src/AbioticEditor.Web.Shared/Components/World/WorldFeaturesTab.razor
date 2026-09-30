@@ -32,6 +32,11 @@ else
         {
             <p class="world-flags-intro">@(string.IsNullOrWhiteSpace(Description(feature)) ? L.Resource("WorldFeature_EditHint") : Description(feature))</p>
         }
+        @* Power rerouting and repair (file sessions only: they stage with the base edits). *@
+        @if (IsPowerSockets && Session is WorldSaveSession powerSession)
+        {
+            <PowerRepairPanel Session="powerSession" OnChanged="PowerChangedAsync" />
+        }
         @* No per-tab SAVE/REVERT: the shell owns the save/revert pair, exactly like native. *@
         <div class="world-feature-panes">
             <div class="world-feature-list">
@@ -99,6 +104,10 @@ else
                         <PowerConnectionsPanel Graph="_powerGraph" Issues="_powerIssues" SocketKey="@selected.Key"
                                                CurrentFile="@CurrentFileName" CanOpen="CanOpenPowerTarget"
                                                OnNavigate="NavigatePowerTarget" />
+                    }
+                    @if (IsPowerSockets && Session is WorldSaveSession rewireSession)
+                    {
+                        <PowerRewirePanel Session="rewireSession" SocketKey="@selected.Key" OnChanged="PowerChangedAsync" />
                     }
                     @* The panel opens straight into the settings: the "nothing is written until
                        you press SAVE" reminder is already at the top of this tab. *@
@@ -471,6 +480,14 @@ else
     private bool IsResourceNodes => string.Equals(FeatureId, "resource-nodes", StringComparison.OrdinalIgnoreCase);
 
     private bool IsPowerSockets => string.Equals(FeatureId, "power-sockets", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A power change was staged or reverted: the shell's dirty state and this tab both refresh.</summary>
+    private Task PowerChangedAsync()
+    {
+        Workspace.NotifyEdited();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 
     private bool IsGardenFeature => FeatureId is "garden-plots" or "digital-garden-plots";
 

@@ -24,6 +24,7 @@ internal static class WorldCommands
         cmd.Subcommands.Add(BuildAddRegion(quiet));
         cmd.Subcommands.Add(PlacedObjectCommands.BuildCensus(quiet));
         cmd.Subcommands.Add(PlacedObjectEditCommands.Build(quiet));
+        cmd.Subcommands.Add(PowerEditCommands.Build(quiet));
         return cmd;
     }
 

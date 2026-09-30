@@ -27,6 +27,12 @@ public sealed record BaseEditPreview(
 {
     /// <summary>True when nothing blocks applying every staged edit.</summary>
     public bool CanApply => !Issues.Any(i => i.IsBlocking);
+
+    /// <summary>Staged power plug changes, in staging order.</summary>
+    public IReadOnlyList<PowerLinkPreviewRow> PowerLinks { get; init; } = [];
+
+    /// <summary>Leftover outlet records staged for removal.</summary>
+    public IReadOnlyList<string> SocketCleanups { get; init; } = [];
 }
 
 /// <summary>One copy made by an apply.</summary>
@@ -51,7 +57,11 @@ public sealed record BaseEditApplyResult(
     int SocketRecordsRemoved,
     int SocketRecordsCreated,
     int ObjectsBefore,
-    int ObjectsAfter);
+    int ObjectsAfter)
+{
+    /// <summary>Socket records whose plugged device changed (plugs, unplugs and feeds moved).</summary>
+    public int PowerLinksChanged { get; init; }
+}
 
 /// <summary>
 /// One staged model for base editing: moves and rotations (through <see cref="StagedPlacedTransforms"/>),
@@ -70,6 +80,8 @@ public sealed class StagedBaseEdits
 {
     private readonly Dictionary<string, DeletePolicy> _deletions = new(StringComparer.Ordinal);
     private readonly List<StagedDuplication> _duplications = [];
+    private readonly List<StagedPowerLink> _powerLinks = [];
+    private readonly List<string> _cleanups = [];
     private readonly Func<string> _idFactory;
     private int _nextId = 1;
 
@@ -105,6 +117,8 @@ public sealed class StagedBaseEdits
         foreach (var t in Transforms.Pending) copy.Transforms.Stage(t.Key, t.Translation, t.Rotation);
         foreach (var kv in _deletions) copy._deletions[kv.Key] = kv.Value;
         copy._duplications.AddRange(_duplications);
+        copy._powerLinks.AddRange(_powerLinks);
+        copy._cleanups.AddRange(_cleanups);
         return copy;
     }
 
@@ -118,7 +132,13 @@ public sealed class StagedBaseEdits
     public IReadOnlyList<(string Name, WorldSaveData Data)> OtherSaves { get; set; } = [];
 
     /// <summary>True when nothing is staged.</summary>
-    public bool IsEmpty => Transforms.IsEmpty && _deletions.Count == 0 && _duplications.Count == 0;
+    public bool IsEmpty => Transforms.IsEmpty && _deletions.Count == 0 && _duplications.Count == 0 && _powerLinks.Count == 0 && _cleanups.Count == 0;
+
+    /// <summary>Pending power plug changes in staging order.</summary>
+    public IReadOnlyList<StagedPowerLink> PowerLinks => _powerLinks;
+
+    /// <summary>Leftover outlet records pending removal.</summary>
+    public IReadOnlyList<string> SocketCleanups => _cleanups;
 
     // ---------- staging: transforms ----------
 
@@ -173,6 +193,53 @@ public sealed class StagedBaseEdits
         return dup;
     }
 
+    // ---------- staging: power ----------
+
+    /// <summary>
+    /// Stages plugging <paramref name="deviceKey"/> into <paramref name="socketId"/> (a wall socket's key, or an
+    /// outlet: owner GUID plus outlet digit). The device's current feed is unplugged when this applies.
+    /// </summary>
+    public StagedPowerLink StagePlug(string socketId, string deviceKey)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(socketId);
+        ArgumentException.ThrowIfNullOrEmpty(deviceKey);
+        var link = new StagedPowerLink(_nextId++, socketId, deviceKey);
+        _powerLinks.Add(link);
+        return link;
+    }
+
+    /// <summary>Stages unplugging whatever <paramref name="socketId"/> powers.</summary>
+    public StagedPowerLink StageUnplug(string socketId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(socketId);
+        var link = new StagedPowerLink(_nextId++, socketId, null);
+        _powerLinks.Add(link);
+        return link;
+    }
+
+    /// <summary>Stages removing a leftover (unplugged) outlet record.</summary>
+    public void StageSocketCleanup(string socketId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(socketId);
+        if (!_cleanups.Contains(socketId, StringComparer.Ordinal)) _cleanups.Add(socketId);
+    }
+
+    /// <summary>Stages the chosen repairs from <see cref="PowerRepair.Find"/>.</summary>
+    public void StageRepairs(IEnumerable<PowerRepairFix> fixes)
+    {
+        foreach (var fix in fixes)
+        {
+            if (fix.Kind == PowerRepairKind.RemoveLeftoverRecord) StageSocketCleanup(fix.SocketId);
+            else if (!_powerLinks.Any(l => l.SocketId == fix.SocketId && l.DeviceKey is null)) StageUnplug(fix.SocketId);
+        }
+    }
+
+    /// <summary>Reverts one staged power change.</summary>
+    public bool RevertPowerLink(int id) => _powerLinks.RemoveAll(l => l.Id == id) > 0;
+
+    /// <summary>Reverts one staged leftover-record removal.</summary>
+    public bool RevertSocketCleanup(string socketId) => _cleanups.Remove(socketId);
+
     // ---------- revert ----------
 
     /// <summary>Reverts the staged move/rotation of one object.</summary>
@@ -190,6 +257,8 @@ public sealed class StagedBaseEdits
         Transforms.RevertAll();
         _deletions.Clear();
         _duplications.Clear();
+        _powerLinks.Clear();
+        _cleanups.Clear();
     }
 
     // ---------- preview / validate ----------
@@ -204,7 +273,8 @@ public sealed class StagedBaseEdits
         BaseEditPreview Preview,
         DeletionPlan? Deletion,
         DuplicationPlan? Duplication,
-        IReadOnlyList<TransformPreviewRow> ApplicableTransforms);
+        IReadOnlyList<TransformPreviewRow> ApplicableTransforms,
+        PowerLinkPlan? Power);
 
     private Plans BuildPlans(WorldSaveData data)
     {
@@ -262,6 +332,16 @@ public sealed class StagedBaseEdits
             }
         }
 
+        // Power plug changes and leftover-record removals, planned against the positions after any
+        // staged moves (cable length hints) and refusing anything that touches a deleted object.
+        PowerLinkPlan? power = null;
+        if (_powerLinks.Count > 0 || _cleanups.Count > 0)
+        {
+            var deleting = new HashSet<string>(_deletions.Keys, StringComparer.Ordinal);
+            power = PowerLinkEdits.Plan(data, _powerLinks, _cleanups, deleting, key => Transforms.Current(data, key)?.Translation);
+            issues.AddRange(power.Issues);
+        }
+
         // Proximity hints (hints only).
         var hints = ComputeHints(data, duplication);
         foreach (var h in hints.Take(10))
@@ -279,13 +359,18 @@ public sealed class StagedBaseEdits
         var itemsDeleted = deletion?.Rows.Sum(r => r.Contents.Sum(c => Math.Max(c.Count, 1))) ?? 0;
         var itemsCopied = duplication?.Rows.Where(r => r.Contents == ContentsMode.Copy).Sum(r => r.SourceContents.Sum(c => Math.Max(c.Count, 1))) ?? 0;
         var refs = (deletion?.Rows.Sum(r => r.OwnedSocketIds.Count + r.InboundLinks.Count) ?? 0)
-            + (duplication?.Rows.Sum(r => r.Sockets.Count) ?? 0);
+            + (duplication?.Rows.Sum(r => r.Sockets.Count) ?? 0)
+            + (power is null ? 0 : power.Rows.Count + power.Cleanups.Count);
 
         var ordered = issues.OrderByDescending(i => i.Severity).ToList();
         var preview = new BaseEditPreview(
             transformRows, deletion?.Rows ?? [], duplication?.Rows ?? [], hints, ordered,
-            objectsBefore, objectsAfter, itemsDeleted, itemsCopied, refs);
-        return new Plans(preview, deletion, duplication, applicable);
+            objectsBefore, objectsAfter, itemsDeleted, itemsCopied, refs)
+        {
+            PowerLinks = power?.Rows ?? [],
+            SocketCleanups = power?.Cleanups ?? [],
+        };
+        return new Plans(preview, deletion, duplication, applicable, power);
     }
 
     private static string Label(string? cls) => cls ?? "an object";
@@ -389,9 +474,22 @@ public sealed class StagedBaseEdits
             deleted.AddRange(del.DeleteKeys);
         }
 
+        // Power last: deletions have already dropped the outlets of removed objects.
+        var powerChanged = 0;
+        if (plans.Power is { } powerPlan)
+        {
+            var (made, cleaned, changedLinks) = PowerLinkEdits.Commit(data, powerPlan);
+            socketsCreated += made;
+            socketsRemoved += cleaned;
+            powerChanged = changedLinks + made;
+        }
+
         var after = WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap").Count();
         var result = new BaseEditApplyResult(
-            true, plans.Preview.Issues, transformed, deleted, created, socketsRemoved, socketsCreated, before, after);
+            true, plans.Preview.Issues, transformed, deleted, created, socketsRemoved, socketsCreated, before, after)
+        {
+            PowerLinksChanged = powerChanged,
+        };
         RevertAll();
         return result;
     }

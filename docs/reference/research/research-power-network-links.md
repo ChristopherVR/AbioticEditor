@@ -126,11 +126,38 @@ setting fields cannot provide that. Neither the operation names nor the durabili
 
 The offline editor is unaffected: it edits the file directly and never runs `Update_SaveData`.
 
-## 5. What is deliberately NOT implemented
+## 5. Offline writes (round 136)
 
-No offline connection writes were added. The stored shape of "socket S supplies device P" is proven (a socket
-record names the device GUID), but no fixture holds a before/after pair of a player rewiring a device, so
-the following are unproven and left out: creating an outlet record for a device that has none, deleting the record
-when a device is removed, whether the game requires the previous socket's field to be cleared when a device is
-moved, and what happens to a stale second reference. A proper write step needs a before/after save pair captured
-from the game around a single plug or unplug.
+Section 5 used to say no connection writes were added for want of a before/after pair. Round 136 found
+the evidence and added them (`Services/World/PowerLinkEdits.cs`, `PowerRepair.cs`, staged through
+`StagedBaseEdits`; UI in the Power Sockets tab; CLI `world power plug|unplug|repair`).
+
+Evidence:
+
+* **The game's own save history.** The game keeps five rolling snapshots per world
+  (`SaveGames/<id>/Backups/<World>/1..5`). Diffing consecutive game-written snapshots
+  (`tests/AbioticEditor.Probes/PowerHistoryProbe.cs`): placing three cable reroutes in a chain created
+  exactly two new outlet records, `ED41..1 -> 48C4..` and `48C4..1 -> FA78..`, and changed nothing else.
+  The last reroute, with nothing plugged into it, got no record. So the game creates an outlet's
+  record when something is first plugged into it, stores the plug only in that record, and leaves
+  records at `-1` after an unplug.
+* **The load path.** `PowerSocket_ParentBP_C` has `DelayedPlugedInDeviceFromSave` (sic): on load, each
+  socket plugs in the device its record names. The cable is a `CableComponent` with a 160 cm rest
+  length that stretches to the device (`PowerCableRulesProbe.cs`); no range property exists, so the
+  editor only mentions long cables and never refuses them.
+* **Missing devices are gone, not level equipment.** Level-placed objects carry no 32-hex asset id at
+  all, the 11 fixture device ids that no save contains appear in no level file
+  (`PowerMissingDeviceProbe.cs`), and the same ids are dangling in all seven snapshots of the user's
+  world since 09-17.
+
+Rules the editor applies: a device takes power from one socket (plugging it elsewhere unplugs the old
+socket first); no self-plugs and no loops; the socket's device and the plugged device must be in the
+edited save; an outlet with no record yet may be used when its number is one the same kind of device
+already uses in the save (the game creates the record on first plug), and the new record is copied
+from a game-written record so every member keeps the game's own name and type.
+
+Repairs (each chosen individually; the first four start ticked): outlet records of devices that exist
+in no save of the world are removed (236 in the server fixture); sockets powering a device that exists
+nowhere are unplugged (11); self plugs and loops are unplugged; a device fed by two sockets keeps the
+nearest (2 in the fixture, not ticked, since whether the game allows two feeds is not known).
+Repairs that depend on "exists nowhere" are only offered after the other saves of the world were read.

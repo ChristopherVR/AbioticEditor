@@ -4365,6 +4365,35 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="AppError_Guidance" xml:space="preserve"><value>Try it again; if it keeps failing, reopen the save or reconnect to the game.</value></data>
   <data name="Transfer_PairedSaveHint" xml:space="preserve"><value>Save or revert in the header applies to both sides of a transfer.</value></data>
   <data name="Power_Connections" xml:space="preserve"><value>POWER CONNECTIONS</value></data>
+  <data name="PowerRewire_Title" xml:space="preserve"><value>PLUG IN OR UNPLUG</value></data>
+  <data name="PowerRewire_Intro" xml:space="preserve"><value>Every outlet on this device, including ones nothing was ever plugged into. Plugging a device in here unplugs it from wherever it was before, since a device takes power from one place. Changes are written when you press SAVE.</value></data>
+  <data name="PowerRewire_Staged" xml:space="preserve"><value>CHANGED</value></data>
+  <data name="PowerRewire_PowersFormat" xml:space="preserve"><value>Powers {0}.</value></data>
+  <data name="PowerRewire_Nothing" xml:space="preserve"><value>Nothing plugged in.</value></data>
+  <data name="PowerRewire_NeverUsed" xml:space="preserve"><value>Nothing plugged in yet.</value></data>
+  <data name="PowerRewire_ShowAll" xml:space="preserve"><value>Show all objects (not only kinds that take power)</value></data>
+  <data name="PowerRewire_Choose" xml:space="preserve"><value>Choose a device to plug in</value></data>
+  <data name="PowerRewire_CandidateFormat" xml:space="preserve"><value>{0}, {1} m away</value></data>
+  <data name="PowerRewire_AlreadyPowered" xml:space="preserve"><value>(moves it from its current socket)</value></data>
+  <data name="PowerRewire_Plug" xml:space="preserve"><value>PLUG IN</value></data>
+  <data name="PowerRewire_Unplug" xml:space="preserve"><value>UNPLUG</value></data>
+  <data name="PowerRepair_Title" xml:space="preserve"><value>POWER TOOLS</value></data>
+  <data name="PowerRepair_StagedFormat" xml:space="preserve"><value>{0} power change(s) waiting for SAVE:</value></data>
+  <data name="PowerRepair_PlugRowFormat" xml:space="preserve"><value>Plug {0} into {1}</value></data>
+  <data name="PowerRepair_UnplugRowFormat" xml:space="preserve"><value>Unplug {0}</value></data>
+  <data name="PowerRepair_CleanupRowFormat" xml:space="preserve"><value>Remove the leftover record of outlet {1} on device {0}</value></data>
+  <data name="PowerRepair_Revert" xml:space="preserve"><value>UNDO</value></data>
+  <data name="PowerRepair_Check" xml:space="preserve"><value>CHECK POWER</value></data>
+  <data name="PowerRepair_Checking" xml:space="preserve"><value>CHECKING...</value></data>
+  <data name="PowerRepair_NothingFound" xml:space="preserve"><value>No broken power links or leftover outlet records were found.</value></data>
+  <data name="PowerRepair_FoundFormat" xml:space="preserve"><value>{0} thing(s) to fix. Tick the fixes you want; the safe ones are already ticked.</value></data>
+  <data name="PowerRepair_ThisSaveOnly" xml:space="preserve"><value>The other saves of this world could not be read, so links into other regions and leftover records were not checked.</value></data>
+  <data name="PowerRepair_Kind_UnplugMissingDevice" xml:space="preserve"><value>SOCKETS POWERING A DEVICE THAT IS GONE</value></data>
+  <data name="PowerRepair_Kind_UnplugSelfLink" xml:space="preserve"><value>DEVICES PLUGGED INTO THEMSELVES</value></data>
+  <data name="PowerRepair_Kind_UnplugLoop" xml:space="preserve"><value>DEVICES POWERING EACH OTHER IN A CIRCLE</value></data>
+  <data name="PowerRepair_Kind_UnplugExtraFeed" xml:space="preserve"><value>DEVICES FED BY MORE THAN ONE SOCKET</value></data>
+  <data name="PowerRepair_Kind_RemoveLeftoverRecord" xml:space="preserve"><value>LEFTOVER OUTLETS OF DEVICES THAT ARE GONE</value></data>
+  <data name="PowerRepair_StageFormat" xml:space="preserve"><value>FIX {0} CHOSEN</value></data>
   <data name="Power_StoredNote" xml:space="preserve"><value>What the save files record: which socket supplies which device, including devices saved in other region files. Live power state and predicted results are not part of this list.</value></data>
   <data name="Power_BelongsTo" xml:space="preserve"><value>OUTLET OF</value></data>
   <data name="Power_NoConnections" xml:space="preserve"><value>Nothing is plugged into this socket.</value></data>

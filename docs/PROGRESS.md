@@ -1,5 +1,31 @@
 # Abiotic Editor - Session history
 
+## Round-136: power rerouting and repair (2026-10-01)
+
+- **Evidence** (section 5 of `research-power-network-links.md`): the game's rolling world snapshots give
+  natural before/after pairs; placing chained reroutes created exactly the outlet records for plugged
+  outlets and touched nothing else; sockets re-plug by id on load (`DelayedPlugedInDeviceFromSave`);
+  cables are visual only (no range limit); unresolved device GUIDs are in no level file and dangling in
+  every snapshot.
+- **Core**: `PowerLinkEdits` (plan/commit plug, unplug, leftover removal; one feed per device; refuses
+  self plugs, loops, deleted or missing devices, unknown outlet numbers; creates a not-yet-recorded
+  outlet from a donor copy of a game-written record) and `PowerRepair` (leftovers, dangling plugs,
+  self plugs, loops, extra feeds). Staged in `StagedBaseEdits` (preview rows, all-or-nothing apply).
+- **UI**: Power Sockets tab gets POWER TOOLS (staged changes with undo, CHECK POWER with per-fix
+  ticks) and, per socket, PLUG IN OR UNPLUG for every outlet of its device (nearest candidates first,
+  only kinds this world powers unless "show all").
+- **CLI**: `world power plug|unplug|repair` (`--dry-run`, `--json`, `repair --list/--all`).
+- Verified on a copy of the Cascade fixture: moving a bench to an unused strip outlet plus the 247
+  recommended repairs saved exactly 236 removed records and 13 changed plugs, nothing else; the CLI
+  dry run agrees. `PowerLinkEditingTests` (7) cover byte-level changes, reread, record shape, refusals.
+
+### Open issues to keep in view (round 136)
+
+- Not tried in a running game: loading a save whose plugs were moved by the editor.
+- The 3D view inspector has no power controls yet (the Power Sockets tab is the place).
+- Plugs across region saves (a wall socket in a region save feeding a device in the Facility save)
+  cannot be created or moved; only same-save links are editable.
+
 ## Round-135: 3D view inside Bases, base-edit test run, trams by route (2026-10-01)
 
 - **3D view** is no longer a world tab or a Settings switch: the Bases tab shows a Map / 3D view

@@ -1,0 +1,127 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+
+@* Tab-level power tools: the power changes staged so far (each can be reverted), and "Check power",
+   which lists broken links and leftover outlet records with a fix for each. Fixes are chosen one by
+   one; the ones that only undo an impossible state start ticked. *@
+<section class="power-repair wt-card" aria-label="@L.Resource("PowerRepair_Title")" data-power="repair">
+    <p class="eyebrow">@L.Resource("PowerRepair_Title")</p>
+
+    @{
+        var preview = Session.PreviewBaseEdits();
+    }
+    @if (preview.PowerLinks.Count > 0 || preview.SocketCleanups.Count > 0)
+    {
+        <p class="world-feature-hint">@L.Resource("PowerRepair_StagedFormat", preview.PowerLinks.Count + preview.SocketCleanups.Count)</p>
+        <ul class="power-staged-list" data-power="staged-list">
+            @foreach (var row in preview.PowerLinks)
+            {
+                var r = row;
+                <li data-power="staged-row">
+                    <span>@(r.DeviceAfter is null ? L.Resource("PowerRepair_UnplugRowFormat", r.SocketLabel) : L.Resource("PowerRepair_PlugRowFormat", r.DeviceLabel ?? "", r.SocketLabel))</span>
+                    @if (r.Blocked) { <span class="error-text">@L.Resource("World3D_Blocking")</span> }
+                    <button class="secondary" type="button" data-power="revert" @onclick="() => RevertAsync(r.Id)">@L.Resource("PowerRepair_Revert")</button>
+                </li>
+            }
+            @foreach (var id in preview.SocketCleanups)
+            {
+                var s = id;
+                <li data-power="staged-cleanup">
+                    <span>@L.Resource("PowerRepair_CleanupRowFormat", s[..Math.Min(8, s.Length)], s[^1])</span>
+                    <button class="secondary" type="button" @onclick="() => RevertCleanupAsync(s)">@L.Resource("PowerRepair_Revert")</button>
+                </li>
+            }
+        </ul>
+    }
+
+    <div class="editor-actions">
+        <button class="secondary" type="button" data-power="check" disabled="@_checking" @onclick="CheckAsync">@L.Resource(_checking ? "PowerRepair_Checking" : "PowerRepair_Check")</button>
+    </div>
+    @if (_fixes is { } fixes)
+    {
+        @if (fixes.Count == 0)
+        {
+            <p class="world-feature-hint" data-power="no-fixes">@L.Resource("PowerRepair_NothingFound")</p>
+        }
+        else
+        {
+            <p class="world-feature-hint">@L.Resource("PowerRepair_FoundFormat", fixes.Count)</p>
+            @if (!Session.OtherSavesLoaded || Session.OtherSaveNames.Count == 0)
+            {
+                <p class="world-feature-hint">@L.Resource("PowerRepair_ThisSaveOnly")</p>
+            }
+            <div class="power-fix-list" data-power="fixes">
+                @foreach (var group in fixes.GroupBy(f => f.Kind))
+                {
+                    var kind = group.Key;
+                    <p class="eyebrow">@L.Resource("PowerRepair_Kind_" + kind) (@group.Count())</p>
+                    @foreach (var fix in group)
+                    {
+                        var f = fix;
+                        <label class="wt-check power-fix" data-power="fix" data-kind="@f.Kind">
+                            <input type="checkbox" checked="@_chosen.Contains(f.Id)" @onchange="e => Toggle(f.Id, e.Value is true)" />
+                            @f.Description
+                        </label>
+                    }
+                }
+            </div>
+            <div class="editor-actions">
+                <button class="primary" type="button" data-power="stage-fixes" disabled="@(_chosen.Count == 0)" @onclick="StageAsync">@L.Resource("PowerRepair_StageFormat", _chosen.Count)</button>
+            </div>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+
+    /// <summary>Raised after something is staged or reverted, so the tab can refresh.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private IReadOnlyList<PowerRepairFix>? _fixes;
+    private readonly HashSet<string> _chosen = new(StringComparer.Ordinal);
+    private bool _checking;
+
+    private async Task CheckAsync()
+    {
+        _checking = true;
+        StateHasChanged();
+        try
+        {
+            _fixes = await Session.FindPowerRepairsAsync();
+            _chosen.Clear();
+            foreach (var f in _fixes.Where(f => f.Recommended)) _chosen.Add(f.Id);
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+
+    private void Toggle(string id, bool on)
+    {
+        if (on) _chosen.Add(id); else _chosen.Remove(id);
+    }
+
+    private async Task StageAsync()
+    {
+        if (_fixes is null) return;
+        Session.StagePowerRepairs(_fixes.Where(f => _chosen.Contains(f.Id)));
+        _fixes = null;
+        _chosen.Clear();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task RevertAsync(int id)
+    {
+        Session.RevertPowerLink(id);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task RevertCleanupAsync(string socketId)
+    {
+        Session.RevertSocketCleanup(socketId);
+        await OnChanged.InvokeAsync();
+    }
+}
