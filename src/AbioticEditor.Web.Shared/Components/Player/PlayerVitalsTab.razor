@@ -3,6 +3,7 @@
 @* Faithful port of the native PlayerVitalsTab: a CHARACTER STATS panel (five survival
    sliders, then the money row) and a BODY HEALTH panel whose HEAL ALL applies
    immediately, exactly like the native button. *@
+@inject AbioticEditor.Web.Services.BuffVocabularyService BuffData
 <div class="vitals-tab">
     <section class="editor-card">
         <h3>@L.Resource("PlayerVitals_CharacterStats")</h3>
@@ -37,7 +38,8 @@
                 <ul class="effects-list">
                     @foreach (var buff in FileSession.ActiveBuffs.ToArray())
                     {
-                        <li><span>@AbioticEditor.Web.Components.Shared.PlainNames.Words(buff.BuffRow)<small class="muted"> @buff.BuffRow</small></span>
+                        var info = _buffs.Find(buff.BuffRow);
+                        <li><span>@(info is { DisplayName.Length: > 0 } ? info.DisplayName : AbioticEditor.Web.Components.Shared.PlainNames.Words(buff.BuffRow))<small class="muted"> @BuffDetail(buff, info)</small></span>
                             <button type="button" class="secondary" @onclick="() => RemoveEffect(buff)">Remove</button></li>
                     }
                 </ul>
@@ -53,4 +55,11 @@
         </section>
     }
 </div>
-@code { [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public AbioticEditor.Web.Models.PlayerSaveSession? FileSession { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task RemoveEffect(AbioticEditor.Core.PlayerSaves.ActiveBuff buff) { FileSession?.RemoveActiveBuff(buff); await Changed(); } private async Task ClearEffects() { FileSession?.ClearActiveBuffs(); await Changed(); } private async Task HealAll() { Vitals.HealAll(); await Changed(); } }
+@code { private AbioticEditor.Core.PlayerSaves.BuffCatalog _buffs = AbioticEditor.Core.PlayerSaves.BuffCatalog.Empty; protected override async Task OnInitializedAsync() { _buffs = BuffData.TryGet(out var loaded) ? loaded : await Task.Run(BuffData.Get); }
+    /// <summary>Row name plus how long is left: -1 means it stays until removed; a timed effect stores a clock value whose zero point is unverified, so it is shown as timed rather than as a countdown. A row the current game no longer has is called out.</summary>
+    private string BuffDetail(AbioticEditor.Core.PlayerSaves.ActiveBuff buff, AbioticEditor.Core.PlayerSaves.BuffInfo? info)
+    {
+        var kind = buff.ExpireTime < 0 ? "stays until removed" : "timed";
+        return info is null && _buffs.Count > 0 ? $"{buff.BuffRow} - {kind}, not in this game version" : $"{buff.BuffRow} - {kind}";
+    }
+    [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public AbioticEditor.Web.Models.PlayerSaveSession? FileSession { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task RemoveEffect(AbioticEditor.Core.PlayerSaves.ActiveBuff buff) { FileSession?.RemoveActiveBuff(buff); await Changed(); } private async Task ClearEffects() { FileSession?.ClearActiveBuffs(); await Changed(); } private async Task HealAll() { Vitals.HealAll(); await Changed(); } }

@@ -51,6 +51,7 @@ public static class Program
         builder.Services.AddSingleton<SaveLibraryService>();
         builder.Services.AddSingleton<RecipeVocabularyService>();
         builder.Services.AddSingleton<ItemUpgradeVocabularyService>();
+        builder.Services.AddSingleton<BuffVocabularyService>();
         builder.Services.AddSingleton<InventoryDismantleService>();
         builder.Services.AddSingleton<ProgressionVocabularyService>();
         builder.Services.AddSingleton<CodexVocabularyService>();
