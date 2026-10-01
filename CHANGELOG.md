@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.24.0] - 2026-10-01
+
+### Features
+- Wire up new batteries straight away and lay cable routes with reroutes
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.23.1 [skip ci]
+
+
 ## [2.23.1] - 2026-10-01
 
 ### CI
