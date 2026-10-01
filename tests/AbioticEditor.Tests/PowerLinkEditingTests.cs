@@ -160,6 +160,96 @@ public sealed class PowerLinkEditingTests
         Refused(e => e.StagePlug(chain.Id, "0123456789ABCDEF0123456789ABCDEF"), "device-missing");
     }
 
+    // ---------- across saves ----------
+
+    /// <summary>A region save that holds a wall socket record, with every other save of the world.</summary>
+    private static (string Name, WorldSaveData Region, string WallSocket, List<(string Name, WorldSaveData Data)> Others)? RegionWithWallSocket()
+    {
+        if (Fixtures.ServerWorldsDir is not { } dir) return null;
+        foreach (var file in Directory.GetFiles(dir, "WorldSave_Facility_*.sav").Order(StringComparer.Ordinal))
+        {
+            var region = WorldSaveReader.ReadFromFile(file);
+            var wall = WorldMapAccessor.Entries(region.Raw, "PowerSocketMap").Select(e => e.Key).FirstOrDefault(k => k.Contains('/', StringComparison.Ordinal));
+            if (wall is null) continue;
+            var others = Directory.GetFiles(dir, "WorldSave_*.sav")
+                .Where(f => !string.Equals(f, file, StringComparison.OrdinalIgnoreCase))
+                .Select(f => (Path.GetFileName(f), WorldSaveReader.ReadFromFile(f))).ToList();
+            return (Path.GetFileName(file), region, wall, others);
+        }
+        return null;
+    }
+
+    [Fact]
+    public void A_wall_socket_in_a_region_save_can_power_a_device_from_the_facility_save()
+    {
+        if (!HasServerFacility || RegionWithWallSocket() is not { } r) return;
+        var facility = r.Others.First(o => o.Name == "WorldSave_Facility.sav").Data;
+        var fedAnywhere = r.Others.Select(o => o.Data).Append(r.Region)
+            .SelectMany(d => Sockets(d)).Where(s => s.Plugged is not null).Select(s => s.Plugged!).ToHashSet(StringComparer.Ordinal);
+        var device = PlayerBuilt(facility).Select(o => o.Key).First(k => !fedAnywhere.Contains(k));
+        var before = Fingerprint(r.Region.Raw);
+
+        var edits = new StagedBaseEdits { OtherSaves = r.Others };
+        edits.StagePlug(r.WallSocket, device);
+        Applied(edits.ApplyTo(r.Region));
+
+        var (added, removed, changed) = Diff(before, Fingerprint(r.Region.Raw));
+        Assert.Empty(added);
+        Assert.Empty(removed);
+        Assert.Equal(["PowerSocketMap/" + r.WallSocket], changed);
+        Assert.Equal(device, SocketPlugged(r.Region, r.WallSocket));
+    }
+
+    [Fact]
+    public void A_device_still_fed_in_another_save_is_refused_with_where_to_unplug_it()
+    {
+        if (!HasServerFacility || RegionWithWallSocket() is not { } r) return;
+        var facility = r.Others.First(o => o.Name == "WorldSave_Facility.sav").Data;
+        var (_, _, fedInFacility) = Sockets(facility).First(s => s.Plugged is not null && PlayerBuilt(facility).Any(o => o.Key == s.Plugged));
+        var bytes = Serialize(r.Region);
+
+        var edits = new StagedBaseEdits { OtherSaves = r.Others };
+        edits.StagePlug(r.WallSocket, fedInFacility!);
+        var result = edits.ApplyTo(r.Region);
+        Assert.False(result.Applied);
+        var issue = Assert.Single(result.Issues, i => i.Code == "feed-in-other-save");
+        Assert.Contains("WorldSave_Facility.sav", issue.Message, StringComparison.Ordinal);
+        Assert.Equal(bytes, Serialize(r.Region));
+    }
+
+    /// <summary>
+    /// Wall sockets in streamed areas are stored relative to their sub-level. In world space (the sub-level's
+    /// streaming transform applied) a socket that already powers a Facility device must sit near it.
+    /// </summary>
+    [Fact]
+    public void Wall_socket_world_positions_sit_near_the_devices_they_power()
+    {
+        using var assets = AbioticEditor.Core.Assets.GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true } || !HasServerFacility || Fixtures.ServerWorldsDir is not { } dir) return;
+        var facility = Load();
+        var positions = PlacedObjectCensus.Build(facility).Objects!.Where(o => o.Transform?.Translation is not null)
+            .GroupBy(o => o.Key).ToDictionary(g => g.Key, g => g.First().Transform!.Translation!.Value, StringComparer.Ordinal);
+        var checkedLinks = 0;
+        var nearWorld = 0;
+        var nearLocal = 0;
+        foreach (var file in Directory.GetFiles(dir, "WorldSave_Facility_*.sav"))
+        {
+            foreach (var (id, _, plugged) in Sockets(WorldSaveReader.ReadFromFile(file)))
+            {
+                if (!id.Contains('/', StringComparison.Ordinal) || plugged is null || !positions.TryGetValue(plugged, out var device)) continue;
+                if (assets.TryGetActorWorldTransform(id) is not { } world || assets.TryGetActorTransform(id) is not { } local) continue;
+                checkedLinks++;
+                double Dist(double x, double y, double z) => Math.Sqrt(Math.Pow(x - device.X, 2) + Math.Pow(y - device.Y, 2) + Math.Pow(z - device.Z, 2));
+                if (Dist(world.X, world.Y, world.Z) < 5000) nearWorld++;
+                if (Dist(local.X, local.Y, local.Z) < 5000) nearLocal++;
+            }
+        }
+        if (checkedLinks == 0) return;
+        // Every link is within 50 m in world space; the untransformed positions miss most of them.
+        Assert.Equal(checkedLinks, nearWorld);
+        Assert.True(nearLocal < checkedLinks, $"local positions were already right for all {checkedLinks} links");
+    }
+
     // ---------- repair ----------
 
     private static List<(string Name, WorldSaveData Data)> OtherServerSaves()

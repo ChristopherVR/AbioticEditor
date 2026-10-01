@@ -4374,6 +4374,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PowerRewire_ShowAll" xml:space="preserve"><value>Show all objects (not only kinds that take power)</value></data>
   <data name="PowerRewire_Choose" xml:space="preserve"><value>Choose a device to plug in</value></data>
   <data name="PowerRewire_CandidateFormat" xml:space="preserve"><value>{0}, {1} m away</value></data>
+  <data name="PowerRewire_PoweredElsewhereFormat" xml:space="preserve"><value>(plugged in inside {0}; unplug it there first)</value></data>
   <data name="PowerRewire_AlreadyPowered" xml:space="preserve"><value>(moves it from its current socket)</value></data>
   <data name="PowerRewire_Plug" xml:space="preserve"><value>PLUG IN</value></data>
   <data name="PowerRewire_Unplug" xml:space="preserve"><value>UNPLUG</value></data>
@@ -4421,6 +4422,13 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldBases_ViewMap" xml:space="preserve"><value>Map</value></data>
   <data name="WorldBases_View3D" xml:space="preserve"><value>3D view</value></data>
   <data name="World3D_IssueTimesFormat" xml:space="preserve"><value>(x{0})</value></data>
+  <data name="World3D_Power" xml:space="preserve"><value>POWER</value></data>
+  <data name="World3D_PowerFedFormat" xml:space="preserve"><value>Takes power from {0}.</value></data>
+  <data name="World3D_PowerFedElsewhereFormat" xml:space="preserve"><value>Takes power from {0} in {1}. Unplug it there (open that save's Power Sockets tab).</value></data>
+  <data name="World3D_PowerNotPlugged" xml:space="preserve"><value>Not plugged in.</value></data>
+  <data name="World3D_PowerPlugInto" xml:space="preserve"><value>Plug into</value></data>
+  <data name="World3D_PowerChooseSocket" xml:space="preserve"><value>Choose an outlet (nearest first)</value></data>
+  <data name="World3D_PowerSocketBusyFormat" xml:space="preserve"><value>(now powers {0})</value></data>
   <data name="World3D_Labels" xml:space="preserve"><value>Show labels</value></data>
   <data name="World3D_ModelsTitle" xml:space="preserve"><value>GAME MODELS</value></data>
   <data name="World3D_ModelsNoGame" xml:space="preserve"><value>The Game Models plugin is installed, but it could not read your game files. Check the game folder in Settings.</value></data>

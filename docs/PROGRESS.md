@@ -22,9 +22,13 @@
 ### Open issues to keep in view (round 136)
 
 - Not tried in a running game: loading a save whose plugs were moved by the editor.
-- The 3D view inspector has no power controls yet (the Power Sockets tab is the place).
-- Plugs across region saves (a wall socket in a region save feeding a device in the Facility save)
-  cannot be created or moved; only same-save links are editable.
+- Round 136b (same day): cross-save plugs are editable from the socket's own save (a wall socket in a
+  region save can power a Facility device; a device still fed in another file is refused with where
+  to unplug it); `GameAssetProvider.TryGetActorWorldTransform` applies the sub-level's streaming
+  placement (fixture: every existing wall-socket link sits within 50 m of its device in world space);
+  the 3D inspector has a POWER card (feed, plug into nearest outlet, own outlets) and draws the
+  selected object's cables. Verified headless: a Dam_Waterfall wall socket re-plugged to a Facility
+  device changed exactly that record; the 3D card re-plugged a strip and redrew its cables.
 
 ## Round-135: 3D view inside Bases, base-edit test run, trams by route (2026-10-01)
 

@@ -150,6 +150,11 @@ export function createView(host, dotnet) {
     const ghostGroup = new THREE.Group();
     scene.add(ghostGroup);
 
+    // Power cables of the selected object (drawn through geometry so they stay visible).
+    const cableGroup = new THREE.Group();
+    scene.add(cableGroup);
+    const cableMaterial = new THREE.LineBasicMaterial({ color: 0xffd23f, depthTest: false, transparent: true, opacity: 0.9 });
+
     // Game models (see the header). classModels: class path -> { state: "pending" | "ready" | "none",
     // parts: [{ geometry, materials, matrix }], box } in the object's own space.
     let modelsOn = false;
@@ -929,6 +934,24 @@ export function createView(host, dotnet) {
             updateOneInstance(idx);
             if (key === selectedKey) attachGizmo();
         },
+        /** Power cables as [ax, ay, az, bx, by, bz] segments in viewer space (replaces any drawn before). */
+        setCables(list) {
+            for (const child of [...cableGroup.children]) {
+                cableGroup.remove(child);
+                child.geometry.dispose();
+            }
+            const points = [];
+            for (const c of list ?? []) {
+                points.push(new THREE.Vector3(c[0], c[1] + 0.15, c[2]), new THREE.Vector3(c[3], c[4] + 0.15, c[5]));
+            }
+            if (points.length) {
+                const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points), cableMaterial);
+                line.renderOrder = 11;
+                line.frustumCulled = false;
+                cableGroup.add(line);
+            }
+            requestRender();
+        },
         /** Wire boxes showing where staged objects were saved. Each {cat, p, q, s, color?}. */
         setGhosts(list) {
             for (const child of [...ghostGroup.children]) {
@@ -994,6 +1017,7 @@ export function createView(host, dotnet) {
                 modelMeshes: modelMeshes.length,
                 modelObjects: objInstances.size,
                 levelMeshes: levelGroup.children.length,
+                cables: cableGroup.children.reduce((n, c) => n + c.geometry.attributes.position.count / 2, 0),
                 levelInstances,
             };
         },

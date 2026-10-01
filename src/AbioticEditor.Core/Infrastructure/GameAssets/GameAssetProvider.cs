@@ -541,6 +541,91 @@ public sealed class GameAssetProvider : IDisposable
         }
     }
 
+    private readonly Dictionary<string, System.Numerics.Matrix4x4?> _levelPlacements = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Like <see cref="TryGetActorTransform"/>, but in world space. An actor in a streamed area (for
+    /// example <c>Facility_Office1</c>) is stored relative to that sub-level, and the sub-level is moved
+    /// and turned into place by its streaming entry's <c>LevelTransform</c> in the map that streams it
+    /// (<c>Facility</c>). Saved positions of player-built objects are world positions, so this is the one
+    /// to compare them with. An actor of the outermost map is returned unchanged.
+    /// </summary>
+    public ActorTransform? TryGetActorWorldTransform(string? actorObjectPath)
+    {
+        if (TryGetActorTransform(actorObjectPath) is not { } local) return null;
+        var mapName = MapNameOf(actorObjectPath!);
+        if (mapName is null || PlacementOf(mapName) is not { } placement) return local;
+
+        var localMatrix = System.Numerics.Matrix4x4.CreateFromQuaternion(
+                              new System.Numerics.Quaternion((float)local.QuatX, (float)local.QuatY, (float)local.QuatZ, (float)local.QuatW))
+                          * System.Numerics.Matrix4x4.CreateTranslation((float)local.X, (float)local.Y, (float)local.Z);
+        var world = localMatrix * placement;
+        System.Numerics.Matrix4x4.Decompose(world, out _, out var rotation, out var translation);
+        return new ActorTransform(translation.X, translation.Y, translation.Z, rotation.X, rotation.Y, rotation.Z, rotation.W);
+    }
+
+    /// <summary>"/Game/Maps/Facility_Office1.Facility_Office1:PersistentLevel.X" gives "Facility_Office1".</summary>
+    private static string? MapNameOf(string actorObjectPath)
+    {
+        var colon = actorObjectPath.IndexOf(':', StringComparison.Ordinal);
+        var package = colon > 0 ? actorObjectPath[..colon] : actorObjectPath;
+        var dot = package.LastIndexOf('.');
+        var name = dot >= 0 ? package[(dot + 1)..] : package[(package.LastIndexOf('/') + 1)..];
+        return name.Length == 0 ? null : name;
+    }
+
+    /// <summary>
+    /// Where a streamed map sits in the world: the <c>LevelTransform</c> of its entry in the outermost map
+    /// its name nests under (<c>Facility_Dam_Central</c> is streamed by <c>Facility</c>). Null for the
+    /// outermost map itself or when no entry names it. Found by name, so no map list is kept.
+    /// </summary>
+    private System.Numerics.Matrix4x4? PlacementOf(string mapName)
+    {
+        lock (_levelPlacements)
+        {
+            if (_levelPlacements.TryGetValue(mapName, out var cached)) return cached;
+        }
+        System.Numerics.Matrix4x4? result = null;
+        try
+        {
+            var parts = mapName.Split('_');
+            for (var k = 1; k < parts.Length && result is null; k++)
+            {
+                var root = string.Join('_', parts[..k]);
+                var rootPath = _provider.Files.Keys.FirstOrDefault(p =>
+                    p.EndsWith("/" + root + ".umap", StringComparison.OrdinalIgnoreCase) && p.Contains("/Maps/", StringComparison.OrdinalIgnoreCase));
+                if (rootPath is null) continue;
+                lock (_providerLoadLock)
+                {
+                    if (!_provider.TryLoadPackage(rootPath, out var package)) continue;
+                    var world = package.GetExports().OfType<CUE4Parse.UE4.Objects.Engine.UWorld>().FirstOrDefault();
+                    foreach (var index in world?.StreamingLevels ?? [])
+                    {
+                        var streaming = index.Load();
+                        var asset = streaming?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FSoftObjectPath>("WorldAsset").AssetPathName.Text;
+                        if (asset is null || !asset.EndsWith("." + mapName, StringComparison.OrdinalIgnoreCase)) continue;
+                        if (!streaming!.TryGetValue(out CUE4Parse.UE4.Objects.Core.Math.FTransform t, "LevelTransform")) break;
+                        var s = t.Scale3D;
+                        var scale = s.X == 0 && s.Y == 0 && s.Z == 0 ? System.Numerics.Vector3.One : new System.Numerics.Vector3(s.X, s.Y, s.Z);
+                        result = System.Numerics.Matrix4x4.CreateScale(scale)
+                                 * System.Numerics.Matrix4x4.CreateFromQuaternion(new System.Numerics.Quaternion(t.Rotation.X, t.Rotation.Y, t.Rotation.Z, t.Rotation.W))
+                                 * System.Numerics.Matrix4x4.CreateTranslation(t.Translation.X, t.Translation.Y, t.Translation.Z);
+                        break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("Assets", $"Could not place level {mapName}: {ex.Message}");
+        }
+        lock (_levelPlacements)
+        {
+            _levelPlacements[mapName] = result;
+        }
+        return result;
+    }
+
     private static void TryDeleteFile(string path)
     {
         try

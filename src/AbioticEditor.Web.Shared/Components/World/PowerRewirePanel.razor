@@ -2,6 +2,8 @@
 @using System.Globalization
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Services
+@inject GameArtService Art
 
 @* Power rerouting for one socket: every outlet of its device (including ones nothing was ever plugged
    into), what each powers after staged changes, and controls to plug a device in or unplug it. A
@@ -61,6 +63,27 @@
     private readonly Dictionary<string, IReadOnlyList<PowerCandidate>> _candidates = new(StringComparer.Ordinal);
     private int _candidatesRevision = -1;
     private bool _showAll;
+    private readonly Dictionary<string, PlacedVector?> _wallSocketPositions = new(StringComparer.Ordinal);
+    private string? _preparedFor;
+
+    /// <summary>
+    /// Reads the world's other saves (devices for a wall socket live in the Facility save) and, for a wall
+    /// socket, its world position from the game files so candidates sort by distance.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_preparedFor == SocketKey) return;
+        _preparedFor = SocketKey;
+        var before = Session.OtherSavesLoaded;
+        await Session.LoadOtherSavesAsync();
+        if (WorldSaveSession.SocketOwner(SocketKey) is null && !_wallSocketPositions.ContainsKey(SocketKey))
+        {
+            var t = await Art.TryGetActorWorldTransformAsync(SocketKey);
+            _wallSocketPositions[SocketKey] = t is { } w ? new PlacedVector(w.X, w.Y, w.Z) : null;
+            _candidatesRevision = -1;
+        }
+        if (!before) _candidatesRevision = -1;
+    }
 
     private IReadOnlyList<PowerCandidate> Candidates(string socketId)
     {
@@ -69,13 +92,15 @@
             _candidates.Clear();
             _candidatesRevision = Session.PlacedTransformsRevision;
         }
-        if (!_candidates.TryGetValue(socketId, out var list)) _candidates[socketId] = list = Session.PowerCandidatesFor(socketId, _showAll);
+        if (!_candidates.TryGetValue(socketId, out var list))
+            _candidates[socketId] = list = Session.PowerCandidatesFor(socketId, _showAll, socketPosition: _wallSocketPositions.GetValueOrDefault(socketId));
         return list;
     }
 
     private string CandidateText(PowerCandidate c)
     {
         var text = c.DistanceCm is { } d ? L.Resource("PowerRewire_CandidateFormat", c.Label, (d / 100).ToString("F1", CultureInfo.CurrentCulture)) : c.Label;
+        if (c.PoweredInOtherSave is { } file) return text + " " + L.Resource("PowerRewire_PoweredElsewhereFormat", file);
         return c.CurrentlyPowered ? text + " " + L.Resource("PowerRewire_AlreadyPowered") : text;
     }
 

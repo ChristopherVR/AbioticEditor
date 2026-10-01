@@ -242,6 +242,27 @@ public sealed class GameArtService : IDisposable
     }
 
     /// <summary>
+    /// A level actor's position in world space (its sub-level's streaming placement applied), for
+    /// comparing with saved world positions: a wall socket's distance to devices. Null when the game
+    /// install is unavailable or the actor is not found.
+    /// </summary>
+    public Task<ActorTransform?> TryGetActorWorldTransformAsync(string? actorObjectPath)
+    {
+        if (string.IsNullOrWhiteSpace(actorObjectPath)) return Task.FromResult<ActorTransform?>(null);
+        return _actorWorldTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => Task.Run(() =>
+        {
+            try
+            {
+                var provider = service._provider.Value;
+                return provider is not { HasMappings: true } ? null : provider.TryGetActorWorldTransform(path);
+            }
+            catch { return null; }
+        })), this).Value;
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<Task<ActorTransform?>>> _actorWorldTransforms = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// The value vocabulary of narrative NPC script states (<c>E_NarrativeNPCStates</c>), read
     /// live from the mounted paks. Empty when the game install is unavailable; callers should
     /// fall back to free-text entry in that case.

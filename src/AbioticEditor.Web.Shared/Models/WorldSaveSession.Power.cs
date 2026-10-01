@@ -14,7 +14,14 @@ namespace AbioticEditor.Web.Models;
 public sealed record PowerOutletView(string SocketId, string Label, string? DeviceKey, string? DeviceLabel, bool Recorded, bool Staged);
 
 /// <summary>A device that could be plugged into a socket, nearest first.</summary>
-public sealed record PowerCandidate(string Key, string Label, double? DistanceCm, bool CurrentlyPowered);
+/// <param name="Key">The device key.</param>
+/// <param name="Label">The device as players read it.</param>
+/// <param name="DistanceCm">Distance from the socket, when both positions are known.</param>
+/// <param name="CurrentlyPowered">Plugged in somewhere in this save (it would move here).</param>
+/// <param name="PoweredInOtherSave">The other save it is plugged in, if any (it must be unplugged there first).</param>
+/// <param name="InOtherSave">The save the device itself is kept in, when it is not this one.</param>
+public sealed record PowerCandidate(string Key, string Label, double? DistanceCm, bool CurrentlyPowered,
+    string? PoweredInOtherSave = null, string? InOtherSave = null);
 
 // Power rerouting and repair for the Power Sockets tab (and the 3D inspector). Everything stages in the
 // same StagedBaseEdits the base editor uses, so it previews, validates and saves with the other base
@@ -49,6 +56,10 @@ public sealed partial class WorldSaveSession
     public IReadOnlyList<PowerOutletView> PowerOutletsAround(string socketId)
     {
         var classes = PowerLinkEdits.ObjectClasses(_data);
+        foreach (var (_, other) in _baseEdits.OtherSaves)
+        {
+            foreach (var (k, c) in PowerLinkEdits.ObjectClasses(other)) classes.TryAdd(k, c);
+        }
         var plugged = PluggedAfterStaging();
         var staged = _baseEdits.PowerLinks.Select(l => l.SocketId).Concat(_baseEdits.SocketCleanups)
             .Concat(PreviewBaseEdits().PowerLinks.SelectMany(r => r.FeedsCleared)).ToHashSet(StringComparer.Ordinal);
@@ -77,25 +88,44 @@ public sealed partial class WorldSaveSession
     /// Player-built devices that could be plugged into <paramref name="socketId"/>, nearest to its device
     /// first. Devices that would make a loop, and the socket's own device, are left out.
     /// </summary>
-    public IReadOnlyList<PowerCandidate> PowerCandidatesFor(string socketId, bool includeAll = false, int max = 40)
+    public IReadOnlyList<PowerCandidate> PowerCandidatesFor(string socketId, bool includeAll = false, int max = 40, PlacedVector? socketPosition = null)
     {
         var classes = PowerLinkEdits.ObjectClasses(_data);
         var plugged = PluggedAfterStaging();
         var usesPower = includeAll ? null : PoweredClasses(classes);
         var powered = plugged.Values.Where(v => v is not null).ToHashSet(StringComparer.Ordinal);
         var owner = SocketOwner(socketId);
-        var origin = owner is null ? null : CurrentPlacedTransform(owner)?.Translation;
+        // A wall socket has no saved position; the caller passes its world position from the level.
+        var origin = owner is null ? socketPosition : CurrentPlacedTransform(owner)?.Translation;
         var deleting = StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal);
-        return PlacedObjects
-            .Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.Key != owner && !deleting.Contains(o.Key)
-                        && (usesPower is null || (o.ClassName is { } cn && usesPower.Contains(cn)))
-                        && (owner is null || !PowerLinkEdits.IsUpstream(o.Key, owner, plugged)))
-            .Select(o =>
+
+        // Devices from the world's other saves (a wall socket in a region save powers devices kept in the
+        // Facility save), and where each is plugged in there.
+        var elsewhere = new Dictionary<string, string>(StringComparer.Ordinal);
+        var candidates = PlacedObjects.Where(o => o.DeployedByPlayer == true && o.Key.Length == 32)
+            .Select(o => (Row: o, Position: CurrentPlacedTransform(o.Key)?.Translation, File: (string?)null)).ToList();
+        foreach (var (name, other) in _baseEdits.OtherSaves)
+        {
+            foreach (var e in WorldMapAccessor.Entries(other.Raw, "PowerSocketMap"))
             {
-                double? d = origin is { } a && CurrentPlacedTransform(o.Key)?.Translation is { } b
+                if (e.Props.GetString("PluggedInDeviceAssetID_") is { Length: 32 } p) elsewhere.TryAdd(p, name);
+            }
+            foreach (var o in OtherSaveObjects(name, other)) candidates.Add((o, o.Transform?.Translation, name));
+            foreach (var (k, c) in PowerLinkEdits.ObjectClasses(other)) classes.TryAdd(k, c);
+        }
+
+        return candidates
+            .Where(c => c.Row.Key != owner && !deleting.Contains(c.Row.Key)
+                        && (usesPower is null || (c.Row.ClassName is { } cn && usesPower.Contains(cn)))
+                        && (owner is null || !PowerLinkEdits.IsUpstream(c.Row.Key, owner, plugged)))
+            .DistinctBy(c => c.Row.Key)
+            .Select(c =>
+            {
+                double? d = origin is { } a && c.Position is { } b
                     ? Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2) + Math.Pow(a.Z - b.Z, 2))
                     : null;
-                return new PowerCandidate(o.Key, DeviceName(o.Key, classes), d, powered.Contains(o.Key));
+                return new PowerCandidate(c.Row.Key, DeviceName(c.Row.Key, classes), d,
+                    powered.Contains(c.Row.Key), elsewhere.GetValueOrDefault(c.Row.Key), c.File);
             })
             .OrderBy(c => c.DistanceCm ?? double.MaxValue)
             .ThenBy(c => c.Label, StringComparer.OrdinalIgnoreCase)
@@ -126,8 +156,101 @@ public sealed partial class WorldSaveSession
         return result;
     }
 
+    private readonly Dictionary<string, IReadOnlyList<PlacedObjectSummary>> _otherSaveObjects = new(StringComparer.Ordinal);
+
+    /// <summary>Player-built objects of another save of the world (cached; those saves are read only).</summary>
+    private IReadOnlyList<PlacedObjectSummary> OtherSaveObjects(string name, WorldSaveData other)
+    {
+        if (!_otherSaveObjects.TryGetValue(name, out var list))
+        {
+            list = (PlacedObjectCensus.Build(other, name, includeObjects: true).Objects ?? [])
+                .Where(o => o.DeployedByPlayer == true && o.Key.Length == 32).ToList();
+            _otherSaveObjects[name] = list;
+        }
+        return list;
+    }
+
     private static string DeviceName(string key, Dictionary<string, string?> classes)
         => $"{PowerLinkEdits.Friendly(classes.GetValueOrDefault(key))} ({key[..Math.Min(8, key.Length)]})";
+
+    /// <summary>Where a device takes power from after staged changes: the socket, and the other save it is in (null for this one).</summary>
+    public (string SocketId, string Label, string? File)? PowerFeedOf(string deviceKey)
+    {
+        var classes = PowerLinkEdits.ObjectClasses(_data);
+        foreach (var (socket, device) in PluggedAfterStaging())
+        {
+            if (device == deviceKey) return (socket, PowerLinkEdits.SocketLabel(socket, SocketOwner(socket), classes), null);
+        }
+        foreach (var (name, other) in _baseEdits.OtherSaves)
+        {
+            foreach (var e in WorldMapAccessor.Entries(other.Raw, "PowerSocketMap"))
+            {
+                if (e.Props.GetString("PluggedInDeviceAssetID_") == deviceKey)
+                    return (e.Key, PowerLinkEdits.SocketLabel(e.Key, SocketOwner(e.Key), PowerLinkEdits.ObjectClasses(other)), name);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The first outlet id of a device that has outlets (recorded, or a number its kind uses), or null.</summary>
+    public string? FirstOutletOf(string deviceKey)
+    {
+        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var recorded = PluggedAfterStaging().Keys.Where(k => SocketOwner(k) == deviceKey).Order(StringComparer.Ordinal).FirstOrDefault();
+        if (recorded is not null) return recorded;
+        return classes.GetValueOrDefault(deviceKey) is { } cls && PowerLinkEdits.OutletNumbersByClass(_data).TryGetValue(cls, out var digits) && digits.Count > 0
+            ? deviceKey + digits.Min()
+            : null;
+    }
+
+    /// <summary>
+    /// Outlets (recorded or not yet) of other devices, and this save's wall sockets, that could power
+    /// <paramref name="deviceKey"/>, nearest first. Outlets of devices it powers (a loop) are left out.
+    /// </summary>
+    public IReadOnlyList<(string SocketId, string Label, double? DistanceCm, string? Powers)> PowerSocketsNear(string deviceKey, int max = 30)
+    {
+        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var plugged = PluggedAfterStaging();
+        var digitsByClass = PowerLinkEdits.OutletNumbersByClass(_data);
+        var here = CurrentPlacedTransform(deviceKey)?.Translation;
+        var sockets = new HashSet<string>(plugged.Keys, StringComparer.Ordinal);
+        foreach (var o in PlacedObjects.Where(o => o.Key.Length == 32 && o.ClassName is not null))
+        {
+            if (digitsByClass.TryGetValue(o.ClassName!, out var digits))
+                foreach (var d in digits) sockets.Add(o.Key + d);
+        }
+        return sockets
+            .Where(s => SocketOwner(s) is not { } owner
+                        || (owner != deviceKey && classes.ContainsKey(owner) && !PowerLinkEdits.IsUpstream(deviceKey, owner, plugged)))
+            .Select(s =>
+            {
+                var owner = SocketOwner(s);
+                double? d = owner is not null && here is { } a && CurrentPlacedTransform(owner)?.Translation is { } b
+                    ? Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2) + Math.Pow(a.Z - b.Z, 2))
+                    : null;
+                var powers = plugged.GetValueOrDefault(s);
+                return (s, PowerLinkEdits.SocketLabel(s, owner, classes), d, powers is null ? null : DeviceName(powers, classes));
+            })
+            .OrderBy(x => x.Item4 is null ? 0 : 1)
+            .ThenBy(x => x.d ?? double.MaxValue)
+            .Take(max)
+            .ToList();
+    }
+
+    /// <summary>
+    /// The power cables touching an object after staged changes, as (from device, to device) pairs of
+    /// this save's objects: the one feeding it and the ones its outlets feed. For drawing in 3D.
+    /// </summary>
+    public IReadOnlyList<(string From, string To)> PowerLinksAround(string key)
+    {
+        var result = new List<(string, string)>();
+        foreach (var (socket, device) in PluggedAfterStaging())
+        {
+            if (device is null || SocketOwner(socket) is not { } owner) continue;
+            if (owner == key || device == key) result.Add((owner, device));
+        }
+        return result;
+    }
 
     /// <summary>Stages plugging a device into a socket (its current feed is unplugged on SAVE).</summary>
     public StagedPowerLink StagePowerPlug(string socketId, string deviceKey)

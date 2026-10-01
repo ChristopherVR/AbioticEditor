@@ -61,13 +61,34 @@ public static class PowerLinkEdits
 
     internal static PowerLinkPlan Plan(
         WorldSaveData data, IReadOnlyList<StagedPowerLink> links, IReadOnlyCollection<string> cleanups,
-        IReadOnlySet<string> deleting, Func<string, PlacedVector?> positionOf)
+        IReadOnlySet<string> deleting, Func<string, PlacedVector?> positionOf,
+        IReadOnlyList<(string Name, WorldSaveData Data)>? otherSaves = null)
     {
         var sockets = PlacedPowerRecords.Read(data).ToDictionary(s => s.Id, StringComparer.Ordinal);
         var objects = ObjectClasses(data);
         var outletNumbers = OutletNumbersByClass(sockets.Values, objects);
         var rows = new List<PowerLinkPreviewRow>();
         var all = new List<BaseEditIssue>();
+
+        // The rest of the world, read only: player-built devices live in the Facility save while wall
+        // sockets live in the region save of their level, so a plug often joins two files. Only the
+        // socket's own record (in this save) is written; a device's feed in another file is not.
+        var labels = new Dictionary<string, string?>(objects, StringComparer.Ordinal);
+        var externalFeeds = new Dictionary<string, List<(string Socket, string File)>>(StringComparer.Ordinal);
+        var worldPlugged = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var (name, other) in otherSaves ?? [])
+        {
+            foreach (var (key, cls) in ObjectClasses(other)) labels.TryAdd(key, cls);
+            foreach (var s in PlacedPowerRecords.Read(other))
+            {
+                worldPlugged[s.Id] = s.Plugged;
+                if (s.Plugged is { } d)
+                {
+                    if (!externalFeeds.TryGetValue(d, out var list)) externalFeeds[d] = list = [];
+                    list.Add((s.Id, name));
+                }
+            }
+        }
 
         // Later changes see earlier ones (plug A into S1, then B into S1 replaces A), so work on a copy.
         var plugged = sockets.Values.ToDictionary(s => s.Id, s => s.Plugged, StringComparer.Ordinal);
@@ -119,19 +140,26 @@ public static class PowerLinkEdits
 
             if (link.DeviceKey is { } device)
             {
-                deviceLabel = objects.TryGetValue(device, out var cls) ? $"{Friendly(cls)} ({Short(device)})" : Short(device);
-                if (PlacedObjectCensus.KeyShape(device) != "guid32" || !objects.ContainsKey(device))
-                    issues.Add(Block("device-missing", $"The device {Short(device)} is not a placed object in this save.", link.SocketId));
+                deviceLabel = labels.TryGetValue(device, out var cls) ? $"{Friendly(cls)} ({Short(device)})" : Short(device);
+                if (PlacedObjectCensus.KeyShape(device) != "guid32" || !labels.ContainsKey(device))
+                    issues.Add(Block("device-missing", $"The device {Short(device)} is not a placed object in this world's saves.", link.SocketId));
+                if (externalFeeds.TryGetValue(device, out var elsewhere))
+                {
+                    var (feedSocket, feedFile) = elsewhere[0];
+                    issues.Add(Block("feed-in-other-save",
+                        $"{deviceLabel} is plugged into {SocketLabel(feedSocket, PlacedGroupReferenceAnalyzer.OwnerKeyOf(feedSocket), labels)} in {feedFile}. "
+                        + "Unplug it there first (a device takes power from one place, and only this save is written).", link.SocketId));
+                }
                 if (deleting.Contains(device))
                     issues.Add(Block("device-deleted", $"{deviceLabel} is staged for deletion.", link.SocketId));
                 if (string.Equals(device, owner, StringComparison.Ordinal))
                     issues.Add(Block("self-plug", $"{deviceLabel} cannot be plugged into its own outlet.", link.SocketId));
-                if (owner is not null && IsUpstream(device, owner, plugged))
+                if (owner is not null && IsUpstream(device, owner, Merge(worldPlugged, plugged)))
                     issues.Add(Block("power-loop", $"{deviceLabel} already powers {socketLabel}'s device, so plugging it in there would make a loop.", link.SocketId));
 
                 if (before is { } previous && previous != device)
                     issues.Add(Warn("replaces-device",
-                        $"{socketLabel} currently powers {DeviceLabel(previous, objects)}; that device is unplugged.", link.SocketId));
+                        $"{socketLabel} currently powers {DeviceLabel(previous, labels)}; that device is unplugged.", link.SocketId));
 
                 // A device has one feed: every other socket naming it is unplugged.
                 foreach (var (id, p) in plugged)
@@ -266,6 +294,13 @@ public static class PowerLinkEdits
             WorldSaveWriter.FilterStringArray(extras, _ => false);
         if (props.FindByPrefix("HasTimer_")?.Property is { } timer) timer.Value = false;
         return pair;
+    }
+
+    private static Dictionary<string, string?> Merge(Dictionary<string, string?> world, Dictionary<string, string?> local)
+    {
+        var merged = new Dictionary<string, string?>(world, StringComparer.Ordinal);
+        foreach (var (k, v) in local) merged[k] = v;
+        return merged;
     }
 
     /// <summary>True when <paramref name="device"/> feeds <paramref name="target"/>, directly or through a chain.</summary>

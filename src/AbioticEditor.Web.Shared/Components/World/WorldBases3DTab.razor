@@ -359,6 +359,45 @@
                         }
                     </div>
 
+                    @* Power for the selected object: where it takes power from, plugging it in elsewhere
+                       (nearest outlets first), and its own outlets. Stages with the other base edits. *@
+                    @if (obj.DeployedByPlayer == true && obj.Key.Length == 32)
+                    {
+                        <div class="b3d-power" data-b3d="power-card">
+                            <span class="wt-label">@L.Resource("World3D_Power")</span>
+                            @if (Session.PowerFeedOf(obj.Key) is { } feed)
+                            {
+                                <p class="wt-muted" data-b3d="power-feed">@(feed.File is null ? L.Resource("World3D_PowerFedFormat", feed.Label) : L.Resource("World3D_PowerFedElsewhereFormat", feed.Label, feed.File))</p>
+                                @if (feed.File is null)
+                                {
+                                    <button type="button" class="wt-btn wt-plain" data-b3d="power-unplug" @onclick="() => UnplugPowerAsync(feed.SocketId)">@L.Resource("PowerRewire_Unplug")</button>
+                                }
+                            }
+                            else
+                            {
+                                <p class="wt-muted" data-b3d="power-feed">@L.Resource("World3D_PowerNotPlugged")</p>
+                            }
+                            <label class="b3d-power-plug">@L.Resource("World3D_PowerPlugInto")
+                                <select class="wt-input" data-b3d="power-socket" @onchange="e => _powerSocketChoice = e.Value?.ToString()">
+                                    <option value="">@L.Resource("World3D_PowerChooseSocket")</option>
+                                    @foreach (var s in Session.PowerSocketsNear(obj.Key))
+                                    {
+                                        <option value="@s.SocketId" selected="@(_powerSocketChoice == s.SocketId)">@PowerSocketText(s)</option>
+                                    }
+                                </select>
+                            </label>
+                            <button type="button" class="wt-btn" data-b3d="power-plug" disabled="@string.IsNullOrEmpty(_powerSocketChoice)" @onclick="() => PlugPowerAsync(obj.Key)">@L.Resource("PowerRewire_Plug")</button>
+                            @foreach (var issue in Session.PreviewBaseEdits().PowerLinks.Where(r => r.DeviceAfter == obj.Key).SelectMany(r => r.Issues).DistinctBy(i => i.Message))
+                            {
+                                <p class="wt-muted @(issue.IsBlocking ? "error-text" : null)" data-b3d="power-finding">@issue.Message</p>
+                            }
+                            @if (Session.FirstOutletOf(obj.Key) is { } outlet)
+                            {
+                                <PowerRewirePanel Session="Session" SocketKey="@outlet" OnChanged="PowerChangedAsync" />
+                            }
+                        </div>
+                    }
+
                     @* EXTENSION POINT (delete and duplicate): wired. The buttons act on the whole selection,
                        open a confirmation panel with a preview (Core's StagedBaseEdits.Preview), and stage
                        through the same session as the move controls, so the unsaved-edit indicator, the staged
@@ -745,6 +784,7 @@
             _pushScene = false;
             await PushSceneAsync();
         }
+        await PushCablesAsync();
     }
 
     private async Task PushSceneAsync()
@@ -909,6 +949,62 @@
         }
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    // ---- power --------------------------------------------------------------------------------
+    private string? _powerSocketChoice;
+    private string? _cablesFor;
+    private int _cablesRevision = -1;
+
+    private string PowerSocketText((string SocketId, string Label, double? DistanceCm, string? Powers) s)
+    {
+        var text = s.DistanceCm is { } d ? L.Resource("PowerRewire_CandidateFormat", s.Label, (d / 100).ToString("F1", CultureInfo.CurrentCulture)) : s.Label;
+        return s.Powers is { } p ? text + " " + L.Resource("World3D_PowerSocketBusyFormat", p) : text;
+    }
+
+    private async Task PlugPowerAsync(string deviceKey)
+    {
+        if (_powerSocketChoice is not { Length: > 0 } socket) return;
+        Session.StagePowerPlug(socket, deviceKey);
+        _powerSocketChoice = null;
+        await PowerChangedAsync();
+    }
+
+    private async Task UnplugPowerAsync(string socketId)
+    {
+        Session.StagePowerUnplug(socketId);
+        await PowerChangedAsync();
+    }
+
+    private async Task PowerChangedAsync()
+    {
+        Workspace.NotifyEdited();
+        await AfterEditAsync(PlacedTransformStageResult.Ok);
+    }
+
+    /// <summary>
+    /// Draws the power cables of the selected object (its feed and what its outlets power), staged
+    /// changes included, as lines between saved positions.
+    /// </summary>
+    private async Task PushCablesAsync()
+    {
+        if (_view is null) return;
+        if (_cablesFor == _selectedKey && _cablesRevision == Session.PlacedTransformsRevision) return;
+        _cablesFor = _selectedKey;
+        _cablesRevision = Session.PlacedTransformsRevision;
+        var cables = new List<double[]>();
+        if (_selectedKey is { } key)
+        {
+            foreach (var (from, to) in Session.PowerLinksAround(key))
+            {
+                if (Session.CurrentPlacedTransform(from)?.Translation is not { } a || Session.CurrentPlacedTransform(to)?.Translation is not { } b) continue;
+                var va = PlacedSceneSpace.ToViewer(a);
+                var vb = PlacedSceneSpace.ToViewer(b);
+                cables.Add([va.X, va.Y, va.Z, vb.X, vb.Y, vb.Z]);
+            }
+        }
+        try { await _view.InvokeVoidAsync("setCables", cables); }
+        catch (JSDisconnectedException) { }
     }
 
     // ---- JS callbacks -------------------------------------------------------------------------
