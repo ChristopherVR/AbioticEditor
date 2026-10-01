@@ -2,6 +2,55 @@
 
 All notable changes to this project are documented here.
 
+## [2.22.0] - 2026-10-01
+
+### Bug Fixes
+- Door states use the game's own names, and "Locked" is gone
+- The 3D view finds an area's level from any kind of file path
+- Moss, stone paths and other fifth-layer ground now show in the 3D view
+- The start page no longer goes blank in a mid-sized window
+- The 3D view shows your things after you open another area
+- The editor reads the latest game update's data correctly
+- Shorter base names in the 3D view's base picker
+- The 3D view shows the surroundings in portal worlds too
+- The 3D view shows the base you pick and no longer hides it behind light beams
+- Trams are listed by route with real stop names, and save comparisons see tram moves
+- Trams can now only be moved to stops on their own line
+- The containers list no longer slows down in big regions
+- Keep the virus scan links in release notes when one upload is refused
+- Make long lists and game data loading faster
+
+
+### Documentation
+- Power changes made in the editor hold up in the real game
+
+
+### Features
+- Lamps light the 3D view, open doors look open, and characters stand naturally
+- People placed in the levels stand in their real poses in the 3D view
+- Walls stop you when walking, and you can place things from your other worlds
+- Place new objects and see characters in the 3D view
+- Open and close doors and walk around in the 3D view
+- Posed people, liquid levels and object decals in the 3D view
+- Outdoor ground, water and painted signs look like the game in the 3D view
+- Your crops grow in the 3D view
+- Tram rails in the 3D view
+- Outdoor ground in the 3D view
+- Painted objects show their paint colour in the 3D view
+- The 3D models plugin is now a download of its own
+- Power across regions, and power controls in the 3D view
+- Plug devices in, unplug them, and repair broken power in your saves
+- 3D view moves into the Bases tab, clearer base edit warnings
+- See your base with the game's real models in the 3D view (optional plugin)
+- Send a ground item straight to a character, and calmer clicking on story events
+- Show real names for a character's active effects
+- Clearer screen for moving items between worlds
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.21.0 [skip ci]
+
+
 ## [2.21.0] - 2026-09-29
 
 ### Bug Fixes
