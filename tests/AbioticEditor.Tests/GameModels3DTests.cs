@@ -208,6 +208,22 @@ public sealed class GameModels3DTests
         Assert.Equal("/Game/B/Deployed_X.Deployed_X_C", Assert.Single(scene.Objects).Cls);
     }
 
+    [Fact]
+    public void Painted_objects_ask_for_their_painted_model_and_unpainted_ones_do_not()
+    {
+        PlacedObjectSummary Row(string key, int? paint) => new(key, "/Game/B/Deployed_X.Deployed_X_C", "Deployed_X_C", PlacedClassOrigin.GameBlueprint, null, null,
+            new PlacedObjectTransform(new PlacedVector(0, 0, 0), PlacedQuaternion.Identity, new PlacedVector(1, 1, 1)),
+            null, null, true, null, null, null, paint, 0, 0, [], []);
+        var scene = Base3DScene.Build([Row("red", 2), Row("plain", null), Row("none", DeployablePaintCatalog.NoneValue)], _ => null);
+        Assert.Equal(2, scene.Objects.Single(o => o.Key == "red").Paint);
+        Assert.Null(scene.Objects.Single(o => o.Key == "plain").Paint);
+        Assert.Null(scene.Objects.Single(o => o.Key == "none").Paint);
+
+        Assert.Equal(("/Game/B/Deployed_X.Deployed_X_C", (int?)2), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/Deployed_X.Deployed_X_C#paint=2"));
+        Assert.Equal(("/Game/B/Deployed_X.Deployed_X_C", (int?)null), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/Deployed_X.Deployed_X_C"));
+        Assert.Equal(("/Game/B/X.X_C#paint=-1", (int?)null), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/X.X_C#paint=-1"));
+    }
+
     // ---------- plugin loading ----------
 
     [Fact]
@@ -296,6 +312,39 @@ public sealed class GameModels3DTests
         var wall = Of(assets, "/Game/Models/Environment/Walls/M_SecurityKit.M_SecurityKit");
         Assert.Equal(1f, wall.Opacity);
         Assert.False(wall.Effect);
+    }
+
+    [Fact]
+    public void Paint_swaps_the_slots_the_games_paint_table_names()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        const string Bench = "/Game/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Default.Deployed_CraftingBench_Default_C";
+
+        var red = assets.UseFileProvider(p => PaintResolver.Materials(p, Bench, 2));
+        Assert.NotNull(red);
+        Assert.EndsWith("M_CraftingBench_Bench_Red.M_CraftingBench_Bench_Red", red![0], StringComparison.Ordinal);
+        // "None" (12) is unpainted, and a class with no paint row has no paint materials.
+        Assert.Null(assets.UseFileProvider(p => PaintResolver.Materials(p, Bench, DeployablePaintCatalog.NoneValue)));
+        Assert.Null(assets.UseFileProvider(p => PaintResolver.Materials(p,
+            "/Game/Blueprints/DeployedObjects/Misc/Deployed_PlugStrip.Deployed_PlugStrip_C", 2)));
+
+        // Through the provider: the bench's own mesh wears the red material in slot 0.
+        PluginHostEnvironment.GameAssets = () => assets;
+        try
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "abiotic-paint-test-" + Guid.NewGuid().ToString("N"));
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var model = provider.DescribeClass(Bench, 2);
+            var plain = provider.DescribeClass(Bench);
+            Assert.NotNull(model);
+            Assert.NotEqual(plain!.Parts[0].Materials[0].Texture, model!.Parts[0].Materials[0].Texture);
+            Directory.Delete(dir, recursive: true);
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+        }
     }
 
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog

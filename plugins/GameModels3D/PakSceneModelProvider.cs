@@ -95,10 +95,28 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         return model;
     }
 
+    /// <summary>
+    /// A painted object: its own mesh parts wear the paint colour's materials slot by slot, the way
+    /// the game applies them (<see cref="PaintResolver"/>); a class that cannot be painted, or a colour
+    /// with nothing for it, looks as unpainted.
+    /// </summary>
+    public SceneClassModel? DescribeClass(string classPath, int paintColor)
+    {
+        if (paintColor == AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.NoneValue) return DescribeClass(classPath);
+        if (string.IsNullOrWhiteSpace(classPath) || !GamePath().IsMatch(classPath)) return null;
+        var cacheFile = CachePath(ClassesFolder, $"{classPath}#paint={paintColor}", ".json");
+        if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
+
+        var paint = Read(p => PaintResolver.Materials(p, classPath, paintColor));
+        var model = paint is null ? DescribeClass(classPath) : BuildClass(classPath, paint);
+        WriteJson(cacheFile, new CachedClass(model));
+        return model;
+    }
+
     /// <summary>A cached answer, including "no model" so a class without one is not re-read every run.</summary>
     private sealed record CachedClass(SceneClassModel? Model);
 
-    private SceneClassModel? BuildClass(string classPath)
+    private SceneClassModel? BuildClass(string classPath, IReadOnlyList<string?>? paint = null)
     {
         var parts = Read(p => ClassModelResolver.Resolve(p, classPath));
         if (parts.Count == 0) return null;
@@ -110,12 +128,24 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         {
             if (MeshInfoOf(part.Mesh) is not { } info || IsEffectOnly(info, part.MaterialOverrides)) continue;
             SceneMath.Encapsulate(ref min, ref max, info.BoundsMin, info.BoundsMax, part.Local);
+            // Paint reaches the actor's own meshes only; attached child actors (plug sockets) keep theirs.
+            var overrides = paint is not null && !part.Name.Contains('/', StringComparison.Ordinal)
+                ? Painted(part.MaterialOverrides, paint)
+                : part.MaterialOverrides;
             scene.Add(new ScenePart(
                 $"mesh/0{part.Mesh}", SceneMath.ToViewer(part.Local),
-                MaterialsFor(info, part.MaterialOverrides, ObjectTextureSize), part.Name));
+                MaterialsFor(info, overrides, ObjectTextureSize), part.Name));
         }
         if (scene.Count == 0) return null;
         return new SceneClassModel(scene, [min.X, min.Y, min.Z], [max.X, max.Y, max.Z]);
+    }
+
+    private static string?[] Painted(IReadOnlyList<string?> overrides, IReadOnlyList<string?> paint)
+    {
+        var merged = new string?[Math.Max(overrides.Count, paint.Count)];
+        for (var slot = 0; slot < merged.Length; slot++)
+            merged[slot] = slot < paint.Count && paint[slot] is { } painted ? painted : slot < overrides.Count ? overrides[slot] : null;
+        return merged;
     }
 
     // ---- levels -----------------------------------------------------------------------------

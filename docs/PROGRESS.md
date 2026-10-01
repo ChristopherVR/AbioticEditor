@@ -27,6 +27,14 @@
   status available, bench model, its mesh (97 KB) and texture (PNG) served. Player guide
   `guide/plugins.md` has a "See your bases in 3D" section. `/scene-models/classes|level` answer
   400 to malformed JSON (was a 500).
+- **Paint colours drawn.** The game's paint code (bytecode of `SetupPaintAndTexture`,
+  `Try_ApplyTextureOverrides`, `GetMeshComponents`) sets slot `i` of each of the actor's own static
+  meshes to entry `i` of the class's `DT_PaintedDeployables` row, `Materials_<Colour>` column.
+  `PaintResolver` does the same; SDK `ISceneModelProvider.DescribeClass(classPath, paintColor)`
+  (default: unpainted); the viewer keys models by `<class>#paint=<value>` (`Base3DObject.Paint`
+  from the census). Verified on the Cascade copy: cyan barricades and sandbag walls, orange
+  cubicles and rug. Tests: `Painted_objects_ask_for_their_painted_model_and_unpainted_ones_do_not`,
+  `Paint_swaps_the_slots_the_games_paint_table_names`.
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 

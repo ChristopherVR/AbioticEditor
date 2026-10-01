@@ -239,4 +239,61 @@ public class DeployablePaintProbeTests
         }
         _output.WriteLine($"total painted deployables found across fixtures: {total}");
     }
+
+    /// <summary>
+    /// How paint reaches the model: one row's material arrays (Default and two colours) next to the
+    /// class's mesh parts and their material slots, and the bytecode of the paint setup functions
+    /// (which component gets the materials). Row and class via ABIOTIC_PAINT_ROW / ABIOTIC_PAINT_CLASS.
+    /// </summary>
+    [Fact]
+    public void Dump_PaintRowAgainstClassParts()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var rowName = Environment.GetEnvironmentVariable("ABIOTIC_PAINT_ROW") ?? "craftingbench";
+        var cls = Environment.GetEnvironmentVariable("ABIOTIC_PAINT_CLASS")
+                  ?? "/Game/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Default.Deployed_CraftingBench_Default_C";
+        assets.UseFileProvider(provider =>
+        {
+            var table = provider.LoadPackage("AbioticFactor/Content/Blueprints/DataTables/DT_PaintedDeployables")
+                .GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Engine.UDataTable>().First();
+            var row = table.RowMap.First(r => r.Key.Text.Equals(rowName, StringComparison.OrdinalIgnoreCase)).Value;
+            foreach (var prop in row.Properties)
+            {
+                var name = prop.Name.Text;
+                if (!name.StartsWith("Materials_Default", StringComparison.Ordinal) && !name.StartsWith("Materials_Red", StringComparison.Ordinal) && !name.StartsWith("Materials_Blue", StringComparison.Ordinal)
+                    && name.StartsWith("Materials_", StringComparison.Ordinal)) continue;
+                var arr = prop.Tag?.GetValue<CUE4Parse.UE4.Assets.Objects.UScriptArray>();
+                _output.WriteLine($"{name}: {string.Join(" | ", arr?.Properties.Select(p => p.GenericValue?.ToString()) ?? [prop.Tag?.GenericValue?.ToString() ?? ""])}");
+            }
+            foreach (var part in AbioticEditor.Plugins.GameModels3D.ClassModelResolver.Resolve(provider, cls))
+            {
+                var mats = provider.TryLoadPackageObject(part.Mesh, out var mesh) ? AbioticEditor.Plugins.GameModels3D.MeshBaker.Describe(mesh)?.Materials : null;
+                _output.WriteLine($"part {part.Name}: {part.Mesh.Split('.')[^1]} slots [{string.Join(" | ", mats ?? [])}] overrides [{string.Join(" | ", part.MaterialOverrides)}]");
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>The paint functions' bytecode as JSON (ABIOTIC_PAINT_OUT), to see which component gets the row's materials.</summary>
+    [Fact]
+    public void Dump_PaintFunctionsBytecode()
+    {
+        var outPath = Environment.GetEnvironmentVariable("ABIOTIC_PAINT_OUT");
+        if (string.IsNullOrWhiteSpace(outPath)) return;
+        using var provider = CreateProvider();
+        if (provider is null) return;
+        provider.ReadScriptData = true;
+        using var writer = new StreamWriter(outPath, false);
+        foreach (var key in provider.Files.Keys.Where(k => k.EndsWith("/AbioticDeployed_ParentBP.uasset", StringComparison.OrdinalIgnoreCase)
+                                                        || k.EndsWith("/AbioticDeployed_Furniture_ParentBP.uasset", StringComparison.OrdinalIgnoreCase)))
+        {
+            foreach (var function in provider.LoadPackage(key).GetExports().OfType<CUE4Parse.UE4.Objects.UObject.UFunction>()
+                         .Where(f => f.Name.Contains("Paint", StringComparison.OrdinalIgnoreCase) || f.Name.Contains("Texture", StringComparison.OrdinalIgnoreCase) || f.Name == "GetMeshComponents"))
+            {
+                writer.WriteLine(key + " :: " + function.Name);
+                writer.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(function, Newtonsoft.Json.Formatting.Indented));
+            }
+        }
+    }
 }

@@ -37,6 +37,30 @@ Research behind the optional `plugins/GameModels3D` plugin (round 134). Probes:
   (`TextureDecoder.UseAssetRipperTextureDecoder`) handles them; the plugin switches on the first
   such failure.
 
+- **Blend modes are enum names.** `BlendMode` and `ShadingModel` are stored as
+  `EBlendMode::BLEND_TranslucentGreyTransmittance` style names; a typed string read falls back to
+  the default, which made all glass opaque. Read as text (`Props.EnumText`), only serialized
+  values count (unset means opaque and lit).
+- **Light-beam meshes** (`SM_Lightbeam_Wide`, `S_EV_SimpleLightBeam_01`, master
+  `/Game/Models/FX/M_EV_Lightbeam_Master_01`: translucent and unlit, two-sided, a falloff
+  gradient texture) fake the light under ceiling lamps. Drawn without the game's lighting they
+  are solid cones, so any part or level piece whose every material is additive, or translucent
+  and unlit, is left out. Window glass (`M_ABF_GlassNoOutline_Master`, translucent but lit) stays.
+
+## Paint
+
+`AbioticDeployed_ParentBP_C.SetupPaintAndTexture` calls `GetTextureOverrides` (the class
+default's `PaintedDeployableRow` names a `DT_PaintedDeployables` row; the colour picks its
+`Materials_<Colour>` array) and then `Try_ApplyTextureOverrides`, which loops over
+`GetMeshComponents` (the actor's own `StaticMeshComponent`s, from `K2_GetComponentsByClass`,
+cached in `MeshComponents`) and, for each array index `i` with a valid entry, calls
+`SetMaterial(i, entry)`. So slot `i` of every own mesh takes entry `i`; empty entries keep the
+mesh's material, and child actors (plug sockets) are untouched. Examples: the crafting bench's
+`Materials_Red` is one entry (`M_CraftingBench_Bench_Red`) for slot 0; the makeshift crate's is
+`M_MakeshiftCrate_Red`. Probes: `DeployablePaintProbeTests.Dump_PaintRowAgainstClassParts`,
+`Dump_PaintFunctionsBytecode`. The plugin's `PaintResolver` follows this; the viewer asks for
+`<class path>#paint=<value>` for painted objects.
+
 ## Level geometry
 
 - Level meshes are the `StaticMeshComponent`s of all actors (`RootComponent`,
@@ -81,4 +105,4 @@ Research behind the optional `plugins/GameModels3D` plugin (round 134). Probes:
 ## Not covered
 
 Landscape terrain, spline meshes (pipes and cables bent at run time), skeletal animation (bind
-pose is drawn), decals, lights, and per-object state such as paint colour or open lids.
+pose is drawn), decals, lights, and per-object state such as open lids or crop growth.

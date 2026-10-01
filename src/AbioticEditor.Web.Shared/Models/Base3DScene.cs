@@ -16,7 +16,8 @@ public sealed record Base3DObject(
     bool Built,
     string Label,
     int Mark = 0,
-    string? Cls = null)
+    string? Cls = null,
+    int? Paint = null)
 {
     /// <summary><see cref="Mark"/>: an ordinary object.</summary>
     public const int MarkNone = 0;
@@ -128,7 +129,8 @@ public sealed class Base3DScene
         return new Base3DObject(
             o.Key, (int)category,
             [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
-            o.DeployedByPlayer == true, LabelOf(o), Cls: o.ClassPath);
+            o.DeployedByPlayer == true, LabelOf(o), Cls: o.ClassPath,
+            Paint: o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue ? paint : null);
     }
 
     /// <summary>A staged copy in the viewer's form (always player-built, marked as a copy).</summary>

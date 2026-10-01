@@ -75,7 +75,7 @@ public sealed class SceneModelHostService
             if (provider is null) { result[path] = null; continue; }
             result[path] = _classes.GetOrAdd(path, p =>
             {
-                try { return provider.DescribeClass(p); }
+                try { return SplitPaint(p) is (var cls, { } paint) ? provider.DescribeClass(cls, paint) : provider.DescribeClass(p); }
                 catch (Exception ex)
                 {
                     EditorLog.Warn("Scene", $"No 3D model for {p}: {ex.Message}");
@@ -85,6 +85,21 @@ public sealed class SceneModelHostService
         }
         return result;
     }
+
+    /// <summary>
+    /// The viewer asks for a painted object's model as <c>&lt;class path&gt;#paint=&lt;value&gt;</c>
+    /// (the save's <c>EPaintColor</c> value); a plain class path has no paint.
+    /// </summary>
+    public static (string ClassPath, int? Paint) SplitPaint(string key)
+    {
+        var at = key.LastIndexOf(PaintSuffix, StringComparison.Ordinal);
+        return at > 0 && int.TryParse(key.AsSpan(at + PaintSuffix.Length), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var paint)
+            ? (key[..at], paint)
+            : (key, null);
+    }
+
+    /// <summary>Separates a class path from a paint colour in a model request (see <see cref="SplitPaint"/>).</summary>
+    public const string PaintSuffix = "#paint=";
 
     /// <summary>The level geometry around a base, or null when the provider does not draw levels.</summary>
     public SceneLevelSlice? DescribeLevel(SceneLevelQuery query)

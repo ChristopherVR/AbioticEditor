@@ -46,6 +46,13 @@ public interface ISceneModelProvider
     SceneClassModel? DescribeClass(string classPath);
 
     /// <summary>
+    /// Describes a class painted in one of the game's paint colours (the save's
+    /// <c>EPaintColor</c> value, e.g. 2 for red). Providers that do not know paint return the
+    /// unpainted model, which is the default.
+    /// </summary>
+    SceneClassModel? DescribeClass(string classPath, int paintColor) => DescribeClass(classPath);
+
+    /// <summary>
     /// The static level geometry inside a box of one region, for context around a base. Returns
     /// null when the provider does not draw levels or knows nothing about the region.
     /// </summary>

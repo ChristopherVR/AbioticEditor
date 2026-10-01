@@ -198,9 +198,16 @@ export function createView(host, dotnet) {
         return tmpColor;
     }
 
+    /** Which model an object wears: its class, or its class in the paint colour it was saved with. */
+    function modelKey(o) {
+        if (!o.cls) return null;
+        return o.paint === null || o.paint === undefined ? o.cls : `${o.cls}#paint=${o.paint}`;
+    }
+
     function readyModel(o) {
-        if (!modelsOn || !o.cls) return null;
-        const model = classModels.get(o.cls);
+        const key = modelKey(o);
+        if (!modelsOn || !key) return null;
+        const model = classModels.get(key);
         return model && model.state === "ready" ? model : null;
     }
 
@@ -301,8 +308,9 @@ export function createView(host, dotnet) {
         for (const idx of visible) {
             const o = objects[idx];
             if (!readyModel(o)) continue;
-            if (!byClass.has(o.cls)) byClass.set(o.cls, []);
-            byClass.get(o.cls).push(idx);
+            const key = modelKey(o);
+            if (!byClass.has(key)) byClass.set(key, []);
+            byClass.get(key).push(idx);
         }
         const base = new THREE.Matrix4();
         const m = new THREE.Matrix4();
@@ -528,7 +536,7 @@ export function createView(host, dotnet) {
 
     /** Asks for every class in the scene not asked about yet, and swaps boxes for models as they arrive. */
     async function loadClassModels() {
-        const wanted = [...new Set(objects.map(o => o.cls).filter(c => c && !classModels.has(c)))];
+        const wanted = [...new Set(objects.map(modelKey).filter(c => c && !classModels.has(c)))];
         if (!modelsOn || wanted.length === 0) return;
         for (const cls of wanted) classModels.set(cls, { state: "pending" });
         let done = 0;
@@ -885,7 +893,7 @@ export function createView(host, dotnet) {
     requestRender();
 
     const api = {
-        /** Replaces every object. Each is {key, cat, p:[x,y,z], q:[x,y,z,w], s:[x,y,z], built, label}. */
+        /** Replaces every object. Each is {key, cat, p:[x,y,z], q:[x,y,z,w], s:[x,y,z], built, label, cls?, paint?}. */
         setScene(list) {
             objects = list;
             keyToIndex = new Map(list.map((o, i) => [o.key, i]));
