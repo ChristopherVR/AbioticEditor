@@ -494,6 +494,79 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
+    public async Task A_new_battery_and_cable_reroute_are_wired_up_in_the_same_save()
+    {
+        // Cascade has cable reroutes (the smaller worlds have none).
+        if (Fixtures.ClientWorldSaves("WorldSave_Facility.sav").FirstOrDefault(p => p.Contains("Cascade", StringComparison.OrdinalIgnoreCase)) is not { } source) return;
+        using var temp = new TempCopy(source);
+        var session = Open(temp.SavePath);
+        var kinds = Base3DScene.PlaceKinds(session.PlacedObjects, new HashSet<string>());
+        var battery = kinds.FirstOrDefault(k => k.ClassPath.Contains("Battery", StringComparison.Ordinal));
+        var reroute = kinds.FirstOrDefault(k => k.ClassPath.Contains("CableReroute", StringComparison.Ordinal));
+        var lamp = session.PlacedObjects.FirstOrDefault(o => o.DeployedByPlayer == true && o.Key.Length == 32
+            && (o.ClassName?.Contains("Lamp", StringComparison.Ordinal) ?? false));
+        Assert.NotNull(battery);
+        Assert.NotNull(reroute);
+        Assert.NotNull(lamp);
+        var at = session.FindPlacedObject(battery.DonorKey)!.Transform!.Translation!.Value;
+
+        var newBattery = session.StagePlacedNew(battery.DonorKey, at with { X = at.X + 300 })!.NewKeys.Values.Single();
+        var newReroute = session.StagePlacedNew(reroute.DonorKey, at with { X = at.X + 600 })!.NewKeys.Values.Single();
+        session.StagePowerPlug(newBattery + "1", newReroute);   // battery -> reroute
+        session.StagePowerPlug(newReroute + "1", lamp.Key);     // reroute -> lamp
+
+        var preview = session.PreviewBaseEdits();
+        Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Where(i => i.IsBlocking).Select(i => i.Message)));
+        Assert.Equal(2, preview.PowerLinks.Count);
+
+        await session.SaveAsync();
+        var reread = Open(temp.SavePath);
+        Assert.NotNull(reread.FindPlacedObject(newBattery));
+        Assert.Equal(newBattery + "1", reread.PowerFeedOf(newReroute)?.SocketId);
+        Assert.Equal(newReroute + "1", reread.PowerFeedOf(lamp.Key)?.SocketId);
+    }
+
+    [Fact]
+    public async Task A_cable_route_is_a_chain_of_new_reroutes_from_the_outlet_to_the_device()
+    {
+        if (Fixtures.ClientWorldSaves("WorldSave_Facility.sav").FirstOrDefault(p => p.Contains("Cascade", StringComparison.OrdinalIgnoreCase)) is not { } source) return;
+        using var temp = new TempCopy(source);
+        var session = Open(temp.SavePath);
+        var donor = session.CableRerouteDonor();
+        Assert.NotNull(donor);
+        var battery = session.PlacedObjects.First(o => o.DeployedByPlayer == true && o.Key.Length == 32
+            && (o.ClassName?.Contains("Battery", StringComparison.Ordinal) ?? false) && o.Transform?.Translation is not null);
+        var socket = session.FirstOutletOf(battery.Key)!;
+        var from = battery.Transform!.Translation!.Value;
+        // A lamp 10 to 30 m away, so the straight route needs a few reroutes.
+        var lamp = session.PlacedObjects.First(o => o.DeployedByPlayer == true && o.Key.Length == 32
+            && (o.ClassName?.Contains("Lamp", StringComparison.Ordinal) ?? false) && o.Transform?.Translation is { } t
+            && Math.Sqrt(Math.Pow(t.X - from.X, 2) + Math.Pow(t.Y - from.Y, 2) + Math.Pow(t.Z - from.Z, 2)) is > 1000 and < 3000);
+        var points = WorldSaveSession.StraightRoute(from, lamp.Transform!.Translation!.Value);
+        Assert.InRange(points.Count, 2, 7);
+
+        var reroutes = session.StagePowerRoute(socket, lamp.Key, points, donor!);
+        Assert.NotNull(reroutes);
+        Assert.Equal(points.Count, reroutes!.Count);
+        var preview = session.PreviewBaseEdits();
+        Assert.True(preview.CanApply, string.Join("; ", preview.Issues.Where(i => i.IsBlocking).Select(i => i.Message)));
+
+        await session.SaveAsync();
+        var reread = Open(temp.SavePath);
+        // battery -> reroute 1 -> ... -> reroute n -> lamp
+        Assert.Equal(socket, reread.PowerFeedOf(reroutes[0])?.SocketId);
+        for (var i = 1; i < reroutes.Count; i++)
+            Assert.StartsWith(reroutes[i - 1], reread.PowerFeedOf(reroutes[i])!.Value.SocketId, StringComparison.Ordinal);
+        Assert.StartsWith(reroutes[^1], reread.PowerFeedOf(lamp.Key)!.Value.SocketId, StringComparison.Ordinal);
+        for (var i = 0; i < reroutes.Count; i++)
+            AssertVectorClose(points[i], reread.FindPlacedObject(reroutes[i])!.Transform!.Translation!.Value, 0.01);
+        // Selecting the device shows the whole run back to the battery.
+        var cables = reread.PowerLinksAround(lamp.Key);
+        Assert.Contains((battery.Key, reroutes[0]), cables);
+        Assert.Contains((reroutes[^1], lamp.Key), cables);
+    }
+
+    [Fact]
     public async Task A_kind_built_only_in_another_world_is_placed_from_that_worlds_save()
     {
         // Two different worlds: the small Chrissie world receives a kind it has never built, copied from Cascade.

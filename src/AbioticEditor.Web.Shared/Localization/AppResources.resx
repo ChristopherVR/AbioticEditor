@@ -4658,4 +4658,11 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_PlaceScanningOtherWorlds" xml:space="preserve"><value>Looking through your other worlds...</value></data>
   <data name="World3D_PlaceNoKindsAnywhere" xml:space="preserve"><value>Nothing you have built is saved here or in your other worlds, so there is nothing to copy from yet.</value></data>
   <data name="World3D_LevelLamps" xml:space="preserve"><value>Light the level with its own lamps</value></data>
+  <data name="World3D_RouteThrough" xml:space="preserve"><value>Route the cable through cable reroutes</value></data>
+  <data name="World3D_RouteStraightHint" xml:space="preserve"><value>With no points added, a cable reroute goes every 4 m on the straight line between the two ends. Add points to run it along a wall or ceiling instead.</value></data>
+  <data name="World3D_RoutePointsFormat" xml:space="preserve"><value>{0} route point(s): a cable reroute goes on each, in the order you added them.</value></data>
+  <data name="World3D_RouteAddPoint" xml:space="preserve"><value>Add a route point where the view is looking</value></data>
+  <data name="World3D_RouteClear" xml:space="preserve"><value>Clear route points</value></data>
+  <data name="World3D_RouteNoReroute" xml:space="preserve"><value>No cable reroute is built in this world yet, so there is nothing to copy. Build one in the game (it is made from scrap), or place one from another world first.</value></data>
+  <data name="World3D_RouteNeedsPoints" xml:space="preserve"><value>This outlet has no place in this save (a wall socket), so add route points where the cable should run.</value></data>
 </root>

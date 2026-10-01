@@ -37,8 +37,7 @@ first look at a new area takes a little while as the level is read; after that i
 
 Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
 closed security door and orange is destroyed or smashed. Click one to open or close it (either
-way round for a swinging door) or
-lock it; the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
+way round for a swinging door); the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
 You bump into walls while walking; turn off **Stay on the floor** to fly through them.
 Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
@@ -46,6 +45,12 @@ that edits it. With **Experimental: move objects** on, **Place a new object** pu
 something you have already built where the view is looking. **Also list things built in my other
 worlds** adds everything you have built in your other worlds on this computer, so you can place a
 kind this world has never had.
+
+A new object can be wired up straight away, before you save: click it and use its **POWER** card,
+or pick its outlet from another device's card. To run a cable the way the game does, tick **Route
+the cable through cable reroutes** before you press **PLUG**. The editor places cable reroutes along
+the way (every 4 m, or on the points you add where the view is looking) and plugs them one into the
+next.
 
 ## Use and manage plugins
 

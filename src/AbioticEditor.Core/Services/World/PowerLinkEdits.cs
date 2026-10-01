@@ -62,11 +62,28 @@ public static class PowerLinkEdits
     internal static PowerLinkPlan Plan(
         WorldSaveData data, IReadOnlyList<StagedPowerLink> links, IReadOnlyCollection<string> cleanups,
         IReadOnlySet<string> deleting, Func<string, PlacedVector?> positionOf,
-        IReadOnlyList<(string Name, WorldSaveData Data)>? otherSaves = null)
+        IReadOnlyList<(string Name, WorldSaveData Data)>? otherSaves = null,
+        IReadOnlyList<DuplicationPreviewRow>? copies = null)
     {
         var sockets = PlacedPowerRecords.Read(data).ToDictionary(s => s.Id, StringComparer.Ordinal);
         var objects = ObjectClasses(data);
         var outletNumbers = OutletNumbersByClass(sockets.Values, objects);
+
+        // Objects staged to be placed (copies) count as already there: the copies and their outlet
+        // records are written before any plug change, so a new battery or cable reroute can be wired
+        // up in the same SAVE. Their outlet records are the ones the copy makes.
+        var pendingSockets = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var pendingPositions = new Dictionary<string, PlacedVector>(StringComparer.Ordinal);
+        foreach (var copy in copies ?? [])
+        {
+            if (copy.Blocked || copy.NewKey.Length == 0) continue;
+            objects[copy.NewKey] = copy.ClassName;
+            if (copy.After?.Translation is { } at) pendingPositions[copy.NewKey] = at;
+            foreach (var s in copy.Sockets)
+                pendingSockets[s.NewId] = s.PluggedAfter is { } after && after != WorldSaveWriter.NoPluggedDevice ? after : null;
+        }
+        var basePosition = positionOf;
+        positionOf = key => pendingPositions.TryGetValue(key, out var at) ? at : basePosition(key);
         var rows = new List<PowerLinkPreviewRow>();
         var all = new List<BaseEditIssue>();
 
@@ -92,11 +109,12 @@ public static class PowerLinkEdits
 
         // Later changes see earlier ones (plug A into S1, then B into S1 replaces A), so work on a copy.
         var plugged = sockets.Values.ToDictionary(s => s.Id, s => s.Plugged, StringComparer.Ordinal);
+        foreach (var (id, device) in pendingSockets) plugged[id] = device;
 
         foreach (var link in links)
         {
             var issues = new List<BaseEditIssue>();
-            var exists = sockets.TryGetValue(link.SocketId, out var record);
+            var exists = sockets.ContainsKey(link.SocketId) || pendingSockets.ContainsKey(link.SocketId);
             var owner = PlacedGroupReferenceAnalyzer.OwnerKeyOf(link.SocketId);
             var socketLabel = SocketLabel(link.SocketId, owner, objects);
             var createsRecord = false;

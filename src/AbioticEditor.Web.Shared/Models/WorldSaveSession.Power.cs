@@ -31,6 +31,23 @@ public sealed partial class WorldSaveSession
     /// <summary>The device whose outlets a socket record belongs to (null for a wall socket).</summary>
     public static string? SocketOwner(string socketId) => PlacedGroupReferenceAnalyzer.OwnerKeyOf(socketId);
 
+    /// <summary>Objects staged to be placed (copies and new objects) that will be written on SAVE.</summary>
+    private IEnumerable<DuplicationPreviewRow> StagedNewObjects()
+        => HasStagedBaseEdits ? PreviewBaseEdits().Duplications.Where(r => !r.Blocked && r.NewKey.Length == 32) : [];
+
+    /// <summary>The save's object classes plus those of objects staged to be placed.</summary>
+    private Dictionary<string, string?> ClassesWithStaged()
+    {
+        var classes = PowerLinkEdits.ObjectClasses(_data);
+        foreach (var row in StagedNewObjects()) classes[row.NewKey] = row.ClassName;
+        return classes;
+    }
+
+    /// <summary>Where an object is after staged edits: a saved object's current place, or a staged new object's planned place.</summary>
+    public PlacedVector? PositionAfterStaging(string key)
+        => CurrentPlacedTransform(key)?.Translation
+           ?? StagedNewObjects().FirstOrDefault(r => r.NewKey == key)?.After?.Translation;
+
     /// <summary>Which device each socket powers after the staged power changes (a what-if over the save).</summary>
     private Dictionary<string, string?> PluggedAfterStaging()
     {
@@ -41,6 +58,12 @@ public sealed partial class WorldSaveSession
             plugged[e.Key] = string.IsNullOrEmpty(p) || p == "-1" ? null : p;
         }
         foreach (var cleaned in _baseEdits.SocketCleanups) plugged.Remove(cleaned);
+        // A staged new object's outlet records (copied from its donor, unplugged unless kept).
+        foreach (var row in StagedNewObjects())
+        {
+            foreach (var socket in row.Sockets)
+                plugged[socket.NewId] = socket.PluggedAfter is { Length: 32 } device ? device : null;
+        }
         foreach (var row in PreviewBaseEdits().PowerLinks.Where(r => !r.Blocked))
         {
             foreach (var f in row.FeedsCleared) plugged[f] = null;
@@ -55,7 +78,7 @@ public sealed partial class WorldSaveSession
     /// </summary>
     public IReadOnlyList<PowerOutletView> PowerOutletsAround(string socketId)
     {
-        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var classes = ClassesWithStaged();
         foreach (var (_, other) in _baseEdits.OtherSaves)
         {
             foreach (var (k, c) in PowerLinkEdits.ObjectClasses(other)) classes.TryAdd(k, c);
@@ -96,7 +119,7 @@ public sealed partial class WorldSaveSession
         var powered = plugged.Values.Where(v => v is not null).ToHashSet(StringComparer.Ordinal);
         var owner = SocketOwner(socketId);
         // A wall socket has no saved position; the caller passes its world position from the level.
-        var origin = owner is null ? socketPosition : CurrentPlacedTransform(owner)?.Translation;
+        var origin = owner is null ? socketPosition : PositionAfterStaging(owner);
         var deleting = StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal);
 
         // Devices from the world's other saves (a wall socket in a region save powers devices kept in the
@@ -104,6 +127,12 @@ public sealed partial class WorldSaveSession
         var elsewhere = new Dictionary<string, string>(StringComparer.Ordinal);
         var candidates = PlacedObjects.Where(o => o.DeployedByPlayer == true && o.Key.Length == 32)
             .Select(o => (Row: o, Position: CurrentPlacedTransform(o.Key)?.Translation, File: (string?)null)).ToList();
+        foreach (var row in StagedNewObjects())
+        {
+            classes[row.NewKey] = row.ClassName;
+            if (FindPlacedObject(row.SourceKey) is { } donor)
+                candidates.Add((donor with { Key = row.NewKey, Transform = row.After }, row.After?.Translation, null));
+        }
         foreach (var (name, other) in _baseEdits.OtherSaves)
         {
             foreach (var e in WorldMapAccessor.Entries(other.Raw, "PowerSocketMap"))
@@ -176,7 +205,7 @@ public sealed partial class WorldSaveSession
     /// <summary>Where a device takes power from after staged changes: the socket, and the other save it is in (null for this one).</summary>
     public (string SocketId, string Label, string? File)? PowerFeedOf(string deviceKey)
     {
-        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var classes = ClassesWithStaged();
         foreach (var (socket, device) in PluggedAfterStaging())
         {
             if (device == deviceKey) return (socket, PowerLinkEdits.SocketLabel(socket, SocketOwner(socket), classes), null);
@@ -195,7 +224,7 @@ public sealed partial class WorldSaveSession
     /// <summary>The first outlet id of a device that has outlets (recorded, or a number its kind uses), or null.</summary>
     public string? FirstOutletOf(string deviceKey)
     {
-        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var classes = ClassesWithStaged();
         var recorded = PluggedAfterStaging().Keys.Where(k => SocketOwner(k) == deviceKey).Order(StringComparer.Ordinal).FirstOrDefault();
         if (recorded is not null) return recorded;
         return classes.GetValueOrDefault(deviceKey) is { } cls && PowerLinkEdits.OutletNumbersByClass(_data).TryGetValue(cls, out var digits) && digits.Count > 0
@@ -209,15 +238,15 @@ public sealed partial class WorldSaveSession
     /// </summary>
     public IReadOnlyList<(string SocketId, string Label, double? DistanceCm, string? Powers)> PowerSocketsNear(string deviceKey, int max = 30)
     {
-        var classes = PowerLinkEdits.ObjectClasses(_data);
+        var classes = ClassesWithStaged();
         var plugged = PluggedAfterStaging();
         var digitsByClass = PowerLinkEdits.OutletNumbersByClass(_data);
-        var here = CurrentPlacedTransform(deviceKey)?.Translation;
+        var here = PositionAfterStaging(deviceKey);
         var sockets = new HashSet<string>(plugged.Keys, StringComparer.Ordinal);
-        foreach (var o in PlacedObjects.Where(o => o.Key.Length == 32 && o.ClassName is not null))
+        foreach (var (key, cls) in classes.Where(kv => kv.Key.Length == 32 && kv.Value is not null))
         {
-            if (digitsByClass.TryGetValue(o.ClassName!, out var digits))
-                foreach (var d in digits) sockets.Add(o.Key + d);
+            if (digitsByClass.TryGetValue(cls!, out var digits))
+                foreach (var d in digits) sockets.Add(key + d);
         }
         return sockets
             .Where(s => SocketOwner(s) is not { } owner
@@ -225,7 +254,7 @@ public sealed partial class WorldSaveSession
             .Select(s =>
             {
                 var owner = SocketOwner(s);
-                double? d = owner is not null && here is { } a && CurrentPlacedTransform(owner)?.Translation is { } b
+                double? d = owner is not null && here is { } a && PositionAfterStaging(owner) is { } b
                     ? Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2) + Math.Pow(a.Z - b.Z, 2))
                     : null;
                 var powers = plugged.GetValueOrDefault(s);
@@ -243,13 +272,86 @@ public sealed partial class WorldSaveSession
     /// </summary>
     public IReadOnlyList<(string From, string To)> PowerLinksAround(string key)
     {
-        var result = new List<(string, string)>();
-        foreach (var (socket, device) in PluggedAfterStaging())
+        // A routed cable runs through cable reroutes (a chain of plugs): the whole run is followed, so
+        // selecting any piece of it shows the cable from the source to the device.
+        var classes = ClassesWithStaged();
+        bool IsReroute(string k) => classes.GetValueOrDefault(k)?.Contains("CableReroute", StringComparison.Ordinal) ?? false;
+        var links = PluggedAfterStaging()
+            .Where(kv => kv.Value is not null && SocketOwner(kv.Key) is not null)
+            .Select(kv => (From: SocketOwner(kv.Key)!, To: kv.Value!))
+            .ToList();
+        var result = new HashSet<(string, string)>();
+        var visited = new HashSet<string>(StringComparer.Ordinal) { key };
+        var queue = new Queue<string>([key]);
+        while (queue.Count > 0 && result.Count < 200)
         {
-            if (device is null || SocketOwner(socket) is not { } owner) continue;
-            if (owner == key || device == key) result.Add((owner, device));
+            var current = queue.Dequeue();
+            foreach (var (from, to) in links.Where(l => l.From == current || l.To == current))
+            {
+                result.Add((from, to));
+                var other = from == current ? to : from;
+                if (IsReroute(other) && visited.Add(other)) queue.Enqueue(other);
+            }
         }
-        return result;
+        return [.. result];
+    }
+
+    /// <summary>A cable reroute this save can copy (the game's scrap-built cable hook), or null when none is built here.</summary>
+    public string? CableRerouteDonor()
+        => PlacedObjects.Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.Transform?.Translation is not null
+                                    && (o.ClassName?.Contains("CableReroute", StringComparison.Ordinal) ?? false)
+                                    && !StagedPlacedDeletions.ContainsKey(o.Key))
+            .OrderBy(o => o.Key, StringComparer.Ordinal).Select(o => o.Key).FirstOrDefault();
+
+    /// <summary>Spacing used when a route is laid in a straight line (the game's cable rests at 1.6 m and stretches).</summary>
+    public const double RouteSpacingCm = 400;
+
+    /// <summary>
+    /// Evenly spaced points on the straight line between two places, every <see cref="RouteSpacingCm"/> at most,
+    /// not counting the ends (none when they are closer than that).
+    /// </summary>
+    public static IReadOnlyList<PlacedVector> StraightRoute(PlacedVector from, PlacedVector to)
+    {
+        var length = Math.Sqrt(Math.Pow(to.X - from.X, 2) + Math.Pow(to.Y - from.Y, 2) + Math.Pow(to.Z - from.Z, 2));
+        var segments = (int)Math.Ceiling(length / RouteSpacingCm);
+        var points = new List<PlacedVector>();
+        for (var i = 1; i < segments; i++)
+        {
+            var t = (double)i / segments;
+            points.Add(new PlacedVector(from.X + ((to.X - from.X) * t), from.Y + ((to.Y - from.Y) * t), from.Z + ((to.Z - from.Z) * t)));
+        }
+        return points;
+    }
+
+    /// <summary>
+    /// Lays a cable route: places a cable reroute (a copy of <paramref name="rerouteDonorKey"/>) at each point,
+    /// then plugs <paramref name="socketId"/> into the first, each reroute's outlet into the next, and the last
+    /// into <paramref name="deviceKey"/>, the way the game records a routed cable (a chain of plugs). With no
+    /// points it is a plain plug. Returns the new reroutes' keys, or null when a reroute could not be placed.
+    /// </summary>
+    public IReadOnlyList<string>? StagePowerRoute(string socketId, string deviceKey, IReadOnlyList<PlacedVector> points, string rerouteDonorKey)
+    {
+        var placed = new List<string>();
+        foreach (var point in points)
+        {
+            if (StagePlacedNew(rerouteDonorKey, point) is not { } staged || staged.NewKeys.Values.FirstOrDefault() is not { } key)
+            {
+                foreach (var dup in _baseEdits.Duplications.Where(d => d.NewKeys.Values.Any(placed.Contains)).ToList()) _baseEdits.RevertDuplication(dup.Id);
+                return null;
+            }
+            placed.Add(key);
+        }
+        var outlet = FirstOutletOf(rerouteDonorKey) is { } donorOutlet ? donorOutlet[^1..] : "1";
+        var from = socketId;
+        foreach (var reroute in placed)
+        {
+            _baseEdits.StagePlug(from, reroute);
+            from = reroute + outlet;
+        }
+        _baseEdits.StagePlug(from, deviceKey);
+        PlacedTransformsRevision++;
+        UpdateStatus();
+        return placed;
     }
 
     /// <summary>Stages plugging a device into a socket (its current feed is unplugged on SAVE).</summary>

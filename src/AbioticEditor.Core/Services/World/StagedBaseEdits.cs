@@ -356,7 +356,8 @@ public sealed class StagedBaseEdits
         if (_powerLinks.Count > 0 || _cleanups.Count > 0)
         {
             var deleting = new HashSet<string>(_deletions.Keys, StringComparer.Ordinal);
-            power = PowerLinkEdits.Plan(data, _powerLinks, _cleanups, deleting, key => Transforms.Current(data, key)?.Translation, OtherSaves);
+            power = PowerLinkEdits.Plan(data, _powerLinks, _cleanups, deleting, key => Transforms.Current(data, key)?.Translation, OtherSaves,
+                duplication?.Rows);
             issues.AddRange(power.Issues);
         }
 

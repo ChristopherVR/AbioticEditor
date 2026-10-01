@@ -1,5 +1,30 @@
 # Abiotic Editor - Session history
 
+## Round-143: wire up new objects before SAVE, lay cable routes (2026-10-01)
+
+- **New objects can be wired before SAVE.** Power planning (`PowerLinkEdits.Plan`) now takes the
+  staged copies (`DuplicationPreviewRow`s): their keys and classes count as placed, their copied outlet
+  records as existing, and their planned positions feed the cable-length hint. Apply already wrote
+  copies before power changes, so one SAVE places a battery and plugs things into it. The session's
+  power helpers (`ClassesWithStaged`, `PositionAfterStaging`, `PluggedAfterStaging` with the copies'
+  outlet records) and the 3D inspector (the POWER card is now a fragment, shown for staged copies too)
+  follow.
+- **Cable routes.** The game records a routed cable as a chain of plugs through Cable Reroutes
+  (`Deployed_CableReroute_C`, one outlet each; game-written snapshot diff in
+  `research-power-network-links.md`). `WorldSaveSession.StagePowerRoute(socket, device, points, donor)`
+  places a reroute (a copy of one built in the save, `CableRerouteDonor`) at each point and chains the
+  plugs; `StraightRoute` spaces points every 4 m on the straight line. The POWER card has "Route the
+  cable through cable reroutes" with "Add a route point where the view is looking" (the view-centre
+  hit, for walls and ceilings). Cable drawing follows a route through its reroutes in both directions.
+- **Checked in game** (throwaway copy of Cascade): a new Battery T3 placed 12 m from a desk lamp and
+  the lamp plugged into it with routing on, in one SAVE: 3 reroutes at 4 m. `bases.list` showed the
+  battery and reroutes at the written positions; `powersockets.list` showed battery outlet -> reroute
+  -> reroute -> reroute -> Deployed_DeskLamp_C; leaving the game re-saved the same chain.
+- Tests: `A_new_battery_and_cable_reroute_are_wired_up_in_the_same_save`,
+  `A_cable_route_is_a_chain_of_new_reroutes_from_the_outlet_to_the_device` (Cascade fixture).
+- Not done: a route from a wall socket in a region save (player-built objects live in the Facility
+  save, so the reroutes would be placed in the wrong file); the tool needs points there and is untested.
+
 ## Round-142: simple-door state names from the game, CI path fix (2026-10-01)
 
 - **Door states were misnamed.** `E_DoorStates`' asset keeps the designers' names in `DisplayNameMap`:
