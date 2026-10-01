@@ -35,6 +35,14 @@
   from the census). Verified on the Cascade copy: cyan barricades and sandbag walls, orange
   cubicles and rug. Tests: `Painted_objects_ask_for_their_painted_model_and_unpainted_ones_do_not`,
   `Paint_swaps_the_slots_the_games_paint_table_names`.
+- **Portal worlds get their level.** A region whose own map is streamed into a bigger world
+  (`V_Alps` sits in `Facility` at (-278297, 79272) turned 41.7 degrees, as a
+  `LevelStreamingDynamic` with no volume) is saved in that world's coordinates, but its map was
+  drawn at its own origin, so the Alps showed 0 level pieces. `PlacementInParentWorld` finds the
+  single-word world map that streams it (no names listed) and places it there. Sweep over every
+  region of the Cascade copy (`GameModelsProviderProbe.Dump_LevelAroundEveryRegion`): all 47
+  regions with saved objects (34 Facility areas, 13 portal and vignette worlds, H_Garden) return
+  level pieces around their objects. Test: `Portal_world_levels_are_placed_where_the_facility_streams_them`.
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 

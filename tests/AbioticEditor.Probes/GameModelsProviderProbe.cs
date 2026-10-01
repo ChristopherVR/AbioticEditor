@@ -182,4 +182,35 @@ public class GameModelsProviderProbe
             });
         }
     }
+
+    /// <summary>
+    /// For every region save in a world folder (ABIOTIC_WORLD_DIR), how much level the view finds
+    /// around the middle of that region's saved objects: a region whose level comes back empty is
+    /// placed wrong (or its map is not found).
+    /// </summary>
+    [Fact]
+    public void Dump_LevelAroundEveryRegion()
+    {
+        var dir = Environment.GetEnvironmentVariable("ABIOTIC_WORLD_DIR");
+        var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null || dir is null) { _output.WriteLine("no game or no ABIOTIC_WORLD_DIR"); return; }
+        AbioticEditor.Core.Plugins.PluginHostEnvironment.GameAssets = () => assets;
+        var provider = new AbioticEditor.Plugins.GameModels3D.PakSceneModelProvider(new ProbeHost(Path.Combine(Path.GetTempPath(), "abiotic-models-probe"), _output));
+        foreach (var file in Directory.GetFiles(dir, "WorldSave_*.sav").Order(StringComparer.OrdinalIgnoreCase))
+        {
+            var region = Path.GetFileNameWithoutExtension(file)["WorldSave_".Length..];
+            if (region is "MetaData") continue;
+            PlacedObjectCensusReport census;
+            try { census = PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(file)); }
+            catch (Exception ex) { _output.WriteLine($"{region}: unreadable ({ex.GetType().Name})"); continue; }
+            var points = census.Objects!.Where(o => o.Transform is not null).Select(o => o.Transform!.EffectiveTranslation).ToList();
+            if (points.Count == 0) { _output.WriteLine($"{region}: no placed objects"); continue; }
+            var mid = new PlacedVector(points.Select(p => p.X).Order().ElementAt(points.Count / 2), points.Select(p => p.Y).Order().ElementAt(points.Count / 2), points.Select(p => p.Z).Order().ElementAt(points.Count / 2));
+            var c0 = PlacedSceneSpace.ToViewer(mid);
+            var q = new SceneLevelQuery(region, [(float)c0.X - 30, (float)c0.Y - 15, (float)c0.Z - 30], [(float)c0.X + 30, (float)c0.Y + 15, (float)c0.Z + 30], 20000, []);
+            var slice = provider.DescribeLevel(q);
+            if (slice is { PendingMaps: > 0 }) { provider.WaitForLevels(TimeSpan.FromMinutes(20)); slice = provider.DescribeLevel(q); }
+            _output.WriteLine($"{region,-28} objects {points.Count,5}  level pieces {slice?.TotalInBox ?? -1,6}  {slice?.Note ?? "no answer"}");
+        }
+    }
 }

@@ -96,6 +96,14 @@ mesh's material, and child actors (plug sockets) are untouched. Examples: the cr
   even when they stand in a streamed area (the fixture bench at (3874, 33836, 1608) cm is in
   `Facility_MFMines`).
 
+### Portal worlds
+
+The vignette and portal worlds (`V_Alps`, `V_RISE`, `V_FOG`, ...) are `LevelStreamingDynamic`
+entries of `Facility` with a `LevelTransform` (e.g. `V_Alps` at (-278297, 79272, -990), yaw 41.7)
+and no streaming volume. Their own region saves (`WorldSave_V_Alps.sav`) store positions in
+Facility coordinates, so the region's map is placed by the streaming entry of the single-word
+world map that streams it. Without that the level sits at the map's origin, kilometres away.
+
 ## Cost
 
 - Resolving 212 classes with materials: 18 s the first time, 45 ms from the disk cache.

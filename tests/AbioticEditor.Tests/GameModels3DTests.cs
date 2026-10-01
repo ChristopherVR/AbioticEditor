@@ -347,6 +347,33 @@ public sealed class GameModels3DTests
         }
     }
 
+    [Fact]
+    public void Portal_world_levels_are_placed_where_the_facility_streams_them()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-portal-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            // The Alps lodge's kitchen as saved in WorldSave_V_Alps.sav: Facility coordinates, because
+            // the Facility map streams V_Alps in far from its own origin (turned about 42 degrees).
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var c = PlacedSceneSpace.ToViewer(new PlacedVector(-277000, 77000, -1500));
+            var query = new SceneLevelQuery("V_Alps", [(float)c.X - 15, (float)c.Y - 5, (float)c.Z - 15], [(float)c.X + 15, (float)c.Y + 5, (float)c.Z + 15], 5000, []);
+            provider.DescribeLevel(query);
+            provider.WaitForLevels(TimeSpan.FromMinutes(5));
+            var slice = provider.DescribeLevel(query);
+            Assert.NotNull(slice);
+            Assert.True(slice!.TotalInBox > 100, $"only {slice.TotalInBox} level pieces around the lodge");
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);

@@ -335,6 +335,15 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             {
                 if (byName.TryGetValue(name, out var path)) placements[path] = placement;
             }
+            // A region whose own map is itself streamed into a bigger world (the portal worlds and
+            // set pieces, e.g. V_Alps inside Facility) is saved in that world's coordinates: place
+            // it where the world that streams it puts it.
+            var rootName = Path.GetFileNameWithoutExtension(root);
+            if (rootName.Contains('_', StringComparison.Ordinal) && !placements.ContainsKey(root)
+                && PlacementInParentWorld(rootName) is { } inParent)
+            {
+                placements[root] = inParent;
+            }
         }
 
         var streamed = new Dictionary<string, List<(Vector3 Min, Vector3 Max)>>(StringComparer.OrdinalIgnoreCase);
@@ -349,6 +358,26 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         }
         return new WorldMaps(always, streamed, placements);
     });
+
+    /// <summary>
+    /// Where a top-level world map (a map whose name is a single word, like <c>Facility</c>) streams
+    /// the map named <paramref name="mapName"/> in, or null when none does. Read from each world's
+    /// own streaming entries, so no map is named here.
+    /// </summary>
+    private Matrix4x4? PlacementInParentWorld(string mapName)
+    {
+        foreach (var (name, path) in _mapsByName.Value)
+        {
+            if (name.Contains('_', StringComparison.Ordinal) || name.Equals(mapName, StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (var (streamed, placement) in _streamedByWorld.GetOrAdd(path, world => Read(p => StreamedPlacements(p, world))))
+            {
+                if (streamed.Equals(mapName, StringComparison.OrdinalIgnoreCase)) return placement;
+            }
+        }
+        return null;
+    }
+
+    private readonly ConcurrentDictionary<string, List<(string Map, Matrix4x4 Placement)>> _streamedByWorld = new(StringComparer.OrdinalIgnoreCase);
 
     private static CUE4Parse.UE4.Objects.Core.Math.FVector[] CubeCorners(Vector3 half)
         => Enumerable.Range(0, 8)
