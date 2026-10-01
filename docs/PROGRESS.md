@@ -58,6 +58,16 @@
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 
+### Open issues to keep in view (round 137)
+
+- Not drawn: per-object state (open lids, crop growth, fill levels); skeletal meshes show their
+  bind pose; landscape layer blending (one layer texture per landscape); decals.
+- The Nexus optional file for the plugin needs a file entry on the mod page and the
+  `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.
+- Superseded from rounds 134 to 136: paint colour, terrain, spline meshes (tram rails), the view
+  following the selected base, multi-storey cut (follows the floor in view), portal worlds, the
+  plugin release asset, and the in-game power check are all done.
+
 ## Round-136: power rerouting and repair (2026-10-01)
 
 - **Evidence** (section 5 of `research-power-network-links.md`): the game's rolling world snapshots give

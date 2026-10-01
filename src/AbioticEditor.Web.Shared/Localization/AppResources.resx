@@ -4423,6 +4423,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldBases_View3D" xml:space="preserve"><value>3D view</value></data>
   <data name="WorldBases_3DFocus" xml:space="preserve"><value>Base to show</value></data>
   <data name="WorldBases_3DWholeRegion" xml:space="preserve"><value>Whole region</value></data>
+  <data name="WorldBases_3DFocusOptionFormat" xml:space="preserve"><value>{0} ({1} objects)</value></data>
   <data name="World3D_IssueTimesFormat" xml:space="preserve"><value>(x{0})</value></data>
   <data name="World3D_Power" xml:space="preserve"><value>POWER</value></data>
   <data name="World3D_PowerFedFormat" xml:space="preserve"><value>Takes power from {0}.</value></data>

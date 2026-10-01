@@ -46,7 +46,7 @@
                 <option value="" selected="@(SelectedBase is null)">@L.Resource("WorldBases_3DWholeRegion")</option>
                 @foreach (var worldBase in Bases)
                 {
-                    <option value="@worldBase.Name" selected="@(_selectedBaseName == worldBase.Name)">@worldBase.Name - @AnchorText(worldBase)</option>
+                    <option value="@worldBase.Name" selected="@(_selectedBaseName == worldBase.Name)">@L.Resource("WorldBases_3DFocusOptionFormat", worldBase.Name, worldBase.Deployables.Count)</option>
                 }
             </select>
         </label>
