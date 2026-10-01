@@ -76,7 +76,8 @@ trap cleanup EXIT
 (cd "$publish_dir" && ABIOTIC_EDITOR_URL="$url" ./launch-linux.sh --headless) >"$log" 2>&1 &
 launcher_pid=$!
 headless_healthy=false
-for _ in $(seq 1 100); do
+# Up to 30 s: a busy CI runner has taken about 19 s before the published host was listening.
+for _ in $(seq 1 300); do
   if curl --fail --silent --max-time 1 "$url/healthz" | grep -q '"status":"ok"'; then
     headless_healthy=true
     break
@@ -125,7 +126,7 @@ if command -v xvfb-run >/dev/null 2>&1; then
   if command -v xdotool >/dev/null 2>&1; then
     (cd "$publish_dir" && ABIOTIC_EDITOR_URL="$url" WINDOW_MARKER="$window_marker" xvfb-run -a bash -c '
       ./launch-linux.sh & app_pid=$!
-      for _ in $(seq 1 100); do
+      for _ in $(seq 1 300); do
         if xdotool search --onlyvisible --name "Abiotic Editor" >/dev/null 2>&1; then
           : >"$WINDOW_MARKER"
           break
@@ -140,7 +141,7 @@ if command -v xvfb-run >/dev/null 2>&1; then
   fi
   launcher_pid=$!
   desktop_healthy=false
-  for _ in $(seq 1 100); do
+  for _ in $(seq 1 300); do
     if curl --fail --silent --max-time 1 "$url/healthz" | grep -q '"status":"ok"'; then
       desktop_healthy=true
       break
@@ -149,7 +150,7 @@ if command -v xvfb-run >/dev/null 2>&1; then
     sleep 0.1
   done
   if command -v xdotool >/dev/null 2>&1; then
-    for _ in $(seq 1 100); do
+    for _ in $(seq 1 300); do
       [[ -e "$window_marker" ]] && break
       kill -0 "$launcher_pid" 2>/dev/null || break
       sleep 0.1
