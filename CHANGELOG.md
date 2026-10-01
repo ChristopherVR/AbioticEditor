@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.23.0] - 2026-10-01
+
+### Features
+- Open doors swing the right way in the 3D view
+
+
+### Miscellaneous Tasks
+- Point bucket at v2.22.0 [skip ci]
+
+
+### Testing
+- The live connection tests stop cleanly on Linux
+
+
 ## [2.22.0] - 2026-10-01
 
 ### Bug Fixes
