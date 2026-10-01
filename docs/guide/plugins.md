@@ -35,6 +35,11 @@ the rooms around your base with the ceilings cut away. Nothing from the game is 
 The editor must be able to read your game files (the same setting that shows item icons). The
 first look at a new area takes a little while as the level is read; after that it is quick.
 
+Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
+closed security door, red is locked and orange is jammed or broken. Click one to open, close or
+lock it; the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
+height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
+
 ## Use and manage plugins
 
 Open **Settings ▸ Plugins ▸ Manage Plugins**. You can see each plugin's name, author, source, and whether it loaded. From there you can enable or disable it, run its save operation against the open save, or open a panel it provides. Plugin menu actions also appear in the top-level **Plugins** menu.

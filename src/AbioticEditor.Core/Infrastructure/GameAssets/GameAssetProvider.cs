@@ -571,6 +571,19 @@ public sealed class GameAssetProvider : IDisposable
         return new ActorTransform(translation.X, translation.Y, translation.Z, rotation.X, rotation.Y, rotation.Z, rotation.W);
     }
 
+    /// <summary>
+    /// A position read from a sub-level (<paramref name="mapName"/>'s own coordinates, such as the root
+    /// location the door resolver reports) placed into the world, the way
+    /// <see cref="TryGetActorWorldTransform"/> places a whole actor. Returned unchanged for an outermost
+    /// map or when no map streams it.
+    /// </summary>
+    public (double X, double Y, double Z) PlaceInWorld(string? mapName, double x, double y, double z)
+    {
+        if (string.IsNullOrEmpty(mapName) || PlacementOf(mapName) is not { } placement) return (x, y, z);
+        var world = System.Numerics.Vector3.Transform(new System.Numerics.Vector3((float)x, (float)y, (float)z), placement);
+        return (world.X, world.Y, world.Z);
+    }
+
     /// <summary>"/Game/Maps/Facility_Office1.Facility_Office1:PersistentLevel.X" gives "Facility_Office1".</summary>
     private static string? MapNameOf(string actorObjectPath)
     {
@@ -595,13 +608,29 @@ public sealed class GameAssetProvider : IDisposable
         System.Numerics.Matrix4x4? result = null;
         try
         {
+            // Candidates: the outermost maps the name nests under (Facility_Dam_Central in Facility),
+            // then every single-word world map, for streamed maps whose name does not nest (the
+            // portal worlds such as V_Alps, which Facility streams in far from its origin).
             var parts = mapName.Split('_');
-            for (var k = 1; k < parts.Length && result is null; k++)
+            var candidates = new List<string>();
+            for (var k = 1; k < parts.Length; k++)
             {
                 var root = string.Join('_', parts[..k]);
                 var rootPath = _provider.Files.Keys.FirstOrDefault(p =>
                     p.EndsWith("/" + root + ".umap", StringComparison.OrdinalIgnoreCase) && p.Contains("/Maps/", StringComparison.OrdinalIgnoreCase));
-                if (rootPath is null) continue;
+                if (rootPath is not null) candidates.Add(rootPath);
+            }
+            if (mapName.Contains('_', StringComparison.Ordinal))
+            {
+                candidates.AddRange(_provider.Files.Keys.Where(p =>
+                    p.EndsWith(".umap", StringComparison.OrdinalIgnoreCase) && p.Contains("/Maps/", StringComparison.OrdinalIgnoreCase)
+                    && !Path.GetFileNameWithoutExtension(p).Contains('_', StringComparison.Ordinal)
+                    && !Path.GetFileNameWithoutExtension(p).Equals(mapName, StringComparison.OrdinalIgnoreCase)
+                    && !candidates.Contains(p, StringComparer.OrdinalIgnoreCase)));
+            }
+            foreach (var rootPath in candidates)
+            {
+                if (result is not null) break;
                 lock (_providerLoadLock)
                 {
                     if (!_provider.TryLoadPackage(rootPath, out var package)) continue;

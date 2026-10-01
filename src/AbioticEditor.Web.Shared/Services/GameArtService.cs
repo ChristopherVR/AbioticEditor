@@ -133,6 +133,39 @@ public sealed class GameArtService : IDisposable
         return _doorMapPositions.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, DoorWorldLocation>>>(() => ResolveMapPositionsAsync(mapName))).Value;
     }
 
+    /// <summary>
+    /// Each actor's root position (see <see cref="DoorLocationResolver.RootsForMap"/>) placed in the
+    /// world: a sub-level's actor positions moved by the level's streaming placement (the portal worlds sit far from their own
+    /// origin), so they line up with saved world positions in the 3D view.
+    /// </summary>
+    public Task<IReadOnlyDictionary<string, DoorWorldLocation>> GetWorldDoorPositionsForMapAsync(string? mapName)
+    {
+        var key = mapName ?? string.Empty;
+        return _doorWorldPositions.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, DoorWorldLocation>>>(async () =>
+        {
+            return await Task.Run(() =>
+            {
+                IReadOnlyDictionary<string, DoorWorldLocation> local = new Dictionary<string, DoorWorldLocation>();
+                try
+                {
+                    var provider = _provider.Value;
+                    if (provider is not { HasMappings: true }) return local;
+                    local = DoorLocationResolver.RootsForMap(provider, mapName);
+                    var placed = new Dictionary<string, DoorWorldLocation>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (actor, at) in local)
+                    {
+                        var (x, y, z) = provider.PlaceInWorld(mapName, at.X, at.Y, at.Z);
+                        placed[actor] = new DoorWorldLocation(x, y, z);
+                    }
+                    return (IReadOnlyDictionary<string, DoorWorldLocation>)placed;
+                }
+                catch { return local; }
+            }).ConfigureAwait(false);
+        })).Value;
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<Task<IReadOnlyDictionary<string, DoorWorldLocation>>>> _doorWorldPositions = new(StringComparer.OrdinalIgnoreCase);
+
     private async Task<IReadOnlyDictionary<string, DoorWorldLocation>> ResolveMapPositionsAsync(string? mapName) => await Task.Run(() =>
     {
         try

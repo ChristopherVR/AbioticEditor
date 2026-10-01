@@ -1,5 +1,36 @@
 # Abiotic Editor - Session history
 
+## Round-138: doors and walking in the 3D view (2026-10-01)
+
+- **Doors in 3D.** Every door of the open region is a round marker (fixed pixel size, drawn over
+  geometry, picked in screen space before objects), coloured by state: open green, closed grey,
+  closed security door blue, locked red, jammed or broken orange. A click opens a door card in the
+  side panel: simple doors get a Closed/Open/Locked select (an unknown or in-between state stays
+  selectable, as in the Doors tab), security doors an Open checkbox. Edits stage through the same
+  `WorldSaveSession.SetSimpleDoorState` / `SetSecurityDoorOpen` as the Doors tab and call
+  `Workspace.NotifyEdited()`; markers recolour after an edit, SAVE, REVERT or a region switch.
+- **Door positions.** `DoorLocationResolver.ForMap` keeps the first positioned component of each
+  actor, which for some doors is a child part metres away (Office1 `SimpleDoor_ParentBP_C_0`: the
+  resolver said (-6, 136, 112), the root is far off). The sector-map calibration was fitted to those
+  positions, so `ForMap` is unchanged and a new `RootsForMap` reads each actor's `RootComponent`.
+  `GameAssetProvider.PlaceInWorld(map, x, y, z)` applies the sub-level placement, and `PlacementOf`
+  now also searches every single-word world map's streaming levels when no name-prefix root streams
+  the map (portal worlds such as V_ maps). `GameArtService.GetWorldDoorPositionsForMapAsync` combines
+  the two (cached per map). Verified headlessly: Office1 30/30 doors placed, the Blast Door marker
+  sits on the door in the level view; Facility 22/22.
+- **Walk mode.** "Walk" in the 3D toolbar: drag to look, WASD or arrows to move, Shift faster,
+  Escape stops (`OnWalkEnded` resets the button). "Stay on the floor" (default on) keeps the eye
+  1.7 m above whatever a downward ray hits (level pieces, models, boxes; above the ceiling cut is
+  ignored), climbing up to knee height; off, it flies with E/Q for up/down. The orbit camera is off
+  while walking; the level reloads once the walker is half the load radius from where it was
+  loaded. Keys are ignored while typing in a field. Verified headlessly: 1.5 s of W moved 6 m.
+- Tests: `Doors_are_clickable_markers_whose_card_stages_like_the_doors_tab`,
+  `Walk_mode_moves_the_camera_and_hands_back_to_the_orbit_camera`,
+  `A_sub_levels_door_is_placed_where_the_game_places_the_door`,
+  `Portal_worlds_whose_name_does_not_nest_are_placed_by_the_map_that_streams_them`.
+- Not done yet from the "what we can't do" list: placing new objects from scratch, and reaching
+  NPCs from the 3D view. Walking has no collision with walls or closed doors.
+
 ## Round-137: 3D view follows the base, clearer level view (2026-10-01)
 
 - **Light-beam cones and glass fixed.** Material blend modes are enum properties stored as names

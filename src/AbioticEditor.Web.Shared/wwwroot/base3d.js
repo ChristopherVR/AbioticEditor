@@ -170,6 +170,46 @@ export function createView(host, dotnet) {
     scene.add(cableGroup);
     const cableMaterial = new THREE.LineBasicMaterial({ color: 0xffd23f, depthTest: false, transparent: true, opacity: 0.9 });
 
+    // Doors of the region's levels: one round marker each, coloured by state (C# picks the colour),
+    // drawn over everything at a fixed pixel size and picked in screen space.
+    const doorGroup = new THREE.Group();
+    scene.add(doorGroup);
+    let doors = []; // [{ id, p: [x, y, z], color }]
+    let doorsOn = true;
+    let selectedDoor = null;
+    const DOOR_PICK_PX = 10;
+    const DOOR_LIFT_M = 1.2; // markers float at head height over the door's root
+    const doorDot = (() => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 64;
+        const g = c.getContext("2d");
+        g.beginPath();
+        g.arc(32, 32, 26, 0, Math.PI * 2);
+        g.fillStyle = "#ffffff";
+        g.fill();
+        g.lineWidth = 8;
+        g.strokeStyle = "rgba(0,0,0,0.75)";
+        g.stroke();
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+    })();
+    const doorMaterial = new THREE.PointsMaterial({ size: 14, sizeAttenuation: false, map: doorDot, vertexColors: true,
+        transparent: true, alphaTest: 0.3, depthTest: false });
+    const doorSelectedMaterial = new THREE.PointsMaterial({ size: 24, sizeAttenuation: false, map: doorDot, color: 0xffffff,
+        transparent: true, alphaTest: 0.3, depthTest: false });
+
+    // Walk mode: a first-person camera (drag to look, WASD to move) that keeps eye height above
+    // whatever is under it when "stay on the floor" is on. The orbit camera is off meanwhile.
+    let walkOn = false;
+    let walkFloor = true;
+    const EYE_M = 1.7;
+    const walkKeys = new Set();
+    let walkYaw = 0, walkPitch = 0;
+    let walkLast = 0;
+    let walkFloorCheck = 0;
+    let walkLookFrom = null;
+
     // Game models (see the header). classModels: class path -> { state: "pending" | "ready" | "none",
     // parts: [{ geometry, materials, matrix }], box } in the object's own space.
     let modelsOn = false;
@@ -258,7 +298,7 @@ export function createView(host, dotnet) {
     }
 
     function updateClipping() {
-        const d = camera.position.distanceTo(controls.target);
+        const d = walkOn ? 0.5 : camera.position.distanceTo(controls.target);
         camera.near = Math.max(0.05, d / 400);
         camera.far = Math.max(2000, d * 300);
         camera.updateProjectionMatrix();
@@ -893,6 +933,171 @@ export function createView(host, dotnet) {
         return best;
     }
 
+    /** The door marker nearest a screen point (within a few pixels, in front of the camera), or null. */
+    function doorAt(clientX, clientY) {
+        if (!doorsOn || !doors.length) return null;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const v = new THREE.Vector3();
+        let best = null, bestD = DOOR_PICK_PX;
+        for (const d of doors) {
+            v.set(d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]).project(camera);
+            if (v.z < -1 || v.z > 1) continue;
+            const x = rect.left + ((v.x + 1) / 2) * rect.width, y = rect.top + ((1 - v.y) / 2) * rect.height;
+            const dist = Math.hypot(x - clientX, y - clientY);
+            if (dist < bestD) { bestD = dist; best = d; }
+        }
+        return best;
+    }
+
+    function rebuildDoors() {
+        for (const child of [...doorGroup.children]) {
+            doorGroup.remove(child);
+            child.geometry.dispose();
+        }
+        doorGroup.visible = doorsOn;
+        if (!doors.length) return;
+        const pos = new Float32Array(doors.length * 3), col = new Float32Array(doors.length * 3);
+        const c = new THREE.Color();
+        doors.forEach((d, i) => {
+            pos.set([d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]], i * 3);
+            c.setHex(d.color ?? 0x8e9aaf, THREE.SRGBColorSpace);
+            col.set([c.r, c.g, c.b], i * 3);
+        });
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        const points = new THREE.Points(g, doorMaterial);
+        points.renderOrder = 12;
+        points.frustumCulled = false;
+        doorGroup.add(points);
+        const sel = doors.find(d => d.id === selectedDoor);
+        if (sel) {
+            const sg = new THREE.BufferGeometry();
+            sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + DOOR_LIFT_M, sel.p[2]]), 3));
+            const ring = new THREE.Points(sg, doorSelectedMaterial);
+            ring.renderOrder = 11; // under the coloured dot, so it reads as a white ring
+            ring.frustumCulled = false;
+            doorGroup.add(ring);
+        }
+    }
+
+    // ---- walk mode ---------------------------------------------------------------------------
+    function walkForward() {
+        return new THREE.Vector3(-Math.sin(walkYaw) * Math.cos(walkPitch), Math.sin(walkPitch), -Math.cos(walkYaw) * Math.cos(walkPitch));
+    }
+
+    function applyWalkCamera() {
+        camera.rotation.set(walkPitch, walkYaw, 0, "YXZ");
+        // The level loads around the controls' target, so keep it just ahead of the eye.
+        controls.target.copy(camera.position).addScaledVector(walkForward(), 2);
+        requestRender();
+    }
+
+    /** The height of the floor under a viewer-space point (level, models and boxes), or null. */
+    function floorBelow(at) {
+        raycaster.set(new THREE.Vector3(at.x, at.y + 0.5, at.z), new THREE.Vector3(0, -1, 0));
+        raycaster.far = 40;
+        const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
+        const hits = raycaster.intersectObjects(targets, false);
+        raycaster.far = Infinity;
+        for (const hit of hits) {
+            if (levelClip.distanceToPoint(hit.point) < 0) continue;
+            return hit.point.y;
+        }
+        return null;
+    }
+
+    function setWalk(on) {
+        if (on === walkOn) return;
+        walkOn = on;
+        walkKeys.clear();
+        controls.enabled = !on;
+        if (on) {
+            const f = controls.target.clone().sub(camera.position).normalize();
+            walkYaw = Math.atan2(-f.x, -f.z);
+            walkPitch = Math.max(-1.4, Math.min(1.4, Math.asin(Math.max(-1, Math.min(1, f.y)))));
+            if (walkFloor) {
+                // Step down to eye height where the view is looking (the base's floor), not where the orbit camera hovered.
+                const ground = floorBelow(controls.target) ?? controls.target.y;
+                camera.position.set(controls.target.x, ground + EYE_M, controls.target.z);
+                camera.position.addScaledVector(new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw)), -3);
+                const back = floorBelow(camera.position);
+                if (back !== null && Math.abs(back - ground) < 2) camera.position.y = back + EYE_M;
+                walkPitch = 0;
+            }
+            applyWalkCamera();
+        } else {
+            controls.target.copy(camera.position).addScaledVector(walkForward(), 5);
+            controls.update();
+        }
+        requestRender();
+    }
+
+    function walkTick(now) {
+        if (!walkOn || disposed || walkKeys.size === 0) { walkLast = 0; return; }
+        const dt = walkLast ? Math.min(0.1, (now - walkLast) / 1000) : 0;
+        walkLast = now;
+        const fast = walkKeys.has("shift") ? 3 : 1;
+        const speed = 4 * fast * dt;
+        const flat = new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
+        const right = new THREE.Vector3(Math.cos(walkYaw), 0, -Math.sin(walkYaw));
+        const move = new THREE.Vector3();
+        if (walkKeys.has("w") || walkKeys.has("arrowup")) move.add(walkFloor ? flat : walkForward());
+        if (walkKeys.has("s") || walkKeys.has("arrowdown")) move.sub(walkFloor ? flat : walkForward());
+        if (walkKeys.has("d") || walkKeys.has("arrowright")) move.add(right);
+        if (walkKeys.has("a") || walkKeys.has("arrowleft")) move.sub(right);
+        if (!walkFloor && (walkKeys.has("e") || walkKeys.has(" "))) move.y += 1;
+        if (!walkFloor && (walkKeys.has("q") || walkKeys.has("c"))) move.y -= 1;
+        if (move.lengthSq() > 0) camera.position.addScaledVector(move.normalize(), speed);
+        if (walkFloor && now - walkFloorCheck > 90) {
+            walkFloorCheck = now;
+            // Steps and ramps are climbed (up to knee height); a drop is followed down.
+            const ground = floorBelow(new THREE.Vector3(camera.position.x, camera.position.y - EYE_M + 0.6, camera.position.z));
+            if (ground !== null) camera.position.y = ground + EYE_M;
+        }
+        applyWalkCamera();
+        maybeFollowLevel();
+        requestAnimationFrame(walkTick);
+    }
+
+    /** Reloads the level once the walker has gone far from where it was last loaded. */
+    function maybeFollowLevel() {
+        if (!levelOptions.enabled || !levelCentre) return;
+        const r = Math.max(5, levelOptions.radius || 40);
+        if (Math.hypot(camera.position.x - levelCentre.x, camera.position.z - levelCentre.z) > r * 0.5) loadLevel();
+    }
+
+    function isTyping(e) {
+        const t = e.target;
+        return t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName));
+    }
+
+    function onWalkKeyDown(e) {
+        if (!walkOn || isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+        const k = e.key.toLowerCase();
+        if (k === "escape") { setWalk(false); dotnet.invokeMethodAsync("OnWalkEnded").catch(() => { }); return; }
+        if (!["w", "a", "s", "d", "q", "e", "c", " ", "shift", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) return;
+        e.preventDefault();
+        const was = walkKeys.size;
+        walkKeys.add(k);
+        if (was === 0) requestAnimationFrame(walkTick);
+    }
+
+    function onWalkKeyUp(e) { walkKeys.delete(e.key.toLowerCase()); }
+
+    window.addEventListener("keydown", onWalkKeyDown);
+    window.addEventListener("keyup", onWalkKeyUp);
+    window.addEventListener("blur", () => walkKeys.clear());
+    renderer.domElement.addEventListener("pointermove", e => {
+        if (!walkOn || !walkLookFrom) return;
+        walkYaw -= (e.clientX - walkLookFrom[0]) * 0.005;
+        walkPitch = Math.max(-1.4, Math.min(1.4, walkPitch - (e.clientY - walkLookFrom[1]) * 0.005));
+        walkLookFrom = [e.clientX, e.clientY];
+        applyWalkCamera();
+    });
+    renderer.domElement.addEventListener("pointerdown", e => { if (walkOn) walkLookFrom = [e.clientX, e.clientY]; });
+    window.addEventListener("pointerup", () => { walkLookFrom = null; });
+
     /** The name of the level piece under a screen point (visible side of the ceiling cut), or null. */
     function levelNameAt(clientX, clientY) {
         if (levelGroup.children.length === 0) return null;
@@ -911,6 +1116,11 @@ export function createView(host, dotnet) {
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 4) return;
+        const door = doorAt(e.clientX, e.clientY);
+        if (door) {
+            dotnet.invokeMethodAsync("OnDoorPicked", door.id).catch(() => { });
+            return;
+        }
         const hit = pick(e.clientX, e.clientY);
         const additive = e.ctrlKey || e.shiftKey || e.metaKey;
         // Level pieces are reference only: a click on one names it, and never selects anything.
@@ -1116,6 +1326,43 @@ export function createView(host, dotnet) {
             }
             requestRender();
         },
+        /** The region's doors as markers: each {id, p:[x,y,z] (viewer space), color}. Replaces any drawn before. */
+        setDoors(list) {
+            doors = list ?? [];
+            rebuildDoors();
+            requestRender();
+        },
+        /** Shows or hides the door markers. */
+        setDoorsVisible(on) {
+            doorsOn = !!on;
+            rebuildDoors();
+            requestRender();
+        },
+        /** Rings one door marker (null clears it). */
+        setDoorSelection(id) {
+            selectedDoor = id ?? null;
+            rebuildDoors();
+            requestRender();
+        },
+        /** Screen position (CSS pixels relative to the page) of a door marker, or null. Used by UI tests. */
+        doorScreenPosition(id) {
+            const d = doors.find(x => x.id === id);
+            if (!d) return null;
+            const v = new THREE.Vector3(d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]).project(camera);
+            const rect = renderer.domElement.getBoundingClientRect();
+            return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, depth: v.z };
+        },
+        /** The door markers drawn (id and viewer position), for UI tests. */
+        doorList() { return doors.map(d => ({ id: d.id, p: d.p })); },
+        /** Walk mode on or off; floor=true keeps the eye at standing height over what is underneath. */
+        setWalk(on, floor) {
+            walkFloor = floor !== false;
+            setWalk(!!on);
+        },
+        /** Where the camera is and looks (viewer space), for tests and the place tool. */
+        cameraState() {
+            return { position: camera.position.toArray(), target: controls.target.toArray(), walk: walkOn };
+        },
         select(key) { select(key); },
         /** Replaces the whole selection: every selected key, and which one is primary (gizmo and inspector). */
         setSelection(keys, primary) { setSelection(keys, primary); },
@@ -1189,10 +1436,19 @@ export function createView(host, dotnet) {
                 levelMeshes: levelGroup.children.length,
                 cables: cableGroup.children.reduce((n, c) => n + c.geometry.attributes.position.count / 2, 0),
                 levelInstances,
+                doors: doors.length,
+                selectedDoor,
+                walk: walkOn,
             };
         },
         dispose() {
             disposed = true;
+            window.removeEventListener("keydown", onWalkKeyDown);
+            window.removeEventListener("keyup", onWalkKeyUp);
+            for (const child of doorGroup.children) child.geometry.dispose();
+            doorMaterial.dispose();
+            doorSelectedMaterial.dispose();
+            doorDot.dispose();
             clearTimeout(levelRetry);
             observer.disconnect();
             transform.dispose();

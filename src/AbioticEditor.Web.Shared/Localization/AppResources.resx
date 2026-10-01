@@ -4616,4 +4616,17 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_Select" xml:space="preserve"><value>Select</value></data>
   <data name="World3D_ViewLabel" xml:space="preserve"><value>3D view of placed objects</value></data>
   <data name="World3D_InvalidNumber" xml:space="preserve"><value>Enter numbers for X, Y, Z and yaw.</value></data>
+  <data name="World3D_Doors" xml:space="preserve"><value>Show doors</value></data>
+  <data name="World3D_DoorsHint" xml:space="preserve"><value>Round markers are doors: green is open, grey is closed, blue is a closed security door, red is locked and orange is jammed or broken. Click one to change it.</value></data>
+  <data name="World3D_DoorsNoPositions" xml:space="preserve"><value>The doors cannot be placed in the view without the game installed.</value></data>
+  <data name="World3D_DoorsShownFormat" xml:space="preserve"><value>Showing {0} of {1} doors (the rest have no known place in the level files).</value></data>
+  <data name="World3D_DoorCard" xml:space="preserve"><value>Door</value></data>
+  <data name="World3D_DoorState" xml:space="preserve"><value>State</value></data>
+  <data name="World3D_DoorSetState" xml:space="preserve"><value>Set state</value></data>
+  <data name="World3D_DoorOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="World3D_DoorCardClose" xml:space="preserve"><value>Close card</value></data>
+  <data name="World3D_Walk" xml:space="preserve"><value>Walk</value></data>
+  <data name="World3D_WalkStop" xml:space="preserve"><value>Stop walking</value></data>
+  <data name="World3D_WalkFloor" xml:space="preserve"><value>Stay on the floor</value></data>
+  <data name="World3D_WalkHint" xml:space="preserve"><value>Walking: drag to look around, W A S D or the arrow keys to move, Shift to go faster. With "Stay on the floor" off, E and Q go up and down. Escape stops walking.</value></data>
 </root>

@@ -31,6 +31,55 @@ public static class DoorLocationResolver
         return Cache.GetOrAdd(name, key => Load(provider, key));
     }
 
+    private static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, DoorWorldLocation>> RootCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Like <see cref="ForMap"/>, but each actor's position is its root component's (what the game
+    /// moves the actor by), in the map's own coordinates. <see cref="ForMap"/> keeps the first
+    /// positioned component it meets, which for some doors is a child part (a frame or a trigger)
+    /// a few metres away; the sector-map calibration was fitted to those positions, so it keeps them.
+    /// The 3D view uses this one, so its markers sit on the door.
+    /// </summary>
+    public static IReadOnlyDictionary<string, DoorWorldLocation> RootsForMap(GameAssetProvider provider, string? mapName)
+    {
+        var name = string.IsNullOrEmpty(mapName) ? "Facility" : mapName;
+        return RootCache.GetOrAdd(name, key => LoadRoots(provider, key));
+    }
+
+    private static Dictionary<string, DoorWorldLocation> LoadRoots(GameAssetProvider provider, string mapName)
+    {
+        var result = new Dictionary<string, DoorWorldLocation>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var pkg = provider.LoadPackageInternal($"AbioticFactor/Content/Maps/{mapName}.umap");
+            foreach (var lazy in pkg.ExportsLazy)
+            {
+                CUE4Parse.UE4.Assets.Exports.UObject? export;
+                try { export = lazy.Value; }
+                catch { continue; }
+                if (export is null || !export.Properties.Any(p => p.Name.Text == "RootComponent")) continue;
+                try
+                {
+                    if (export.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("RootComponent") is not { } root) continue;
+                    var locTag = root.Properties.FirstOrDefault(p => p.Name.Text == "RelativeLocation");
+                    var value = locTag?.Tag?.GenericValue;
+                    if (value is CUE4Parse.UE4.Assets.Objects.FScriptStruct ss) value = ss.StructType;
+                    result[export.Name] = value is FVector v ? new DoorWorldLocation(v.X, v.Y, v.Z) : new DoorWorldLocation(0, 0, 0);
+                }
+                catch
+                {
+                    // tolerate a root that fails to load; that actor is just left out
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.EditorLog.Warn("DoorMap", $"Could not load {mapName} for actor roots: {ex.Message}");
+        }
+        return result;
+    }
+
     /// <summary>The position of one actor, or null when the map or actor is unknown.</summary>
     public static DoorWorldLocation? Resolve(GameAssetProvider provider, string? mapName, string actorName)
         => ForMap(provider, mapName).TryGetValue(actorName, out var loc) ? loc : null;

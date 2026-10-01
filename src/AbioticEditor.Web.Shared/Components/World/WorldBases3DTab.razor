@@ -5,6 +5,7 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime Js
 @inject SaveWorkspaceSessionService Workspace
+@inject GameArtService Art
 @implements IAsyncDisposable
 
 @* Base-building roadmap phases 3 and 4 (UI half): a 3D view of one region's placed objects, and
@@ -37,11 +38,26 @@
                     <input type="checkbox" checked="@_labels" @onchange="e => SetLabelsAsync(e.Value is true)" />
                     @L.Resource("World3D_Labels")
                 </label>
+                <label class="wt-check">
+                    <input type="checkbox" checked="@_doorsOn" data-b3d="doors-toggle" @onchange="e => SetDoorsVisibleAsync(e.Value is true)" />
+                    @L.Resource("World3D_Doors")
+                </label>
+                <button type="button" class="wt-btn @(_walkOn ? "active" : null)" aria-pressed="@(_walkOn ? "true" : "false")" data-b3d="walk-toggle"
+                        @onclick="() => SetWalkAsync(!_walkOn)">@L.Resource(_walkOn ? "World3D_WalkStop" : "World3D_Walk")</button>
+                @if (_walkOn)
+                {
+                    <label class="wt-check">
+                        <input type="checkbox" checked="@_walkFloor" data-b3d="walk-floor" @onchange="e => SetWalkFloorAsync(e.Value is true)" />
+                        @L.Resource("World3D_WalkFloor")
+                    </label>
+                }
                 <span class="wt-readout b3d-count" data-b3d="count">@L.Resource("World3D_ShowingFormat", _visible.Length, _scene.Objects.Count)</span>
             </div>
             @if (!_viewReady) { <span class="b3d-loading">@L.Resource("World3D_Loading")</span> }
             <div @ref="_host" class="b3d-canvas" role="img" aria-label="@L.Resource("World3D_ViewLabel")" data-b3d="canvas"></div>
-            <p class="wt-muted b3d-hint">@L.Resource("World3D_AxesHint") @L.Resource("World3D_MultiSelectHint")</p>
+            @if (_walkOn) { <p class="wt-muted b3d-hint" data-b3d="walk-hint">@L.Resource("World3D_WalkHint")</p> }
+            <p class="wt-muted b3d-hint">@L.Resource("World3D_AxesHint") @L.Resource("World3D_MultiSelectHint") @L.Resource("World3D_DoorsHint")</p>
+            @if (_doorsNote is not null) { <p class="wt-muted b3d-hint" data-b3d="doors-note">@_doorsNote</p> }
             @if (_levelPicked is not null) { <p class="wt-muted b3d-hint" data-b3d="level-picked">@L.Resource("World3D_LevelPickedFormat", _levelPicked)</p> }
         </div>
 
@@ -298,6 +314,44 @@
                             </div>
                         }
                         @if (_selected.Count > 60) { <small class="wt-muted">@L.Resource("World3D_SelectionMoreFormat", _selected.Count - 60)</small> }
+                    </div>
+                </div>
+            }
+
+            @if (SelectedDoor is { } door)
+            {
+                var (doorMap, doorActor) = DoorIdParser.Parse(door.Id);
+                var doorInfo = DoorClassCatalog.Lookup(DoorIdParser.ClassNameFromActor(doorActor));
+                <div class="wt-card b3d-panel" data-b3d="door-card">
+                    <span class="wt-label accent-orange-text">@L.Resource("World3D_DoorCard")</span>
+                    <strong class="b3d-title" data-b3d="door-title">@(L.ResourceOrNull($"WorldDoors_Class_{doorInfo.ClassName}_DisplayName") ?? doorInfo.DisplayName)</strong>
+                    <dl class="b3d-fields">
+                        <dt>@L.Resource("World3D_SubLevel")</dt><dd>@doorMap</dd>
+                        <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@doorActor</dd>
+                        <dt>@L.Resource("World3D_DoorState")</dt><dd data-b3d="door-state">@DoorStateText(door)</dd>
+                    </dl>
+                    @if (door.Kind == WorldDoorKind.Simple)
+                    {
+                        var raw = door.DoorState ?? DoorClosed;
+                        <label>@L.Resource("World3D_DoorSetState")
+                            <select class="wt-input" data-b3d="door-state-select" @onchange="e => SetDoorStateAsync(door.Id, e.Value?.ToString())">
+                                @if (!StableDoorStates.Contains(raw)) { <option value="@raw" selected>@StateLabel(raw)</option> }
+                                @foreach (var s in StableDoorStates)
+                                {
+                                    <option value="@s" selected="@(s == raw)">@StateLabel(s)</option>
+                                }
+                            </select>
+                        </label>
+                    }
+                    else if (door.Kind == WorldDoorKind.Security)
+                    {
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@(door.IsDoorOpen == true)" data-b3d="door-open" @onchange="e => SetDoorOpenAsync(door.Id, e.Value is true)" />
+                            @L.Resource("World3D_DoorOpen")
+                        </label>
+                    }
+                    <div class="b3d-links">
+                        <button type="button" class="wt-btn wt-plain" data-b3d="door-close-card" @onclick="CloseDoorCardAsync">@L.Resource("World3D_DoorCardClose")</button>
                     </div>
                 </div>
             }
@@ -699,6 +753,143 @@
 
     private string? _framedBase;
 
+    // ---- doors and walking ---------------------------------------------------------------------
+    private const string DoorClosed = "E_DoorStates::NewEnumerator0";
+    private static readonly string[] StableDoorStates = [DoorClosed, "E_DoorStates::NewEnumerator1", "E_DoorStates::NewEnumerator2"];
+    private bool _doorsOn = true;
+    private bool _doorsDirty = true;
+    private int _doorsToken;
+    private string? _doorsNote;
+    private string? _selectedDoorId;
+    private bool _walkOn;
+    private bool _walkFloor = true;
+
+    private WorldDoor? SelectedDoor => _selectedDoorId is null ? null
+        : Session.Doors.FirstOrDefault(d => string.Equals(d.Id, _selectedDoorId, StringComparison.Ordinal));
+
+    private string StateLabel(string? raw)
+    {
+        var friendly = DoorStateNames.Friendly(raw);
+        return L.ResourceOrNull("WorldDoors_State_" + friendly) ?? friendly;
+    }
+
+    private string DoorStateText(WorldDoor door) => door.Kind == WorldDoorKind.Security
+        ? L.Resource(door.IsDoorOpen == true ? "WorldDoors_State_Open" : "WorldDoors_State_Closed")
+        : StateLabel(door.DoorState ?? DoorClosed);
+
+    /// <summary>Marker colour by state: open green, closed grey (security doors blue), locked red, jammed or broken orange.</summary>
+    internal static int DoorColor(WorldDoor door)
+    {
+        if (door.Kind == WorldDoorKind.Security) return door.IsDoorOpen == true ? 0x34c759 : 0x5e8bff;
+        return DoorStateNames.Friendly(door.DoorState ?? DoorClosed) switch
+        {
+            "Open" or "Opening" => 0x34c759,
+            "Locked" => 0xff453a,
+            "Jammed" or "Broken" => 0xff9f0a,
+            _ => 0x9aa3b2,
+        };
+    }
+
+    /// <summary>
+    /// Sends the region's doors to the view as markers at their place in the world (the level
+    /// files give each door's position; a sub-level's doors are moved by its placement). Positions
+    /// are read once per level, so later pushes after an edit only recolour.
+    /// </summary>
+    private async Task PushDoorsAsync()
+    {
+        if (_view is null) return;
+        var token = ++_doorsToken;
+        var doors = Session.Doors;
+        var markers = new List<object>();
+        var missing = 0;
+        foreach (var group in doors.GroupBy(d => DoorIdParser.Parse(d.Id).Map, StringComparer.OrdinalIgnoreCase))
+        {
+            IReadOnlyDictionary<string, DoorWorldLocation> positions;
+            try { positions = await Art.GetWorldDoorPositionsForMapAsync(group.Key); }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException) { positions = new Dictionary<string, DoorWorldLocation>(); }
+            if (token != _doorsToken || _disposed) return;
+            foreach (var door in group)
+            {
+                if (!positions.TryGetValue(DoorIdParser.Parse(door.Id).Actor, out var at)) { missing++; continue; }
+                var v = PlacedSceneSpace.ToViewer(new PlacedVector(at.X, at.Y, at.Z));
+                markers.Add(new { id = door.Id, p = new[] { v.X, v.Y, v.Z }, color = DoorColor(door) });
+            }
+        }
+        _doorsNote = doors.Count == 0 ? null
+            : markers.Count == 0 ? L.Resource("World3D_DoorsNoPositions")
+            : missing > 0 ? L.Resource("World3D_DoorsShownFormat", markers.Count, doors.Count)
+            : null;
+        try
+        {
+            await _view.InvokeVoidAsync("setDoors", markers);
+            await _view.InvokeVoidAsync("setDoorSelection", _selectedDoorId);
+        }
+        catch (JSDisconnectedException) { }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetDoorsVisibleAsync(bool on)
+    {
+        _doorsOn = on;
+        if (!on) _selectedDoorId = null;
+        if (_view is null) return;
+        await _view.InvokeVoidAsync("setDoorsVisible", on);
+        await _view.InvokeVoidAsync("setDoorSelection", _selectedDoorId);
+    }
+
+    /// <summary>A click on a door marker opens its card (an object selection stays as it was).</summary>
+    [JSInvokable]
+    public async Task OnDoorPicked(string id)
+    {
+        _selectedDoorId = id;
+        if (_view is not null) await _view.InvokeVoidAsync("setDoorSelection", id);
+        StateHasChanged();
+    }
+
+    private async Task CloseDoorCardAsync()
+    {
+        _selectedDoorId = null;
+        if (_view is not null) await _view.InvokeVoidAsync("setDoorSelection", (string?)null);
+    }
+
+    private Task SetDoorStateAsync(string id, string? raw) =>
+        string.IsNullOrEmpty(raw) ? Task.CompletedTask : StageDoorAsync(() => Session.SetSimpleDoorState(id, raw));
+
+    private Task SetDoorOpenAsync(string id, bool open) => StageDoorAsync(() => Session.SetSecurityDoorOpen(id, open));
+
+    /// <summary>Stages a door edit like the Doors tab does (SAVE writes it) and recolours the markers.</summary>
+    private async Task StageDoorAsync(Func<Task> edit)
+    {
+        await edit();
+        Workspace.NotifyEdited();
+        await PushDoorsAsync();
+    }
+
+    private async Task SetWalkAsync(bool on)
+    {
+        _walkOn = on;
+        if (_view is not null) await _view.InvokeVoidAsync("setWalk", on, _walkFloor);
+    }
+
+    private async Task SetWalkFloorAsync(bool on)
+    {
+        _walkFloor = on;
+        if (_view is not null && _walkOn)
+        {
+            await _view.InvokeVoidAsync("setWalk", false, on);
+            await _view.InvokeVoidAsync("setWalk", true, on);
+        }
+    }
+
+    /// <summary>The viewer left walk mode itself (Escape).</summary>
+    [JSInvokable]
+    public Task OnWalkEnded()
+    {
+        _walkOn = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
 
     private static readonly string[] GizmoModes = ["off", "translate", "rotate"];
     private const int ListLimit = 150;
@@ -737,6 +928,7 @@
         _ = InvokeAsync(() =>
         {
             SyncFromSession();
+            _doorsDirty = true;
             StateHasChanged();
         });
     }
@@ -754,6 +946,8 @@
                 _framedBase = null;
                 _regionChanged = true;
                 _levelProgress = null;
+                _doorsDirty = true;
+                _selectedDoorId = null;
             }
             _sceneSession = Session;
         }
@@ -821,6 +1015,11 @@
             catch (Exception ex) when (ex is JSException or JSDisconnectedException) { }
         }
         await PushCablesAsync();
+        if (_view is not null && _doorsDirty)
+        {
+            _doorsDirty = false;
+            _ = PushDoorsAsync(); // the first read of a level's doors is slow; the markers arrive when ready
+        }
     }
 
     private async Task PushSceneAsync()

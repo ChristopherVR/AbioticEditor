@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
 using AbioticEditor.Web.Services;
@@ -454,6 +455,69 @@ public sealed class Base3DViewerTests
         Assert.Contains("_framedOnce = false;", tab, StringComparison.Ordinal);
         Assert.Contains("_regionChanged = true;", tab, StringComparison.Ordinal);
         Assert.Contains("if (_view is not null && _regionChanged)", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Doors_are_clickable_markers_whose_card_stages_like_the_doors_tab()
+    {
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("public async Task OnDoorPicked(string id)", tab, StringComparison.Ordinal);
+        Assert.Contains("Session.SetSimpleDoorState(id, raw)", tab, StringComparison.Ordinal);
+        Assert.Contains("Session.SetSecurityDoorOpen(id, open)", tab, StringComparison.Ordinal);
+        Assert.Contains("Workspace.NotifyEdited();", tab, StringComparison.Ordinal);
+        Assert.Contains("Art.GetWorldDoorPositionsForMapAsync", tab, StringComparison.Ordinal); // placed in the world, not the sub-level
+        Assert.Contains("_doorsDirty = true;", tab, StringComparison.Ordinal); // recoloured after SAVE / REVERT / another region
+
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("const door = doorAt(e.clientX, e.clientY);", js, StringComparison.Ordinal); // doors win over objects behind them
+        Assert.Contains("\"OnDoorPicked\"", js, StringComparison.Ordinal);
+        Assert.Contains("setDoors(list)", js, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Walk_mode_moves_the_camera_and_hands_back_to_the_orbit_camera()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("controls.enabled = !on;", js, StringComparison.Ordinal);
+        Assert.Contains("if (k === \"escape\") { setWalk(false); dotnet.invokeMethodAsync(\"OnWalkEnded\")", js, StringComparison.Ordinal);
+        Assert.Contains("isTyping(e)", js, StringComparison.Ordinal); // typing in a field never walks
+        Assert.Contains("window.removeEventListener(\"keydown\", onWalkKeyDown);", js, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("public Task OnWalkEnded()", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sub_levels_door_is_placed_where_the_game_places_the_door()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        var doors = DoorLocationResolver.RootsForMap(assets, "Facility_Office1");
+        Assert.NotEmpty(doors);
+        // The door whose first positioned component is a child part, a few metres from the door.
+        var actor = "SimpleDoor_ParentBP_C_0";
+        var at = doors[actor];
+        var placed = assets.PlaceInWorld("Facility_Office1", at.X, at.Y, at.Z);
+        var world = assets.TryGetActorWorldTransform($"/Game/Maps/Facility_Office1.Facility_Office1:PersistentLevel.{actor}") ?? throw new Xunit.Sdk.XunitException("door not found");
+        Assert.InRange(placed.X - world.X, -1, 1);
+        Assert.InRange(placed.Y - world.Y, -1, 1);
+        Assert.InRange(placed.Z - world.Z, -1, 1);
+    }
+
+    [Fact]
+    public void Portal_worlds_whose_name_does_not_nest_are_placed_by_the_map_that_streams_them()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        // Maps whose first name part is not a map of its own (V_Alps and the other portal worlds):
+        // before the fallback, these were all left at their own origin.
+        var orphans = assets.UseFileProvider(p => p.Files.Keys
+            .Where(k => k.EndsWith(".umap", StringComparison.OrdinalIgnoreCase) && k.Contains("/Maps/", StringComparison.OrdinalIgnoreCase))
+            .Select(k => Path.GetFileNameWithoutExtension(k))
+            .ToList());
+        var names = orphans.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var portals = orphans.Where(n => n.Contains('_', StringComparison.Ordinal) && !names.Contains(n.Split('_')[0])).Distinct().ToList();
+        Assert.NotEmpty(portals);
+        Assert.Contains(portals, n => assets.PlaceInWorld(n, 0, 0, 0) is var w && Math.Abs(w.X) + Math.Abs(w.Y) + Math.Abs(w.Z) > 100);
     }
 
     [Fact]
