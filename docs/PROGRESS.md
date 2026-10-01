@@ -21,7 +21,15 @@
 
 ### Open issues to keep in view (round 136)
 
-- Not tried in a running game: loading a save whose plugs were moved by the editor.
+- Round 136c (same day): **in-game check passed.** A throwaway copy of the user's Chrissie world got
+  two editor re-plugs (a heater onto an outlet that had no record yet, a megalight onto another strip
+  about 16 m away) plus the recommended repairs (5 dangling plugs unplugged, 4 leftover records
+  removed). The game loaded it; `powersockets.list` (after `spawn.set` teleport to the base) showed
+  every strip outlet exactly as edited, old outlets empty. Leaving the game re-saved the world, and
+  the re-read file kept every link, the removed records stayed gone, and `world power repair --list`
+  reported nothing to repair. Copy deleted afterwards. Input was sent as window messages
+  (`PostMessage` WM_KEYDOWN / mouse) because a Windows Firewall prompt held focus; screenshots via
+  `PrintWindow(.., 2)` (`CopyFromScreen` returned a stale frame).
 - Round 136b (same day): cross-save plugs are editable from the socket's own save (a wall socket in a
   region save can power a Facility device; a device still fed in another file is refused with where
   to unplug it); `GameAssetProvider.TryGetActorWorldTransform` applies the sub-level's streaming

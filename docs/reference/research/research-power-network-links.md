@@ -109,8 +109,8 @@ Unverified (deliberately left as Unknown, never guessed):
 * What `ExtraPoweredDeviceAssetIDs_` holds (always empty here).
 * What in-game action creates or removes an outlet record for a newly placed or packaged device, and whether the
   game deletes the orphaned records above on its own.
-* Whether a device's `ActorPath_` or transform matters for reconnecting after a load. Re-plugging by asset id at
-  load is a plausible reading of `Update_SaveData`, but the load side has not been traced.
+* (Settled in section 5: the load side re-plugs by asset id, and an editor-written plug survives a load and the
+  game's next save.)
 
 ## 4. Why timer-only live changes are not durable
 
@@ -161,3 +161,9 @@ in no save of the world are removed (236 in the server fixture); sockets powerin
 nowhere are unplugged (11); self plugs and loops are unplugged; a device fed by two sockets keeps the
 nearest (2 in the fixture, not ticked, since whether the game allows two feeds is not known).
 Repairs that depend on "exists nowhere" are only offered after the other saves of the world were read.
+
+In-game check (round 136c): a copy of a real world with two editor re-plugs (one onto an outlet that
+had no record) and the recommended repairs loaded cleanly. The live socket listing showed each
+device on its new outlet and the old outlets empty, and the file the game wrote on leaving kept every
+edited link and none of the removed records, so the game neither restores leftover records nor needs
+them. Whether the game allows two feeds for one device is still not known.
