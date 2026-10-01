@@ -149,6 +149,8 @@ direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep
 
 ## Not covered
 
-Anim-blueprint and ACL-compressed poses (rest pose is drawn) and lights.
+Anim-blueprint poses (rest pose is drawn) and lights. ACL-compressed poses need CUE4Parse's
+native decoder, which ships inside the plugin's release zip (`NativeDecoder` loads it from the
+plugin folder); a build from source without it draws the rest pose.
 Open lids are not saved by the game. Crops in garden plots are
 drawn (see `research-garden-crops-and-pet-mutation.md`, "DT_Plants, read").

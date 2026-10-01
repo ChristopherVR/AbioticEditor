@@ -12,6 +12,8 @@ public sealed class GameModelsPlugin : IAbioticPlugin
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(host);
+        // The ACL animation decoder ships next to the plugin (see NativeDecoder); optional.
+        NativeDecoder.TryLoad(Path.GetDirectoryName(typeof(GameModelsPlugin).Assembly.Location));
         registry.AddSceneModelProvider(new PakSceneModelProvider(host));
     }
 }

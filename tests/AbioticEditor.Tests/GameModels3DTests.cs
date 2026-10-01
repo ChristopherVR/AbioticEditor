@@ -636,6 +636,47 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void The_native_decoder_is_optional_and_never_throws()
+    {
+        if (NativeDecoder.Loaded) return; // another test loaded it in this process
+        Assert.False(NativeDecoder.TryLoad(null));
+        Assert.False(NativeDecoder.TryLoad(Path.Combine(Path.GetTempPath(), "no-such-folder-" + Guid.NewGuid().ToString("N"))));
+    }
+
+    /// <summary>
+    /// With the native decoder loaded from a folder (as the plugin does from its own), animations
+    /// compressed with ACL decode: the Dam's posed people (40 of 41 fail without it). Runs when
+    /// CUE4PARSE_NATIVES_DIR names a folder holding a built CUE4Parse-Natives library.
+    /// </summary>
+    [Fact]
+    public void Acl_compressed_poses_decode_once_the_native_decoder_is_loaded_from_a_folder()
+    {
+        if (Environment.GetEnvironmentVariable("CUE4PARSE_NATIVES_DIR") is not { Length: > 0 } dir) return;
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        Assert.True(NativeDecoder.TryLoad(dir));
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Dam.umap"));
+        var keys = index.Meshes.Where(PoseBaker.IsKey).ToList();
+        var (posed, failed) = assets.UseFileProvider(p =>
+        {
+            int ok = 0, bad = 0;
+            foreach (var key in keys)
+            {
+                if (PoseBaker.Load(p, key) is not { } c || PoseBaker.PoseOf(c) is not { } pose) continue;
+                var meshIndex = Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkeletalMesh", null)
+                                ?? Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkinnedAsset", null);
+                if (meshIndex?.Load() is not CUE4Parse.UE4.Assets.Exports.SkeletalMesh.USkeletalMesh mesh) continue;
+                try { if (PoseBaker.SkinMatrices(mesh, pose.Anim, pose.Time) is not null) ok++; }
+                catch (DllNotFoundException) { bad++; }
+            }
+            return (ok, bad);
+        });
+        Assert.Equal(0, failed);
+        Assert.True(posed > 30, $"only {posed} posed");
+    }
+
+    [Fact]
     public void Posed_corpses_in_the_level_are_skinned_in_their_pose()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();

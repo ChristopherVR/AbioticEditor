@@ -83,8 +83,8 @@ internal static class PoseBaker
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException
                                        or InvalidOperationException or IndexOutOfRangeException or NotSupportedException or NotImplementedException)
         {
-            // Animations compressed with ACL need CUE4Parse's native library, which the editor does
-            // not ship (the security doors' open animation is one); those keep their rest pose.
+            // Animations compressed with ACL need CUE4Parse's native library (NativeDecoder: shipped
+            // next to the plugin in its download); without it those keep their rest pose.
             skin = null;
         }
         return skin is not null ? MeshBaker.BakeSkinned(mesh, lod, skin) : MeshBaker.Bake(mesh, lod);

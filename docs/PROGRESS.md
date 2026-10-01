@@ -2,6 +2,19 @@
 
 ## Round-139: base edits checked in the running game, walking collides, kinds from other worlds (2026-10-01)
 
+- **ACL poses.** The repo turns CUE4Parse's native build off (`submodules/Directory.Build.targets`,
+  it broke macOS releases), so ACL-compressed animations threw `DllNotFoundException` and fell back to
+  the rest pose: Dam 40 of 41 posed meshes, Labs 38 of 57 (Office1/Office2 use uncompressed anims).
+  Built by hand with Visual Studio's bundled CMake (3.31) and MSVC 14.44, every one decodes (Dam 41/41,
+  Labs 57/57). The plugin now carries it: `NativeDecoder.TryLoad` loads `CUE4Parse-Natives` from the
+  plugin's own folder at startup (Windows then finds the loaded module by name; elsewhere a
+  `SetDllImportResolver` on CUE4Parse points at the handle). Release: a `build-natives-windows`
+  job (windows-latest, CMake + MSVC) uploads the DLL, `build-plugins` builds the Linux `.so` and zips
+  both next to the plugin; both steps are optional (`continue-on-error`, the zip warns and ships
+  without). Headless: host process loaded the DLL from the scratch plugin folder, Dam pose meshes
+  served. Test `Acl_compressed_poses_decode_once_the_native_decoder_is_loaded_from_a_folder`
+  (runs when `CUE4PARSE_NATIVES_DIR` names a built library). Not yet seen run in CI.
+
 - **In-game check passed (moves, copies, placing, deleting, doors).** A throwaway copy of the
   EditorPowerTest world (Chrissie's base, 122 objects) got: the repair bench moved 2 m and turned
   90 degrees (CLI `world object move` + `rotate`), a standing lamp copied 1.5 m over (`duplicate`),
@@ -253,7 +266,7 @@
 
 ### Open issues to keep in view (round 137)
 
-- Not drawn: poses from ACL-compressed animations (needs CUE4Parse-Natives) and from anim blueprints; the
+- Not drawn: poses from anim blueprints (ACL-compressed poses: round 139); the
   terrain's fifth slot (`Quinary`, no paint layer feeds it).
 - The Nexus optional file for the plugin needs a file entry on the mod page and the
   `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.

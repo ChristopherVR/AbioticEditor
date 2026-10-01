@@ -497,9 +497,39 @@ jobs:
   # WebKitGTK window library, static assets, and templates remain beside the executable.
   # The optional 3D models plugin. Managed code only (it uses the editor's own copy of the game
   # reading libraries at runtime), so one build serves Windows and Linux.
-  build-plugins:
+  # CUE4Parse's optional native library decodes ACL-compressed animations (the poses of most people
+  # placed in the Dam and Labs levels). The editor's own build skips it (submodules/Directory.Build.targets),
+  # so it is built here and shipped inside the 3D models plugin, which loads it from its own folder.
+  # Optional: if it fails to build, the plugin still ships and those meshes keep their rest pose.
+  build-natives-windows:
     needs: version
     if: needs.version.outputs.released == 'true'
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          submodules: recursive
+
+      - name: Build CUE4Parse-Natives
+        shell: pwsh
+        run: |
+          cmake -S submodules/CUE4Parse/CUE4Parse-Natives -B natives-build
+          cmake --build natives-build --config Release
+          Get-ChildItem -Recurse natives-build -Filter CUE4Parse-Natives.dll | Select-Object -First 1 | Copy-Item -Destination CUE4Parse-Natives.dll
+
+      - name: Upload native library
+        uses: actions/upload-artifact@v7
+        with:
+          name: cue4parse-natives-windows
+          path: CUE4Parse-Natives.dll
+          if-no-files-found: error
+
+  build-plugins:
+    needs: [version, build-natives-windows]
+    if: ${{ !cancelled() && needs.version.outputs.released == 'true' }}
     runs-on: ubuntu-latest
     concurrency:
       group: release-build-plugins
@@ -530,14 +560,32 @@ jobs:
       - name: Build Game Models for 3D View
         run: dotnet build plugins/GameModels3D -c Release
 
-      # The zip holds one GameModels3D folder with exactly the two files the editor loads, so
-      # players extract it into the folder that Settings, Plugins, OPEN PLUGINS FOLDER opens.
+      - name: Build CUE4Parse-Natives (Linux)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmake -S submodules/CUE4Parse/CUE4Parse-Natives -B natives-build -DCMAKE_BUILD_TYPE=Release
+          cmake --build natives-build --config Release
+          find natives-build -name 'CUE4Parse-Natives.so' -o -name 'libCUE4Parse-Natives.so' | head -n 1 | xargs -I{} cp {} CUE4Parse-Natives.so
+
+      - name: Download native library (Windows)
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: cue4parse-natives-windows
+          path: natives-windows
+
+      # The zip holds one GameModels3D folder: the two files the editor loads, plus the optional
+      # native animation decoder for each platform it was built for, so players extract it into the
+      # folder that Settings, Plugins, OPEN PLUGINS FOLDER opens.
       - name: Zip plugin
         run: |
           set -euo pipefail
           out=plugins/GameModels3D/bin/Release/net10.0
           mkdir -p stage/GameModels3D
           cp "$out/GameModels3D.dll" "$out/plugin.json" stage/GameModels3D/
+          if [ -f natives-windows/CUE4Parse-Natives.dll ]; then cp natives-windows/CUE4Parse-Natives.dll stage/GameModels3D/; else echo "::warning::No Windows native decoder; ACL poses fall back to the rest pose"; fi
+          if [ -f CUE4Parse-Natives.so ]; then cp CUE4Parse-Natives.so stage/GameModels3D/; else echo "::warning::No Linux native decoder; ACL poses fall back to the rest pose"; fi
           cp plugins/GameModels3D/README.md stage/GameModels3D/README.md
           ( cd stage && zip -r "../${ASSET_BASENAME}.zip" GameModels3D )
           unzip -l "${ASSET_BASENAME}.zip"

@@ -29,7 +29,16 @@ zip there (it holds one `GameModels3D` folder) and restart the editor.
    `plugins/GameModels3D/bin/Release/net10.0/`:
    - `GameModels3D.dll`
    - `plugin.json`
-3. Start the editor. **Settings, Plugins** lists "Game Models for 3D View".
+3. Optional, for the poses of people placed in the levels: build CUE4Parse's native animation
+   decoder and copy it into the same folder. It needs CMake and a C++ compiler (Visual Studio's
+   bundled CMake works):
+   ```console
+   cmake -S submodules/CUE4Parse/CUE4Parse-Natives -B natives-build
+   cmake --build natives-build --config Release
+   ```
+   Copy `CUE4Parse-Natives.dll` (Linux: `CUE4Parse-Natives.so`) next to `GameModels3D.dll`. The
+   release zip already includes it. Without it those people stand in their rest pose.
+4. Start the editor. **Settings, Plugins** lists "Game Models for 3D View".
 
 Then open a world save, go to the **Bases** tab and switch from **Map** to **3D view**.
 
