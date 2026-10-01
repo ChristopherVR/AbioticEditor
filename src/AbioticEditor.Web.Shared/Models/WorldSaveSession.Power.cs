@@ -31,26 +31,36 @@ public sealed partial class WorldSaveSession
     /// <summary>The device whose outlets a socket record belongs to (null for a wall socket).</summary>
     public static string? SocketOwner(string socketId) => PlacedGroupReferenceAnalyzer.OwnerKeyOf(socketId);
 
-    /// <summary>Objects staged to be placed (copies and new objects) that will be written on SAVE.</summary>
-    private IEnumerable<DuplicationPreviewRow> StagedNewObjects()
-        => HasStagedBaseEdits ? PreviewBaseEdits().Duplications.Where(r => !r.Blocked && r.NewKey.Length == 32) : [];
+    /// <summary>
+    /// Everything the power helpers read, computed once per state of the edits (the POWER card asks
+    /// several of them on every render, and each used to rescan the whole save): object classes (staged
+    /// new objects included), what each socket powers after staging, which device feeds which, the
+    /// outlet digits each class uses, and the staged new objects by key.
+    /// </summary>
+    private sealed record PowerSnapshot(
+        Dictionary<string, string?> Classes,
+        Dictionary<string, string?> Plugged,
+        Dictionary<string, string> FeedOf,
+        Dictionary<string, HashSet<char>> Digits,
+        Dictionary<string, DuplicationPreviewRow> NewObjects);
 
-    /// <summary>The save's object classes plus those of objects staged to be placed.</summary>
-    private Dictionary<string, string?> ClassesWithStaged()
+    private (int Revision, object Data, int Others, PowerSnapshot Snapshot)? _powerSnapshot;
+
+    private PowerSnapshot Power()
     {
+        if (_powerSnapshot is { } cached && cached.Revision == PlacedTransformsRevision && ReferenceEquals(cached.Data, _data)
+            && cached.Others == _baseEdits.OtherSaves.Count)
+            return cached.Snapshot;
+
+        var newObjects = (HasStagedBaseEdits ? PreviewBaseEdits().Duplications : [])
+            .Where(r => !r.Blocked && r.NewKey.Length == 32)
+            .GroupBy(r => r.NewKey, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
         var classes = PowerLinkEdits.ObjectClasses(_data);
-        foreach (var row in StagedNewObjects()) classes[row.NewKey] = row.ClassName;
-        return classes;
-    }
+        var digits = PowerLinkEdits.OutletNumbersByClass(_data);
+        foreach (var row in newObjects.Values) classes[row.NewKey] = row.ClassName;
 
-    /// <summary>Where an object is after staged edits: a saved object's current place, or a staged new object's planned place.</summary>
-    public PlacedVector? PositionAfterStaging(string key)
-        => CurrentPlacedTransform(key)?.Translation
-           ?? StagedNewObjects().FirstOrDefault(r => r.NewKey == key)?.After?.Translation;
-
-    /// <summary>Which device each socket powers after the staged power changes (a what-if over the save).</summary>
-    private Dictionary<string, string?> PluggedAfterStaging()
-    {
         var plugged = new Dictionary<string, string?>(StringComparer.Ordinal);
         foreach (var e in WorldMapAccessor.Entries(_data.Raw, "PowerSocketMap"))
         {
@@ -59,18 +69,38 @@ public sealed partial class WorldSaveSession
         }
         foreach (var cleaned in _baseEdits.SocketCleanups) plugged.Remove(cleaned);
         // A staged new object's outlet records (copied from its donor, unplugged unless kept).
-        foreach (var row in StagedNewObjects())
+        foreach (var row in newObjects.Values)
         {
             foreach (var socket in row.Sockets)
                 plugged[socket.NewId] = socket.PluggedAfter is { Length: 32 } device ? device : null;
         }
-        foreach (var row in PreviewBaseEdits().PowerLinks.Where(r => !r.Blocked))
+        if (HasStagedBaseEdits)
         {
-            foreach (var f in row.FeedsCleared) plugged[f] = null;
-            plugged[row.SocketId] = row.DeviceAfter;
+            foreach (var row in PreviewBaseEdits().PowerLinks.Where(r => !r.Blocked))
+            {
+                foreach (var f in row.FeedsCleared) plugged[f] = null;
+                plugged[row.SocketId] = row.DeviceAfter;
+            }
         }
-        return plugged;
+
+        var snapshot = new PowerSnapshot(classes, plugged, PowerLinkEdits.FeedOf(plugged), digits, newObjects);
+        _powerSnapshot = (PlacedTransformsRevision, _data, _baseEdits.OtherSaves.Count, snapshot);
+        return snapshot;
     }
+
+    /// <summary>Objects staged to be placed (copies and new objects) that will be written on SAVE.</summary>
+    private Dictionary<string, DuplicationPreviewRow>.ValueCollection StagedNewObjects() => Power().NewObjects.Values;
+
+    /// <summary>The save's object classes plus those of objects staged to be placed (a copy the caller may change).</summary>
+    private Dictionary<string, string?> ClassesWithStaged() => new(Power().Classes, StringComparer.Ordinal);
+
+    /// <summary>Where an object is after staged edits: a saved object's current place, or a staged new object's planned place.</summary>
+    public PlacedVector? PositionAfterStaging(string key)
+        => CurrentPlacedTransform(key)?.Translation
+           ?? (Power().NewObjects.TryGetValue(key, out var row) ? row.After?.Translation : null);
+
+    /// <summary>Which device each socket powers after the staged power changes (a what-if over the save; a copy).</summary>
+    private Dictionary<string, string?> PluggedAfterStaging() => new(Power().Plugged, StringComparer.Ordinal);
 
     /// <summary>
     /// Every outlet of the device that owns <paramref name="socketId"/> (recorded or not yet recorded),
@@ -92,7 +122,7 @@ public sealed partial class WorldSaveSession
         {
             foreach (var id in plugged.Keys.Where(k => SocketOwner(k) == owner)) ids.Add(id);
             if (classes.TryGetValue(owner, out var cls) && cls is not null
-                && PowerLinkEdits.OutletNumbersByClass(_data).TryGetValue(cls, out var digits))
+                && Power().Digits.TryGetValue(cls, out var digits))
             {
                 foreach (var d in digits) ids.Add(owner + d);
             }
@@ -115,6 +145,7 @@ public sealed partial class WorldSaveSession
     {
         var classes = PowerLinkEdits.ObjectClasses(_data);
         var plugged = PluggedAfterStaging();
+        var feedOf = Power().FeedOf;
         var usesPower = includeAll ? null : PoweredClasses(classes);
         var powered = plugged.Values.Where(v => v is not null).ToHashSet(StringComparer.Ordinal);
         var owner = SocketOwner(socketId);
@@ -146,7 +177,7 @@ public sealed partial class WorldSaveSession
         return candidates
             .Where(c => c.Row.Key != owner && !deleting.Contains(c.Row.Key)
                         && (usesPower is null || (c.Row.ClassName is { } cn && usesPower.Contains(cn)))
-                        && (owner is null || !PowerLinkEdits.IsUpstream(c.Row.Key, owner, plugged)))
+                        && (owner is null || !PowerLinkEdits.IsUpstreamIn(c.Row.Key, owner, feedOf)))
             .DistinctBy(c => c.Row.Key)
             .Select(c =>
             {
@@ -227,7 +258,7 @@ public sealed partial class WorldSaveSession
         var classes = ClassesWithStaged();
         var recorded = PluggedAfterStaging().Keys.Where(k => SocketOwner(k) == deviceKey).Order(StringComparer.Ordinal).FirstOrDefault();
         if (recorded is not null) return recorded;
-        return classes.GetValueOrDefault(deviceKey) is { } cls && PowerLinkEdits.OutletNumbersByClass(_data).TryGetValue(cls, out var digits) && digits.Count > 0
+        return classes.GetValueOrDefault(deviceKey) is { } cls && Power().Digits.TryGetValue(cls, out var digits) && digits.Count > 0
             ? deviceKey + digits.Min()
             : null;
     }
@@ -240,7 +271,8 @@ public sealed partial class WorldSaveSession
     {
         var classes = ClassesWithStaged();
         var plugged = PluggedAfterStaging();
-        var digitsByClass = PowerLinkEdits.OutletNumbersByClass(_data);
+        var feedOf = Power().FeedOf;
+        var digitsByClass = Power().Digits;
         var here = PositionAfterStaging(deviceKey);
         var sockets = new HashSet<string>(plugged.Keys, StringComparer.Ordinal);
         foreach (var (key, cls) in classes.Where(kv => kv.Key.Length == 32 && kv.Value is not null))
@@ -250,7 +282,7 @@ public sealed partial class WorldSaveSession
         }
         return sockets
             .Where(s => SocketOwner(s) is not { } owner
-                        || (owner != deviceKey && classes.ContainsKey(owner) && !PowerLinkEdits.IsUpstream(deviceKey, owner, plugged)))
+                        || (owner != deviceKey && classes.ContainsKey(owner) && !PowerLinkEdits.IsUpstreamIn(deviceKey, owner, feedOf)))
             .Select(s =>
             {
                 var owner = SocketOwner(s);

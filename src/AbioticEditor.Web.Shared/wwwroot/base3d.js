@@ -1013,6 +1013,10 @@ export function createView(host, dotnet) {
 
     // ---- labels ------------------------------------------------------------------------------
     const labelPool = [];
+    let labelOrder = null, labelOrderVisible = null;
+    const labelOrderFrom = new THREE.Vector3();
+    const labelVector = new THREE.Vector3();
+
     function renderLabels() {
         if (!labelsOn) {
             for (const el of labelPool) el.style.display = "none";
@@ -1020,16 +1024,23 @@ export function createView(host, dotnet) {
         }
         const w = host.clientWidth, h = host.clientHeight;
         const camPos = camera.position;
-        const items = [];
-        for (const idx of visible) {
-            const o = objects[idx];
-            const dx = o.p[0] - camPos.x, dy = o.p[1] - camPos.y, dz = o.p[2] - camPos.z;
-            items.push([dx * dx + dy * dy + dz * dz, idx]);
+        // The nearest objects only change when the camera moves a fair way (or the shown set changes),
+        // so they are sorted then, not on every frame of an orbit.
+        if (!labelOrder || labelOrderVisible !== visible || labelOrderFrom.distanceToSquared(camPos) > 1) {
+            const items = [];
+            for (const idx of visible) {
+                const o = objects[idx];
+                const dx = o.p[0] - camPos.x, dy = o.p[1] - camPos.y, dz = o.p[2] - camPos.z;
+                items.push([dx * dx + dy * dy + dz * dz, idx]);
+            }
+            items.sort((a, b) => a[0] - b[0]);
+            labelOrder = items.slice(0, MAX_LABELS * 4).map(x => x[1]);
+            labelOrderVisible = visible;
+            labelOrderFrom.copy(camPos);
         }
-        items.sort((a, b) => a[0] - b[0]);
         let used = 0;
-        const v = new THREE.Vector3();
-        for (const [, idx] of items) {
+        const v = labelVector;
+        for (const idx of labelOrder) {
             if (used >= MAX_LABELS) break;
             const o = objects[idx];
             v.set(o.p[0], o.p[1] + 0.9, o.p[2]).project(camera);
@@ -1041,7 +1052,7 @@ export function createView(host, dotnet) {
                 labelLayer.appendChild(el);
                 labelPool.push(el);
             }
-            el.textContent = o.label;
+            if (el.textContent !== o.label) el.textContent = o.label;
             el.style.display = "block";
             el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -100%)`;
             el.classList.toggle("selected", selectedKeys.has(o.key));
@@ -1116,6 +1127,103 @@ export function createView(host, dotnet) {
             }
         }
         return best;
+    }
+
+    // ---- placement checks --------------------------------------------------------------------
+    // The game puts a piece exactly where the save says and never checks that it fits, so the view
+    // warns: a piece cutting into the level, overlapping another piece, or with nothing to hold it up.
+    const checkRay = new THREE.Raycaster();
+    const SUPPORT_REACH_M = 0.35;
+
+    /** An object's oriented box: centre, unit axes and half sizes (metres), from its model or category box. */
+    function orientedBox(o) {
+        const m = new THREE.Matrix4();
+        boxMatrix(m, o);
+        const centre = new THREE.Vector3().setFromMatrixPosition(m);
+        const axes = [0, 1, 2].map(i => new THREE.Vector3().setFromMatrixColumn(m, i));
+        const half = axes.map(a => a.length() / 2);
+        axes.forEach(a => a.normalize());
+        const aabb = new THREE.Box3();
+        for (let i = 0; i < 8; i++) {
+            const c = centre.clone()
+                .addScaledVector(axes[0], (i & 1 ? 1 : -1) * half[0])
+                .addScaledVector(axes[1], (i & 2 ? 1 : -1) * half[1])
+                .addScaledVector(axes[2], (i & 4 ? 1 : -1) * half[2]);
+            aabb.expandByPoint(c);
+        }
+        return { centre, axes, half, aabb };
+    }
+
+    /** The first solid surface along a segment, ignoring one object's own meshes and anything above the ceiling cut. */
+    function solidHit(from, dir, length, targets, ownIndex) {
+        checkRay.set(from, dir);
+        checkRay.far = length;
+        for (const hit of checkRay.intersectObjects(targets, false)) {
+            if (levelClip.distanceToPoint(hit.point) < 0 || !hit.face || !isSolid(hit)) continue;
+            const owner = hit.object.userData.objIndexes ? hit.object.userData.objIndexes[hit.instanceId] : undefined;
+            if (owner !== undefined && owner === ownIndex) continue;
+            return hit;
+        }
+        return null;
+    }
+
+    function placementReport(key) {
+        const idx = keyToIndex.get(key);
+        if (idx === undefined) return null;
+        const o = objects[idx];
+        const box = orientedBox(o);
+        const level = levelGroup.children;
+        const levelLoaded = level.length > 0;
+        const [ax, ay, az] = box.axes;
+        const [hx, hy, hz] = box.half;
+
+        // Cutting into the level: segments across the footprint at two heights, inside the box only.
+        let inside = false;
+        if (levelLoaded) {
+            const directions = [[ax, hx], [az, hz], [ax.clone().add(az).normalize(), Math.hypot(hx, hz)], [ax.clone().sub(az).normalize(), Math.hypot(hx, hz)]];
+            outer: for (const f of [-0.35, 0.35]) {
+                for (const [dir, extent] of directions) {
+                    const reach = extent * 0.8;
+                    if (reach < 0.05) continue;
+                    const start = box.centre.clone().addScaledVector(ay, f * hy * 2 * 0.5).addScaledVector(dir, -reach);
+                    if (solidHit(start, dir, reach * 2, level, idx)) { inside = true; break outer; }
+                }
+            }
+        }
+
+        // Overlapping other pieces: their boxes, shrunk so things merely touching (a lamp on a desk) do not count.
+        const shrink = (b, k) => {
+            const c = b.getCenter(new THREE.Vector3()), size = b.getSize(new THREE.Vector3()).multiplyScalar(k / 2);
+            return new THREE.Box3(c.clone().sub(size), c.clone().add(size));
+        };
+        const mine = shrink(box.aabb, 0.75);
+        const overlaps = [];
+        for (const j of visible) {
+            if (j === idx || overlaps.length >= 3) continue;
+            const other = objects[j];
+            if (Math.abs(other.p[0] - o.p[0]) > 15 || Math.abs(other.p[2] - o.p[2]) > 15) continue;
+            if (shrink(orientedBox(other).aabb, 0.75).intersectsBox(mine)) overlaps.push(other.label ?? other.key);
+        }
+
+        // Held up: something solid just below, above (hung from a ceiling) or beside it (fixed to a wall).
+        let supported = null, gapM = null;
+        if (levelLoaded) {
+            const solids = [...level, ...modelMeshes];
+            const bottom = box.aabb.min.y;
+            const down = solidHit(new THREE.Vector3(box.centre.x, bottom + 0.2, box.centre.z), new THREE.Vector3(0, -1, 0), 40, solids, idx);
+            gapM = down ? Math.max(0, bottom - down.point.y) : null;
+            supported = gapM !== null && gapM <= SUPPORT_REACH_M;
+            if (!supported) {
+                const up = solidHit(new THREE.Vector3(box.centre.x, box.aabb.max.y - 0.05, box.centre.z), new THREE.Vector3(0, 1, 0), SUPPORT_REACH_M + 0.05, solids, idx);
+                supported = !!up;
+            }
+            if (!supported) {
+                for (const [dir, extent] of [[ax, hx], [ax.clone().negate(), hx], [az, hz], [az.clone().negate(), hz]]) {
+                    if (solidHit(box.centre, dir, extent + SUPPORT_REACH_M, solids, idx)) { supported = true; break; }
+                }
+            }
+        }
+        return { key, levelLoaded, inside, overlaps, supported, gapM };
     }
 
     /** False for see-through surfaces (leaves, grates, glass, decals, water), which the game lets players pass or see through. */
@@ -1385,6 +1493,7 @@ export function createView(host, dotnet) {
         /** Replaces every object. Each is {key, cat, p:[x,y,z], q:[x,y,z,w], s:[x,y,z], built, label, cls?, paint?, variant?}. */
         setScene(list) {
             objects = list;
+            labelOrder = null;
             keyToIndex = new Map(list.map((o, i) => [o.key, i]));
             buildMeshes();
             updateGrid();
@@ -1529,6 +1638,18 @@ export function createView(host, dotnet) {
             const dir = new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
             const hit = wallAhead(dir, 5);
             return hit ? hit.distance : null;
+        },
+        /**
+         * Placement checks for the given objects (staged moves and new pieces): {key, levelLoaded,
+         * inside (cuts into the level), overlaps (labels of pieces it overlaps), supported (something
+         * holds it up), gapM (metres to the floor below, or null)}. Inside and support need the level.
+         */
+        checkPlacement(keys) { return (keys ?? []).map(placementReport).filter(Boolean); },
+        /** The floor height (viewer Y) under a viewer-space point, looking from 1 m above it, or null. */
+        floorAt(point) {
+            const solids = [...levelGroup.children, ...modelMeshes];
+            const hit = solidHit(new THREE.Vector3(point[0], point[1] + 1, point[2]), new THREE.Vector3(0, -1, 0), 41, solids, -1);
+            return hit ? hit.point.y : null;
         },
         /** Where the camera is and looks (viewer space), for tests and the place tool. */
         cameraState() {

@@ -6,6 +6,7 @@
 @inject IJSRuntime Js
 @inject SaveWorkspaceSessionService Workspace
 @inject GameArtService Art
+@inject IServiceProvider Services
 @implements IAsyncDisposable
 
 @* Base-building roadmap phases 3 and 4 (UI half): a 3D view of one region's placed objects, and
@@ -93,7 +94,14 @@
                 <button type="button" class="wt-btn wt-plain" @onclick="ResetFilters">@L.Resource("World3D_ResetFilters")</button>
             </div>
 
-            @if (_modelStatus is { } ms)
+            @if (InBrowser)
+            {
+                <div class="wt-card b3d-panel" data-b3d="models">
+                    <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
+                    <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
+                </div>
+            }
+            else if (_modelStatus is { } ms)
             {
                 <div class="wt-card b3d-panel" data-b3d="models">
                     <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
@@ -208,9 +216,14 @@
                             <label>@L.Resource("World3D_PlaceTurn")<input class="wt-input" inputmode="decimal" @bind="_placeYaw" @bind:event="oninput" data-b3d="place-yaw" /></label>
                         </div>
                         <button type="button" class="wt-btn wt-plain" data-b3d="place-here" @onclick="UseViewCentreAsync">@L.Resource("World3D_PlaceUseView")</button>
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@_placeOnFloor" data-b3d="place-on-floor" @onchange="e => _placeOnFloor = e.Value is true" />
+                            @L.Resource("World3D_PlaceOnFloor")
+                        </label>
                         @if (_placeLastId is not null)
                         {
                             <p class="wt-muted" data-b3d="place-done">@L.Resource("World3D_PlaceDone")</p>
+                            @if (_placeLastKey is { } placedKey) { @PlacementWarnings(placedKey) }
                             @IssueList(LastPlaceIssues, "place-issues")
                         }
                     }
@@ -467,6 +480,7 @@
                         <dl class="b3d-fields">
                             <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Describe(copy.After)</dd>
                         </dl>
+                        @PlacementWarnings(copy.NewKey)
                         <button type="button" class="wt-btn wt-plain" data-b3d="revert-copy" @onclick="() => RevertDuplicationAsync(copy.DuplicationId)">@L.Resource("World3D_RevertCopy")</button>
                         @* A new object can be wired up before SAVE: it and its outlets are written first. *@
                         @PowerCard(copy.NewKey)
@@ -480,6 +494,11 @@
                 {
                     var current = Session.CurrentPlacedTransform(obj.Key) ?? obj.Transform;
                     <strong class="b3d-title">@Base3DScene.LabelOf(obj)</strong>
+                    @PlacementWarnings(obj.Key)
+                    @if (_moveOptIn && Session.IsPlacedTransformStaged(obj.Key) && CheckOf(obj.Key) is { LevelLoaded: true })
+                    {
+                        <button type="button" class="wt-btn wt-plain" data-b3d="stand-on-floor" @onclick="() => StandOnFloorAsync(obj.Key)">@L.Resource("World3D_StandOnFloor")</button>
+                    }
                     <dl class="b3d-fields">
                         <dt>@L.Resource("World3D_Class")</dt><dd>@(obj.ClassName ?? "-")</dd>
                         <dt>@L.Resource("World3D_Origin")</dt><dd>@(obj.DeployedByPlayer == true ? L.Resource("World3D_OriginPlayer") : L.Resource("World3D_OriginLevel"))</dd>
@@ -828,6 +847,13 @@
     private static readonly string[] StableDoorStates = [DoorClosed, "E_DoorStates::NewEnumerator1", "E_DoorStates::NewEnumerator2"];
     private bool _doorsOn = true;
     private bool _doorsDirty = true;
+    private string? _doorStamp, _npcStamp;
+
+    private string DoorStateStamp()
+        => string.Join('|', Session.Doors.Select(d => d.Id + "=" + d.DoorState + "/" + d.IsDoorOpen));
+
+    private string NpcStateStamp()
+        => string.Join('|', Session.Npcs.Select(n => n.Id + "=" + n.IsDead + "/" + n.X + "," + n.Y + "," + n.Z));
     private int _doorsToken;
     private string? _doorsNote;
     private string? _selectedDoorId;
@@ -866,7 +892,8 @@
     /// </summary>
     private async Task PushDoorsAsync()
     {
-        if (_view is null) return;
+        // Door positions come from the installed game's level files, which the browser does not have.
+        if (_view is null || InBrowser) return;
         var token = ++_doorsToken;
         var doors = Session.Doors;
         var markers = new List<object>();
@@ -998,8 +1025,11 @@
         _ = InvokeAsync(() =>
         {
             SyncFromSession();
-            _doorsDirty = true;
-            _npcsDirty = true;
+            // Markers are resent only when what they show changed (any workspace edit raises this).
+            var doorState = DoorStateStamp();
+            if (doorState != _doorStamp) { _doorStamp = doorState; _doorsDirty = true; }
+            var npcState = NpcStateStamp();
+            if (npcState != _npcStamp) { _npcStamp = npcState; _npcsDirty = true; }
             StateHasChanged();
         });
     }
@@ -1100,17 +1130,60 @@
         }
     }
 
+    /// <summary>The objects last sent to the viewer, so a move or turn can be sent on its own.</summary>
+    private IReadOnlyList<Base3DObject>? _sentObjects;
+    private int[]? _sentVisible;
+
+    /// <summary>
+    /// When the scene differs from what the viewer has only in where some objects stand (a move or a turn),
+    /// the changed objects are updated in place instead of resending and rebuilding the whole scene.
+    /// Null when anything else changed (objects added, removed, marked or repainted).
+    /// </summary>
+    private List<Base3DObject>? MovedSinceLastPush()
+    {
+        if (_sentObjects is not { } sent || sent.Count != _scene.Objects.Count) return null;
+        var moved = new List<Base3DObject>();
+        for (var i = 0; i < sent.Count; i++)
+        {
+            var (a, b) = (sent[i], _scene.Objects[i]);
+            if (a.Key != b.Key || a.Cat != b.Cat || a.Mark != b.Mark || a.Cls != b.Cls || a.Variant != b.Variant
+                || a.Paint != b.Paint || a.Label != b.Label || !a.S.AsSpan().SequenceEqual(b.S)) return null;
+            if (!a.P.AsSpan().SequenceEqual(b.P) || !a.Q.AsSpan().SequenceEqual(b.Q)) moved.Add(b);
+        }
+        return moved;
+    }
+
     private async Task PushSceneAsync()
     {
         if (_view is null) return;
+        if (MovedSinceLastPush() is { } moved && moved.Count <= 200)
+        {
+            try
+            {
+                foreach (var o in moved) await _view.InvokeVoidAsync("setObjectTransform", o.Key, o.P, o.Q);
+                await PushGhostsAsync();
+                if (_sentVisible is null || !_sentVisible.AsSpan().SequenceEqual(_visible))
+                {
+                    await _view.InvokeVoidAsync("setVisible", _visible);
+                    _sentVisible = _visible;
+                }
+                _sentObjects = _scene.Objects;
+                _ = RunPlacementChecksAsync();
+            }
+            catch (JSDisconnectedException) { }
+            return;
+        }
         try
         {
             await _view.InvokeVoidAsync("setScene", _scene.Objects);
+            _sentObjects = _scene.Objects;
+            _sentVisible = _visible;
             await _view.InvokeVoidAsync("setVisible", _visible);
             await PushGhostsAsync();
             await _view.InvokeVoidAsync("setLabels", _labels);
             await _view.InvokeVoidAsync("setSelection", _selected, _selectedKey);
             await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
+            _ = RunPlacementChecksAsync();
             if (!_framedOnce && _scene.Objects.Count > 0)
             {
                 _framedOnce = true;
@@ -1170,9 +1243,12 @@
     /// Game models are on by default whenever the optional plugin can supply them; the level (slow
     /// the very first time) waits until it is asked for. A failure here only leaves the boxes.
     /// </summary>
+    /// <summary>The browser build: no game files and no model endpoints, so every piece is a box.</summary>
+    private bool InBrowser => Services.GetService(typeof(IBrowserHostMarker)) is not null;
+
     private async Task InitModelsAsync()
     {
-        if (_view is null) return;
+        if (_view is null || InBrowser) return;
         try
         {
             _modelStatus = await _view.InvokeAsync<ModelStatus>("modelStatus");
@@ -1283,6 +1359,7 @@
                 _ when total > 0 => L.Resource("World3D_LevelReadingFormat", done, total),
                 _ => L.Resource("World3D_LevelShownFormat", done),
             };
+            if (note is null && total == 0) _ = RunPlacementChecksAsync(); // the level is in: checks can see it
         }
         StateHasChanged();
         return Task.CompletedTask;
@@ -1486,7 +1563,7 @@
     {
         _filter = filter;
         _visible = _scene.Apply(_filter);
-        if (_view is not null) await _view.InvokeVoidAsync("setVisible", _visible);
+        if (_view is not null) { await _view.InvokeVoidAsync("setVisible", _visible); _sentVisible = _visible; }
     }
 
     private void ToggleCategory(PlacedObjectCategory category, bool shown)

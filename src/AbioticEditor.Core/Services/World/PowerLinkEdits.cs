@@ -323,12 +323,26 @@ public static class PowerLinkEdits
 
     /// <summary>True when <paramref name="device"/> feeds <paramref name="target"/>, directly or through a chain.</summary>
     public static bool IsUpstream(string device, string target, IReadOnlyDictionary<string, string?> plugged)
+        => IsUpstreamIn(device, target, FeedOf(plugged));
+
+    /// <summary>
+    /// Device to the device that feeds it, from a socket-to-device map. Build it once and use the
+    /// <see cref="IsUpstreamIn"/> when
+    /// checking many devices against the same state.
+    /// </summary>
+    public static Dictionary<string, string> FeedOf(IReadOnlyDictionary<string, string?> plugged)
     {
         var feedOf = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (socket, p) in plugged)
         {
             if (p is not null && PlacedGroupReferenceAnalyzer.OwnerKeyOf(socket) is { } owner) feedOf.TryAdd(p, owner);
         }
+        return feedOf;
+    }
+
+    /// <summary>True when <paramref name="device"/> feeds <paramref name="target"/>, directly or through other devices.</summary>
+    public static bool IsUpstreamIn(string device, string target, IReadOnlyDictionary<string, string> feedOf)
+    {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var at = target; feedOf.TryGetValue(at, out var up) && seen.Add(at); at = up)
         {

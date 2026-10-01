@@ -4665,4 +4665,12 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_RouteClear" xml:space="preserve"><value>Clear route points</value></data>
   <data name="World3D_RouteNoReroute" xml:space="preserve"><value>No cable reroute is built in this world yet, so there is nothing to copy. Build one in the game (it is made from scrap), or place one from another world first.</value></data>
   <data name="World3D_RouteNeedsPoints" xml:space="preserve"><value>This outlet has no place in this save (a wall socket), so add route points where the cable should run.</value></data>
+  <data name="World3D_CheckInside" xml:space="preserve"><value>This piece cuts into a wall, floor or other part of the level. The game will place it there anyway.</value></data>
+  <data name="World3D_CheckOverlapsFormat" xml:space="preserve"><value>It overlaps {0}.</value></data>
+  <data name="World3D_CheckFloatingFormat" xml:space="preserve"><value>Nothing holds it up: it floats {0} m above the floor.</value></data>
+  <data name="World3D_CheckNothingBelow" xml:space="preserve"><value>Nothing holds it up: there is no floor under it nearby.</value></data>
+  <data name="World3D_CheckNeedsLevel" xml:space="preserve"><value>Turn on the level to check walls and floors too.</value></data>
+  <data name="World3D_StandOnFloor" xml:space="preserve"><value>Stand it on the floor</value></data>
+  <data name="World3D_PlaceOnFloor" xml:space="preserve"><value>Stand it on the floor under the spot</value></data>
+  <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box: the game's own models, the surrounding level, doors and characters need the desktop app with the Game Models plugin, which reads your installed game.</value></data>
 </root>

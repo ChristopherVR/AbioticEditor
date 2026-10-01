@@ -52,6 +52,11 @@ the cable through cable reroutes** before you press **PLUG**. The editor places 
 the way (every 4 m, or on the points you add where the view is looking) and plugs them one into the
 next.
 
+Pieces you move, copy or place are checked against the level: the view warns when one cuts into a
+wall or floor, overlaps another piece, or has nothing holding it up, and **Stand it on the floor**
+drops it onto the floor below. The browser version of the editor has the 3D view too, with every
+piece drawn as a box (the game's models need the desktop app and this plugin).
+
 ## Use and manage plugins
 
 Open **Settings ▸ Plugins ▸ Manage Plugins**. You can see each plugin's name, author, source, and whether it loaded. From there you can enable or disable it, run its save operation against the open save, or open a panel it provides. Plugin menu actions also appear in the top-level **Plugins** menu.

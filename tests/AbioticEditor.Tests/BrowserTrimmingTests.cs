@@ -87,14 +87,20 @@ public sealed class BrowserTrimmingTests
             Path.Combine(root, "src", "AbioticEditor.Web.Wasm", "Program.cs"));
 
         var componentsDir = Path.Combine(root, "src", "AbioticEditor.Web.Shared", "Components");
+        // Both forms: "@inject X" in markup and "[Inject] ... X Name" in code-behind (.razor.cs).
         var injected = Directory
             .EnumerateFiles(componentsDir, "*.razor", SearchOption.AllDirectories)
             .SelectMany(file => System.Text.RegularExpressions.Regex
                 .Matches(File.ReadAllText(file), @"@inject\s+([\w.]+)\s")
                 .Select(match => match.Groups[1].Value))
+            .Concat(Directory
+                .EnumerateFiles(componentsDir, "*.razor.cs", SearchOption.AllDirectories)
+                .SelectMany(file => System.Text.RegularExpressions.Regex
+                    .Matches(File.ReadAllText(file), @"\[Inject\]\s*(?:(?:private|public|protected|internal|required)\s+)*([\w.]+)\s+\w+\s*\{")
+                    .Select(match => match.Groups[1].Value)))
             .Select(name => name[(name.LastIndexOf('.') + 1)..])
             // Blazor registers these itself, so a host never lists them.
-            .Where(name => name is not ("NavigationManager" or "IJSRuntime" or "HttpClient"))
+            .Where(name => name is not ("NavigationManager" or "IJSRuntime" or "HttpClient" or "IServiceProvider"))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();

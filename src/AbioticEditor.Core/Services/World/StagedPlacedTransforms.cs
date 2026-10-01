@@ -110,6 +110,21 @@ public sealed class StagedPlacedTransforms
         };
     }
 
+    /// <summary>
+    /// <paramref name="saved"/> (an object's saved transform, already looked up by the caller) with its
+    /// staged edit applied. The cheap form of <see cref="Current(WorldSaveData, string)"/> for callers that
+    /// keep their own index of saved transforms.
+    /// </summary>
+    public PlacedObjectTransform? Current(PlacedObjectTransform? saved, string key)
+    {
+        if (saved is null || !_pending.TryGetValue(key, out var s)) return saved;
+        return saved with
+        {
+            Translation = s.Translation ?? saved.Translation,
+            Rotation = s.Rotation ?? saved.Rotation,
+        };
+    }
+
     private static PlacedObjectTransform? SavedTransform(WorldSaveData data, string key)
         => WorldMapAccessor.FindEntry(data.Raw, "DeployedObjectMap", key) is { } props
             ? PlacedObjectCensus.ReadTransform(props)

@@ -423,15 +423,16 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
-    public void The_3d_view_is_a_switch_inside_the_bases_tab_offered_only_with_the_models_plugin()
+    public void The_3d_view_is_a_switch_inside_the_bases_tab_offered_with_the_models_plugin_or_in_the_browser()
     {
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("<WorldBases3DTab", surface, StringComparison.Ordinal);
         Assert.Contains("<WorldBasesTab", surface, StringComparison.Ordinal);
-        // No separate world tab and no settings opt-in: the view comes with the optional plugin.
+        // No separate world tab and no settings opt-in: the view comes with the optional plugin
+        // (and in the browser build, with boxes).
         Assert.DoesNotContain("\"bases3d\"", surface, StringComparison.Ordinal);
         Assert.DoesNotContain("Enable3DBaseView", surface, StringComparison.Ordinal);
-        Assert.Contains("ThreeDView=\"@(GameModelsAvailable ?", surface, StringComparison.Ordinal);
+        Assert.Contains("ThreeDView=\"@(ThreeDViewAvailable ?", surface, StringComparison.Ordinal);
         Assert.Contains("SceneModelHostService", surface, StringComparison.Ordinal);
         Assert.DoesNotContain("Enable3DBaseView", UiSource.ReadAllText("Components", "Pages", "Settings.razor"), StringComparison.Ordinal);
 
@@ -632,6 +633,41 @@ public sealed class Base3DViewerTests
         Assert.Contains("OnOpenTab.InvokeAsync(npc.IsPet ? \"pets\" : \"npcs\")", tab, StringComparison.Ordinal);
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("OnOpenTab=\"OpenWorldTab\"", surface, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Moved_copied_and_placed_pieces_are_checked_for_walls_overlaps_and_support()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("checkPlacement(keys)", js, StringComparison.Ordinal);
+        Assert.Contains("floorAt(point)", js, StringComparison.Ordinal);
+        Assert.Contains("const SUPPORT_REACH_M", js, StringComparison.Ordinal); // a wall lamp or ceiling hook counts as held up
+        var checks = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Checks.razor.cs");
+        Assert.Contains("Session.StagedPlacedTransforms", checks, StringComparison.Ordinal); // moved pieces
+        Assert.Contains("Duplications", checks, StringComparison.Ordinal);                     // copies and placed pieces
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("@PlacementWarnings(obj.Key)", tab, StringComparison.Ordinal);
+        Assert.Contains("@PlacementWarnings(copy.NewKey)", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"place-on-floor\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"stand-on-floor\"", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_browser_build_offers_the_3D_view_with_boxes_and_never_asks_for_models()
+    {
+        var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
+        Assert.Contains("private bool ThreeDViewAvailable => IsBrowserHost || GameModelsAvailable;", surface, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("if (_view is null || InBrowser) return;", tab, StringComparison.Ordinal); // no model status request
+        Assert.Contains("World3D_ModelsBrowser", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_move_only_updates_the_moved_pieces_in_the_viewer()
+    {
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("MovedSinceLastPush()", tab, StringComparison.Ordinal);
+        Assert.Contains("\"setObjectTransform\", o.Key, o.P, o.Q", tab, StringComparison.Ordinal);
     }
 
     [Fact]

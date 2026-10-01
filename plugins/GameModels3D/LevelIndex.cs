@@ -46,6 +46,14 @@ internal sealed class LevelIndexData
     public HashSet<int> DoorOpenInward { get; init; } = [];
     public HashSet<int> DoorOpenOutward { get; init; } = [];
 
+    private bool[]? _hlodMeshes;
+
+    /// <summary>
+    /// Per mesh: a hand-placed hierarchical LOD stand-in (the game keeps them in HLOD folders), which is
+    /// never drawn near a base. Worked out once per map instead of per entry and query.
+    /// </summary>
+    public bool[] HlodMeshes => _hlodMeshes ??= Meshes.Select(m => m.Contains("/HLOD/", StringComparison.OrdinalIgnoreCase)).ToArray();
+
     /// <summary>World-space box around every entry's bounding sphere (cm).</summary>
     public Vector3 Min { get; set; }
     public Vector3 Max { get; set; }

@@ -74,7 +74,10 @@ public sealed partial class WorldSaveSession
     public IReadOnlyCollection<StagedTransform> StagedPlacedTransforms => _placedTransforms.Pending;
 
     /// <summary>The object's transform with its staged edit applied (or the saved one), or null when it has none.</summary>
-    public PlacedObjectTransform? CurrentPlacedTransform(string key) => _placedTransforms.Current(_data, key);
+    public PlacedObjectTransform? CurrentPlacedTransform(string key)
+        // The census row holds the saved transform (a dictionary lookup); scanning the save's object map for
+        // every object made each 3D scene build quadratic in the number of objects.
+        => FindPlacedObject(key) is { } row ? _placedTransforms.Current(row.Transform, key) : _placedTransforms.Current(_data, key);
 
     /// <summary>True when <paramref name="key"/> has a staged edit.</summary>
     public bool IsPlacedTransformStaged(string key) => _placedTransforms.Pending.Any(p => string.Equals(p.Key, key, StringComparison.Ordinal));

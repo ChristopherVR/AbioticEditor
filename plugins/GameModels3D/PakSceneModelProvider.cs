@@ -345,7 +345,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
                 if (e.Radius > MaxPieceRadiusCm || Vector3.DistanceSquared(closest, e.Centre) > e.Radius * e.Radius) continue;
                 // Hand-placed hierarchical LOD meshes (the game keeps them in HLOD folders) are
                 // merged stand-ins for far away; up close they cover the real level.
-                if (index.Meshes[e.Mesh].Contains("/HLOD/", StringComparison.OrdinalIgnoreCase)) continue;
+                if (index.HlodMeshes[e.Mesh]) continue;
                 if (excluded.Contains(index.Actors[e.Actor])) continue;
                 inBox.Add((index, e, MathF.Max(0, Vector3.Distance(e.Centre, centre) - e.Radius)));
             }

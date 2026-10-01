@@ -86,7 +86,7 @@
                 else if (_worldTab == "npcs") { <WorldNpcsTab Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "pets") { <WorldPetsTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" OnError="WorldError" /> }
                 else if (_worldTab == "vehicles") { <WorldVehiclesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" /> }
-                else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" PlayerPosition="@SelectedPlayerPosition" ThreeDView="@(GameModelsAvailable ? ThreeDBases(world, workspace.SelectedSave!.Name) : null)" /> }
+                else if (_worldTab == "bases") { <WorldBasesTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" PlayerPosition="@SelectedPlayerPosition" ThreeDView="@(ThreeDViewAvailable ? ThreeDBases(world, workspace.SelectedSave!.Name) : null)" /> }
                 else if (_worldTab == "story") { <WorldStoryTab Title="@workspace.SelectedSave!.Name" Session="@world" Flags="@world" OnError="WorldError" /> }
                 else if (_worldTab == "traders") { <WorldTradersTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "containment") { <WorldContainmentTab Title="@workspace.SelectedSave!.Name" Session="@world" FileSession="@world" OnError="WorldError" /> }
@@ -209,10 +209,13 @@
     private string? _error;
     private const string PowerSocketsFeatureId = "power-sockets";
     /// <summary>
-    /// The 3D base view is offered (as a switch inside the Bases tab) only when the optional game
-    /// models plugin is installed and can read the game. The service exists only in the desktop
-    /// host; the browser build never offers the view.
+    /// The 3D base view is offered (as a switch inside the Bases tab) on the desktop when the optional
+    /// game models plugin is installed and can read the game, and always in the browser build. The
+    /// browser has no game files, so there it draws every piece as a box (no level, doors or
+    /// characters), which still covers moving, copying, placing and wiring pieces up.
     /// </summary>
+    private bool ThreeDViewAvailable => IsBrowserHost || GameModelsAvailable;
+    private bool IsBrowserHost => Services.GetService(typeof(IBrowserHostMarker)) is not null;
     private bool GameModelsAvailable => _gameModelsAvailable ??= (Services.GetService(typeof(SceneModelHostService)) as SceneModelHostService)?.Status().Available == true;
     private bool? _gameModelsAvailable;
 

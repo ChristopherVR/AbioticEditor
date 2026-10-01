@@ -1,5 +1,44 @@
 # Abiotic Editor - Session history
 
+## Round-144: placement checks, 3D in the browser build, performance (2026-10-02)
+
+- **Placement checks.** The game places a piece exactly where written and never checks that it fits.
+  The viewer now checks every staged move, copy and placed piece (`checkPlacement` in base3d.js,
+  `WorldBases3DTab.Checks.razor.cs`): segments across the piece's footprint at two heights against the
+  level (cuts into a wall or floor), its model box against other pieces' boxes shrunk to 75% (overlaps,
+  so a lamp on a desk does not count), and support (something solid within 0.35 m below, above or
+  beside it, so wall lamps and ceiling hooks count as held up). Warnings show in the inspector and the
+  place panel; walls and support need the level loaded. "Stand it on the floor" (default on) puts a
+  placed piece on the floor under the spot (`floorAt`); moved pieces get a "Stand it on the floor"
+  button. Headless on Cascade with the level: a crate on the floor had no warning (snapped to Z 10); at
+  Z 400 "floats 2.7 m above the floor"; at a wall lamp's spot "cuts into a wall" and "overlaps Lamp
+  Wall Crafted".
+- **3D view in the browser build.** The Bases tab's 3D switch was hidden there because the model
+  service (plugin hosting) is desktop only. It is now offered whenever the host is the browser
+  (`IBrowserHostMarker`): every piece is a box, with no level, doors or lamps (no game files), and the
+  tab never asks for the model endpoints (no 404s). Moving, copying, placing and wiring work as on the
+  desktop. Checked with a local `dotnet publish` of `AbioticEditor.Web.Wasm` served statically and
+  Playwright (folder opened through the `webkitdirectory` fallback): Chrissie's 158 objects drawn, a
+  piece placed with its POWER card, no console errors. `BrowserHost_RegistersEveryServiceTheSharedScreensInject`
+  now also scans `[Inject]` in code-behind files.
+- **Performance** (measured on Cascade, 937 objects, before -> after):
+  - Scene build after an edit 68 ms -> 1 ms: `CurrentPlacedTransform` reads the census row's saved
+    transform (a dictionary lookup) plus the staged overlay (`StagedPlacedTransforms.Current(saved, key)`),
+    instead of scanning `DeployedObjectMap` for every object.
+  - POWER card queries 469 ms -> 53 ms for three renders: one power snapshot per edit revision
+    (classes, plugged map, feed map, outlet digits, staged new objects) shared by every `Power*` helper;
+    loop checks use a feed map built once (`PowerLinkEdits.FeedOf` + `IsUpstreamIn`) instead of per candidate.
+  - A move or turn updates only the moved pieces in the viewer (`MovedSinceLastPush` ->
+    `setObjectTransform`), no full `setScene` rebuild; visibility is resent only when it changed.
+  - Labels sort the nearest objects only when the camera moved over a metre (not every frame).
+  - Door and character markers are resent only when their state changed.
+  - Place lists cached per revision; level queries precompute HLOD flags per map; SAVE shares a donor
+    between copy groups when none of their sources overlap (routes still get one per reroute, since a
+    build takes the donor's entry).
+- Tests: `Moved_copied_and_placed_pieces_are_checked_for_walls_overlaps_and_support`,
+  `The_browser_build_offers_the_3D_view_with_boxes_and_never_asks_for_models`,
+  `A_move_only_updates_the_moved_pieces_in_the_viewer`.
+
 ## Round-143: wire up new objects before SAVE, lay cable routes (2026-10-01)
 
 - **New objects can be wired before SAVE.** Power planning (`PowerLinkEdits.Plan`) now takes the

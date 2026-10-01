@@ -19,6 +19,8 @@ public partial class WorldBases3DTab
     private string _placeX = "", _placeY = "", _placeZ = "", _placeYaw = "0";
     private string? _placeError;
     private int? _placeLastId;
+    private string? _placeLastKey;
+    private bool _placeOnFloor = true;
 
     private bool _placeScanning;
     private const string OtherWorldPrefix = "world|";
@@ -28,15 +30,23 @@ public partial class WorldBases3DTab
     {
         get
         {
+            // Asked several times per render; computed once per state of the save and the edits.
+            var stamp = (Session.PlacedObjects, Session.PlacedTransformsRevision, Session.OtherWorldKinds);
+            if (_otherKindsCache is { } cached && cached.Stamp.Equals(stamp)) return cached.Kinds;
             var here = PlaceKinds.Select(k => k.ClassPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            return Session.OtherWorldKinds
+            var kinds = Session.OtherWorldKinds
                 .Where(k => !here.Contains(k.ClassPath))
                 .GroupBy(k => k.ClassPath, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.OrderByDescending(k => k.Count).First())
                 .OrderBy(k => Base3DScene.FriendlyClass(k.ClassName), StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
+            _otherKindsCache = (stamp, kinds);
+            return kinds;
         }
     }
+
+    private ((IReadOnlyList<PlacedObjectSummary>, int, IReadOnlyList<WorldSaveSession.OtherWorldKind>) Stamp, List<WorldSaveSession.OtherWorldKind> Kinds)? _otherKindsCache;
+    private ((IReadOnlyList<PlacedObjectSummary>, int) Stamp, IReadOnlyList<Base3DPlaceKind> Kinds)? _placeKindsCache;
 
     private static string OtherKindValue(WorldSaveSession.OtherWorldKind k) => OtherWorldPrefix + k.World + "|" + k.ClassPath;
 
@@ -50,7 +60,16 @@ public partial class WorldBases3DTab
     }
 
     private IReadOnlyList<Base3DPlaceKind> PlaceKinds
-        => Base3DScene.PlaceKinds(Session.PlacedObjects, Session.StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal));
+    {
+        get
+        {
+            var stamp = (Session.PlacedObjects, Session.PlacedTransformsRevision);
+            if (_placeKindsCache is { } cached && cached.Stamp.Equals(stamp)) return cached.Kinds;
+            var kinds = Base3DScene.PlaceKinds(Session.PlacedObjects, Session.StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal));
+            _placeKindsCache = (stamp, kinds);
+            return kinds;
+        }
+    }
 
     private async Task OpenPlaceAsync()
     {
@@ -101,6 +120,8 @@ public partial class WorldBases3DTab
             _placeError = L.Resource("World3D_InvalidNumber");
             return;
         }
+        // Stand it on the floor under the spot (the view's level), unless asked not to.
+        if (_placeOnFloor && await FloorUnderAsync(new PlacedVector(x, y, z)) is { } floor) z = floor;
         var staged = other is not null
             ? await Session.StagePlacedImportAsync(other, new PlacedVector(x, y, z), yaw)
             : Session.StagePlacedNew(kind!.DonorKey, new PlacedVector(x, y, z), yaw);
@@ -111,7 +132,8 @@ public partial class WorldBases3DTab
         }
         _placeLastId = staged.Id;
         await AfterEditAsync(PlacedTransformStageResult.Ok);
-        if (staged.NewKeys.Values.FirstOrDefault() is { } newKey) await SetSelectionAsync([newKey], newKey, frame: false);
+        _placeLastKey = staged.NewKeys.Values.FirstOrDefault();
+        if (_placeLastKey is { } newKey) await SetSelectionAsync([newKey], newKey, frame: false);
     }
 
     /// <summary>The findings for the object just placed (empty until one is placed).</summary>
