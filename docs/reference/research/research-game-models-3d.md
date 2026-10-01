@@ -149,7 +149,8 @@ direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep
 
 ## Not covered
 
-Anim-blueprint poses (rest pose is drawn) and lights. ACL-compressed poses need CUE4Parse's
+Animation-blueprint characters rest in the blueprint's idle animation (the graph is not run).
+Level lamps are drawn (nearest 12 as real lights). ACL-compressed poses need CUE4Parse's
 native decoder, which ships inside the plugin's release zip (`NativeDecoder` loads it from the
 plugin folder); a build from source without it draws the rest pose.
 Open lids are not saved by the game. Crops in garden plots are

@@ -123,7 +123,8 @@ export function createView(host, dotnet) {
     scene.background = new THREE.Color(0x101418);
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 5000);
     camera.position.set(30, 30, 30);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.6));
+    const ambient = new THREE.HemisphereLight(0xffffff, 0x334455, 1.6);
+    scene.add(ambient);
     const sun = new THREE.DirectionalLight(0xffffff, 1.4);
     sun.position.set(0.4, 1, 0.6);
     scene.add(sun);
@@ -291,6 +292,69 @@ export function createView(host, dotnet) {
     let modelRebuildQueued = false;
     let fetchActive = 0;
     const fetchWaiting = [];
+
+    // The level's own lamps (point, spot and rectangle lights): the nearest few become real lights,
+    // every one gets a soft glow. Their count changes the shaders, so it only changes on a level load.
+    const lampGroup = new THREE.Group();
+    scene.add(lampGroup);
+    const MAX_LIVE_LAMPS = 12;
+    const LAMP_CANDELA = 3; // a default engine lamp, in the view's physical light units
+    let lampsOn = true;
+    const glowTexture = (() => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 64;
+        const g = c.getContext("2d");
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.25, "rgba(255,255,255,0.55)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+    })();
+
+    function clearLamps() {
+        for (const child of [...lampGroup.children]) {
+            lampGroup.remove(child);
+            if (child.isSprite) child.material.dispose();
+            if (child.isLight) child.dispose();
+        }
+    }
+
+    function setLamps(list) {
+        clearLamps();
+        const lamps = list ?? [];
+        lamps.forEach((l, i) => {
+            const colour = new THREE.Color(l.color[0], l.color[1], l.color[2]);
+            const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture, color: colour, blending: THREE.AdditiveBlending,
+                depthWrite: false, transparent: true, opacity: Math.min(0.9, 0.35 + 0.15 * l.brightness) }));
+            glow.position.set(l.position[0], l.position[1], l.position[2]);
+            const size = Math.min(1.6, 0.35 + 0.25 * Math.sqrt(Math.max(0, l.brightness)));
+            glow.scale.set(size, size, 1);
+            glow.userData.lamp = true;
+            lampGroup.add(glow);
+            if (i >= MAX_LIVE_LAMPS) return;
+            const intensity = Math.min(20, LAMP_CANDELA * Math.max(0, l.brightness));
+            const range = Math.max(2, l.rangeMetres || 10);
+            let light;
+            if (l.direction) {
+                const cone = l.coneDegrees ?? 75;
+                light = new THREE.SpotLight(colour, intensity, range, THREE.MathUtils.degToRad(Math.min(85, Math.max(5, cone))), 0.5, 2);
+                light.target.position.set(l.position[0] + l.direction[0], l.position[1] + l.direction[1], l.position[2] + l.direction[2]);
+                lampGroup.add(light.target);
+            } else {
+                light = new THREE.PointLight(colour, intensity, range, 2);
+            }
+            light.position.set(l.position[0], l.position[1], l.position[2]);
+            lampGroup.add(light);
+        });
+        lampGroup.visible = lampsOn;
+        // Lit by its own lamps, the level needs less of the flat fill light.
+        ambient.intensity = lampsOn && lamps.length ? 1.35 : 1.6;
+        updateLevelCut();
+    }
 
     // Level geometry around the camera target (context only: never picked or edited).
     const levelGroup = new THREE.Group();
@@ -801,6 +865,8 @@ export function createView(host, dotnet) {
             child.dispose();
         }
         levelInstances = 0;
+        clearLamps();
+        ambient.intensity = 1.6;
     }
 
     /** Height (viewer Y) above which the level is cut away, so ceilings and upper floors do not hide the base. */
@@ -810,6 +876,8 @@ export function createView(host, dotnet) {
         } else {
             levelClip.constant = baseFloor(levelCentre ?? controls.target) + levelOptions.cutAbove;
         }
+        // A lamp's glow above the cut would float where its (cut away) fixture was; its light still falls below.
+        for (const child of lampGroup.children) if (child.isSprite) child.visible = child.position.y <= levelClip.constant;
         requestRender();
     }
 
@@ -853,6 +921,7 @@ export function createView(host, dotnet) {
                 max: [c.x + r, c.y + r / 2, c.z + r],
                 maxInstances: LEVEL_MAX_INSTANCES,
                 excludeActors: levelOptions.excludeActors ?? [],
+                openDoors: levelOptions.openDoors ?? [],
             });
         } catch {
             if (token === levelToken) report("level", 0, 0, "error");
@@ -896,6 +965,7 @@ export function createView(host, dotnet) {
             levelGroup.add(mesh);
             levelInstances += mesh.count;
         }
+        setLamps(slice.lights);
         if (grid) grid.visible = built.length === 0;
         updateLevelCut();
         report("level", slice.totalInBox ?? levelInstances, slice.pendingMaps ?? 0, slice.note ?? null);
@@ -1352,6 +1422,13 @@ export function createView(host, dotnet) {
             levelOptions = { ...levelOptions, ...(options ?? {}) };
             loadLevel();
         },
+        /** Shows or hides the level's lamps (their light and glow). */
+        setLampsVisible(on) {
+            lampsOn = !!on;
+            lampGroup.visible = lampsOn;
+            ambient.intensity = lampsOn && lampGroup.children.some(c => c.isLight) ? 1.35 : 1.6;
+            requestRender();
+        },
         /** Reloads the level geometry around the current view centre. */
         reloadLevel() { loadLevel(); },
         /** Moves the ceiling cut without reloading (metres above the base floor; 0 or null = no cut). */
@@ -1489,6 +1566,13 @@ export function createView(host, dotnet) {
             controls.update();
             requestRender();
         },
+        /** Points the camera at a viewer-space point from a given viewer-space offset (metres). Used by UI tests. */
+        lookFrom(point, offset) {
+            controls.target.set(point[0], point[1], point[2]);
+            camera.position.set(point[0] + offset[0], point[1] + offset[1], point[2] + offset[2]);
+            controls.update();
+            requestRender();
+        },
         /** Screen position (CSS pixels relative to the page) of an object's origin, or null. Used by UI tests. */
         screenPositionOf(key) {
             const idx = keyToIndex.get(key);
@@ -1530,6 +1614,8 @@ export function createView(host, dotnet) {
                 levelMeshes: levelGroup.children.length,
                 cables: cableGroup.children.reduce((n, c) => n + c.geometry.attributes.position.count / 2, 0),
                 levelInstances,
+                lamps: lampGroup.children.filter(c => c.isSprite).length,
+                liveLamps: lampGroup.children.filter(c => c.isLight).length,
                 doors: doorLayer.items.length,
                 selectedDoor: doorLayer.selected,
                 npcs: npcLayer.items.length,
@@ -1541,6 +1627,8 @@ export function createView(host, dotnet) {
             disposed = true;
             window.removeEventListener("keydown", onWalkKeyDown);
             window.removeEventListener("keyup", onWalkKeyUp);
+            clearLamps();
+            glowTexture.dispose();
             doorLayer.dispose();
             npcLayer.dispose();
             clearTimeout(levelRetry);

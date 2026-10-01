@@ -1,5 +1,38 @@
 # Abiotic Editor - Session history
 
+## Round-140: blueprint-posed characters, level lamps, open doorways (2026-10-01)
+
+- **Animation-blueprint poses.** 1,329 level skeletal meshes had a mesh but no pose: 262 story
+  characters (`ABF_NarrativeNPC_AnimBP`), 31 Anteverse bugs, 16 hexed trees and the body parts that
+  follow them (most of the 1,005 with no `AnimClass` of their own have a `LeaderPoseComponent`). The
+  graph is not run; the blueprint's default object holds its player nodes
+  (`AnimGraphNode_SequencePlayer.Sequence`, `AnimGraphNode_RandomPlayer.Entries[].Sequence`,
+  `AnimGraphNode_BlendSpacePlayer.BlendSpace`), and `AnimBlueprintPose` picks the resting one: a
+  sequence named Idle (not Alert), else a walk or run blend space's sample nearest zero, else the first
+  sequence. `PoseBaker.PoseOf` uses it at every step of the leader chain. Unposed left: 47 (forklifts,
+  security carts, T1 robots, a turret, a security door). Index format 10. Headless: Office1's story
+  characters stand in `Anim_Player_Idlert` instead of a T-pose.
+- **Level lamps.** Point, spot and rect light components are indexed (`LevelLight`: position, linear
+  colour, brightness relative to the engine default, attenuation radius, spot direction and cone) and
+  returned with a level slice (`SceneLevelSlice.Lights`, an init property so plugin code built against
+  the SDK keeps working; nearest 48). The viewer turns the nearest 12 into Three.js point/spot lights
+  (3 cd per default lamp, decay 2, its own range) and every one into an additive glow sprite; glows
+  above the ceiling cut are hidden (their light still falls below); the fill light drops from 1.6 to
+  1.35 while lamps are lit. "Light the level with its own lamps" toggles them. Office1: 48 lamps, 12
+  live. Index format 11.
+- **Open doorways.** The level draws every door closed. The door blueprints (simple and security)
+  keep the moving leaf in `DoorMesh` (editor previews are hidden in game); the index marks those
+  entries (`DoorLeaves`, format 12) and `SceneLevelQuery.OpenDoors` (`Map:Actor`, init property)
+  leaves them out. The 3D tab sends the save's open doors (simple: Open or Opening; security:
+  `IsDoorOpen`) and reloads the level after a door edit, so a door opened from its card opens in the
+  level too and walking passes through it. Headless: Office1's blast door, saved open, shows a clear
+  doorway; closed from its card the leaf returns.
+- Tests: `Characters_driven_by_an_animation_blueprint_rest_in_its_idle_animation`,
+  `The_levels_lamps_and_door_leaves_are_indexed_and_open_doors_leave_their_doorway_clear`.
+- Still not drawn: the terrain's fifth slot (`Quinary`: no paint layer feeds it, presumably mixed by
+  height or slope inside the material graph, which cooking strips). An open simple door is shown as an
+  empty doorway, not swung (the swing direction is decided at run time).
+
 ## Round-139: base edits checked in the running game, walking collides, kinds from other worlds (2026-10-01)
 
 - **ACL poses.** The repo turns CUE4Parse's native build off (`submodules/Directory.Build.targets`,
@@ -266,7 +299,7 @@
 
 ### Open issues to keep in view (round 137)
 
-- Not drawn: poses from anim blueprints (ACL-compressed poses: round 139); the
+- Not drawn (anim-blueprint poses: round 140; ACL poses: round 139): the
   terrain's fifth slot (`Quinary`, no paint layer feeds it).
 - The Nexus optional file for the plugin needs a file entry on the mod page and the
   `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.

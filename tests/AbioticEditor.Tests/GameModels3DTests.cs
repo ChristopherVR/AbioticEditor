@@ -490,6 +490,60 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void Characters_driven_by_an_animation_blueprint_rest_in_its_idle_animation()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        var (posed, idle) = assets.UseFileProvider(p =>
+        {
+            if (!p.TryLoadPackage("AbioticFactor/Content/Maps/Facility_Office1.umap", out var pkg)) return (0, 0);
+            int count = 0, idles = 0;
+            foreach (var e in pkg.GetExports())
+            {
+                if (!PoseBaker.IsSkeletalComponent(e.ExportType) || Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(e, "AnimClass", null) is not { IsNull: false }) continue;
+                if (PoseBaker.PoseOf(e) is not { } pose) continue;
+                count++;
+                if (pose.Anim.Name.Contains("Idle", StringComparison.OrdinalIgnoreCase)) idles++;
+            }
+            return (count, idles);
+        });
+        Assert.True(posed > 0, "no blueprint-driven character got a pose");
+        Assert.Equal(posed, idle); // story characters stand in the blueprint's idle, not a sit or walk
+    }
+
+    [Fact]
+    public void The_levels_lamps_and_door_leaves_are_indexed_and_open_doors_leave_their_doorway_clear()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Office1.umap"));
+        Assert.True(index.Lights.Count > 20, $"only {index.Lights.Count} lights");
+        Assert.All(index.Lights, l => Assert.True(l.Brightness > 0 && l.Radius > 0));
+        Assert.Contains(index.DoorLeaves, e => index.Actors[index.Entries[e].Actor] == "BlastDoor_C_2");
+
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-door-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var c = PlacedSceneSpace.ToViewer(new PlacedVector(-13919.5, 10986.8, 11)); // Office1's blast door, in the world
+            var box = new SceneLevelQuery("Facility_Office1", [(float)c.X - 6, (float)c.Y - 3, (float)c.Z - 6], [(float)c.X + 6, (float)c.Y + 4, (float)c.Z + 6], 20000, []);
+            provider.DescribeLevel(box);
+            provider.WaitForLevels(TimeSpan.FromMinutes(5));
+            var closed = provider.DescribeLevel(box)!;
+            var open = provider.DescribeLevel(box with { OpenDoors = ["Facility_Office1:BlastDoor_C_2"] })!;
+            Assert.True(open.TotalInBox < closed.TotalInBox, $"open {open.TotalInBox}, closed {closed.TotalInBox}");
+            Assert.NotEmpty(closed.Lights);
+            Assert.All(closed.Lights, l => Assert.Equal(3, l.Position.Length));
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Landscape_terrain_is_indexed_and_bakes_to_a_height_grid()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();

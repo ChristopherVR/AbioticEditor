@@ -13,7 +13,8 @@ namespace AbioticEditor.Plugins.GameModels3D;
 
 /// <summary>
 /// Skeletal meshes placed in a level in a pose (the game's corpses and posed people): the
-/// component plays one animation (<c>AnimationData.AnimToPlay</c>, at <c>SavedPosition</c>), or
+/// component plays one animation (<c>AnimationData.AnimToPlay</c>, at <c>SavedPosition</c>), is
+/// driven by an animation blueprint (its resting animation, <see cref="AnimBlueprintPose"/>), or
 /// copies the pose of a leader component that does (<c>LeaderPoseComponent</c>, the modular head,
 /// torso and legs of one body). The mesh is skinned on the CPU with that pose: each bone's local
 /// transform comes from the animation's track for the bone of the same name (the reference pose
@@ -51,6 +52,10 @@ internal static class PoseBaker
             var data = Props.Get<FStructFallback?>(current, "AnimationData", null);
             if (data?.GetOrDefault<FPackageIndex?>("AnimToPlay") is { IsNull: false } animIndex && animIndex.Load() is UAnimSequence anim)
                 return (anim, data.GetOrDefault("SavedPosition", 0f));
+            // Driven by an animation blueprint: the animation its graph rests in (AnimBlueprintPose).
+            if (Props.Get<FPackageIndex?>(current, "AnimClass", null) is { IsNull: false } animClass
+                && AnimBlueprintPose.RestingAnimation(animClass) is { } resting)
+                return (resting, 0f);
             current = (Props.Get<FPackageIndex?>(current, "LeaderPoseComponent", null) ?? Props.Get<FPackageIndex?>(current, "MasterPoseComponent", null))?.Load();
         }
         return null;

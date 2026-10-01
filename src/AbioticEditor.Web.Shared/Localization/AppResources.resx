@@ -4656,4 +4656,5 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_PlaceShowOtherWorlds" xml:space="preserve"><value>Also list things built in my other worlds</value></data>
   <data name="World3D_PlaceScanningOtherWorlds" xml:space="preserve"><value>Looking through your other worlds...</value></data>
   <data name="World3D_PlaceNoKindsAnywhere" xml:space="preserve"><value>Nothing you have built is saved here or in your other worlds, so there is nothing to copy from yet.</value></data>
+  <data name="World3D_LevelLamps" xml:space="preserve"><value>Light the level with its own lamps</value></data>
 </root>

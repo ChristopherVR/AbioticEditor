@@ -143,7 +143,14 @@ public sealed record SceneCrop(int Spot, string Row, int Stage);
 /// the provider can leave them out instead of drawing them twice.
 /// </param>
 public sealed record SceneLevelQuery(
-    string Region, float[] Min, float[] Max, int MaxInstances, IReadOnlyCollection<string>? ExcludeActors = null);
+    string Region, float[] Min, float[] Max, int MaxInstances, IReadOnlyCollection<string>? ExcludeActors = null)
+{
+    /// <summary>
+    /// Doors the save holds open, as <c>Map:Actor</c> (e.g. <c>Facility_Office1:BlastDoor_C_2</c>). The
+    /// level draws every door closed; for these the moving leaf is left out, so the doorway shows open.
+    /// </summary>
+    public IReadOnlyCollection<string>? OpenDoors { get; init; }
+}
 
 /// <summary>The level geometry inside a query box, batched by mesh for instanced drawing.</summary>
 /// <param name="Batches">One batch per distinct mesh and material set.</param>
@@ -153,7 +160,20 @@ public sealed record SceneLevelQuery(
 /// Level files the provider is still reading in the background. When above zero the slice is
 /// partial; the view asks again a little later.
 /// </param>
-public sealed record SceneLevelSlice(IReadOnlyList<SceneLevelBatch> Batches, int TotalInBox, string? Note = null, int PendingMaps = 0);
+public sealed record SceneLevelSlice(IReadOnlyList<SceneLevelBatch> Batches, int TotalInBox, string? Note = null, int PendingMaps = 0)
+{
+    /// <summary>The level's own lights inside the box, nearest the box centre first (empty when the provider has none).</summary>
+    public IReadOnlyList<SceneLevelLight> Lights { get; init; } = [];
+}
+
+/// <summary>One light placed in the level (a lamp's point, spot or rectangle light).</summary>
+/// <param name="Position">Viewer-space position (metres).</param>
+/// <param name="Color">Linear red, green, blue, 0 to 1.</param>
+/// <param name="Brightness">Relative brightness: 1 is the engine's default point light.</param>
+/// <param name="RangeMetres">How far the light reaches (its attenuation radius).</param>
+/// <param name="Direction">Viewer-space unit direction for a spot or rectangle light; null for a point light.</param>
+/// <param name="ConeDegrees">A spot light's outer cone half angle; null otherwise.</param>
+public sealed record SceneLevelLight(float[] Position, float[] Color, float Brightness, float RangeMetres, float[]? Direction = null, float? ConeDegrees = null);
 
 /// <summary>Many copies of one mesh in the level.</summary>
 /// <param name="Mesh">Asset id of the mesh.</param>

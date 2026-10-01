@@ -50,6 +50,8 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     /// <summary>Pieces wider than this (sky domes, distant backdrops) are left out: their bounds hold everything.</summary>
     private const float MaxPieceRadiusCm = 40000f;
+    /// <summary>Lights sent with a level slice (nearest first); the view lights only some of them.</summary>
+    private const int MaxLevelLights = 48;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -298,6 +300,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var excluded = new HashSet<string>(
             (query.ExcludeActors ?? []).Select(ActorName).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase);
 
+        var openDoors = new HashSet<string>(query.OpenDoors ?? [], StringComparer.OrdinalIgnoreCase);
         var ready = new List<LevelIndexData>();
         var pending = 0;
         foreach (var map in maps)
@@ -317,8 +320,13 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             var placement = world.Placements.TryGetValue(index.Map, out var placed) ? placed : Matrix4x4.Identity;
             var (mapMin, mapMax) = TransformBox(index.Min, index.Max, placement);
             if (!Overlaps(mapMin, mapMax, min, max)) continue;
-            foreach (var local in index.Entries)
+            var mapName = Path.GetFileNameWithoutExtension(index.Map);
+            for (var entryIndex = 0; entryIndex < index.Entries.Count; entryIndex++)
             {
+                var local = index.Entries[entryIndex];
+                // A door the save holds open: its leaf is left out, so the doorway is clear.
+                if (openDoors.Count > 0 && index.DoorLeaves.Contains(entryIndex)
+                    && openDoors.Contains(mapName + ":" + index.Actors[local.Actor])) continue;
                 var e = placement.IsIdentity ? local : local with { World = local.World * placement, Centre = Vector3.Transform(local.Centre, placement) };
                 var closest = Vector3.Clamp(e.Centre, min, max);
                 if (e.Radius > MaxPieceRadiusCm || Vector3.DistanceSquared(closest, e.Centre) > e.Radius * e.Radius) continue;
@@ -353,10 +361,34 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             batches.Add(new SceneLevelBatch(
                 $"mesh/{LevelLod}{mesh}", materials, matrices, $"{ShortName(mesh)} ({Path.GetFileNameWithoutExtension(first.Map)})"));
         }
+        // The level's lights in the box (the view lights only the nearest few).
+        var lights = new List<(SceneLevelLight Light, float Distance)>();
+        foreach (var index in ready)
+        {
+            var placement = world.Placements.TryGetValue(index.Map, out var placed) ? placed : Matrix4x4.Identity;
+            foreach (var light in index.Lights)
+            {
+                var at = Vector3.Transform(light.Position, placement);
+                if (at.X < min.X || at.Y < min.Y || at.Z < min.Z || at.X > max.X || at.Y > max.Y || at.Z > max.Z) continue;
+                if (excluded.Contains(index.Actors[light.Actor])) continue;
+                var viewer = SceneMath.PointToViewer(at);
+                float[]? direction = null;
+                if (light.Direction is { } d)
+                {
+                    var dv = Vector3.Normalize(SceneMath.PointToViewer(Vector3.TransformNormal(d, placement)));
+                    direction = [dv.X, dv.Y, dv.Z];
+                }
+                lights.Add((new SceneLevelLight([viewer.X, viewer.Y, viewer.Z], [light.Color.X, light.Color.Y, light.Color.Z],
+                    light.Brightness, light.Radius / 100f, direction, light.Cone), Vector3.Distance(at, centre)));
+            }
+        }
         var note = pending > 0
             ? $"read {ready.Count} of {maps.Count} level files"
             : $"{maps.Count} level files";
-        return new SceneLevelSlice(batches, inBox.Count, note, pending);
+        return new SceneLevelSlice(batches, inBox.Count, note, pending)
+        {
+            Lights = lights.OrderBy(l => l.Distance).Take(MaxLevelLights).Select(l => l.Light).ToList(),
+        };
     }
 
     private static (Vector3 Min, Vector3 Max) TransformBox(Vector3 boxMin, Vector3 boxMax, Matrix4x4 m)

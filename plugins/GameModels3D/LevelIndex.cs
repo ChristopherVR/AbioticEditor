@@ -19,6 +19,12 @@ namespace AbioticEditor.Plugins.GameModels3D;
 /// <param name="Radius">Bounding sphere radius (cm); 0 until the mesh's bounds are known.</param>
 internal readonly record struct LevelEntry(int Mesh, int Overrides, int Actor, Matrix4x4 World, Vector3 Centre, float Radius);
 
+/// <summary>
+/// A light placed in the level (map space, cm). <see cref="Brightness"/> is relative to the engine's
+/// default point light (Intensity 5000); <see cref="Direction"/> is set for spot and rectangle lights.
+/// </summary>
+internal readonly record struct LevelLight(Vector3 Position, Vector3 Color, float Brightness, float Radius, Vector3? Direction, float? Cone, int Actor);
+
 /// <summary>Every static mesh instance a level map draws, with string tables shared by the entries.</summary>
 internal sealed class LevelIndexData
 {
@@ -27,6 +33,10 @@ internal sealed class LevelIndexData
     public required List<string?[]> OverrideSets { get; init; }
     public required List<string> Actors { get; init; }
     public required List<LevelEntry> Entries { get; init; }
+    public List<LevelLight> Lights { get; init; } = [];
+
+    /// <summary>Entries that are a door's moving leaf (the door blueprints' <c>DoorMesh</c> component).</summary>
+    public HashSet<int> DoorLeaves { get; init; } = [];
 
     /// <summary>World-space box around every entry's bounding sphere (cm).</summary>
     public Vector3 Min { get; set; }
@@ -79,7 +89,7 @@ internal static class LevelIndex
         0, -2 * size.Y / PlaneSizeCm, 0, 0,
         1, 0, 0, 0,
         0, 0, 0, 1);
-    public const int FormatVersion = 9; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes
+    public const int FormatVersion = 12; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -156,6 +166,23 @@ internal static class LevelIndex
             foreach (var (componentIndex, component) in ComponentsOf(actor))
             {
                 if (!seen.Add(component)) continue;
+                // Lights: point, spot and rectangle lights (sky and sun lights are the view's own).
+                if (LightKind(component.ExportType) is { } lightKind)
+                {
+                    if (!Visible(component, 0) || !Props.Get(component, "bAffectsWorld", true)) continue;
+                    var intensity = Props.Get(component, "Intensity", lightKind == "Rect" ? 15f : 5000f);
+                    if (intensity <= 0) continue;
+                    var colour = Props.Get(component, "LightColor", new FColor(255, 255, 255, 255));
+                    var lightWorld = WorldOf(component, 0);
+                    Vector3? direction = lightKind == "Point" ? null : Vector3.Normalize(new Vector3(lightWorld.M11, lightWorld.M12, lightWorld.M13));
+                    float? cone = lightKind == "Spot" ? Props.Get(component, "OuterConeAngle", 44f) : null;
+                    // Units differ by kind (point/spot default 5000 unitless, rect 15 lumens-ish); scale to "1 = default lamp".
+                    var brightness = lightKind == "Rect" ? intensity / 15f : intensity / 5000f;
+                    if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
+                    data.Lights.Add(new LevelLight(lightWorld.Translation, SrgbToLinear(colour), brightness,
+                        Props.Get(component, "AttenuationRadius", 1000f), direction, cone, actorId));
+                    continue;
+                }
                 // Decals: a flat quad over the decal's projection box (DecalSize is its half size;
                 // it projects along its own X), wearing the decal material. Drawn with the engine's
                 // 1 m plane, turned so the plane's normal is the decal's X and sized to its Y and Z.
@@ -222,6 +249,9 @@ internal static class LevelIndex
                 }
                 else
                 {
+                    // The door blueprints (simple and security doors alike) keep the part that swings or
+                    // slides in "DoorMesh"; the frame and editor previews are separate components.
+                    if (component.Name.StartsWith("DoorMesh", StringComparison.Ordinal)) data.DoorLeaves.Add(data.Entries.Count);
                     data.Entries.Add(new LevelEntry(meshId, overrideId, actorId, placed, placed.Translation, 0));
                 }
             }
@@ -262,6 +292,23 @@ internal static class LevelIndex
         }
     }
 
+    /// <summary>"Point", "Spot" or "Rect" for a light component's type, else null.</summary>
+    internal static string? LightKind(string exportType) => exportType switch
+    {
+        "PointLightComponent" => "Point",
+        "SpotLightComponent" => "Spot",
+        "RectLightComponent" => "Rect",
+        _ when exportType.EndsWith("PointLightComponent", StringComparison.Ordinal) => "Point",
+        _ when exportType.EndsWith("SpotLightComponent", StringComparison.Ordinal) => "Spot",
+        _ => null,
+    };
+
+    private static Vector3 SrgbToLinear(FColor c)
+    {
+        static float L(byte v) { var s = v / 255f; return s <= 0.04045f ? s / 12.92f : MathF.Pow((s + 0.055f) / 1.055f, 2.4f); }
+        return new Vector3(L(c.R), L(c.G), L(c.B));
+    }
+
     // ---- compact on-disk form ----------------------------------------------------------------
 
     public static void Save(string path, LevelIndexData data)
@@ -297,6 +344,20 @@ internal static class LevelIndex
                 WriteVector(w, e.Centre);
                 w.Write(e.Radius);
             }
+            w.Write(data.Lights.Count);
+            foreach (var l in data.Lights)
+            {
+                WriteVector(w, l.Position);
+                WriteVector(w, l.Color);
+                w.Write(l.Brightness);
+                w.Write(l.Radius);
+                w.Write(l.Direction.HasValue);
+                WriteVector(w, l.Direction ?? Vector3.Zero);
+                w.Write(l.Cone ?? -1f);
+                w.Write(l.Actor);
+            }
+            w.Write(data.DoorLeaves.Count);
+            foreach (var leaf in data.DoorLeaves) w.Write(leaf);
         }
         File.Move(temp, path, overwrite: true);
     }
@@ -334,7 +395,21 @@ internal static class LevelIndex
                 var m = new Matrix4x4(f[0], f[1], f[2], 0, f[3], f[4], f[5], 0, f[6], f[7], f[8], 0, f[9], f[10], f[11], 1);
                 entries.Add(new LevelEntry(mesh, overrides, actor, m, ReadVector(r), r.ReadSingle()));
             }
-            return new LevelIndexData { Map = map, Meshes = meshes, OverrideSets = sets, Actors = actors, Entries = entries, Min = min, Max = max };
+            var lights = new List<LevelLight>(r.ReadInt32());
+            for (var i = lights.Capacity; i > 0; i--)
+            {
+                var position = ReadVector(r);
+                var colour = ReadVector(r);
+                var brightness = r.ReadSingle();
+                var radius = r.ReadSingle();
+                var hasDirection = r.ReadBoolean();
+                var direction = ReadVector(r);
+                var cone = r.ReadSingle();
+                lights.Add(new LevelLight(position, colour, brightness, radius, hasDirection ? direction : null, cone < 0 ? null : cone, r.ReadInt32()));
+            }
+            var leaves = new HashSet<int>();
+            for (var i = r.ReadInt32(); i > 0; i--) leaves.Add(r.ReadInt32());
+            return new LevelIndexData { Map = map, Meshes = meshes, OverrideSets = sets, Actors = actors, Entries = entries, Lights = lights, DoorLeaves = leaves, Min = min, Max = max };
         }
         catch (Exception ex) when (ex is IOException or EndOfStreamException or UnauthorizedAccessException or ArgumentOutOfRangeException)
         {

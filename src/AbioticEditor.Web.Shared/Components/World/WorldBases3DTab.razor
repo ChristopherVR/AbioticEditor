@@ -140,6 +140,10 @@
                                         </select>
                                     </label>
                                 </div>
+                                <label class="wt-check">
+                                    <input type="checkbox" checked="@_lampsOn" data-b3d="lamps-toggle" @onchange="e => SetLampsAsync(e.Value is true)" />
+                                    @L.Resource("World3D_LevelLamps")
+                                </label>
                                 <button type="button" class="wt-btn" data-b3d="level-reload" @onclick="ReloadLevelAsync">@L.Resource("World3D_LevelReload")</button>
                                 @if (_levelProgress is not null) { <small class="wt-muted" data-b3d="level-progress">@_levelProgress</small> }
                                 <small class="wt-muted">@L.Resource("World3D_LevelHint")</small>
@@ -959,6 +963,7 @@
         await edit();
         Workspace.NotifyEdited();
         await PushDoorsAsync();
+        if (_levelOn) await PushLevelAsync(); // the doorway opens or closes in the level too
     }
 
     private async Task SetWalkAsync(bool on)
@@ -1239,10 +1244,25 @@
         if (_view is not null) await _view.InvokeVoidAsync("setLevelCut", _levelCut);
     }
 
+    private bool _lampsOn = true;
+
+    private async Task SetLampsAsync(bool on)
+    {
+        _lampsOn = on;
+        if (_view is not null) await _view.InvokeVoidAsync("setLampsVisible", on);
+    }
+
     private async Task ReloadLevelAsync()
     {
         if (_view is not null) await _view.InvokeVoidAsync("reloadLevel");
     }
+
+    /// <summary>The doors this save holds open, as <c>Map:Actor</c>, so the level shows their doorways open.</summary>
+    private string[] OpenDoorKeys() => Session.Doors
+        .Where(d => d.Kind == WorldDoorKind.Security ? d.IsDoorOpen == true : DoorStateNames.Friendly(d.DoorState ?? DoorClosed) is "Open" or "Opening")
+        .Select(d => DoorIdParser.Parse(d.Id))
+        .Select(p => (string.IsNullOrEmpty(p.Map) ? "Facility" : p.Map) + ":" + p.Actor)
+        .ToArray();
 
     private async Task PushLevelAsync()
     {
@@ -1254,6 +1274,7 @@
             radius = _levelRadius,
             cutAbove = _levelCut,
             excludeActors = _scene.LevelActorNames(),
+            openDoors = OpenDoorKeys(),
         });
     }
 
