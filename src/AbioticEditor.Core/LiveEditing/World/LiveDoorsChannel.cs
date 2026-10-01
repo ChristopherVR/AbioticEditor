@@ -6,7 +6,7 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// unlock them - see <c>doors.list</c>/<c>doors.set</c> in
 /// <c>live-agent/AbioticEditorLiveAgentLua/Scripts/main.lua</c>. Door state numbers are the
 /// game's <c>E_DoorStates</c> enumerators, the same ones the file editor's
-/// <c>DoorStateNames</c> maps (0 closed, 1 open, 2 locked, ...).
+/// <c>DoorStateNames</c> maps (0 closed, 1 open inwards, 2 open outwards, 3 destroyed, ...).
 /// </summary>
 public sealed class LiveDoorsChannel(ILiveGameChannel channel)
 {

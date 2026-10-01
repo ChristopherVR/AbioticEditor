@@ -462,13 +462,14 @@
   <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Porte libre : aucun verrou - son état sauvegardé indique seulement si quelqu'un l'a laissée ouverte, fermée ou barricadée.</value></data>
   <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Mécanisme désactivé : il manque à cette porte une pièce mécanique (fusible, valve, manivelle…) qui doit être installée en jeu avant qu'elle ne fonctionne. La régler sur ouverte ici permet de sauter la recherche de la pièce.</value></data>
   <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Type de verrou non reconnu - l'état sauvegardé peut tout de même être modifié en toute sécurité.</value></data>
-  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Cassée</value></data>
   <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Fermée</value></data>
-  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Fermeture</value></data>
-  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Coincée</value></data>
-  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Verrouillée</value></data>
+  <data name="WorldDoors_State_OpenInwards" xml:space="preserve"><value>Ouverte vers l'intérieur</value></data>
+  <data name="WorldDoors_State_OpenOutwards" xml:space="preserve"><value>Ouverte vers l'extérieur</value></data>
+  <data name="WorldDoors_State_Destroyed" xml:space="preserve"><value>Détruite</value></data>
+  <data name="WorldDoors_State_SmashedInwards" xml:space="preserve"><value>Enfoncée vers l'intérieur</value></data>
+  <data name="WorldDoors_State_SmashedOutwards" xml:space="preserve"><value>Enfoncée vers l'extérieur</value></data>
+  <data name="WorldDoors_State_SlammedClosed" xml:space="preserve"><value>Claquée</value></data>
   <data name="WorldDoors_State_Open" xml:space="preserve"><value>Ouverte</value></data>
-  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Ouverture</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Filtrer les portes par nom, carte, type, type de verrou ou état…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>CONSERVER L'ÉTAT (pas de réinitialisation auto)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Quand activé, le jeu maintient cette porte dans l'état que vous avez défini et ne la restaurera pas à son état par défaut (généralement verrouillée) au rechargement de la zone. Laissez désactivé pour les portes normales.</value></data>

@@ -235,4 +235,6 @@ NPCs, see section 3). Full member inventory per map is printed by
 - Which `TramSystem_Station_C_N` is which place, and the track connections (level asset needed).
 - Which chapter caused any given open door, dead character or fired trigger (level asset needed, and
   even then only where a flag is set on the actor).
-- Semantics of `E_DoorStates` and `E_NarrativeNPCStates` enumerators.
+- Semantics of `E_NarrativeNPCStates` enumerators. (`E_DoorStates` is named in its asset's
+  `DisplayNameMap`: Closed, OpenInwards, OpenOutwards, Destroyed, SmashInwards, SmashOutwards,
+  SlammedClosed.)

@@ -472,13 +472,14 @@
   <data name="WorldDoors_SecurityStateHelp" xml:space="preserve"><value>Controla si esta puerta de seguridad se guarda abierta o cerrada.</value></data>
   <data name="WorldDoors_SimpleStateHelp" xml:space="preserve"><value>Bloqueada = permanece bloqueada hasta que se desbloquee en el juego; Abierta / Cerrada = mecánicamente abierta o cerrada. Esto fija el estado guardado de la puerta.</value></data>
   <data name="WorldDoors_State" xml:space="preserve"><value>ESTADO</value></data>
-  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Rota</value></data>
   <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Cerrada</value></data>
-  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Cerrando</value></data>
-  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Atascada</value></data>
-  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Bloqueada</value></data>
+  <data name="WorldDoors_State_OpenInwards" xml:space="preserve"><value>Abierta hacia dentro</value></data>
+  <data name="WorldDoors_State_OpenOutwards" xml:space="preserve"><value>Abierta hacia fuera</value></data>
+  <data name="WorldDoors_State_Destroyed" xml:space="preserve"><value>Destruida</value></data>
+  <data name="WorldDoors_State_SmashedInwards" xml:space="preserve"><value>Derribada hacia dentro</value></data>
+  <data name="WorldDoors_State_SmashedOutwards" xml:space="preserve"><value>Derribada hacia fuera</value></data>
+  <data name="WorldDoors_State_SlammedClosed" xml:space="preserve"><value>Cerrada de golpe</value></data>
   <data name="WorldDoors_State_Open" xml:space="preserve"><value>Abierta</value></data>
-  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Abriendo</value></data>
 
   <!-- WorldDropped -->
   <data name="WorldDropped_Delete" xml:space="preserve"><value>ELIMINAR</value></data>

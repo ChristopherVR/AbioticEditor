@@ -1,5 +1,21 @@
 # Abiotic Editor - Session history
 
+## Round-142: simple-door state names from the game, CI path fix (2026-10-01)
+
+- **Door states were misnamed.** `E_DoorStates`' asset keeps the designers' names in `DisplayNameMap`:
+  0 Closed, 1 OpenInwards, 2 OpenOutwards, 3 Destroyed, 4 SmashInwards, 5 SmashOutwards,
+  6 SlammedClosed. The editor's curated table said 1 Open, 2 Locked, 3 Opening, 4 Closing, 5 Jammed,
+  6 Broken, so the Doors tab's "Locked" choice actually swung a door open outwards (no lock state
+  exists; locking is the key or one-way setting). `DoorStateNames` now uses the asset's names and has
+  `IsOpen` (1 to 5: the doorway is passable); the Doors tab and the 3D door card offer Closed / Open
+  inwards / Open outwards; 3D marker colours lose the red "locked" (orange = destroyed or smashed);
+  resx keys replaced in all five languages; live-editing protocol and guides updated. Written values
+  are unchanged. Found while checking the saved `DoorRotationRootYaw`: across the fixtures, state 0
+  doors carry about plus or minus 93 degrees and state 1 doors 0, so that field is not the open angle
+  (left alone).
+- **Release run failed on Linux CI** at `Region_names_come_from_the_world_save_file`: `Path.GetFileName`
+  on Linux does not split `C:\saves\...`. `Base3DScene.RegionOf` now splits on both separators.
+
 ## Round-141: the fifth terrain layer, Linux native decoder checked (2026-10-01)
 
 - **Terrain fifth slot found.** The earlier survey missed a paint layer named `Misc2`, painted only in

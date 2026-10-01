@@ -462,13 +462,14 @@
   <data name="WorldDoors_LockExplanation_None" xml:space="preserve"><value>Свободная дверь: замка нет - её сохранённое состояние лишь фиксирует, оставил ли кто-то её открытой, закрытой или забаррикадированной.</value></data>
   <data name="WorldDoors_LockExplanation_Part" xml:space="preserve"><value>Неисправный механизм: этой двери не хватает детали (предохранителя, клапана, рукоятки…), которую нужно установить в игре, прежде чем дверь заработает. Установка состояния «открыто» здесь пропускает поиск детали.</value></data>
   <data name="WorldDoors_LockExplanation_Unknown" xml:space="preserve"><value>Нераспознанный тип замка - сохранённое состояние всё равно можно безопасно редактировать.</value></data>
-  <data name="WorldDoors_State_Broken" xml:space="preserve"><value>Сломана</value></data>
   <data name="WorldDoors_State_Closed" xml:space="preserve"><value>Закрыта</value></data>
-  <data name="WorldDoors_State_Closing" xml:space="preserve"><value>Закрывается</value></data>
-  <data name="WorldDoors_State_Jammed" xml:space="preserve"><value>Заклинена</value></data>
-  <data name="WorldDoors_State_Locked" xml:space="preserve"><value>Заперта</value></data>
+  <data name="WorldDoors_State_OpenInwards" xml:space="preserve"><value>Открыта внутрь</value></data>
+  <data name="WorldDoors_State_OpenOutwards" xml:space="preserve"><value>Открыта наружу</value></data>
+  <data name="WorldDoors_State_Destroyed" xml:space="preserve"><value>Разрушена</value></data>
+  <data name="WorldDoors_State_SmashedInwards" xml:space="preserve"><value>Выбита внутрь</value></data>
+  <data name="WorldDoors_State_SmashedOutwards" xml:space="preserve"><value>Выбита наружу</value></data>
+  <data name="WorldDoors_State_SlammedClosed" xml:space="preserve"><value>Захлопнута</value></data>
   <data name="WorldDoors_State_Open" xml:space="preserve"><value>Открыта</value></data>
-  <data name="WorldDoors_State_Opening" xml:space="preserve"><value>Открывается</value></data>
   <data name="WorldDoors_FilterPlaceholder" xml:space="preserve"><value>Фильтр дверей по имени, карте, типу, типу замка или состоянию…</value></data>
   <data name="WorldDoors_KeepState" xml:space="preserve"><value>СОХРАНЯТЬ СОСТОЯНИЕ (без авто-сброса)</value></data>
   <data name="WorldDoors_KeepStateTooltip" xml:space="preserve"><value>Если включено, игра сохраняет эту дверь в заданном вами состоянии и не восстанавливает её состояние по умолчанию (обычно заперто) при перезагрузке зоны. Оставьте выключенным для обычных дверей.</value></data>

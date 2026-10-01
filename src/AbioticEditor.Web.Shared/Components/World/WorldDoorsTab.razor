@@ -80,8 +80,8 @@
                                 <span class="wd-field-label">@L.Resource("WorldDoors_State")</span>
                                 <select aria-label="@L.Resource("WorldDoors_State")" class="wd-state-picker" value="@SimpleState(door)" @onclick:stopPropagation @onchange="e => SetSimpleState(door.Id, e.Value?.ToString())">
                                     <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
-                                    <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
-                                    <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>
+                                    <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_OpenInwards")</option>
+                                    <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_OpenOutwards")</option>
                                     @if (!IsStableState(door.DoorState)) { <option value="@door.DoorState">@StateLabel(door.DoorState)</option> }
                                 </select>
                             </div>
@@ -236,7 +236,7 @@
     private string StateLabel(string? rawState)
     {
         var friendly = DoorStateNames.Friendly(rawState);
-        return friendly is "Closed" or "Open" or "Locked" or "Opening" or "Closing" or "Jammed" or "Broken"
+        return DoorStateNames.AllFriendlyNames.Contains(friendly)
             ? L.Resource("WorldDoors_State_" + friendly)
             : friendly;
     }
@@ -531,8 +531,8 @@
                     <div class="wd-state-row">
                         <select aria-label="@L.Resource("WorldDoors_State")" class="wd-state-picker" value="@SimpleState(door)" @onchange="e => StageDetailState(door.Id, e.Value?.ToString())">
                             <option value="E_DoorStates::NewEnumerator0">@L.Resource("WorldDoors_State_Closed")</option>
-                            <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_Open")</option>
-                            <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_Locked")</option>
+                            <option value="E_DoorStates::NewEnumerator1">@L.Resource("WorldDoors_State_OpenInwards")</option>
+                            <option value="E_DoorStates::NewEnumerator2">@L.Resource("WorldDoors_State_OpenOutwards")</option>
                             @if (!IsStableState(door.DoorState)) { <option value="@door.DoorState">@StateLabel(door.DoorState)</option> }
                         </select>
                     </div>

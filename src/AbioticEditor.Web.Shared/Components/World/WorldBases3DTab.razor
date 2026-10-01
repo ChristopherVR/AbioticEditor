@@ -877,15 +877,14 @@
         ? L.Resource(door.IsDoorOpen == true ? "WorldDoors_State_Open" : "WorldDoors_State_Closed")
         : StateLabel(door.DoorState ?? DoorClosed);
 
-    /// <summary>Marker colour by state: open green, closed grey (security doors blue), locked red, jammed or broken orange.</summary>
+    /// <summary>Marker colour by state: open green, closed grey (security doors blue), destroyed or smashed orange.</summary>
     internal static int DoorColor(WorldDoor door)
     {
         if (door.Kind == WorldDoorKind.Security) return door.IsDoorOpen == true ? 0x34c759 : 0x5e8bff;
         return DoorStateNames.Friendly(door.DoorState ?? DoorClosed) switch
         {
-            "Open" or "Opening" => 0x34c759,
-            "Locked" => 0xff453a,
-            "Jammed" or "Broken" => 0xff9f0a,
+            "OpenInwards" or "OpenOutwards" => 0x34c759,
+            "Destroyed" or "SmashedInwards" or "SmashedOutwards" => 0xff9f0a,
             _ => 0x9aa3b2,
         };
     }
@@ -1259,7 +1258,7 @@
 
     /// <summary>The doors this save holds open, as <c>Map:Actor</c>, so the level shows their doorways open.</summary>
     private string[] OpenDoorKeys() => Session.Doors
-        .Where(d => d.Kind == WorldDoorKind.Security ? d.IsDoorOpen == true : DoorStateNames.Friendly(d.DoorState ?? DoorClosed) is "Open" or "Opening")
+        .Where(d => d.Kind == WorldDoorKind.Security ? d.IsDoorOpen == true : DoorStateNames.IsOpen(d.DoorState))
         .Select(d => DoorIdParser.Parse(d.Id))
         .Select(p => (string.IsNullOrEmpty(p.Map) ? "Facility" : p.Map) + ":" + p.Actor)
         .ToArray();

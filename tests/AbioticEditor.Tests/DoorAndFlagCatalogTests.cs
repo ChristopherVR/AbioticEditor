@@ -24,13 +24,19 @@ public class DoorAndFlagCatalogTests
         // AbioticFactor/Content/Blueprints/Data/E_DoorStates.uasset.
         var closed = DoorStateNames.Friendly("E_DoorStates::NewEnumerator0");
         var open = DoorStateNames.Friendly("E_DoorStates::NewEnumerator1");
-        var locked = DoorStateNames.Friendly("E_DoorStates::NewEnumerator2");
+        var outwards = DoorStateNames.Friendly("E_DoorStates::NewEnumerator2");
 
-        Assert.False(string.IsNullOrEmpty(closed));
-        Assert.False(string.IsNullOrEmpty(open));
-        Assert.False(string.IsNullOrEmpty(locked));
-        Assert.NotEqual(closed, open);
-        Assert.NotEqual(closed, locked);
+        // The names the enum asset's DisplayNameMap gives (there is no "locked" door state).
+        Assert.Equal("Closed", closed);
+        Assert.Equal("OpenInwards", open);
+        Assert.Equal("OpenOutwards", outwards);
+        Assert.Equal("SlammedClosed", DoorStateNames.Friendly("E_DoorStates::NewEnumerator6"));
+        Assert.True(DoorStateNames.IsOpen("E_DoorStates::NewEnumerator1"));
+        Assert.True(DoorStateNames.IsOpen("E_DoorStates::NewEnumerator2"));
+        Assert.True(DoorStateNames.IsOpen("E_DoorStates::NewEnumerator4"));
+        Assert.False(DoorStateNames.IsOpen("E_DoorStates::NewEnumerator0"));
+        Assert.False(DoorStateNames.IsOpen("E_DoorStates::NewEnumerator6"));
+        Assert.False(DoorStateNames.IsOpen(null));
 
         // Out-of-range and unknown forms still produce a non-null label.
         Assert.Equal("State 99", DoorStateNames.Friendly("E_DoorStates::NewEnumerator99"));
@@ -40,7 +46,7 @@ public class DoorAndFlagCatalogTests
         // AllFriendlyNames covers the 7 runtime states.
         Assert.Equal(7, DoorStateNames.AllFriendlyNames.Count);
         Assert.Contains("Closed", DoorStateNames.AllFriendlyNames);
-        Assert.Contains("Locked", DoorStateNames.AllFriendlyNames);
+        Assert.DoesNotContain("Locked", DoorStateNames.AllFriendlyNames);
     }
 
     [Fact]

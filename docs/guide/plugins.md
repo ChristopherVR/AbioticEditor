@@ -36,7 +36,8 @@ The editor must be able to read your game files (the same setting that shows ite
 first look at a new area takes a little while as the level is read; after that it is quick.
 
 Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
-closed security door, red is locked and orange is jammed or broken. Click one to open, close or
+closed security door and orange is destroyed or smashed. Click one to open or close it (either
+way round for a swinging door) or
 lock it; the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
 You bump into walls while walking; turn off **Stay on the floor** to fly through them.

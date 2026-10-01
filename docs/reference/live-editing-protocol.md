@@ -236,7 +236,8 @@ above; nothing changed in that wire shape, only which Razor component renders it
 
 `doors.list` returns `{"doors":[...],"isHost":bool}` with, per loaded door: `id`, `label` (class
 name), `kind` (`simple` for hinged doors, `security` for sliding security doors), `state` (the
-`E_DoorStates` number the file editor's `DoorStateNames` maps: 0 closed, 1 open, 2 locked, ...),
+`E_DoorStates` number the file editor's `DoorStateNames` maps, named in the enum asset: 0 closed,
+1 open inwards, 2 open outwards, 3 destroyed, 4 smashed in, 5 smashed out, 6 slammed closed),
 `isOpen`, `oneWayUnlocked`, `disabled`, and world position `x`/`y`/`z` in centimetres.
 `doors.set` takes `{"doors":[{"id","kind","state"?,"isOpen"?,"oneWayUnlocked"?,"disabled"?}]}`
 - `state` applies to hinged doors, `isOpen` to security doors. Host only. Every row whose `id`

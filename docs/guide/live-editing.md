@@ -133,7 +133,7 @@ Every world edit below needs host authority, the same requirement every world ar
 |---|---|---|---|
 | Flags and story | Setting or clearing any world flag; moving the main story chapter forward or back (the editor works out the right flags to set and clear on its own) | Yes | |
 | Clock and weather | The day, time of day, current or next weather event, and the world's total play time | Yes | Pausing or resuming the clock can be read but not set live |
-| Doors | Open/closed/locked state, the one-way-unlocked flag, and disabling a door | Yes | Only doors currently loaded near a player respond; move closer and refresh for one that doesn't |
+| Doors | Open (inwards or outwards) or closed, the one-way-unlocked flag, and disabling a door | Yes | Only doors currently loaded near a player respond; move closer and refresh for one that doesn't |
 | Containers | Full slot editing (item, stack, durability, and every extra detail an item carries), sorting a container, moving items in or out | Yes | |
 | Dropped items | Listing, removing, and spawning a new dropped item, optionally at an exact position | Yes | |
 | Bases and bench upgrades | Renaming a placed object, installing or removing a bench upgrade on a bench that has one, repainting a placed object from the **Painted objects** list | Yes | A bench or crate's own stored contents open through the Containers tab, not here; a bench whose upgrade tags can't currently be read explains why instead of silently doing nothing |
