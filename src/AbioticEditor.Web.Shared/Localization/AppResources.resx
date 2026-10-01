@@ -4494,7 +4494,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_OpenPower" xml:space="preserve"><value>Open Power sockets</value></data>
   <data name="World3D_Move" xml:space="preserve"><value>MOVE OBJECTS</value></data>
   <data name="World3D_MoveOptIn" xml:space="preserve"><value>Experimental: move objects</value></data>
-  <data name="World3D_MoveWarning" xml:space="preserve"><value>Experimental. Moving a piece rewrites its saved position and rotation. Whether the game accepts the new position when it loads the save has NOT been verified in-game, and a moved piece can end up inside walls or lose its supports. Only move pieces on a copy of your save you can afford to lose. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_MoveWarning" xml:space="preserve"><value>Experimental. Moving a piece rewrites its saved position and rotation, and the game loads it exactly there. The game does not check that it fits: a moved piece can end up inside a wall, floating, or off its supports. Keep a copy of your save. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
   <data name="World3D_MoveLevelRefused" xml:space="preserve"><value>This object is placed by the level itself, not built by a player, so it cannot be moved. The level puts it back where it belongs when the game loads.</value></data>
   <data name="World3D_MoveOmittedRefused" xml:space="preserve"><value>The save leaves out this object's position or rotation, and the editor never invents one, so it cannot be moved.</value></data>
   <data name="World3D_MoveNotFound" xml:space="preserve"><value>This object is no longer in the save.</value></data>
@@ -4545,7 +4545,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_DuplicateButtonFormat" xml:space="preserve"><value>Duplicate ({0})...</value></data>
   <data name="World3D_DuplicateTitleFormat" xml:space="preserve"><value>DUPLICATE {0} OBJECT(S)</value></data>
   <data name="World3D_EditNeedsOptIn" xml:space="preserve"><value>Turn on "Experimental: move objects" to delete, duplicate or arrange objects.</value></data>
-  <data name="World3D_EditUnverified" xml:space="preserve"><value>Experimental. Deleting, copying and moving base objects rewrites the save in ways that have NOT been verified in-game. Coordinates, new object ids and power links are written as they are, and the game may reject, repair or lose them. Work on a copy of your save you can afford to lose. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_EditUnverified" xml:space="preserve"><value>Experimental. Moving, copying, placing and deleting base objects rewrites the save, and the game loads the result as written. The game does not check that a piece fits where you put it, so look before you SAVE: pieces can end up inside walls or floating. Keep a copy of your save. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
   <data name="World3D_GroupAlignYaw" xml:space="preserve"><value>Align yaw to the primary</value></data>
   <data name="World3D_GroupArrange" xml:space="preserve"><value>Align and distribute</value></data>
   <data name="World3D_GroupDistribute" xml:space="preserve"><value>Distribute along axis</value></data>
@@ -4631,8 +4631,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_WalkHint" xml:space="preserve"><value>Walking: drag to look around, W A S D or the arrow keys to move, Shift to go faster. With "Stay on the floor" off, E and Q go up and down. Escape stops walking.</value></data>
   <data name="World3D_PlaceOpen" xml:space="preserve"><value>Place a new object</value></data>
   <data name="World3D_PlaceTitle" xml:space="preserve"><value>PLACE A NEW OBJECT</value></data>
-  <data name="World3D_PlaceIntro" xml:space="preserve"><value>Pick a kind of object you have already built in this area. A fresh copy of one of them goes where the view is looking (or at the numbers you type). It starts empty and unplugged.</value></data>
-  <data name="World3D_PlaceNoKinds" xml:space="preserve"><value>Nothing you have built is saved in this file, so there is nothing to copy from yet. Bases in this world are saved in the main area file.</value></data>
+  <data name="World3D_PlaceIntro" xml:space="preserve"><value>Pick a kind of object you have built, here or in another of your worlds. A fresh copy goes where the view is looking (or at the numbers you type). It starts empty and unplugged.</value></data>
+  <data name="World3D_PlaceNoKinds" xml:space="preserve"><value>Nothing you have built is saved in this file yet. You can list things built in your other worlds instead.</value></data>
   <data name="World3D_PlaceKind" xml:space="preserve"><value>Object</value></data>
   <data name="World3D_PlaceKindFormat" xml:space="preserve"><value>{0} ({1} built)</value></data>
   <data name="World3D_PlaceTurn" xml:space="preserve"><value>Turn (degrees)</value></data>
@@ -4650,4 +4650,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_NpcAtLevelSpot" xml:space="preserve"><value>Where the level places them (never moved)</value></data>
   <data name="World3D_OpenNpcs" xml:space="preserve"><value>Open in NPCs</value></data>
   <data name="World3D_OpenPets" xml:space="preserve"><value>Open in Pets</value></data>
+  <data name="World3D_PlaceFromThisWorld" xml:space="preserve"><value>Built in this world</value></data>
+  <data name="World3D_PlaceFromOtherWorlds" xml:space="preserve"><value>Built in your other worlds</value></data>
+  <data name="World3D_PlaceOtherKindFormat" xml:space="preserve"><value>{0} (from {1})</value></data>
+  <data name="World3D_PlaceShowOtherWorlds" xml:space="preserve"><value>Also list things built in my other worlds</value></data>
+  <data name="World3D_PlaceScanningOtherWorlds" xml:space="preserve"><value>Looking through your other worlds...</value></data>
+  <data name="World3D_PlaceNoKindsAnywhere" xml:space="preserve"><value>Nothing you have built is saved here or in your other worlds, so there is nothing to copy from yet.</value></data>
 </root>

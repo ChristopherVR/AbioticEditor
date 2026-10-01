@@ -167,18 +167,33 @@
                 <div class="wt-card b3d-panel b3d-op" data-b3d="place-panel">
                     <span class="wt-label accent-orange-text">@L.Resource("World3D_PlaceTitle")</span>
                     <p class="error-text b3d-warning" role="alert" data-b3d="place-unverified">@L.Resource("World3D_EditUnverified")</p>
-                    @if (kinds.Count == 0)
+                    @if (kinds.Count == 0 && OtherKinds.Count == 0)
                     {
-                        <p class="wt-muted" data-b3d="place-none">@L.Resource("World3D_PlaceNoKinds")</p>
+                        <p class="wt-muted" data-b3d="place-none">@L.Resource(Session.OtherWorldsLoaded ? "World3D_PlaceNoKindsAnywhere" : "World3D_PlaceNoKinds")</p>
                     }
                     else
                     {
                         <p class="wt-muted">@L.Resource("World3D_PlaceIntro")</p>
                         <label>@L.Resource("World3D_PlaceKind")
                             <select class="wt-input" data-b3d="place-kind" @onchange="e => _placeClass = e.Value?.ToString()">
-                                @foreach (var k in kinds)
+                                @if (kinds.Count > 0)
                                 {
-                                    <option value="@k.ClassPath" selected="@string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase)">@L.Resource("World3D_PlaceKindFormat", k.Label, k.Count)</option>
+                                    <optgroup label="@L.Resource("World3D_PlaceFromThisWorld")">
+                                        @foreach (var k in kinds)
+                                        {
+                                            <option value="@k.ClassPath" selected="@string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase)">@L.Resource("World3D_PlaceKindFormat", k.Label, k.Count)</option>
+                                        }
+                                    </optgroup>
+                                }
+                                @if (OtherKinds.Count > 0)
+                                {
+                                    <optgroup label="@L.Resource("World3D_PlaceFromOtherWorlds")">
+                                        @foreach (var k in OtherKinds)
+                                        {
+                                            var value = OtherKindValue(k);
+                                            <option value="@value" selected="@string.Equals(value, _placeClass, StringComparison.Ordinal)">@L.Resource("World3D_PlaceOtherKindFormat", Base3DScene.FriendlyClass(k.ClassName), k.World)</option>
+                                        }
+                                    </optgroup>
                                 }
                             </select>
                         </label>
@@ -189,15 +204,19 @@
                             <label>@L.Resource("World3D_PlaceTurn")<input class="wt-input" inputmode="decimal" @bind="_placeYaw" @bind:event="oninput" data-b3d="place-yaw" /></label>
                         </div>
                         <button type="button" class="wt-btn wt-plain" data-b3d="place-here" @onclick="UseViewCentreAsync">@L.Resource("World3D_PlaceUseView")</button>
-                        @if (_placeError is not null) { <p class="error-text" role="alert" data-b3d="place-error">@_placeError</p> }
                         @if (_placeLastId is not null)
                         {
                             <p class="wt-muted" data-b3d="place-done">@L.Resource("World3D_PlaceDone")</p>
                             @IssueList(LastPlaceIssues, "place-issues")
                         }
                     }
+                    @if (!Session.OtherWorldsLoaded)
+                    {
+                        <button type="button" class="wt-btn wt-plain" data-b3d="place-other-worlds" disabled="@_placeScanning" @onclick="LoadOtherWorldsAsync">@L.Resource(_placeScanning ? "World3D_PlaceScanningOtherWorlds" : "World3D_PlaceShowOtherWorlds")</button>
+                    }
+                    @if (_placeError is not null) { <p class="error-text" role="alert" data-b3d="place-error">@_placeError</p> }
                     <div class="b3d-links">
-                        <button type="button" class="wt-btn" data-b3d="place-confirm" disabled="@(kinds.Count == 0)" @onclick="ConfirmPlaceAsync">@L.Resource("World3D_PlaceConfirm")</button>
+                        <button type="button" class="wt-btn" data-b3d="place-confirm" disabled="@(kinds.Count == 0 && OtherKinds.Count == 0)" @onclick="ConfirmPlaceAsync">@L.Resource("World3D_PlaceConfirm")</button>
                         <button type="button" class="wt-btn wt-plain" data-b3d="place-close" @onclick="ClosePlace">@L.Resource("World3D_Cancel")</button>
                     </div>
                 </div>

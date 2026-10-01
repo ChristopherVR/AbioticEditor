@@ -1028,6 +1028,58 @@ export function createView(host, dotnet) {
         return null;
     }
 
+    const WALK_RADIUS_M = 0.35;
+    const walkProbe = new THREE.Raycaster();
+
+    /** The nearest solid surface along a horizontal step from the walker (waist and chest height), or null. */
+    function wallAhead(dir, dist) {
+        const targets = [...levelGroup.children, ...modelMeshes];
+        let best = null;
+        for (const above of [0.8, 1.4]) {
+            const from = new THREE.Vector3(camera.position.x, camera.position.y - EYE_M + above, camera.position.z);
+            walkProbe.set(from, dir);
+            walkProbe.far = dist + WALK_RADIUS_M;
+            for (const hit of walkProbe.intersectObjects(targets, false)) {
+                if (levelClip.distanceToPoint(hit.point) < 0 || !hit.face || !isSolid(hit)) continue;
+                if (!best || hit.distance < best.distance) best = hit;
+                break;
+            }
+        }
+        return best;
+    }
+
+    /** False for see-through surfaces (leaves, grates, glass, decals, water), which the game lets players pass or see through. */
+    function isSolid(hit) {
+        const mats = hit.object.material;
+        const m = Array.isArray(mats) ? mats[hit.face.materialIndex] : mats;
+        return !!m && !m.transparent && !(m.alphaTest > 0);
+    }
+
+    /** Shortens or turns a horizontal step so the walker stops at a wall and slides along it. */
+    function collide(move) {
+        for (let pass = 0; pass < 2 && move.lengthSq() > 1e-8; pass++) {
+            const dist = move.length();
+            const hit = wallAhead(move.clone().normalize(), dist);
+            if (!hit) return;
+            const normal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+            if (hit.object.isInstancedMesh && hit.instanceId !== undefined) {
+                const m = new THREE.Matrix4();
+                hit.object.getMatrixAt(hit.instanceId, m);
+                normal.copy(hit.face.normal).transformDirection(m).transformDirection(hit.object.matrixWorld);
+            }
+            normal.y = 0;
+            if (normal.lengthSq() < 1e-6) return; // a floor or ceiling face, not a wall
+            normal.normalize();
+            if (normal.dot(move) > 0) normal.negate(); // face seen from behind
+            // Split the step into "towards the wall" and "along the wall": keep all of the second,
+            // and only as much of the first as leaves the walker a body radius from the wall.
+            const approach = -move.dot(normal); // > 0: how far this step goes towards the wall
+            const cosine = approach / dist;
+            const room = Math.max(0, (hit.distance - WALK_RADIUS_M) * cosine);
+            move.addScaledVector(normal, approach - Math.min(approach, room));
+        }
+    }
+
     function setWalk(on) {
         if (on === walkOn) return;
         walkOn = on;
@@ -1069,7 +1121,13 @@ export function createView(host, dotnet) {
         if (walkKeys.has("a") || walkKeys.has("arrowleft")) move.sub(right);
         if (!walkFloor && (walkKeys.has("e") || walkKeys.has(" "))) move.y += 1;
         if (!walkFloor && (walkKeys.has("q") || walkKeys.has("c"))) move.y -= 1;
-        if (move.lengthSq() > 0) camera.position.addScaledVector(move.normalize(), speed);
+        if (move.lengthSq() > 0) {
+            move.normalize().multiplyScalar(speed);
+            // On the floor the walker is solid: walls, level pieces and placed objects stop it, and
+            // it slides along them. Flying passes through everything.
+            if (walkFloor) collide(move);
+            camera.position.add(move);
+        }
         if (walkFloor && now - walkFloorCheck > 90) {
             walkFloorCheck = now;
             // Steps and ramps are climbed (up to knee height); a drop is followed down.
@@ -1090,7 +1148,10 @@ export function createView(host, dotnet) {
 
     function isTyping(e) {
         const t = e.target;
-        return t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName));
+        if (!(t instanceof HTMLElement)) return false;
+        if (t.isContentEditable || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return true;
+        // Ticking a checkbox (such as "Stay on the floor") leaves it focused; that is not typing.
+        return t.tagName === "INPUT" && !/^(checkbox|radio|button|submit|range|color)$/i.test(t.type);
     }
 
     function onWalkKeyDown(e) {
@@ -1385,6 +1446,12 @@ export function createView(host, dotnet) {
                 return hit.point.toArray();
             }
             return controls.target.toArray();
+        },
+        /** Distance (metres) to the nearest solid surface straight ahead of the walker within 5 m, or null. Used by UI tests. */
+        wallAheadDistance() {
+            const dir = new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
+            const hit = wallAhead(dir, 5);
+            return hit ? hit.distance : null;
         },
         /** Where the camera is and looks (viewer space), for tests and the place tool. */
         cameraState() {

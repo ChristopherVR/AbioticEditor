@@ -112,7 +112,8 @@ internal static class PlacedObjectCloner
         WorldSaveData live, DuplicationRowPlan plan, BuiltDuplicate built)
     {
         var problems = new List<string>();
-        var source = WorldMapAccessor.FindEntry(live.Raw, "DeployedObjectMap", plan.SourceKey);
+        var origin = plan.Duplication.Donor ?? live;
+        var source = WorldMapAccessor.FindEntry(origin.Raw, "DeployedObjectMap", plan.SourceKey);
         if (source is null || built.ObjectPair.Value is not StructProperty { Value: PropertiesStruct copy })
         {
             problems.Add($"{plan.SourceKey}: source or copy entry is missing.");
@@ -154,7 +155,7 @@ internal static class PlacedObjectCloner
         foreach (var s in plan.Sockets)
         {
             var pair = built.SocketPairs.FirstOrDefault(p => WorldSaveReader.ExtractMapKeyString(p.Key) == s.NewId);
-            var sourceSocket = WorldMapAccessor.FindEntry(live.Raw, "PowerSocketMap", s.OldId);
+            var sourceSocket = WorldMapAccessor.FindEntry(origin.Raw, "PowerSocketMap", s.OldId);
             if (pair.Value is not StructProperty { Value: PropertiesStruct sp } || sourceSocket is null)
             {
                 problems.Add($"{plan.SourceKey}: outlet {s.OldId} was not copied.");

@@ -39,9 +39,12 @@ Round markers show the area's doors, coloured by state: green is open, grey is c
 closed security door, red is locked and orange is jammed or broken. Click one to open, close or
 lock it; the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
+You bump into walls while walking; turn off **Stay on the floor** to fly through them.
 Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
 that edits it. With **Experimental: move objects** on, **Place a new object** puts a fresh copy of
-something you have already built where the view is looking.
+something you have already built where the view is looking. **Also list things built in my other
+worlds** adds everything you have built in your other worlds on this computer, so you can place a
+kind this world has never had.
 
 ## Use and manage plugins
 

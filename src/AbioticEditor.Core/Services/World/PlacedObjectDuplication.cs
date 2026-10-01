@@ -56,6 +56,12 @@ public sealed record DuplicatePolicy
 /// <param name="Pivot">Where the yaw turns around.</param>
 /// <param name="Policy">Contents and external-link decisions.</param>
 /// <param name="NewKeys">The keys minted for the copies (source key to new key), fixed at staging time.</param>
+/// <param name="Donor">
+/// The save the source objects are read from when they are not in the save being edited (a kind built in
+/// another world, copied into this one); null for an ordinary copy. Only the donor's object and outlet records
+/// are read; the copy gets fresh ids in this save and keeps no link to the donor's world.
+/// </param>
+/// <param name="DonorName">A label for the donor (its world's folder name), for previews.</param>
 public sealed record StagedDuplication(
     int Id,
     IReadOnlyList<string> SourceKeys,
@@ -63,7 +69,9 @@ public sealed record StagedDuplication(
     double YawDegrees,
     GroupPivot Pivot,
     DuplicatePolicy Policy,
-    IReadOnlyDictionary<string, string> NewKeys);
+    IReadOnlyDictionary<string, string> NewKeys,
+    WorldSaveData? Donor = null,
+    string? DonorName = null);
 
 /// <summary>How one power outlet record of a source object is copied.</summary>
 public sealed record SocketRemap(
@@ -90,7 +98,8 @@ public sealed record DuplicationPreviewRow(
     ContentsMode Contents,
     IReadOnlyList<StoredItemRef> SourceContents,
     bool BedClaimCleared,
-    IReadOnlyList<BaseEditIssue> Issues)
+    IReadOnlyList<BaseEditIssue> Issues,
+    string? ClassPath = null)
 {
     /// <summary>True when something stops this copy from being made.</summary>
     public bool Blocked => Issues.Any(i => i.IsBlocking);
@@ -171,19 +180,33 @@ public static partial class PlacedObjectDuplication
             }
         }
 
-        var pads = new Dictionary<string, int>(StringComparer.Ordinal);
-        var usedTags = new HashSet<int>();
+        static Dictionary<string, int> PadsOf(WorldSaveData save)
+        {
+            var found = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var e in WorldMapAccessor.Entries(save.Raw, "DeployedObjectMap"))
+            {
+                if (TeleporterPadFeature.IsPad(e.Props)) found[e.Key] = TeleporterPadFeature.GetFrequency(e.Props) ?? 0;
+            }
+            return found;
+        }
+        var livePads = PadsOf(data);
+        var usedTags = new HashSet<int>(livePads.Values.Where(f => f > 0));
+        var livePackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap"))
         {
-            if (!TeleporterPadFeature.IsPad(e.Props)) continue;
-            var f = TeleporterPadFeature.GetFrequency(e.Props) ?? 0;
-            pads[e.Key] = f;
-            if (f > 0) usedTags.Add(f);
+            if (WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_") is { Package: { } pkg }) livePackages.Add(pkg);
         }
 
         var mintedKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var dup in duplications)
         {
+            // A copy from another world reads its sources (objects, outlets, pads) from that world's save.
+            var source = dup.Donor ?? data;
+            var sourceSockets = dup.Donor is null ? sockets : PlacedPowerRecords.Read(dup.Donor);
+            var pads = dup.Donor is null ? livePads : PadsOf(dup.Donor);
+            PlacedObjectTransform? SourceTransform(string k) => dup.Donor is null
+                ? currentTransform(k)
+                : WorldMapAccessor.FindEntry(dup.Donor.Raw, "DeployedObjectMap", k) is { } dp ? PlacedObjectCensus.ReadTransform(dp) : null;
             var selection = new HashSet<string>(dup.SourceKeys, StringComparer.Ordinal);
             var keyMap = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var k in dup.SourceKeys)
@@ -193,9 +216,9 @@ public static partial class PlacedObjectDuplication
 
             var pivot = dup.YawDegrees == 0
                 ? new PlacedVector(0, 0, 0)
-                : dup.Pivot.Resolve(dup.SourceKeys, k => currentTransform(k)?.Translation) ?? new PlacedVector(0, 0, 0);
+                : dup.Pivot.Resolve(dup.SourceKeys, k => SourceTransform(k)?.Translation) ?? new PlacedVector(0, 0, 0);
             var pivotResolved = dup.YawDegrees == 0
-                || dup.Pivot.Resolve(dup.SourceKeys, k => currentTransform(k)?.Translation) is not null;
+                || dup.Pivot.Resolve(dup.SourceKeys, k => SourceTransform(k)?.Translation) is not null;
             var tagMap = new Dictionary<int, int>();
             var pathMap = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -204,44 +227,45 @@ public static partial class PlacedObjectDuplication
                 .GroupBy(f => f).ToDictionary(g => g.Key, g => g.Count());
 
             var opRowPlans = new List<(DuplicationRowPlan Plan, List<BaseEditIssue> Issues, DuplicationPreviewRow Row)>();
-            foreach (var source in dup.SourceKeys.Distinct(StringComparer.Ordinal))
+            foreach (var sourceKey in dup.SourceKeys.Distinct(StringComparer.Ordinal))
             {
                 var issues = new List<BaseEditIssue>();
-                var props = WorldMapAccessor.FindEntry(data.Raw, "DeployedObjectMap", source);
+                var props = WorldMapAccessor.FindEntry(source.Raw, "DeployedObjectMap", sourceKey);
                 if (props is null)
                 {
-                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "not-in-save", "Object is not in this save.", source));
-                    rows.Add(EmptyRow(dup, source, issues));
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "not-in-save",
+                        dup.Donor is null ? "Object is not in this save." : $"Object is not in {dup.DonorName ?? "the other save"}.", sourceKey));
+                    rows.Add(EmptyRow(dup, sourceKey, issues));
                     all.AddRange(issues);
                     continue;
                 }
 
-                if (PlacedObjectCensus.KeyShape(source) != "guid32" || props.TryGetBool("DeployedByPlayer_") != true)
+                if (PlacedObjectCensus.KeyShape(sourceKey) != "guid32" || props.TryGetBool("DeployedByPlayer_") != true)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "level-placed",
-                        "Level-placed object: the level owns it, so it cannot be copied. Refused.", source));
+                        "Level-placed object: the level owns it, so it cannot be copied. Refused.", sourceKey));
                 }
 
-                var newKey = keyMap.GetValueOrDefault(source);
+                var newKey = keyMap.GetValueOrDefault(sourceKey);
                 if (newKey is null || newKey.Length != 32 || !newKey.All(Uri.IsHexDigit))
                 {
-                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "bad-new-key", "No valid new key was minted for this copy.", source));
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "bad-new-key", "No valid new key was minted for this copy.", sourceKey));
                     newKey ??= string.Empty;
                 }
                 else if (existingKeys.Contains(newKey) || !mintedKeys.Add(newKey)
                     || socketIds.Any(id => id.StartsWith(newKey, StringComparison.Ordinal)))
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "key-collision",
-                        "The minted key is already in use; stage the duplication again.", source));
+                        "The minted key is already in use; stage the duplication again.", sourceKey));
                 }
 
-                var before = currentTransform(source) ?? PlacedObjectCensus.ReadTransform(props);
+                var before = SourceTransform(sourceKey) ?? PlacedObjectCensus.ReadTransform(props);
                 PlacedVector? newT = null;
                 PlacedQuaternion? newR = null;
                 if (before?.Translation is not { } t)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "no-translation",
-                        "Object has no saved location member to place the copy with; the editor does not create it.", source));
+                        "Object has no saved location member to place the copy with; the editor does not create it.", sourceKey));
                 }
                 else
                 {
@@ -254,23 +278,30 @@ public static partial class PlacedObjectDuplication
                     else
                     {
                         issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "no-rotation",
-                            "Rotation member is omitted in the save; the editor does not create it, so this object cannot be rotated.", source));
+                            "Rotation member is omitted in the save; the editor does not create it, so this object cannot be rotated.", sourceKey));
                     }
                 }
-                else if (before?.Rotation is { } staged
+                else if (dup.Donor is null && before?.Rotation is { } staged
                     && PlacedObjectCensus.ReadTransform(props)?.Rotation is { } savedRotation && staged != savedRotation)
                 {
-                    // The source is turned by a staged edit: the copy is made from that turned object, as it is for the position.
+                    // The sourceKey is turned by a staged edit: the copy is made from that turned object, as it is for the position.
                     newR = staged;
                 }
                 if (!pivotResolved)
                 {
-                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "pivot", "The pivot could not be resolved (no position).", source));
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "pivot", "The pivot could not be resolved (no position).", sourceKey));
                 }
 
                 // Actor path: same level, new unused instance number.
                 string newSub = string.Empty;
                 string? newFullPath = null;
+                if (dup.Donor is not null && livePackages.Count > 0
+                    && WorldMapAccessor.GetSoftObjectPath(props, "ActorPath_") is { Package: { } donorPackage }
+                    && !livePackages.Contains(donorPackage))
+                {
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "other-map",
+                        $"This object belongs to another map ({donorPackage}), so it cannot be placed in this save.", sourceKey));
+                }
                 if (WorldMapAccessor.GetSoftObjectPath(props, "ActorPath_") is { SubPath: { } sub } ap
                     && InstanceSuffix().Match(sub) is { Success: true } sm)
                 {
@@ -292,7 +323,7 @@ public static partial class PlacedObjectDuplication
                 else
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "no-actor-path",
-                        "Object has no actor path with an instance number to mint a new one from.", source));
+                        "Object has no actor path with an instance number to mint a new one from.", sourceKey));
                 }
 
                 var className = PlacedObjectCensus.ClassNameOf(PlacedObjectCensus.ClassPathOf(props));
@@ -303,23 +334,23 @@ public static partial class PlacedObjectDuplication
                     if (contents.Count > 0)
                     {
                         issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "contents-not-copied",
-                            $"{contents.Count} stored slot(s) are not copied; the copy starts empty.", source));
+                            $"{contents.Count} stored slot(s) are not copied; the copy starts empty.", sourceKey));
                     }
                     if (proxies > 0)
                     {
                         issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "proxies-not-copied",
-                            $"{proxies} planted or spawned item proxy(ies) are not copied.", source));
+                            $"{proxies} planted or spawned item proxy(ies) are not copied.", sourceKey));
                     }
                 }
                 else if (contents.Count > 0 || proxies > 0)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "contents-copied",
-                        "Copying contents duplicates items. Item ids are re-minted, but text embedded inside item data is copied as is.", source));
+                        "Copying contents duplicates items. Item ids are re-minted, but text embedded inside item data is copied as is.", sourceKey));
                 }
 
                 // Power outlets owned by this object.
                 var socketRemaps = new List<SocketRemap>();
-                foreach (var s in sockets.Where(x => x.OwnerKey == source))
+                foreach (var s in sourceSockets.Where(x => x.OwnerKey == sourceKey))
                 {
                     var newId = newKey + s.Id[32..];
                     string? plugged = s.Plugged;
@@ -333,7 +364,7 @@ public static partial class PlacedObjectDuplication
                         }
                         else
                         {
-                            plugged = ExternalLink(dup.Policy.ExternalPowerLinks, plugged, s.Id, source, issues, out var note, plugged);
+                            plugged = ExternalLink(dup.Policy.ExternalPowerLinks, plugged, s.Id, sourceKey, issues, out var note, plugged);
                             notes.Add(note);
                         }
                     }
@@ -346,7 +377,7 @@ public static partial class PlacedObjectDuplication
                         }
                         else
                         {
-                            var kept = ExternalLink(dup.Policy.ExternalPowerLinks, x, s.Id, source, issues, out var note, x);
+                            var kept = ExternalLink(dup.Policy.ExternalPowerLinks, x, s.Id, sourceKey, issues, out var note, x);
                             notes.Add(note);
                             if (kept is not null) extras.Add(kept);
                         }
@@ -359,7 +390,7 @@ public static partial class PlacedObjectDuplication
                 // Teleporter pairing.
                 int? tagBefore = null, tagAfter = null;
                 int? tagTarget = null;
-                if (pads.TryGetValue(source, out var freq))
+                if (pads.TryGetValue(sourceKey, out var freq))
                 {
                     tagBefore = freq;
                     tagAfter = freq;
@@ -374,17 +405,17 @@ public static partial class PlacedObjectDuplication
                                 if (beyond)
                                 {
                                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "tag-beyond-catalog",
-                                        "Every known teleporter tag is in use; the copies get a number beyond the known list (unverified).", source));
+                                        "Every known teleporter tag is in use; the copies get a number beyond the known list (unverified).", sourceKey));
                                 }
                             }
                             tagTarget = tagAfter = fresh;
                             issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "teleporter-remapped",
-                                $"Copied pads that shared tag {freq} share new tag {fresh} instead, so the copies pair with each other.", source));
+                                $"Copied pads that shared tag {freq} share new tag {fresh} instead, so the copies pair with each other.", sourceKey));
                         }
                         else if (selectedPadTags.GetValueOrDefault(freq) >= 2)
                         {
                             issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "teleporter-joins-original",
-                                $"Copies keep tag {freq}: they join the original pads' network.", source));
+                                $"Copies keep tag {freq}: they join the original pads' network.", sourceKey));
                         }
                         else
                         {
@@ -392,16 +423,16 @@ public static partial class PlacedObjectDuplication
                             {
                                 case ReferencePolicy.Refuse:
                                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "teleporter-external",
-                                        $"This pad's tag ({freq}) is used outside the copied group.", source));
+                                        $"This pad's tag ({freq}) is used outside the copied group.", sourceKey));
                                     break;
                                 case ReferencePolicy.Drop:
                                     tagTarget = tagAfter = 0;
                                     issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "teleporter-unassigned",
-                                        $"The copy gets no tag (the original keeps tag {freq}).", source));
+                                        $"The copy gets no tag (the original keeps tag {freq}).", sourceKey));
                                     break;
                                 default:
                                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "teleporter-joins-original",
-                                        $"The copy keeps tag {freq}: it joins the original network.", source));
+                                        $"The copy keeps tag {freq}: it joins the original network.", sourceKey));
                                     break;
                             }
                         }
@@ -414,22 +445,22 @@ public static partial class PlacedObjectDuplication
                 {
                     clearBed = true;
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "bed-claim-cleared",
-                        "The bed's player claim is never copied; the copy is unclaimed.", source));
+                        "The bed's player claim is never copied; the copy is unclaimed.", sourceKey));
                 }
                 if (className?.Contains("StorageCrate_Void", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "shared-inventory",
-                        "Void chests all show one shared inventory; the copy shows the same one.", source));
+                        "Void chests all show one shared inventory; the copy shows the same one.", sourceKey));
                 }
                 if (!string.IsNullOrEmpty(newKey) && PlacedObjectCensus.ReadTransform(props) is null)
                 {
-                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "no-transform", "Object has no transform.", source));
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "no-transform", "Object has no transform.", sourceKey));
                 }
                 if (props.FindByPrefix("ChangableData_")?.Property is UeSaveGame.PropertyTypes.StructProperty { Value: UeSaveGame.StructData.PropertiesStruct cd }
-                    && cd.Properties.GetString("AssetID_") is { } assetId && assetId != source)
+                    && cd.Properties.GetString("AssetID_") is { } assetId && assetId != sourceKey)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "asset-id-differs",
-                        "The object's AssetID differs from its key; the copy's AssetID is set to its new key.", source));
+                        "The object's AssetID differs from its key; the copy's AssetID is set to its new key.", sourceKey));
                 }
 
                 PlacedObjectTransform? after = before is null
@@ -438,10 +469,10 @@ public static partial class PlacedObjectDuplication
 
                 var keyMapSnapshot = keyMap;
                 var plan = new DuplicationRowPlan(
-                    dup, source, newKey, newSub, newT, newR, socketRemaps, tagTarget, clearBed, keyMapSnapshot, pathMap);
+                    dup, sourceKey, newKey, newSub, newT, newR, socketRemaps, tagTarget, clearBed, keyMapSnapshot, pathMap);
                 var row = new DuplicationPreviewRow(
-                    dup.Id, source, newKey, className, before, after, newFullPath, socketRemaps,
-                    tagBefore, tagAfter, dup.Policy.Contents, contents, clearBed, issues);
+                    dup.Id, sourceKey, newKey, className, before, after, newFullPath, socketRemaps,
+                    tagBefore, tagAfter, dup.Policy.Contents, contents, clearBed, issues, PlacedObjectCensus.ClassPathOf(props));
                 opRowPlans.Add((plan, issues, row));
             }
 

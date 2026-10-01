@@ -20,6 +20,35 @@ public partial class WorldBases3DTab
     private string? _placeError;
     private int? _placeLastId;
 
+    private bool _placeScanning;
+    private const string OtherWorldPrefix = "world|";
+
+    /// <summary>Kinds built only in the player's other worlds (one entry per kind, the first world that has it).</summary>
+    private List<WorldSaveSession.OtherWorldKind> OtherKinds
+    {
+        get
+        {
+            var here = PlaceKinds.Select(k => k.ClassPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return Session.OtherWorldKinds
+                .Where(k => !here.Contains(k.ClassPath))
+                .GroupBy(k => k.ClassPath, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.OrderByDescending(k => k.Count).First())
+                .OrderBy(k => Base3DScene.FriendlyClass(k.ClassName), StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+    }
+
+    private static string OtherKindValue(WorldSaveSession.OtherWorldKind k) => OtherWorldPrefix + k.World + "|" + k.ClassPath;
+
+    private async Task LoadOtherWorldsAsync()
+    {
+        _placeScanning = true;
+        StateHasChanged();
+        await Session.LoadOtherWorldKindsAsync();
+        _placeScanning = false;
+        if (_placeClass is null && OtherKinds.Count > 0) _placeClass = OtherKindValue(OtherKinds[0]);
+    }
+
     private IReadOnlyList<Base3DPlaceKind> PlaceKinds
         => Base3DScene.PlaceKinds(Session.PlacedObjects, Session.StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal));
 
@@ -58,8 +87,11 @@ public partial class WorldBases3DTab
     private async Task ConfirmPlaceAsync()
     {
         _placeError = null;
-        var kind = PlaceKinds.FirstOrDefault(k => string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase));
-        if (kind is null)
+        var other = _placeClass?.StartsWith(OtherWorldPrefix, StringComparison.Ordinal) == true
+            ? OtherKinds.FirstOrDefault(k => string.Equals(OtherKindValue(k), _placeClass, StringComparison.Ordinal))
+            : null;
+        var kind = other is null ? PlaceKinds.FirstOrDefault(k => string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase)) : null;
+        if (kind is null && other is null)
         {
             _placeError = L.Resource("World3D_PlaceNoKind");
             return;
@@ -69,14 +101,17 @@ public partial class WorldBases3DTab
             _placeError = L.Resource("World3D_InvalidNumber");
             return;
         }
-        if (Session.StagePlacedNew(kind.DonorKey, new PlacedVector(x, y, z), yaw) is not { } staged)
+        var staged = other is not null
+            ? await Session.StagePlacedImportAsync(other, new PlacedVector(x, y, z), yaw)
+            : Session.StagePlacedNew(kind!.DonorKey, new PlacedVector(x, y, z), yaw);
+        if (staged is null)
         {
             _placeError = L.Resource("World3D_PlaceRefused");
             return;
         }
         _placeLastId = staged.Id;
         await AfterEditAsync(PlacedTransformStageResult.Ok);
-        if (staged.NewKeys.TryGetValue(kind.DonorKey, out var newKey)) await SetSelectionAsync([newKey], newKey, frame: false);
+        if (staged.NewKeys.Values.FirstOrDefault() is { } newKey) await SetSelectionAsync([newKey], newKey, frame: false);
     }
 
     /// <summary>The findings for the object just placed (empty until one is placed).</summary>

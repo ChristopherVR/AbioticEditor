@@ -193,6 +193,24 @@ public sealed class StagedBaseEdits
         return dup;
     }
 
+    /// <summary>
+    /// Stages placing a copy of <paramref name="sourceKey"/>, a player-built object of another world's save
+    /// (<paramref name="donor"/>), in this save: shifted by <paramref name="offset"/> and turned by
+    /// <paramref name="yawDegrees"/> about itself. It starts empty, unplugged and untagged, because nothing it
+    /// was linked to exists in this world.
+    /// </summary>
+    public StagedDuplication StageImport(
+        WorldSaveData donor, string donorName, string sourceKey, PlacedVector offset, double yawDegrees = 0)
+    {
+        ArgumentNullException.ThrowIfNull(donor);
+        ArgumentException.ThrowIfNullOrEmpty(sourceKey);
+        var dup = new StagedDuplication(
+            _nextId++, [sourceKey], offset, yawDegrees, GroupPivot.OfObject(sourceKey), DuplicatePolicy.Default,
+            new Dictionary<string, string>(StringComparer.Ordinal) { [sourceKey] = _idFactory() }, donor, donorName);
+        _duplications.Add(dup);
+        return dup;
+    }
+
     // ---------- staging: power ----------
 
     /// <summary>
@@ -301,8 +319,8 @@ public sealed class StagedBaseEdits
         }
         if (transformRows.Count > 0 || _duplications.Count > 0)
         {
-            issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "coordinates-unverified",
-                "Saved coordinates and rotations are written as they are; the game's acceptance of moved or copied objects is not verified."));
+            issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "coordinates-unchecked",
+                "Saved coordinates and rotations are written as they are and the game loads them there; it does not check that a piece fits, so look for pieces inside walls or floating."));
         }
 
         // Deletions.
@@ -419,7 +437,7 @@ public sealed class StagedBaseEdits
             {
                 foreach (var group in dup.RowPlans.GroupBy(r => r.Duplication.Id))
                 {
-                    var donor = PlacedObjectCloner.CreateDonor(data.Raw);
+                    var donor = PlacedObjectCloner.CreateDonor((group.First().Duplication.Donor ?? data).Raw);
                     foreach (var rowPlan in group)
                     {
                         var copy = PlacedObjectCloner.Build(donor, rowPlan, rowPlan.Duplication.Policy.Contents, _idFactory);

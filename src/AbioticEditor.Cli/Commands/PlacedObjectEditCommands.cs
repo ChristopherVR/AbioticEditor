@@ -29,7 +29,7 @@ internal static class PlacedObjectEditCommands
     {
         var cmd = new Command("object",
             "Move, rotate, delete or duplicate player-built placed objects (staged; --dry-run previews). "
-            + "Coordinates are the save's own (centimetres); the game's acceptance is not verified.");
+            + "Coordinates are the save's own (centimetres); the game loads pieces exactly where they are written and does not check that they fit.");
         cmd.Subcommands.Add(BuildMove(quiet));
         cmd.Subcommands.Add(BuildRotate(quiet));
         cmd.Subcommands.Add(BuildDelete(quiet));

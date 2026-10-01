@@ -86,7 +86,7 @@ public sealed class BaseEditing3DSessionTests
         Assert.Single(preview.Duplications);
         Assert.Equal(2, preview.Transforms.Count);
         Assert.Equal(preview.ObjectsBefore, preview.ObjectsAfter); // one gone, one added
-        Assert.Contains(preview.Issues, i => i.Code == "coordinates-unverified");
+        Assert.Contains(preview.Issues, i => i.Code == "coordinates-unchecked");
 
         // Each kind reverts on its own, and the indicator stays lit until the last one is gone.
         Assert.True(session.RevertPlacedDeletion(a.Key));
@@ -352,10 +352,10 @@ public sealed class BaseEditing3DSessionTests
         Assert.All(used, key => Assert.Contains(key, names));
         foreach (var policy in new[] { "Refuse", "Drop", "Keep" }) Assert.Contains("World3D_Policy_" + policy, names);
 
-        // The staged-edits card and the delete panel keep the "not verified in-game" wording visible.
+        // The staged-edits card and the delete panel keep the experimental warning visible.
         var value = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx")).Root!.Elements("data")
             .First(e => (string)e.Attribute("name")! == "World3D_EditUnverified").Element("value")!.Value;
-        Assert.Contains("NOT been verified in-game", value, StringComparison.Ordinal);
+        Assert.Contains("does not check that a piece fits", value, StringComparison.Ordinal);
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
         Assert.Contains("data-b3d=\"delete-unverified\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"duplicate-unverified\"", tab, StringComparison.Ordinal);

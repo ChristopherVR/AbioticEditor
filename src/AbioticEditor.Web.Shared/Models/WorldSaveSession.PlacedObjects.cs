@@ -303,6 +303,96 @@ public sealed partial class WorldSaveSession
         UpdateStatus();
     }
 
+    // ---------- kinds built in the player's other worlds ----------
+
+    /// <summary>A kind of player-built object found in another world on this machine (the donor of a placed copy).</summary>
+    public sealed record OtherWorldKind(string World, string FilePath, string ClassPath, string? ClassName, int Count, string DonorKey);
+
+    /// <summary>Kinds built in the player's other worlds (same save file name, so the same map); empty until loaded.</summary>
+    public IReadOnlyList<OtherWorldKind> OtherWorldKinds { get; private set; } = [];
+
+    /// <summary>True once the other worlds have been scanned.</summary>
+    public bool OtherWorldsLoaded { get; private set; }
+
+    private Task? _otherWorldsTask;
+    private readonly Dictionary<string, WorldSaveData> _donorSaves = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Scans the other worlds next to this one (their save of the same name, read only) for player-built
+    /// objects, so a kind never built in this world can still be placed. Only the list of kinds is kept;
+    /// a world's save is read again when one of its kinds is placed.
+    /// </summary>
+    public Task LoadOtherWorldKindsAsync() => _otherWorldsTask ??= RunLoadOtherWorldKindsAsync();
+
+    private async Task RunLoadOtherWorldKindsAsync()
+    {
+        var kinds = new List<OtherWorldKind>();
+        try
+        {
+            if ((_files is null || _files.HasLocalPaths)
+                && System.IO.Path.GetDirectoryName(_path) is { Length: > 0 } dir
+                && System.IO.Path.GetDirectoryName(dir) is { Length: > 0 } worlds && Directory.Exists(worlds))
+            {
+                var fileName = System.IO.Path.GetFileName(_path);
+                foreach (var other in Directory.EnumerateDirectories(worlds).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (string.Equals(System.IO.Path.GetFullPath(other), System.IO.Path.GetFullPath(dir), StringComparison.OrdinalIgnoreCase)) continue;
+                    var file = System.IO.Path.Combine(other, fileName);
+                    if (!File.Exists(file)) continue;
+                    try
+                    {
+                        var census = await Task.Run(() => PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(file), file, includeObjects: true)).ConfigureAwait(false);
+                        var world = System.IO.Path.GetFileName(other);
+                        foreach (var g in (census.Objects ?? [])
+                                     .Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.ClassPath is { Length: > 0 } && o.Transform?.Translation is not null)
+                                     .GroupBy(o => o.ClassPath!, StringComparer.OrdinalIgnoreCase))
+                        {
+                            var donor = g.OrderBy(o => o.Transform?.Rotation is null ? 1 : 0).ThenBy(o => o.Key, StringComparer.Ordinal).First();
+                            kinds.Add(new OtherWorldKind(world, file, g.Key, donor.ClassName, g.Count(), donor.Key));
+                        }
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or NotSupportedException or FormatException or EndOfStreamException)
+                    {
+                        AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseEdits", $"Could not read {file} for other-world kinds: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseEdits", $"Could not list other worlds: {ex.Message}");
+        }
+        OtherWorldKinds = kinds;
+        OtherWorldsLoaded = true;
+    }
+
+    /// <summary>
+    /// Stages a new object copied from another world: <paramref name="kind"/>'s donor, standing at
+    /// <paramref name="at"/> (cm) and turned by <paramref name="yawDegrees"/>. It starts empty, unplugged
+    /// and untagged. Returns the staged copy, or null when the other world's save cannot be read.
+    /// </summary>
+    public async Task<StagedDuplication?> StagePlacedImportAsync(OtherWorldKind kind, PlacedVector at, double yawDegrees = 0)
+    {
+        ArgumentNullException.ThrowIfNull(kind);
+        if (!_donorSaves.TryGetValue(kind.FilePath, out var donor))
+        {
+            try { donor = await Task.Run(() => WorldSaveReader.ReadFromFile(kind.FilePath)).ConfigureAwait(false); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseEdits", $"Could not read {kind.FilePath}: {ex.Message}");
+                return null;
+            }
+            _donorSaves[kind.FilePath] = donor;
+        }
+        if (WorldMapAccessor.FindEntry(donor.Raw, "DeployedObjectMap", kind.DonorKey) is not { } props
+            || PlacedObjectCensus.ReadTransform(props)?.Translation is not { } from) return null;
+        var staged = _baseEdits.StageImport(donor, kind.World, kind.DonorKey,
+            new PlacedVector(at.X - from.X, at.Y - from.Y, at.Z - from.Z), yawDegrees);
+        PlacedTransformsRevision++;
+        UpdateStatus();
+        return staged;
+    }
+
     // ---------- references in the other saves of this world ----------
 
     /// <summary>True once the sibling saves have been read (or there were none to read).</summary>

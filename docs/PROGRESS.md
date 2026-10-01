@@ -1,5 +1,43 @@
 # Abiotic Editor - Session history
 
+## Round-139: base edits checked in the running game, walking collides, kinds from other worlds (2026-10-01)
+
+- **In-game check passed (moves, copies, placing, deleting, doors).** A throwaway copy of the
+  EditorPowerTest world (Chrissie's base, 122 objects) got: the repair bench moved 2 m and turned
+  90 degrees (CLI `world object move` + `rotate`), a standing lamp copied 1.5 m over (`duplicate`),
+  a bird figurine deleted (`delete`), a hazard crate placed at (-16500, 11800, 11) through the 3D
+  view's "Place a new object", and BlastDoor_C_2 closed from the 3D door card. The game loaded it:
+  `bases.list` showed the bench, the lamp copy and the new crate at exactly the written positions
+  (originals still present), the figurine gone; `doors.list` showed the door closed, at the
+  position the 3D marker uses. Leaving the game re-saved the world: all 123 objects kept their keys,
+  positions and turns (the bench's 45.8 degree yaw written back by the game), the door stayed
+  closed. The game renames runtime actors (live ids differ from saved actor paths), as for any load.
+- **Kinds from another world, checked in game.** Every world on this machine keeps all its
+  player-built objects in its Facility save (Cascade 909, Manyon 207, Chrissie 112, all
+  `/Game/Maps/Facility.Facility`), so "copy from another save of this world" never applies; the real
+  case is a kind built only in another world. `StagedDuplication` now takes an optional `Donor`
+  (another world's `WorldSaveData`) and `DonorName`; the planner reads the source object, its outlets
+  and pad tag from the donor, refuses a donor whose actor-path map differs from this save's
+  (`other-map`), and the builder and validator use the donor tree. `StagedBaseEdits.StageImport`
+  stages one (default policy: empty, unplugged, untagged). `WorldSaveSession.LoadOtherWorldKindsAsync`
+  scans sibling world folders' save of the same name and keeps only the kind list;
+  `StagePlacedImportAsync` re-reads the donor file and keeps it for apply. The place panel's
+  "Also list things built in my other worlds" adds them as a second group. In game: a Couch Fancy
+  copied from Cascade into the test world loaded at its spot and survived the game's re-save.
+  `DuplicationPreviewRow.ClassPath` lets the 3D view draw the copy's model.
+- **Warnings reworded.** "NOT been verified in-game" is gone from the move and base-edit warnings,
+  the CLI help and the staged-edit finding (`coordinates-unverified` is now `coordinates-unchecked`):
+  the game loads pieces exactly where written; it does not check that they fit (inside walls,
+  floating), which is what the warnings now say.
+- **Walking collides.** On the floor the walker is solid: two horizontal rays (waist, chest) against
+  level pieces and placed models stop it a body radius (0.35 m) from a wall and slide it along;
+  see-through surfaces (transparent or alpha-cut: foliage cards, grates, glass, decals) are skipped,
+  as is anything above the ceiling cut. Flying passes through. Headless: 6 s of W stopped 0.35 m
+  from a planter after 10.9 m; flying from the same start went 23.9 m. A focused checkbox no longer
+  swallows the walking keys. Hook `wallAheadDistance()`.
+- Throwaway worlds deleted afterwards; EditorPowerTest (from round 136c) is still in the user's
+  Worlds folder.
+
 ## Round-138: doors and walking in the 3D view (2026-10-01)
 
 - **Doors in 3D.** Every door of the open region is a round marker (fixed pixel size, drawn over
@@ -47,8 +85,7 @@
   (`OnOpenTab`, wired in `SaveEditorSurface`). Removal stays read-only, as in the NPCs tab.
   Markers are one viewer `createMarkerLayer` used by doors and characters; a click takes the nearer
   marker. Verified headlessly on Office1: 4 characters, Dr. Jager's card, the NPCs tab opens.
-- Walking has no collision with walls or closed doors. Moved, copied and placed objects are still
-  not checked in a running game.
+- (Round 139 closed these: walking collides, and moved, copied and placed objects were checked in game.)
 
 ## Round-137: 3D view follows the base, clearer level view (2026-10-01)
 

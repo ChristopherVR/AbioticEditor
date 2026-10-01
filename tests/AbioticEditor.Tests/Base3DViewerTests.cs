@@ -494,6 +494,43 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
+    public async Task A_kind_built_only_in_another_world_is_placed_from_that_worlds_save()
+    {
+        // Two different worlds: the small Chrissie world receives a kind it has never built, copied from Cascade.
+        var saves = Fixtures.ClientWorldSaves("WorldSave_Facility.sav");
+        var target = saves.FirstOrDefault(p => p.Contains("Chrissie", StringComparison.OrdinalIgnoreCase));
+        var donorFile = saves.FirstOrDefault(p => p.Contains("Cascade", StringComparison.OrdinalIgnoreCase));
+        if (target is null || donorFile is null) return;
+        using var temp = new TempCopy(target);
+        var session = Open(temp.SavePath);
+        var here = session.PlacedObjects.Where(o => o.DeployedByPlayer == true).Select(o => o.ClassPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var donorSession = Open(donorFile);
+        var donorBytes = await File.ReadAllBytesAsync(donorFile);
+        var donor = donorSession.PlacedObjects.First(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.Transform?.Translation is not null
+            && o.Transform.Rotation is not null && !here.Contains(o.ClassPath) && o.InventoryCount == 0);
+        var kind = new WorldSaveSession.OtherWorldKind("Cascade", donorFile, donor.ClassPath!, donor.ClassName, 1, donor.Key);
+        var at = new PlacedVector(-16500, 11800, 11);
+        var before = session.PlacedObjects.Count;
+
+        var staged = await session.StagePlacedImportAsync(kind, at, 0);
+        Assert.NotNull(staged);
+        var row = Assert.Single(session.PreviewBaseEdits().Duplications);
+        Assert.False(row.Blocked, string.Join("; ", row.Issues.Select(i => i.Message)));
+        Assert.Equal(donor.ClassPath, row.ClassPath);
+        AssertVectorClose(at, row.After!.Translation!.Value, 1e-6);
+        Assert.Equal(ContentsMode.Empty, row.Contents);
+
+        await session.SaveAsync();
+        var reread = Open(temp.SavePath);
+        Assert.Equal(before + 1, reread.PlacedObjects.Count);
+        var placed = reread.FindPlacedObject(row.NewKey)!;
+        Assert.Equal(donor.ClassPath, placed.ClassPath);
+        Assert.True(placed.DeployedByPlayer);
+        AssertVectorClose(at, placed.Transform!.Translation!.Value, 0.01);
+        Assert.Equal(donorBytes, await File.ReadAllBytesAsync(donorFile)); // the other world is only read
+    }
+
+    [Fact]
     public void Doors_are_clickable_markers_whose_card_stages_like_the_doors_tab()
     {
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
@@ -584,7 +621,8 @@ public sealed class Base3DViewerTests
 
         var warning = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx")).Root!.Elements("data")
             .First(e => (string)e.Attribute("name")! == "World3D_MoveWarning").Element("value")!.Value;
-        Assert.Contains("NOT been verified in-game", warning, StringComparison.Ordinal);
+        Assert.Contains("Experimental", warning, StringComparison.Ordinal);
+        Assert.Contains("does not check that it fits", warning, StringComparison.Ordinal);
     }
 
     [Fact]
