@@ -707,6 +707,9 @@ public sealed class TcpLiveGameChannelTests : IAsyncLifetime
             }
             catch (OperationCanceledException) { }
             catch (ObjectDisposedException) { }
+            // On Linux, stopping the listener (or the connection) during shutdown surfaces as a socket or
+            // stream error rather than a cancellation; once shutdown was asked for, that is a normal stop.
+            catch (Exception ex) when (ex is System.Net.Sockets.SocketException or IOException && cancellationToken.IsCancellationRequested) { }
         }
 
         private static async Task ServeOneConnectionAsync(TcpClient client, CancellationToken cancellationToken)
