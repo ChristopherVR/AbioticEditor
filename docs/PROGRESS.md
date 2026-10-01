@@ -19,6 +19,14 @@
   as the map); the view frames that base's objects and reloads the level around it when the level
   is on (`WorldBasesTab.ThreeDView` is now a `RenderFragment<WorldBase?>`, `WorldBases3DTab.FocusBase`,
   viewer `frameKeys`).
+- **Plugin ships as an optional download.** Release workflow: `build-plugins` zips
+  `AbioticEditor-plugin-game-models-3d-vX.Y.Z.zip` (one `GameModels3D` folder: dll, plugin.json,
+  README) into the GitHub Release; `nexus-models` uploads it as a Nexus optional file once the
+  `NEXUS_MODELS_FILE_ID` variable exists (not created yet; the job skips with a warning). Checked
+  locally that a Release-config plugin folder loads in a self-contained single-file Windows publish:
+  status available, bench model, its mesh (97 KB) and texture (PNG) served. Player guide
+  `guide/plugins.md` has a "See your bases in 3D" section. `/scene-models/classes|level` answer
+  400 to malformed JSON (was a 500).
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 

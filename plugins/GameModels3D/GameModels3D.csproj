@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Optional plugin: real game models for the 3D base view, read from the player's own game
-       install. Not part of the editor release; built and copied into a plugins folder by hand
-       (see README.md). Same shared-assembly model as the samples: compile against the SDK, Core
+       install. Not inside the editor download: the release workflow zips it as its own optional
+       download (build-plugins job), or build it and copy it into a plugins folder (README.md). Same shared-assembly model as the samples: compile against the SDK, Core
        and CUE4Parse, let the host provide them at runtime. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

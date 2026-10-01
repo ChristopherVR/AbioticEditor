@@ -14,7 +14,13 @@ Factor**; nothing from the game is shipped with the plugin or the editor.
 
 ## Install
 
-1. Build it (needs the .NET 10 SDK and a clone with submodules):
+**From a release:** download `AbioticEditor-plugin-game-models-3d-v<version>.zip` from the same
+release as your editor, open **Settings, Plugins, OPEN PLUGINS FOLDER** in the editor, extract the
+zip there (it holds one `GameModels3D` folder) and restart the editor.
+
+**From source** (needs the .NET 10 SDK and a clone with submodules):
+
+1. Build it:
    ```console
    dotnet build plugins/GameModels3D -c Release
    ```
@@ -24,7 +30,8 @@ Factor**; nothing from the game is shipped with the plugin or the editor.
    - `GameModels3D.dll`
    - `plugin.json`
 3. Start the editor. **Settings, Plugins** lists "Game Models for 3D View".
-4. Open a world save, go to the **Bases** tab and switch from **Map** to **3D view**.
+
+Then open a world save, go to the **Bases** tab and switch from **Map** to **3D view**.
 
 The editor must be able to read your game files (the same setting that gives you item icons).
 
@@ -37,8 +44,8 @@ objects** to move, turn, delete and copy player-built pieces; nothing is written
 - **Show game models**: on by default once the plugin is installed. Objects the game has no
   model for stay as boxes.
 - **Show the level around the view**: loads the level around the centre of the view. Pick a
-  **distance**, and **cut away above the base** to hide ceilings and upper floors so you can see
-  into rooms. Move the view and press **Load level here** to look somewhere else. Clicking a level
+  **distance**, and **cut away above the floor** to hide ceilings and upper floors so you can see
+  into rooms (measured from the floor of the base you are looking at). Move the view and press **Load level here** to look somewhere else. Clicking a level
   piece names it (and the level file it comes from); level pieces cannot be selected or edited.
 
 Everything else works as without the plugin: click to select, the inspector, the move/rotate
@@ -51,7 +58,8 @@ gizmo, delete, duplicate and group edits, and SAVE. Selection outlines fit the r
   parent chain rather than a list of names, so objects added in future game updates work too.
   Attached parts (lids, taps, plug sockets) sit where the game puts them.
 - **Materials.** Each material is reduced to its base colour texture and tint, plus glass,
-  cut-out and glowing flags. It is a preview, not the game's lighting.
+  cut-out and glowing flags. It is a preview, not the game's lighting, so see-through glows
+  (fake light beams under lamps, glow cards) are left out.
 - **Level.** The plugin reads the level's static meshes. Streamed areas are placed where the game
   places them, and only drawn where the game's own streaming volumes would load them, so dream
   sequences and other set pieces that share the same space stay hidden. Sky domes, far-distance

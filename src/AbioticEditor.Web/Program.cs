@@ -195,13 +195,17 @@ public static class Program
         app.MapGet("/scene-models/status", (SceneModelHostService scene) => Results.Json(scene.Status()));
         app.MapPost("/scene-models/classes", async (HttpRequest request, SceneModelHostService scene, CancellationToken cancellationToken) =>
         {
-            var paths = await request.ReadFromJsonAsync<string[]>(cancellationToken) ?? [];
+            string[] paths;
+            try { paths = await request.ReadFromJsonAsync<string[]>(cancellationToken) ?? []; }
+            catch (System.Text.Json.JsonException) { return Results.BadRequest(); }
             var models = await Task.Run(() => scene.DescribeClasses(paths), cancellationToken);
             return Results.Json(models);
         });
         app.MapPost("/scene-models/level", async (HttpRequest request, SceneModelHostService scene, CancellationToken cancellationToken) =>
         {
-            var query = await request.ReadFromJsonAsync<AbioticEditor.Plugins.Scene.SceneLevelQuery>(cancellationToken);
+            AbioticEditor.Plugins.Scene.SceneLevelQuery? query;
+            try { query = await request.ReadFromJsonAsync<AbioticEditor.Plugins.Scene.SceneLevelQuery>(cancellationToken); }
+            catch (System.Text.Json.JsonException) { return Results.BadRequest(); }
             if (query is null) return Results.BadRequest();
             var slice = await Task.Run(() => scene.DescribeLevel(query), cancellationToken);
             return slice is null ? Results.NoContent() : Results.Json(slice);
