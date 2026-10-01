@@ -296,6 +296,32 @@ public sealed class GameModels3DTests
         });
     }
 
+    [Fact]
+    public void The_newer_mappings_file_wins_over_an_old_import()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-usmap-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var user = Path.Combine(dir, "user.usmap");
+            var bundled = Path.Combine(dir, "bundled.usmap");
+            Assert.Null(GameAssetProvider.FindConventionalMappings(user, bundled));
+            File.WriteAllBytes(bundled, [0xC4, 0x30]);
+            Assert.Equal(bundled, GameAssetProvider.FindConventionalMappings(user, bundled));
+            File.WriteAllBytes(user, [0xC4, 0x30]);
+            File.SetLastWriteTimeUtc(user, new DateTime(2026, 5, 19, 0, 0, 0, DateTimeKind.Utc));
+            File.SetLastWriteTimeUtc(bundled, new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
+            Assert.Equal(bundled, GameAssetProvider.FindConventionalMappings(user, bundled));
+            // A dump imported after the editor was built still overrides the bundled file.
+            File.SetLastWriteTimeUtc(user, new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc));
+            Assert.Equal(user, GameAssetProvider.FindConventionalMappings(user, bundled));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     // ---------- plugin loading ----------
 
     [Fact]

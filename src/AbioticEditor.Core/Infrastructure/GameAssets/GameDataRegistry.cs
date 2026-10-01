@@ -263,8 +263,7 @@ public sealed class GameDataRegistry
     }
 
     /// <summary>
-    /// Finds the registry to use, or null. Resolution mirrors
-    /// <see cref="GameAssetProvider.FindConventionalMappings"/>:
+    /// Finds the registry to use, or null. Resolution:
     /// 1. <c>%LOCALAPPDATA%/AbioticEditor/registry/registry.json</c> (user-supplied, wins so a
     ///    fresh dump can override the bundled one), then
     /// 2. <c>registry/registry.json</c> next to the executable (bundled with the editor).

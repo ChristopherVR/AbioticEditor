@@ -75,10 +75,19 @@
   `The_census_reads_what_grows_in_each_garden_plot_spot`,
   `Crops_stand_on_their_spot_with_the_stage_mesh_and_fruit_when_grown`.
 
+- **Mappings regenerated (2026-10-01).** `assets/Mappings.usmap` replaced with a UE4SS
+  `DumpUSMAP` from the current game (`AbioticFactor-5.4.4-1040001`, was `1030002` from 2026-05-19;
+  1,724,223 bytes), taken in a throwaway copy of the Chrissie world (Ctrl+Numpad6 sent after
+  attaching to the foreground thread's input, since Windows Firewall prompts held focus; copy
+  deleted). It knows `PlantData.SeedItem` and the data table's `bLoadFromJSON`, so CUE4Parse reads
+  `DT_Plants` directly (32 rows); `PlantTable` keeps its workaround only for older mappings. Full
+  suite passes with it (2,117). The user's own `%LOCALAPPDATA%\AbioticEditor\mappings` copy was
+  the 2026-05 file and shadowed the bundled one; it was replaced (old one kept as
+  `Mappings.usmap.2026-05-19.bak`) and `FindConventionalMappings` now picks the newer of the user
+  and bundled files by last-write time (`The_newer_mappings_file_wins_over_an_old_import`).
+
 ### Open issues to keep in view (round 137)
 
-- The bundled `assets/Mappings.usmap` predates the current game (`PlantData` gained `SeedItem`);
-  regenerating it would remove the need for `PlantTable`'s corrected schema.
 - Not drawn: per-object state (open lids, fill levels); skeletal meshes show their
   bind pose; landscape layer blending (one layer texture per landscape); decals.
 - The Nexus optional file for the plugin needs a file entry on the mod page and the

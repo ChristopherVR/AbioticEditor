@@ -9,6 +9,8 @@ namespace AbioticEditor.Plugins.GameModels3D;
 
 /// <summary>
 /// The rows of <c>DT_Plants</c> (row struct <c>PlantData</c>): each crop's growth-stage meshes.
+/// With mappings dumped from the current game (2026-10) CUE4Parse reads it directly; the rest of
+/// this class is for older mappings (a player's own import, or an older bundled file), where
 /// CUE4Parse reads this table as empty: the game's data table carries one more property than the
 /// mappings describe (<c>bLoadFromJSON</c>, a one-byte flag), so the reader is one byte short and
 /// takes the following zero (the object's "has GUID" flag) as the row count. The table's own bytes
@@ -33,13 +35,17 @@ internal static class PlantTable
     public static IReadOnlyDictionary<string, FStructFallback> Read(IFileProvider provider)
     {
         var empty = new Dictionary<string, FStructFallback>(StringComparer.OrdinalIgnoreCase);
-        if (!provider.TryLoadPackage(Path, out var package) || package is not IoPackage io || io.ExportMap.Length == 0) return empty;
+        if (!provider.TryLoadPackage(Path, out var package)) return empty;
+        // Mappings dumped from the current game describe the table fully, and CUE4Parse reads it.
+        if (package.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Engine.UDataTable>().FirstOrDefault() is { RowMap.Count: > 0 } table)
+            return table.RowMap.ToDictionary(r => r.Key.Text, r => r.Value, StringComparer.OrdinalIgnoreCase);
+        if (package is not IoPackage io || io.ExportMap.Length == 0) return empty;
         if (!provider.TrySaveAsset(Path, out var raw)) return empty;
         var exportBytes = io.ExportMap.Sum(e => (long)e.CookedSerialSize);
-        var table = io.ExportMap[0];
-        var start = raw.Length - exportBytes + (long)table.CookedSerialOffset;
-        if (start < 0 || start + (long)table.CookedSerialSize > raw.Length) return empty;
-        var data = raw.AsSpan((int)start, (int)table.CookedSerialSize).ToArray();
+        var export = io.ExportMap[0];
+        var start = raw.Length - exportBytes + (long)export.CookedSerialOffset;
+        if (start < 0 || start + (long)export.CookedSerialSize > raw.Length) return empty;
+        var data = raw.AsSpan((int)start, (int)export.CookedSerialSize).ToArray();
 
         foreach (var structName in new[] { RowStruct, Corrected(provider) })
         {

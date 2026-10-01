@@ -22,7 +22,7 @@ This is an advanced compatibility file, not something most players need. Get one
 1. Choose **Settings ▸ Import usmap**, or
 2. Copy it to `%LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap`.
 
-Your imported file takes effect immediately and overrides the one that came with the editor. It helps the desktop app read your installed game data. It does not change the bundled browser catalogue or its icons.
+Your imported file takes effect immediately and overrides the one that came with the editor. When a later editor update brings a newer file of its own, the newer one is used, so an old import never holds you back. It helps the desktop app read your installed game data. It does not change the bundled browser catalogue or its icons.
 
 ::: tip Unknown entry?
 Do not guess at unfamiliar values from a newer patch. Update the editor and game data first, then review the value before saving.

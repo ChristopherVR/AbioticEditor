@@ -148,23 +148,30 @@ public sealed class GameAssetProvider : IDisposable
     }
 
     /// <summary>
-    /// Returns the usmap mappings file to use, or null. Resolution order:
-    /// 1. <c>%LOCALAPPDATA%/AbioticEditor/mappings/Mappings.usmap</c> (user-supplied,
-    ///    wins so a newer dump can override the bundled one), then
-    /// 2. <c>Mappings.usmap</c> next to the executable (bundled fallback shipped with
-    ///    the app).
+    /// Returns the usmap mappings file to use, or null: the newer of
+    /// <c>%LOCALAPPDATA%/AbioticEditor/mappings/Mappings.usmap</c> (user-supplied, for a game build
+    /// newer than the editor) and <c>Mappings.usmap</c> next to the executable (bundled with the
+    /// app), by last-write time. The user file used to win outright, so a dump imported once kept
+    /// shadowing every newer bundled file after editor updates (the 2026-05 dump hid the 2026-10
+    /// one, which knows <c>PlantData.SeedItem</c>).
     /// </summary>
     public static string? FindConventionalMappings()
-    {
-        if (File.Exists(UserMappingsPath)) return UserMappingsPath;
+        => FindConventionalMappings(UserMappingsPath, Path.Combine(AppContext.BaseDirectory, "Mappings.usmap"));
 
-        var bundled = Path.Combine(AppContext.BaseDirectory, "Mappings.usmap");
-        return File.Exists(bundled) ? bundled : null;
+    /// <summary>The newer of two candidate mappings files (either may be missing); see the parameterless overload.</summary>
+    public static string? FindConventionalMappings(string userPath, string bundledPath)
+    {
+        var user = File.Exists(userPath);
+        var bundled = File.Exists(bundledPath);
+        if (user && bundled)
+            return File.GetLastWriteTimeUtc(userPath) >= File.GetLastWriteTimeUtc(bundledPath) ? userPath : bundledPath;
+        return user ? userPath : bundled ? bundledPath : null;
     }
 
     /// <summary>
-    /// The user-override mappings location. A file here wins over the bundled usmap, so
-    /// players on newer game builds can drop in a fresh dump without updating the editor.
+    /// The user-override mappings location. A file here wins over the bundled usmap while it is
+    /// the newer of the two, so players on newer game builds can drop in a fresh dump without
+    /// updating the editor, and a later editor update with a fresher bundled file still takes over.
     /// </summary>
     public static string UserMappingsPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
