@@ -18,8 +18,15 @@ internal static class LandscapeBaker
     /// <summary>Separates the map's object path from the component's export index in a mesh key.</summary>
     public const string Marker = "#land=";
 
-    /// <summary>Landscape quads per texture repeat: layer textures tile every few metres in the game.</summary>
-    private const float QuadsPerTextureRepeat = 4f;
+    /// <summary>
+    /// The terrain master (<c>M_AbioticTerrain_Master</c>) blends five texture slots, and every map
+    /// paints with the same layer names. Which layer feeds which slot is not in the cooked data (the
+    /// node graph is stripped), so it is read from the textures: across every outdoor map the rock
+    /// textures sit in <c>Tertiary</c>, pebbles and larvae in <c>Quaternary</c> and road dirt in
+    /// <c>Secondary</c>, with <c>Main</c> as the base. Layers not listed here (translucency, the
+    /// engine's hole layer) do not change the colour. Index = vertex colour channel + 1.
+    /// </summary>
+    internal static readonly string[] SlotLayers = ["Main", "Road", "Rock", "Misc"];
 
     public static string Key(string mapObjectPath, int exportIndex)
         => mapObjectPath + Marker + exportIndex.ToString(CultureInfo.InvariantCulture);
@@ -35,6 +42,23 @@ internal static class LandscapeBaker
         var dot = objectPath.LastIndexOf('.');
         var package = dot > 0 ? objectPath[..dot] : objectPath;
         return provider.TryLoadPackage(package, out var pkg) ? pkg.GetExport(index) as ULandscapeComponent : null;
+    }
+
+    /// <summary>
+    /// Vertex colour channel per weightmap layer of a component, keyed by the name CUE4Parse gives
+    /// the layer's weights (its layer info object), for the layers in <see cref="SlotLayers"/> after
+    /// the base one.
+    /// </summary>
+    private static Dictionary<string, int> LayerChannels(ULandscapeComponent component)
+    {
+        var channels = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var allocation in component.GetWeightmapLayerAllocations())
+        {
+            var layerName = allocation.LayerInfo?.Load()?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("LayerName").Text;
+            var slot = Array.FindIndex(SlotLayers, n => string.Equals(n, layerName, StringComparison.OrdinalIgnoreCase));
+            if (slot >= 1) channels[allocation.GetLayerName()] = slot - 1;
+        }
+        return channels;
     }
 
     /// <summary>Bounds (proxy-local units) and the one material slot of a component.</summary>
@@ -63,14 +87,26 @@ internal static class LandscapeBaker
         // quad position plus the section base), so the layout does not depend on reader internals.
         var grid = new Vector3[size + 1, size + 1];
         var normalGrid = new Vector3[size + 1, size + 1];
+        var weightGrid = new byte[size + 1, size + 1, 4];
         var filled = new bool[size + 1, size + 1];
-        foreach (var v in source.Vertices)
+        // Paint-layer weights per vertex, by the layer's own name (its LayerInfo's LayerName).
+        var channelByLayer = LayerChannels(component);
+        var weights = source.VertexColors?
+            .Select(c => (Channel: channelByLayer.GetValueOrDefault(c.Name, -1), Weights: c.Colors))
+            .Where(c => c.Channel >= 0)
+            .ToList() ?? [];
+        for (var index = 0; index < source.Vertices.Length; index++)
         {
+            var v = source.Vertices[index];
             var x = (int)MathF.Round(v.Uv.U - component.SectionBaseX);
             var y = (int)MathF.Round(v.Uv.V - component.SectionBaseY);
             if (x < 0 || y < 0 || x > size || y > size) continue;
             grid[x, y] = new Vector3(v.Position.X, v.Position.Y, v.Position.Z);
             normalGrid[x, y] = new Vector3(v.Normal.X, v.Normal.Y, v.Normal.Z);
+            foreach (var (channel, layerWeights) in weights)
+            {
+                if (index < layerWeights.Length) weightGrid[x, y, channel] = layerWeights[index].R;
+            }
             filled[x, y] = true;
         }
 
@@ -82,6 +118,7 @@ internal static class LandscapeBaker
         var positions = new float[side * side * 3];
         var normals = new float[side * side * 3];
         var uvs = new float[side * side * 2];
+        var colors = new byte[side * side * 4];
         for (var gy = 0; gy < side; gy++)
         for (var gx = 0; gx < side; gx++)
         {
@@ -100,8 +137,11 @@ internal static class LandscapeBaker
             normals[i * 3] = viewer.X;
             normals[(i * 3) + 1] = viewer.Y;
             normals[(i * 3) + 2] = viewer.Z;
-            uvs[i * 2] = (x + component.SectionBaseX) / QuadsPerTextureRepeat;
-            uvs[(i * 2) + 1] = (y + component.SectionBaseY) / QuadsPerTextureRepeat;
+            // Landscape coordinates in quads (a quad is a metre at the usual proxy scale); the viewer
+            // divides by each layer's repeat size.
+            uvs[i * 2] = x + component.SectionBaseX;
+            uvs[(i * 2) + 1] = y + component.SectionBaseY;
+            for (var c = 0; c < 4; c++) colors[(i * 4) + c] = weightGrid[x, y, c];
         }
 
         // Same triangle order as the engine's landscape export; the axis swap above is a
@@ -119,6 +159,6 @@ internal static class LandscapeBaker
             indices[k++] = V(x, y + 1);
             indices[k++] = V(x + 1, y + 1);
         }
-        return SceneMeshFormat.Write(positions, normals, uvs, indices, [new SceneMeshFormat.Section(0, 0, indices.Length)]);
+        return SceneMeshFormat.Write(positions, normals, uvs, colors, indices, [new SceneMeshFormat.Section(0, 0, indices.Length)]);
     }
 }

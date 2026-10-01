@@ -86,10 +86,42 @@
   `Mappings.usmap.2026-05-19.bak`) and `FindConventionalMappings` now picks the newer of the user
   and bundled files by last-write time (`The_newer_mappings_file_wins_over_an_old_import`).
 
+- **Outdoor ground, water, HLOD and decals.**
+  - Terrain blends its paint layers: the master (`M_AbioticTerrain_Master`) has five slots
+    (`Primary`..`Quinary`, each `_Scale`, `DiffuseColor_`, `DiffuseIntensity_`; the fourth slot's
+    colour is spelt `Quarternary`). The layer-to-slot wiring is stripped from the cooked graph, so
+    it is read from the textures across all outdoor maps: `Main`, `Road`, `Rock`, `Misc` (each
+    layer info's `LayerName`) feed `Primary` to `Quaternary` (rocks always sit in `Tertiary`,
+    pebbles and larvae in `Quaternary`, road dirt in `Secondary`). Baked weights travel as vertex
+    colours (SDK `SceneMeshFormat.FlagVertexColors`, a fourth RGBA8 block after the UVs) and the
+    viewer mixes the layer textures in a lit shader (`SceneMaterial.Layers`).
+  - The Dam's "green texture" was not terrain: the reservoir is an engine `Plane` scaled 129x with
+    a world-tiled liquid material (`Scale` 600/450 cm), drawn with one texture repeat across it.
+    The viewer now textures any level piece whose texture would repeat less than once per 12 m
+    from above in world space, using the material's own `Scale` when it has one
+    (`SceneMaterial.WorldTileMetres`).
+  - Hand-placed HLOD meshes (`/Game/Models/Environment/HLOD/SM_HLOD_DamsV2_CleanUp`, in plain
+    static mesh actors so the `LODActor` rule missed them) covered the dam with a blurry stand-in;
+    meshes from `/HLOD/` folders are skipped.
+  - Level decals (`DecalComponent`, 572 in `Facility`, 120 in `Facility_Office1`) are drawn as
+    quads over their projection box (`DecalSize` is the half size; the engine plane turned so
+    plane X is decal +Z and plane Y is decal -Y, Unreal's decal UV convention, as a rotation so
+    instanced lighting faces the right way), material domain `MD_DeferredDecal` read as
+    `SceneMaterial.Decal`, see-through by texture alpha with a polygon offset. Decals whose texture
+    has no transparency (some grunge decals are 18 m across) are skipped. Level index format 8.
+  - Viewer test hooks: `globalThis.__abioticBase3d` (the latest view), `lookAt(point, distance)`,
+    and `levelSummary` now reports each material's colour, map and transparency.
+  - Verified headless: Dam valley with dark water and the real dam structure, Office1 scrap papers
+    white with readable handwriting on the floor, signs on walls. Tests:
+    `Meshes_can_carry_vertex_colours_after_their_texture_coordinates`,
+    `Outdoor_ground_blends_the_terrain_layers_the_game_paints`,
+    `Water_tiles_by_its_own_scale_and_level_decals_are_indexed_as_quads`.
+
 ### Open issues to keep in view (round 137)
 
 - Not drawn: per-object state (open lids, fill levels); skeletal meshes show their
-  bind pose; landscape layer blending (one layer texture per landscape); decals.
+  bind pose; decals on placed objects (only level decals are drawn); the terrain's fifth slot
+  (`Quinary`) has no paint layer mapped to it.
 - The Nexus optional file for the plugin needs a file entry on the mod page and the
   `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.
 - Superseded from rounds 134 to 136: paint colour, terrain, spline meshes (tram rails), the view

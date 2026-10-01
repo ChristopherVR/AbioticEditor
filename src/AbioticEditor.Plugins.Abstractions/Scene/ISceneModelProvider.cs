@@ -94,7 +94,34 @@ public sealed record ScenePart(string Mesh, float[] Matrix, IReadOnlyList<SceneM
 /// <param name="Masked">The texture's alpha cuts holes (foliage, grilles).</param>
 /// <param name="Emissive">Draws unlit at full brightness (lamps, screens).</param>
 public sealed record SceneMaterial(
-    string? Texture, float[] Color, float Opacity = 1f, bool TwoSided = false, bool Masked = false, bool Emissive = false);
+    string? Texture, float[] Color, float Opacity = 1f, bool TwoSided = false, bool Masked = false, bool Emissive = false)
+{
+    /// <summary>
+    /// Terrain only: up to five textures blended per vertex. The mesh's vertex colours (see
+    /// <see cref="SceneMeshFormat.FlagVertexColors"/>) hold the weights of layers 2 to 5 in red,
+    /// green, blue and alpha; layer 1 takes what is left. Null for an ordinary material.
+    /// </summary>
+    public IReadOnlyList<SceneTerrainLayer>? Layers { get; init; }
+
+    /// <summary>
+    /// The size of one texture repeat in metres when the game maps this material by world position
+    /// (water surfaces); 0 when unknown. The view uses it for pieces whose own texture coordinates
+    /// would stretch the texture over many metres.
+    /// </summary>
+    public float WorldTileMetres { get; init; }
+
+    /// <summary>
+    /// A decal: drawn over the surface it lies on, see-through where its texture is (the
+    /// texture's alpha), never hiding what is behind it.
+    /// </summary>
+    public bool Decal { get; init; }
+}
+
+/// <summary>One texture of a blended terrain material.</summary>
+/// <param name="Texture">Asset id of the layer's PNG texture, or null when the slot is unused.</param>
+/// <param name="Color">Linear RGB tint, three floats.</param>
+/// <param name="RepeatMetres">How many metres one repeat of the texture covers.</param>
+public sealed record SceneTerrainLayer(string? Texture, float[] Color, float RepeatMetres);
 
 /// <summary>The saved state of one object that changes how it looks.</summary>
 /// <param name="PaintColor">The save's <c>EPaintColor</c> value, or null when unpainted.</param>
@@ -144,11 +171,12 @@ public sealed record SceneAsset(string ContentType, byte[] Data);
 /// uint32 vertexCount
 /// uint32 indexCount
 /// uint32 sectionCount
-/// uint32 flags                    bit 0: 32-bit indices (else 16-bit)
+/// uint32 flags                    bit 0: 32-bit indices (else 16-bit); bit 1: vertex colours
 /// sectionCount x (uint32 materialIndex, uint32 firstIndex, uint32 indexCount)
 /// float32[3 x vertexCount]        positions, viewer space, metres
 /// int16[3 x vertexCount]          normals, normalized to -32767..32767 (padded to 4 bytes)
 /// float32[2 x vertexCount]        texture coordinates
+/// uint8[4 x vertexCount]          vertex colours RGBA (only when flag bit 1 is set)
 /// uint16|uint32[indexCount]       triangle list, counter-clockwise front faces
 /// </code>
 /// </summary>
@@ -163,6 +191,9 @@ public static class SceneMeshFormat
     /// <summary>Flag: the index block is 32-bit.</summary>
     public const uint Flag32BitIndices = 1;
 
+    /// <summary>Flag: a block of RGBA8 vertex colours follows the texture coordinates.</summary>
+    public const uint FlagVertexColors = 2;
+
     /// <summary>A triangle-list section drawn with one material.</summary>
     public readonly record struct Section(int MaterialIndex, int FirstIndex, int IndexCount);
 
@@ -173,22 +204,33 @@ public static class SceneMeshFormat
     public static byte[] Write(
         ReadOnlySpan<float> positions, ReadOnlySpan<float> normals, ReadOnlySpan<float> uvs,
         ReadOnlySpan<uint> indices, IReadOnlyList<Section> sections)
+        => Write(positions, normals, uvs, [], indices, sections);
+
+    /// <summary>
+    /// Encodes a mesh with vertex colours: <paramref name="colors"/> holds four bytes (RGBA) per
+    /// vertex, or is empty for none.
+    /// </summary>
+    public static byte[] Write(
+        ReadOnlySpan<float> positions, ReadOnlySpan<float> normals, ReadOnlySpan<float> uvs, ReadOnlySpan<byte> colors,
+        ReadOnlySpan<uint> indices, IReadOnlyList<Section> sections)
     {
         ArgumentNullException.ThrowIfNull(sections);
         var vertexCount = positions.Length / 3;
         if (normals.Length != vertexCount * 3 || uvs.Length != vertexCount * 2)
             throw new ArgumentException("normals and uvs must match the vertex count.");
+        if (!colors.IsEmpty && colors.Length != vertexCount * 4)
+            throw new ArgumentException("colors must hold four bytes per vertex.");
         var wide = vertexCount > ushort.MaxValue;
         var normalBytes = Align4(vertexCount * 3 * 2);
         var indexBytes = Align4(indices.Length * (wide ? 4 : 2));
-        var size = 20 + (sections.Count * 12) + (vertexCount * 12) + normalBytes + (vertexCount * 8) + indexBytes;
+        var size = 20 + (sections.Count * 12) + (vertexCount * 12) + normalBytes + (vertexCount * 8) + colors.Length + indexBytes;
         var buffer = new byte[size];
         var w = new SpanWriter(buffer);
         w.Bytes("ABM1"u8);
         w.U32((uint)vertexCount);
         w.U32((uint)indices.Length);
         w.U32((uint)sections.Count);
-        w.U32(wide ? Flag32BitIndices : 0);
+        w.U32((wide ? Flag32BitIndices : 0) | (colors.IsEmpty ? 0 : FlagVertexColors));
         foreach (var s in sections)
         {
             w.U32((uint)s.MaterialIndex);
@@ -199,6 +241,7 @@ public static class SceneMeshFormat
         foreach (var n in normals) w.I16((short)Math.Clamp(MathF.Round(n * 32767f), -32767f, 32767f));
         w.Pad4();
         foreach (var t in uvs) w.F32(t);
+        w.Bytes(colors);
         foreach (var i in indices)
         {
             if (wide) w.U32(i);

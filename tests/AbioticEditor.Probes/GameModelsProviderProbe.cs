@@ -285,4 +285,186 @@ public class GameModelsProviderProbe
             return 0;
         });
     }
+
+    /// <summary>A map's landscape materials: parameters, referenced textures and the weightmap layers its components use (ABIOTIC_MAP).</summary>
+    [Fact]
+    public void Dump_LandscapeMaterials()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var map = Environment.GetEnvironmentVariable("ABIOTIC_MAP") ?? "Facility_Dam";
+        assets.UseFileProvider(p =>
+        {
+            var pkg = p.LoadPackage($"AbioticFactor/Content/Maps/{map}.umap");
+            var materials = new HashSet<string>();
+            var layers = new Dictionary<string, int>();
+            foreach (var proxy in pkg.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Actor.ALandscapeProxy>())
+            {
+                if (proxy.LandscapeMaterial is { IsNull: false } lm) materials.Add(lm.ResolvedObject!.GetPathName());
+                foreach (var ci in proxy.LandscapeComponents)
+                {
+                    var c = ci.Load<CUE4Parse.UE4.Assets.Exports.Component.Landscape.ULandscapeComponent>();
+                    if (c is null) continue;
+                    if (c.OverrideMaterial is { IsNull: false } om) materials.Add(om.ResolvedObject!.GetPathName());
+                    foreach (var a in c.GetWeightmapLayerAllocations()) { var n = a.GetLayerName(); layers[n] = layers.GetValueOrDefault(n) + 1; }
+                }
+            }
+            _output.WriteLine($"layers: {string.Join(", ", layers.Select(kv => $"{kv.Key} x{kv.Value}"))}");
+            foreach (var m in materials)
+            {
+                _output.WriteLine($"material {m}");
+                for (CUE4Parse.UE4.Assets.Exports.UObject? cur = p.LoadPackageObject(m); cur is not null; cur = cur.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("Parent")?.Load())
+                {
+                    _output.WriteLine($"  {cur.ExportType} {cur.GetPathName()}");
+                    foreach (var t in cur.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("TextureParameterValues", []))
+                        _output.WriteLine($"     tex {t.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text} = {t.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("ParameterValue")?.ResolvedObject?.Name}");
+                    foreach (var v in cur.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("ScalarParameterValues", []))
+                        _output.WriteLine($"     scalar {v.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text} = {v.GetOrDefault<float>("ParameterValue")}");
+                    if (cur is CUE4Parse.UE4.Assets.Exports.Material.UMaterial um)
+                        _output.WriteLine($"     referenced: {string.Join(", ", um.ReferencedTextures.Where(x => x is not null).Select(x => x!.Name))}");
+                }
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>The terrain master material's cooked properties (looking for its landscape layer names and texture slots).</summary>
+    [Fact]
+    public void Dump_TerrainMaster()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var pkg = p.LoadPackage("AbioticFactor/Content/Textures/M_AbioticTerrain_Master.uasset");
+            _output.WriteLine("names: " + string.Join(" ", pkg.NameMap.Select(n => n.Name)));
+            var m = p.LoadPackageObject("/Game/Textures/M_AbioticTerrain_Master.M_AbioticTerrain_Master");
+            if (m is CUE4Parse.UE4.Assets.Exports.Material.UMaterial um)
+            {
+                var cached = Newtonsoft.Json.JsonConvert.SerializeObject(um.CachedExpressionData);
+                System.IO.File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "terrain-master-cached.json"), cached); _output.WriteLine("cached written " + cached.Length);
+            }
+            foreach (var prop in m.Properties)
+            {
+                var text = Newtonsoft.Json.JsonConvert.SerializeObject(prop.Tag?.GenericValue);
+                _output.WriteLine($"{prop.Name.Text} = {(text.Length > 1500 ? text[..1500] + "..." : text)}");
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>Every map's landscape layers (layer info object, its LayerName) and the material's texture slots, to infer which layer drives which slot.</summary>
+    [Fact]
+    public void Dump_LandscapeLayersEverywhere()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var maps = assets.AssetPaths.Where(x => x.EndsWith(".umap", StringComparison.OrdinalIgnoreCase) && x.Contains("/Maps/", StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var map in maps)
+        {
+            assets.UseFileProvider(p =>
+            {
+                if (!p.TryLoadPackage(map, out var pkg)) return 0;
+                var proxies = pkg.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Actor.ALandscapeProxy>().ToList();
+                if (proxies.Count == 0) return 0;
+                var layers = new Dictionary<string, int>();
+                var mats = new HashSet<string>();
+                foreach (var proxy in proxies)
+                {
+                    if (proxy.LandscapeMaterial is { IsNull: false } lm) mats.Add(lm.ResolvedObject!.Name.Text);
+                    foreach (var ci in proxy.LandscapeComponents)
+                    {
+                        var c = ci.Load<CUE4Parse.UE4.Assets.Exports.Component.Landscape.ULandscapeComponent>();
+                        if (c is null) continue;
+                        if (c.OverrideMaterial is { IsNull: false } om) mats.Add(om.ResolvedObject!.Name.Text);
+                        foreach (var a in c.GetWeightmapLayerAllocations())
+                        {
+                            var info = a.LayerInfo?.Load();
+                            var name = $"{a.GetLayerName()}({info?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("LayerName").Text})";
+                            layers[name] = layers.GetValueOrDefault(name) + 1;
+                        }
+                    }
+                }
+                var slots = string.Join(" | ", mats.Select(m =>
+                {
+                    var mi = p.LoadPackageObject($"/Game/Textures/Landscape/{m}.{m}");
+                    return m + ": " + string.Join(", ", mi.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("TextureParameterValues", [])
+                        .Select(t => $"{t.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text}={t.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("ParameterValue")?.ResolvedObject?.Name}"));
+                }));
+                _output.WriteLine($"{Path.GetFileNameWithoutExtension(map),-26} layers {string.Join(", ", layers.Select(kv => $"{kv.Key} x{kv.Value}"))}  ||  {slots}");
+                return 0;
+            });
+        }
+    }
+
+    /// <summary>The materials on a map's pieces of one mesh (ABIOTIC_MAP, ABIOTIC_MESH_NAME), with each material chain's blend mode, parameters and the functions its master uses.</summary>
+    [Fact]
+    public void Dump_MaterialsOfMeshInMap()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var map = Environment.GetEnvironmentVariable("ABIOTIC_MAP") ?? "Facility_Dam";
+        var meshName = Environment.GetEnvironmentVariable("ABIOTIC_MESH_NAME") ?? "Plane";
+        var index = assets.UseFileProvider(p => AbioticEditor.Plugins.GameModels3D.LevelIndex.Build(p, $"AbioticFactor/Content/Maps/{map}.umap"));
+        var seen = new HashSet<string>();
+        foreach (var e in index.Entries.Where(e => index.Meshes[e.Mesh].EndsWith("." + meshName, StringComparison.Ordinal)))
+        {
+            var scale = new System.Numerics.Vector3(e.World.M11, e.World.M12, e.World.M13).Length();
+            foreach (var m in index.OverrideSets[e.Overrides].Where(x => x is not null))
+            {
+                _output.WriteLine($"{index.Actors[e.Actor]} scale {scale:0.0} material {m}");
+                if (!seen.Add(m!)) continue;
+                assets.UseFileProvider(p =>
+                {
+                    for (CUE4Parse.UE4.Assets.Exports.UObject? cur = p.LoadPackageObject(m!); cur is not null; cur = cur.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("Parent")?.Load())
+                    {
+                        var props = string.Join(", ", cur.Properties.Where(x => x.Name.Text is "BlendMode" or "ShadingModel" or "BasePropertyOverrides").Select(x => $"{x.Name.Text}={x.Tag?.GenericValue}"));
+                        _output.WriteLine($"   {cur.ExportType} {cur.GetPathName()} {props}");
+                        foreach (var t in cur.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("ScalarParameterValues", []))
+                            _output.WriteLine($"      scalar {t.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text} = {t.GetOrDefault<float>("ParameterValue")}");
+                        if (cur is CUE4Parse.UE4.Assets.Exports.Material.UMaterial um)
+                        {
+                            var json = Newtonsoft.Json.JsonConvert.SerializeObject(um.CachedExpressionData);
+                            var functions = System.Text.RegularExpressions.Regex.Matches(json, "MaterialFunction'([^']+)'").Select(x => x.Groups[1].Value).Distinct();
+                            _output.WriteLine($"      functions: {string.Join(", ", functions)}");
+                            var names = p.LoadPackage(um.GetPathName().Split('.')[0]).NameMap.Select(n => n.Name ?? "").Where(n => !n.StartsWith('/'));
+                            _output.WriteLine($"      names: {string.Join(" ", names)}");
+                        }
+                    }
+                    return 0;
+                });
+            }
+        }
+    }
+
+    /// <summary>A map's decal components (ABIOTIC_MAP): size, material and that material's texture parameters and blend mode.</summary>
+    [Fact]
+    public void Dump_Decals()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var map = Environment.GetEnvironmentVariable("ABIOTIC_MAP") ?? "Facility_Office1";
+        assets.UseFileProvider(p =>
+        {
+            var pkg = p.LoadPackage($"AbioticFactor/Content/Maps/{map}.umap");
+            var decals = pkg.GetExports().Where(e => e.ExportType.Contains("DecalComponent", StringComparison.Ordinal)).ToList();
+            _output.WriteLine($"{decals.Count} decal components; types {string.Join(",", decals.Select(d => d.ExportType).Distinct())}");
+            foreach (var g in decals.GroupBy(d => AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(d, "DecalMaterial", null)?.ResolvedObject?.GetPathName() ?? "(none)").OrderByDescending(g => g.Count()).Take(14))
+            {
+                var d = g.First();
+                var size = AbioticEditor.Plugins.GameModels3D.Props.Get(d, "DecalSize", new CUE4Parse.UE4.Objects.Core.Math.FVector(128, 256, 256));
+                _output.WriteLine($"x{g.Count(),4} {g.Key} size {size}");
+                if (g.Key == "(none)") continue;
+                for (CUE4Parse.UE4.Assets.Exports.UObject? cur = p.LoadPackageObject(g.Key); cur is not null; cur = cur.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("Parent")?.Load())
+                {
+                    var props = string.Join(", ", cur.Properties.Where(x => x.Name.Text is "BlendMode" or "MaterialDomain" or "DecalBlendMode").Select(x => $"{x.Name.Text}={x.Tag?.GenericValue}"));
+                    var tex = string.Join(", ", cur.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("TextureParameterValues", [])
+                        .Select(t => $"{t.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text}={t.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("ParameterValue")?.ResolvedObject?.Name}"));
+                    var refs = cur is CUE4Parse.UE4.Assets.Exports.Material.UMaterial um ? " refs " + string.Join(",", um.ReferencedTextures.Where(x => x is not null).Select(x => x!.Name)) : "";
+                    _output.WriteLine($"      {cur.ExportType} {cur.Name} {props} {tex}{refs}");
+                }
+            }
+            return 0;
+        });
+    }
 }

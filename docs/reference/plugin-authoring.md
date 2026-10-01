@@ -312,6 +312,9 @@ delete, duplicate, SAVE); the provider only says what things look like:
 - `DescribeClass(classPath, state)` optionally returns one saved object's look: its paint and,
   for a garden plot, the crops in each spot (`SceneObjectState`, `SceneCrop`). The default
   applies the paint only.
+- A `SceneMaterial` may also carry `Layers` (terrain textures blended by the mesh's vertex colours,
+  `SceneMeshFormat.FlagVertexColors`), `WorldTileMetres` (world-position tiling for stretched
+  pieces) and `Decal` (drawn over the surface it lies on, see-through by its texture's alpha).
 - `DescribeLevel(query)` optionally returns the level around a box, batched by mesh for
   instanced drawing. Set `PendingMaps` above zero while still reading and the view asks again.
 - `OpenAsset(id)` returns mesh bytes in the `SceneMeshFormat` layout or a PNG texture. Validate

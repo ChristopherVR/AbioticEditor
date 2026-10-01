@@ -45,6 +45,11 @@ const LEVEL_RETRY_MS = 4000;
 // The ceiling cut measures the base floor from player-built objects within this reach of the view
 // centre (bases group objects within about 30 m of a bench).
 const BASE_REACH_M = 30;
+// A level piece whose texture would repeat less than once per this many metres (a plane scaled
+// over a reservoir) is textured from above in world space instead, every DEFAULT_WORLD_TILE_M
+// metres unless its material says otherwise.
+const STRETCHED_REPEAT_M = 12;
+const DEFAULT_WORLD_TILE_M = 4;
 
 /** Fetches with a JSON body and a JSON answer; null for "no content", throws on failure. */
 async function postJson(url, body) {
@@ -66,7 +71,9 @@ function parseMesh(buffer) {
     const vertexCount = view.getUint32(4, true);
     const indexCount = view.getUint32(8, true);
     const sectionCount = view.getUint32(12, true);
-    const wide = (view.getUint32(16, true) & 1) === 1;
+    const flags = view.getUint32(16, true);
+    const wide = (flags & 1) === 1;
+    const colored = (flags & 2) === 2;
     let at = 20;
     const geometry = new THREE.BufferGeometry();
     const sections = [];
@@ -80,6 +87,11 @@ function parseMesh(buffer) {
     at += align4(vertexCount * 6);
     geometry.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(buffer, at, vertexCount * 2), 2));
     at += vertexCount * 8;
+    if (colored) {
+        // Terrain layer weights (see SceneMaterial.Layers), four bytes per vertex.
+        geometry.setAttribute("color", new THREE.BufferAttribute(new Uint8Array(buffer, at, vertexCount * 4), 4, true));
+        at += vertexCount * 4;
+    }
     geometry.setIndex(new THREE.BufferAttribute(wide ? new Uint32Array(buffer, at, indexCount) : new Uint16Array(buffer, at, indexCount), 1));
     for (const [material, first, count] of sections) geometry.addGroup(first, count, material);
     geometry.computeBoundingSphere();
@@ -485,8 +497,111 @@ export function createView(host, dotnet) {
         return texture;
     }
 
+    /**
+     * A blended terrain material: up to five layer textures mixed by the mesh's vertex colours
+     * (red, green, blue, alpha = layers 2 to 5; layer 1 takes what is left), each tinted and tiled
+     * by its own repeat size. Built on the ordinary lit material so lighting and the ceiling cut
+     * work as for every other level piece.
+     */
+    function terrainMaterialFor(m) {
+        const key = `T|${JSON.stringify(m.layers)}`;
+        let material = materialCache.get(key);
+        if (material) return material;
+        const layers = [0, 1, 2, 3, 4].map(i => m.layers[i] ?? null);
+        const textures = layers.map(l => (l && l.texture ? textureFor(l.texture) : null));
+        const fallback = textures.find(Boolean) ?? null;
+        material = new THREE.MeshLambertMaterial({ color: 0xffffff, map: fallback, vertexColors: true, clippingPlanes: [levelClip] });
+        material.onBeforeCompile = shader => {
+            for (let i = 0; i < 5; i++) {
+                shader.uniforms[`terrainMap${i}`] = { value: textures[i] ?? fallback };
+                shader.uniforms[`terrainTint${i}`] = { value: new THREE.Color().setRGB(...(layers[i]?.color ?? [1, 1, 1])) };
+                shader.uniforms[`terrainRepeat${i}`] = { value: Math.max(0.1, layers[i]?.repeatMetres ?? 3) };
+                shader.uniforms[`terrainUsed${i}`] = { value: textures[i] ? 1 : 0 };
+            }
+            const declarations = [0, 1, 2, 3, 4].map(i =>
+                `uniform sampler2D terrainMap${i}; uniform vec3 terrainTint${i}; uniform float terrainRepeat${i}; uniform float terrainUsed${i};`).join("\n");
+            shader.fragmentShader = shader.fragmentShader
+                .replace("#include <common>", `#include <common>\n${declarations}`)
+                .replace("#include <map_fragment>", `
+                    // Layer weights: an unused slot gives its share back to the base layer.
+                    vec4 terrainW = vColor * vec4(terrainUsed1, terrainUsed2, terrainUsed3, terrainUsed4);
+                    float terrainBase = clamp(1.0 - terrainW.r - terrainW.g - terrainW.b - terrainW.a, 0.0, 1.0);
+                    vec3 terrainColor = texture2D(terrainMap0, vMapUv / terrainRepeat0).rgb * terrainTint0 * terrainBase
+                        + texture2D(terrainMap1, vMapUv / terrainRepeat1).rgb * terrainTint1 * terrainW.r
+                        + texture2D(terrainMap2, vMapUv / terrainRepeat2).rgb * terrainTint2 * terrainW.g
+                        + texture2D(terrainMap3, vMapUv / terrainRepeat3).rgb * terrainTint3 * terrainW.b
+                        + texture2D(terrainMap4, vMapUv / terrainRepeat4).rgb * terrainTint4 * terrainW.a;
+                    diffuseColor.rgb *= terrainColor;`)
+                .replace("#include <color_fragment>", "");
+        };
+        material.customProgramCacheKey = () => "abiotic-terrain";
+        materialCache.set(key, material);
+        return material;
+    }
+
+    /**
+     * A level material whose texture is laid over the world from above instead of by the mesh's
+     * own texture coordinates: for pieces that would otherwise stretch one texture repeat over
+     * many metres (a water plane scaled to cover a reservoir). The game maps those surfaces by
+     * world position too; the material's own tiling is used when it has one.
+     */
+    function worldProjectedMaterialFor(m, tileMetres) {
+        const key = `W|${tileMetres}|${m.texture}|${m.color}|${m.opacity}|${m.twoSided}`;
+        let material = materialCache.get(key);
+        if (material) return material;
+        const base = materialFor(m, true);
+        material = base.clone();
+        material.onBeforeCompile = shader => {
+            shader.uniforms.abioticTile = { value: tileMetres };
+            shader.vertexShader = shader.vertexShader
+                .replace("#include <common>", "#include <common>\nvarying vec3 vAbioticWorld;")
+                .replace("#include <project_vertex>", `#include <project_vertex>
+                    vec4 abioticWorld = vec4(transformed, 1.0);
+                    #ifdef USE_INSTANCING
+                    abioticWorld = instanceMatrix * abioticWorld;
+                    #endif
+                    vAbioticWorld = (modelMatrix * abioticWorld).xyz;`);
+            shader.fragmentShader = shader.fragmentShader
+                .replace("#include <common>", "#include <common>\nvarying vec3 vAbioticWorld;\nuniform float abioticTile;")
+                .replace("#include <map_fragment>", `
+                    #ifdef USE_MAP
+                    diffuseColor *= texture2D(map, vAbioticWorld.xz / abioticTile);
+                    #endif`);
+        };
+        material.customProgramCacheKey = () => "abiotic-world-projected";
+        materialCache.set(key, material);
+        return material;
+    }
+
+    /**
+     * Metres one texture repeat covers on the largest instance of a level batch, from the mesh's
+     * size against its texture coordinate range; large values mean a stretched texture.
+     */
+    function metresPerTextureRepeat(geometry, matrices) {
+        const uv = geometry.getAttribute("uv");
+        if (!uv || !geometry.boundingBox) return 0;
+        let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+        for (let i = 0; i < uv.count; i++) {
+            const u = uv.getX(i), v = uv.getY(i);
+            if (u < minU) minU = u; if (u > maxU) maxU = u;
+            if (v < minV) minV = v; if (v > maxV) maxV = v;
+        }
+        const span = Math.max(maxU - minU, maxV - minV);
+        if (!(span > 0)) return 0;
+        const size = new THREE.Vector3();
+        geometry.boundingBox.getSize(size);
+        let scale = 0;
+        for (let i = 0; i < matrices.length; i += 16) {
+            const sx = Math.hypot(matrices[i], matrices[i + 1], matrices[i + 2]);
+            const sz = Math.hypot(matrices[i + 8], matrices[i + 9], matrices[i + 10]);
+            scale = Math.max(scale, sx, sz);
+        }
+        return (Math.max(size.x, size.z) / span) * scale;
+    }
+
     function materialFor(m, level) {
-        const key = `${level ? "L" : "O"}|${m.texture}|${m.color}|${m.opacity}|${m.twoSided}|${m.masked}|${m.emissive}`;
+        if (level && m.layers && m.layers.length) return terrainMaterialFor(m);
+        const key = `${level ? "L" : "O"}|${m.texture}|${m.color}|${m.opacity}|${m.twoSided}|${m.masked}|${m.emissive}|${m.decal ? 1 : 0}`;
         let material = materialCache.get(key);
         if (!material) {
             const params = {
@@ -496,6 +611,12 @@ export function createView(host, dotnet) {
             if (m.texture) params.map = textureFor(m.texture);
             if (m.opacity < 1) Object.assign(params, { transparent: true, opacity: m.opacity, depthWrite: false });
             if (m.masked) params.alphaTest = 0.5;
+            if (m.decal) {
+                // Decals lie on a surface: see-through by their texture's alpha, pulled slightly
+                // towards the camera so they win against the wall or floor they sit on.
+                Object.assign(params, { transparent: true, depthWrite: false, alphaTest: 0.03, side: THREE.DoubleSide,
+                    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+            }
             if (level) params.clippingPlanes = [levelClip];
             material = m.emissive ? new THREE.MeshBasicMaterial(params) : new THREE.MeshLambertMaterial(params);
             materialCache.set(key, material);
@@ -643,7 +764,12 @@ export function createView(host, dotnet) {
             if (loaded % 25 === 0) report("level", loaded, batches.length, "meshes");
             if (!geometry || token !== levelToken) return;
             const count = batch.matrices.length / 16;
-            const materials = batch.materials.length ? batch.materials.map(m => materialFor(m, true)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
+            const stretched = metresPerTextureRepeat(geometry, batch.matrices) > STRETCHED_REPEAT_M;
+            const materials = batch.materials.length
+                ? batch.materials.map(m => stretched && m.texture && !m.decal && !(m.layers && m.layers.length)
+                    ? worldProjectedMaterialFor(m, m.worldTileMetres > 0 ? m.worldTileMetres : DEFAULT_WORLD_TILE_M)
+                    : materialFor(m, true))
+                : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
             const mesh = new THREE.InstancedMesh(geometry, materials, count);
             const m = new THREE.Matrix4();
             for (let i = 0; i < count; i++) mesh.setMatrixAt(i, m.fromArray(batch.matrices, i * 16));
@@ -1010,6 +1136,18 @@ export function createView(host, dotnet) {
             if (levelOptions.enabled) loadLevel();
             return true;
         },
+        /**
+         * Points the camera at a viewer-space point from the given distance (metres), keeping the
+         * current viewing direction. Used by UI tests to look at level details such as decals.
+         */
+        lookAt(point, distance) {
+            const target = new THREE.Vector3(point[0], point[1], point[2]);
+            const direction = camera.position.clone().sub(controls.target).normalize();
+            controls.target.copy(target);
+            camera.position.copy(target).addScaledVector(direction, Math.max(0.5, distance || 5));
+            controls.update();
+            requestRender();
+        },
         /** Screen position (CSS pixels relative to the page) of an object's origin, or null. Used by UI tests. */
         screenPositionOf(key) {
             const idx = keyToIndex.get(key);
@@ -1024,7 +1162,11 @@ export function createView(host, dotnet) {
         /** The largest level pieces drawn (name, instances, radius in metres, texture), for diagnostics. */
         levelSummary(limit = 20) {
             return levelGroup.children
-                .map(m => ({ name: m.name, count: m.count, radius: Math.round(m.boundingSphere?.radius ?? 0), textured: (Array.isArray(m.material) ? m.material : [m.material]).map(x => !!x.map) }))
+                .map(m => ({ name: m.name, count: m.count, radius: Math.round(m.boundingSphere?.radius ?? 0),
+                    textured: (Array.isArray(m.material) ? m.material : [m.material]).map(x => !!x.map),
+                    materials: (Array.isArray(m.material) ? m.material : [m.material]).map(x => ({
+                        color: x.color?.getHexString(), transparent: x.transparent, vertexColors: x.vertexColors,
+                        map: x.map?.image?.currentSrc?.split("/").pop() ?? x.map?.image?.src?.split("/").pop() ?? null })) }))
                 .sort((a, b) => b.radius - a.radius)
                 .slice(0, limit);
         },
@@ -1066,5 +1208,7 @@ export function createView(host, dotnet) {
         },
     };
     host.__base3d = api; // test and diagnostics hook (read-only use)
+    // The latest view, for UI tests driving the page (lookAt, screenPositionOf).
+    globalThis.__abioticBase3d = api;
     return api;
 }

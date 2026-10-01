@@ -322,6 +322,23 @@ public sealed class GameModels3DTests
         }
     }
 
+    [Fact]
+    public void Meshes_can_carry_vertex_colours_after_their_texture_coordinates()
+    {
+        float[] positions = [0, 0, 0, 1, 0, 0, 0, 0, 1];
+        float[] normals = [0, 1, 0, 0, 1, 0, 0, 1, 0];
+        float[] uvs = [0, 0, 1, 0, 0, 1];
+        byte[] colors = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+        var plain = SceneMeshFormat.Write(positions, normals, uvs, [0u, 1u, 2u], [new SceneMeshFormat.Section(0, 0, 3)]);
+        var coloured = SceneMeshFormat.Write(positions, normals, uvs, colors, [0u, 1u, 2u], [new SceneMeshFormat.Section(0, 0, 3)]);
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(plain.AsSpan(16)) & SceneMeshFormat.FlagVertexColors);
+        Assert.Equal(SceneMeshFormat.FlagVertexColors, BinaryPrimitives.ReadUInt32LittleEndian(coloured.AsSpan(16)) & SceneMeshFormat.FlagVertexColors);
+        Assert.Equal(plain.Length + colors.Length, coloured.Length);
+        // header 20 + one section 12 + positions 36 + normals 18 padded to 20 + uvs 24 = 112
+        Assert.Equal(colors, coloured.AsSpan(112, colors.Length).ToArray());
+        Assert.Throws<ArgumentException>(() => SceneMeshFormat.Write(positions, normals, uvs, [1, 2, 3], [0u, 1u, 2u], [new SceneMeshFormat.Section(0, 0, 3)]));
+    }
+
     // ---------- plugin loading ----------
 
     [Fact]
@@ -531,6 +548,53 @@ public sealed class GameModels3DTests
             PluginHostEnvironment.GameAssets = null!;
             if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Outdoor_ground_blends_the_terrain_layers_the_game_paints()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        // The Dam valley's material: base dirt plus a road texture, each with its own tiling.
+        var layers = assets.UseFileProvider(p => TerrainMaterial.Read(p, "/Game/Textures/Landscape/M_ABF_LandscapeOutbackDirt.M_ABF_LandscapeOutbackDirt"));
+        Assert.Equal(5, layers.Count);
+        Assert.EndsWith("T_Ground_Dirt_Outback_05", layers[0].Texture!, StringComparison.Ordinal);
+        Assert.EndsWith("T_Ground_Dirt_Outback", layers[1].Texture!, StringComparison.Ordinal);
+        Assert.True(layers[1].RepeatMetres > layers[0].RepeatMetres);
+        Assert.Null(layers[2].Texture);
+
+        // A Dam terrain piece bakes with layer weights as vertex colours.
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Dam.umap"));
+        var terrain = index.Meshes.Where(LandscapeBaker.IsKey).ToList();
+        Assert.NotEmpty(terrain);
+        var baked = assets.UseFileProvider(p => LandscapeBaker.Load(p, terrain[0]) is { } c ? LandscapeBaker.Bake(c, 1) : null);
+        Assert.NotNull(baked);
+        Assert.Equal(SceneMeshFormat.FlagVertexColors, BinaryPrimitives.ReadUInt32LittleEndian(baked.AsSpan(16)) & SceneMeshFormat.FlagVertexColors);
+    }
+
+    [Fact]
+    public void Water_tiles_by_its_own_scale_and_level_decals_are_indexed_as_quads()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        static ResolvedMaterial Of(GameAssetProvider a, string path) => a.UseFileProvider(p =>
+            p.TryLoadPackageObject(path, out var o) ? MaterialResolver.Resolve(o as CUE4Parse.UE4.Assets.Exports.Material.UMaterialInterface) : ResolvedMaterial.Fallback);
+
+        Assert.Equal(450f, Of(assets, "/Game/Textures/Liquid/M_WaterSurface_Dirty.M_WaterSurface_Dirty").TileCm);
+        var frost = Of(assets, "/Game/Textures/Decals/M_Frost_02.M_Frost_02");
+        Assert.True(frost.Decal);
+        Assert.False(frost.Effect);
+        Assert.Equal(1f, frost.Opacity);
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Office1.umap"));
+        var plane = index.Meshes.IndexOf(LevelIndex.DecalPlane);
+        Assert.True(plane >= 0);
+        var decals = index.Entries.Where(e => e.Mesh == plane && index.OverrideSets[e.Overrides].Any(m => m?.Contains("/Decals/", StringComparison.Ordinal) == true)).ToList();
+        Assert.True(decals.Count > 50, $"only {decals.Count} decals");
+        // Each decal quad is a rotation (no mirror), so lighting falls on the side facing the camera.
+        Assert.All(decals, d => Assert.True(d.World.GetDeterminant() > 0));
     }
 
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog

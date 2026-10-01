@@ -40,7 +40,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     // Answers that depend on how materials are read carry their own version, so a reader fix does not
     // throw away the slow level indexes and baked meshes. v2: blend modes read as enum names.
-    private const string MaterialsFolder = "materials-v2";
+    private const string MaterialsFolder = "materials-v4"; // v3: world tiling (Scale); v4: decal domain
     private const string ClassesFolder = "classes-v2";
 
     private const int ObjectTextureSize = 1024;
@@ -295,6 +295,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
                 var e = placement.IsIdentity ? local : local with { World = local.World * placement, Centre = Vector3.Transform(local.Centre, placement) };
                 var closest = Vector3.Clamp(e.Centre, min, max);
                 if (e.Radius > MaxPieceRadiusCm || Vector3.DistanceSquared(closest, e.Centre) > e.Radius * e.Radius) continue;
+                // Hand-placed hierarchical LOD meshes (the game keeps them in HLOD folders) are
+                // merged stand-ins for far away; up close they cover the real level.
+                if (index.Meshes[e.Mesh].Contains("/HLOD/", StringComparison.OrdinalIgnoreCase)) continue;
                 if (excluded.Contains(index.Actors[e.Actor])) continue;
                 inBox.Add((index, e, MathF.Max(0, Vector3.Distance(e.Centre, centre) - e.Radius)));
             }
@@ -307,6 +310,12 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             var (first, firstEntry, _) = group.First();
             var mesh = first.Meshes[firstEntry.Mesh];
             if (MeshInfoOf(mesh) is not { } info || IsEffectOnly(info, first.OverrideSets[firstEntry.Overrides])) continue;
+            var materials = LandscapeBaker.IsKey(mesh) && first.OverrideSets[firstEntry.Overrides] is [{ } terrainMaterial, ..]
+                ? TerrainMaterialOf(terrainMaterial)
+                : MaterialsFor(info, first.OverrideSets[firstEntry.Overrides], LevelTextureSize);
+            // A decal whose texture has no transparency would be a solid square (some are many
+            // metres across); those are left out.
+            if (materials.Any(m => m.Decal && (m.Texture is null || !TextureHasAlpha(m.Texture)))) continue;
             var matrices = new float[group.Count() * 16];
             var i = 0;
             foreach (var x in group)
@@ -315,7 +324,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
                 i++;
             }
             batches.Add(new SceneLevelBatch(
-                $"mesh/{LevelLod}{mesh}", MaterialsFor(info, first.OverrideSets[firstEntry.Overrides], LevelTextureSize), matrices, $"{ShortName(mesh)} ({Path.GetFileNameWithoutExtension(first.Map)})"));
+                $"mesh/{LevelLod}{mesh}", materials, matrices, $"{ShortName(mesh)} ({Path.GetFileNameWithoutExtension(first.Map)})"));
         }
         var note = pending > 0
             ? $"read {ready.Count} of {maps.Count} level files"
@@ -624,10 +633,24 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             var m = path is null ? ResolvedMaterial.Fallback : MaterialOf(path);
             result.Add(new SceneMaterial(
                 m.BaseColorTexture is { } t ? $"tex/{textureSize}{t}" : null,
-                m.Color, m.Opacity, m.TwoSided, m.Masked, m.Emissive));
+                m.Color, m.Opacity, m.TwoSided, m.Masked, m.Emissive) { WorldTileMetres = m.TileCm / 100f, Decal = m.Decal });
         }
         return result;
     }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, List<SceneMaterial>> _terrainMaterials = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>A landscape's material as blended layers (see <see cref="TerrainMaterial"/>), with the base layer's texture as the plain fallback.</summary>
+    private List<SceneMaterial> TerrainMaterialOf(string materialPath) => _terrainMaterials.GetOrAdd(materialPath, path =>
+    {
+        var layers = Read(p => TerrainMaterial.Read(p, path))
+            .Select(l => new SceneTerrainLayer(l.Texture is { } t ? $"tex/{LevelTextureSize}{t}" : null, l.Color, l.RepeatMetres))
+            .ToList();
+        var fallback = MaterialOf(path);
+        var baseLayer = layers.FirstOrDefault(l => l.Texture is not null);
+        return [new SceneMaterial(baseLayer?.Texture ?? (fallback.BaseColorTexture is { } t2 ? $"tex/{LevelTextureSize}{t2}" : null),
+            baseLayer?.Color ?? fallback.Color) { Layers = layers.Any(l => l.Texture is not null) ? layers : null }];
+    });
 
     /// <summary>
     /// True when every material of the mesh is a see-through glow (a fake light beam or glow card);
@@ -663,7 +686,10 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var size = int.Parse(match.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture);
         var path = match.Groups["path"].Value;
         var isMesh = kind == "mesh";
-        var file = CachePath(isMesh ? "meshes" : "textures", assetId, isMesh ? ".abm" : ".png");
+        // Terrain meshes carry layer weights since v2 (and texture coordinates in quads), so they
+        // are cached apart from the ordinary meshes baked before.
+        var folder = !isMesh ? "textures" : LandscapeBaker.IsKey(path) ? "meshes-terrain-v2" : "meshes";
+        var file = CachePath(folder, assetId, isMesh ? ".abm" : ".png");
         var contentType = isMesh ? SceneMeshFormat.ContentType : "image/png";
         if (File.Exists(file))
         {
@@ -704,6 +730,29 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// handles every format, so the first such failure switches decoding to it for the process
     /// (the native path could not have worked for anyone else either) and the texture is retried.
     /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _textureAlpha = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>True when a texture (asset id <c>tex/&lt;size&gt;/Game/...</c>) has see-through pixels, checked on a small copy.</summary>
+    private bool TextureHasAlpha(string textureId) => _textureAlpha.GetOrAdd(textureId, id =>
+    {
+        var match = AssetId().Match(id);
+        if (!match.Success) return false;
+        var path = match.Groups["path"].Value;
+        var decoded = Read(p => p.TryLoadPackageObject(path, out var obj) && obj is UTexture2D texture ? DecodeWithFallback(texture, AlphaProbeSize) : null);
+        if (decoded is null) return false;
+        using var bitmap = decoded.ToSkBitmap();
+        if (bitmap is null || bitmap.AlphaType == SKAlphaType.Opaque) return false;
+        var see = 0;
+        for (var y = 0; y < bitmap.Height; y++)
+        for (var x = 0; x < bitmap.Width; x++)
+        {
+            if (bitmap.GetPixel(x, y).Alpha < 128) see++;
+        }
+        return see > bitmap.Width * bitmap.Height / 20;
+    });
+
+    private const int AlphaProbeSize = 64;
+
     private static CTexture? DecodeWithFallback(UTexture2D texture, int maxSize)
     {
         try

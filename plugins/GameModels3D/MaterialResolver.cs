@@ -11,7 +11,12 @@ namespace AbioticEditor.Plugins.GameModels3D;
 /// A see-through glow (additive, or translucent and unlit): fake light beams, glow cards and fog
 /// planes. They only make sense with the game's lighting, so the view leaves them out.
 /// </param>
-internal sealed record ResolvedMaterial(string? BaseColorTexture, float[] Color, float Opacity, bool TwoSided, bool Masked, bool Emissive, bool Effect = false)
+/// <param name="TileCm">
+/// The material's own world tiling (its <c>Scale</c> parameter, centimetres per repeat, as the
+/// liquid surface masters use it), or 0.
+/// </param>
+/// <param name="Decal">The material's domain is a decal (<c>MD_DeferredDecal</c>).</param>
+internal sealed record ResolvedMaterial(string? BaseColorTexture, float[] Color, float Opacity, bool TwoSided, bool Masked, bool Emissive, bool Effect = false, float TileCm = 0, bool Decal = false)
 {
     public static readonly ResolvedMaterial Fallback = new(null, [0.62f, 0.62f, 0.6f], 1f, false, false, false);
 }
@@ -46,6 +51,9 @@ internal static class MaterialResolver
     ];
 
     private static readonly string[] TintParameters = ["Color", "BaseColor", "Base Color", "Tint", "TintColor", "Tint Color", "Albedo Tint", "BaseColorTint", "Color1", "Diffuse Color", "DiffuseColor", "PaintColor"];
+
+    private const float MinTileCm = 50f;
+    private const float MaxTileCm = 10000f;
 
     public static ResolvedMaterial Resolve(UMaterialInterface? material)
     {
@@ -112,7 +120,11 @@ internal static class MaterialResolver
             : 1f;
         var masked = blend.Contains("Masked", StringComparison.OrdinalIgnoreCase);
         var unlit = shading.Contains("Unlit", StringComparison.OrdinalIgnoreCase);
-        return new ResolvedMaterial(texture, tint, opacity, twoSided, masked, unlit, additive || (translucent && unlit));
+        var tile = scalars.TryGetValue("Scale", out var scale) && scale is >= MinTileCm and <= MaxTileCm ? scale : 0f;
+        var decal = (Props.EnumText(chain, "MaterialDomain") ?? "").Contains("Decal", StringComparison.OrdinalIgnoreCase);
+        // A decal's see-through parts come from its texture's alpha, not a material opacity.
+        return new ResolvedMaterial(texture, tint, decal ? 1f : opacity, twoSided || decal, masked, unlit,
+            !decal && (additive || (translucent && unlit)), tile, decal);
     }
 
     private static string? ParameterName(FStructFallback parameter)

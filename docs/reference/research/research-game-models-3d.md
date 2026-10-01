@@ -129,6 +129,18 @@ along the forward axis (mesh bounds unless `SplineBoundaryMin/Max` differ), Herm
 direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep when
 `bSmoothInterpRollScale`), per-axis slice frames. Key `<map>#spline=<export index>`.
 
+### Terrain layers, water and decals
+
+* Terrain master slots and the `Main`/`Road`/`Rock`/`Misc` to `Primary`..`Quaternary` mapping: see
+  PROGRESS round 137 (inferred from slot textures across every outdoor map; the cooked graph keeps
+  no layer names).
+* Liquid surface masters (`M_AbioticLiquidSurface_Master`, `M_LiquidSurfaceNoTransparency_Master`)
+  tile by world position with a `Scale` parameter in centimetres; their planes are scaled up to
+  130x, so mesh UVs would stretch one repeat across a reservoir.
+* Some maps place merged HLOD meshes (`/HLOD/` folders) in ordinary static mesh actors.
+* Decals: `DecalSize` is the half size; projection along decal X; Unreal's decal UVs are
+  `U = 0.5 + z/2`, `V = 0.5 - y/2` in decal space.
+
 ## Cost
 
 - Resolving 212 classes with materials: 18 s the first time, 45 ms from the disk cache.
@@ -138,5 +150,5 @@ direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep
 ## Not covered
 
 Skeletal animation (bind
-pose is drawn), decals, lights, and per-object state such as open lids or fill levels. Crops in garden plots are
+pose is drawn), decals on placed objects, lights, and per-object state such as open lids or fill levels. Crops in garden plots are
 drawn (see `research-garden-crops-and-pet-mutation.md`, "DT_Plants, read").

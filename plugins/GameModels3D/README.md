@@ -57,6 +57,9 @@ gizmo, delete, duplicate and group edits, and SAVE. Selection outlines fit the r
   script: every parent class's components, with each class's overrides applied, following the
   parent chain rather than a list of names, so objects added in future game updates work too.
   Attached parts (lids, taps, plug sockets) sit where the game puts them.
+- **Outdoor ground, water and decals.** Terrain blends the game's painted layers (grass, road
+  dirt, rock, pebbles), water surfaces tile like the game's, and the level's decals (signs,
+  floor markings, papers, blood) are drawn where they lie.
 - **Painted objects and crops.** Objects you painted wear the game's painted materials, and garden
   plots show what grows in each spot at its saved growth stage (with the fruit on grown crops).
 - **Materials.** Each material is reduced to its base colour texture and tint, plus glass,

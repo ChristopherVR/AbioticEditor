@@ -60,7 +60,11 @@ internal sealed class LevelIndexData
 internal static class LevelIndex
 {
     private const uint Magic = 0x3149_4C41; // "ALI1"
-    public const int FormatVersion = 6; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms
+
+    /// <summary>The engine's 1 m square plane (normal +Z), used to draw decals.</summary>
+    public const string DecalPlane = "/Engine/BasicShapes/Plane.Plane";
+    private const float PlaneSizeCm = 100f;
+    public const int FormatVersion = 8; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -137,6 +141,28 @@ internal static class LevelIndex
             foreach (var (componentIndex, component) in ComponentsOf(actor))
             {
                 if (!seen.Add(component)) continue;
+                // Decals: a flat quad over the decal's projection box (DecalSize is its half size;
+                // it projects along its own X), wearing the decal material. Drawn with the engine's
+                // 1 m plane, turned so the plane's normal is the decal's X and sized to its Y and Z.
+                if (component.ExportType.Contains("DecalComponent", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!Visible(component, 0) || Props.Get<FPackageIndex?>(component, "DecalMaterial", null) is not { IsNull: false } decalMaterial
+                        || decalMaterial.ResolvedObject?.GetPathName() is not { Length: > 0 } decalPath) continue;
+                    var size = Props.Get(component, "DecalSize", new FVector(128, 256, 256));
+                    // Plane X -> decal Z, plane Y -> decal -Y, plane normal Z -> decal X: a rotation,
+                    // not a mirror (a mirrored instance would light the wrong side).
+                    var quad = new Matrix4x4(
+                        0, 0, 2 * size.Z / PlaneSizeCm, 0,
+                        0, -2 * size.Y / PlaneSizeCm, 0, 0,
+                        1, 0, 0, 0,
+                        0, 0, 0, 1);
+                    var decalMesh = Intern(meshIds, data.Meshes, DecalPlane, DecalPlane);
+                    var decalOverride = Intern(overrideIds, data.OverrideSets, decalPath, [decalPath]);
+                    if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
+                    var decalAt = quad * WorldOf(component, 0);
+                    data.Entries.Add(new LevelEntry(decalMesh, decalOverride, actorId, decalAt, decalAt.Translation, 0));
+                    continue;
+                }
                 // Spline meshes bend their mesh along a curve: one mesh per component (SplineBaker),
                 // drawn with the component's own transform.
                 if (SplineBaker.IsSplineMesh(component.ExportType))
