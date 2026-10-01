@@ -17,7 +17,8 @@ public sealed record Base3DObject(
     string Label,
     int Mark = 0,
     string? Cls = null,
-    int? Paint = null)
+    int? Paint = null,
+    string? Variant = null)
 {
     /// <summary><see cref="Mark"/>: an ordinary object.</summary>
     public const int MarkNone = 0;
@@ -130,7 +131,27 @@ public sealed class Base3DScene
             o.Key, (int)category,
             [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
             o.DeployedByPlayer == true, LabelOf(o), Cls: o.ClassPath,
-            Paint: o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue ? paint : null);
+            Paint: o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue ? paint : null,
+            Variant: VariantOf(o));
+    }
+
+    /// <summary>
+    /// The part of an object's model key after its class path: its paint colour and the crops
+    /// growing in it (see <c>SceneModelHostService.ParseModelKey</c>), or null when it looks like
+    /// any other object of its class.
+    /// </summary>
+    public static string? VariantOf(PlacedObjectSummary o)
+    {
+        ArgumentNullException.ThrowIfNull(o);
+        var text = new System.Text.StringBuilder();
+        if (o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue)
+            text.Append(System.Globalization.CultureInfo.InvariantCulture, $"#paint={paint}");
+        if (o.Crops is { Count: > 0 } crops)
+        {
+            text.Append("#crops=").AppendJoin(',', crops.OrderBy(c => c.Spot)
+                .Select(c => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{c.Spot}.{c.Row}.{c.Stage}")));
+        }
+        return text.Length == 0 ? null : text.ToString();
     }
 
     /// <summary>A staged copy in the viewer's form (always player-built, marked as a copy).</summary>

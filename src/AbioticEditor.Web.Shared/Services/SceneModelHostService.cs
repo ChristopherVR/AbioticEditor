@@ -75,7 +75,7 @@ public sealed class SceneModelHostService
             if (provider is null) { result[path] = null; continue; }
             result[path] = _classes.GetOrAdd(path, p =>
             {
-                try { return SplitPaint(p) is (var cls, { } paint) ? provider.DescribeClass(cls, paint) : provider.DescribeClass(p); }
+                try { return ParseModelKey(p) is (var cls, { } state) ? provider.DescribeClass(cls, state) : provider.DescribeClass(p); }
                 catch (Exception ex)
                 {
                     EditorLog.Warn("Scene", $"No 3D model for {p}: {ex.Message}");
@@ -87,19 +87,53 @@ public sealed class SceneModelHostService
     }
 
     /// <summary>
-    /// The viewer asks for a painted object's model as <c>&lt;class path&gt;#paint=&lt;value&gt;</c>
-    /// (the save's <c>EPaintColor</c> value); a plain class path has no paint.
+    /// The viewer asks for an object's model as its class path followed by the parts of its state
+    /// that change how it looks: <c>#paint=&lt;EPaintColor value&gt;</c> and
+    /// <c>#crops=&lt;spot&gt;.&lt;crop row&gt;.&lt;stage&gt;,...</c>. A plain class path has no state, and a
+    /// key with anything else after the class path is passed on unchanged.
     /// </summary>
-    public static (string ClassPath, int? Paint) SplitPaint(string key)
+    public static (string ClassPath, SceneObjectState? State) ParseModelKey(string key)
     {
-        var at = key.LastIndexOf(PaintSuffix, StringComparison.Ordinal);
-        return at > 0 && int.TryParse(key.AsSpan(at + PaintSuffix.Length), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var paint)
-            ? (key[..at], paint)
-            : (key, null);
+        ArgumentNullException.ThrowIfNull(key);
+        var at = key.IndexOf('#', StringComparison.Ordinal);
+        if (at <= 0) return (key, null);
+        int? paint = null;
+        List<SceneCrop>? crops = null;
+        foreach (var part in key[(at + 1)..].Split('#', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith(PaintPart, StringComparison.Ordinal) && TryNumber(part[PaintPart.Length..], out var p))
+            {
+                paint = p;
+            }
+            else if (part.StartsWith(CropsPart, StringComparison.Ordinal))
+            {
+                foreach (var spot in part[CropsPart.Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var bits = spot.Split('.');
+                    if (bits.Length != 3 || !TryNumber(bits[0], out var index) || !TryNumber(bits[2], out var stage)
+                        || bits[1].Length is 0 or > 80 || !bits[1].All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+                    {
+                        return (key, null);
+                    }
+                    (crops ??= []).Add(new SceneCrop(index, bits[1], stage));
+                }
+            }
+            else
+            {
+                return (key, null);
+            }
+        }
+        return (key[..at], new SceneObjectState(paint, crops));
     }
 
-    /// <summary>Separates a class path from a paint colour in a model request (see <see cref="SplitPaint"/>).</summary>
-    public const string PaintSuffix = "#paint=";
+    private static bool TryNumber(string text, out int value)
+        => int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out value);
+
+    /// <summary>Paint part of a model key (see <see cref="ParseModelKey"/>).</summary>
+    public const string PaintPart = "paint=";
+
+    /// <summary>Crops part of a model key (see <see cref="ParseModelKey"/>).</summary>
+    public const string CropsPart = "crops=";
 
     /// <summary>The level geometry around a base, or null when the provider does not draw levels.</summary>
     public SceneLevelSlice? DescribeLevel(SceneLevelQuery query)

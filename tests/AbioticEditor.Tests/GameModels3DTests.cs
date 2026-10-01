@@ -219,9 +219,15 @@ public sealed class GameModels3DTests
         Assert.Null(scene.Objects.Single(o => o.Key == "plain").Paint);
         Assert.Null(scene.Objects.Single(o => o.Key == "none").Paint);
 
-        Assert.Equal(("/Game/B/Deployed_X.Deployed_X_C", (int?)2), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/Deployed_X.Deployed_X_C#paint=2"));
-        Assert.Equal(("/Game/B/Deployed_X.Deployed_X_C", (int?)null), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/Deployed_X.Deployed_X_C"));
-        Assert.Equal(("/Game/B/X.X_C#paint=-1", (int?)null), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/X.X_C#paint=-1"));
+        Assert.Equal("#paint=2", scene.Objects.Single(o => o.Key == "red").Variant);
+        Assert.Null(scene.Objects.Single(o => o.Key == "plain").Variant);
+
+        var (cls, state) = AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey("/Game/B/Deployed_X.Deployed_X_C#paint=2");
+        Assert.Equal("/Game/B/Deployed_X.Deployed_X_C", cls);
+        Assert.Equal(2, state!.PaintColor);
+        Assert.Null(AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey("/Game/B/Deployed_X.Deployed_X_C").State);
+        // Anything unexpected after the class path is not a state, and is passed on unchanged.
+        Assert.Equal(("/Game/B/X.X_C#paint=-1", (SceneObjectState?)null), AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey("/Game/B/X.X_C#paint=-1"));
     }
 
     [Fact]
@@ -253,6 +259,42 @@ public sealed class GameModels3DTests
 
     private static void AssertNear(Vector3 expected, Vector3 actual)
         => Assert.True(Vector3.Distance(expected, actual) < 0.01f, $"expected {expected}, got {actual}");
+
+    [Fact]
+    public void Garden_plots_carry_their_crops_into_the_model_key()
+    {
+        var row = new PlacedObjectSummary("plot", "/Game/B/GardenPlot_Medium.GardenPlot_Medium_C", "GardenPlot_Medium_C", PlacedClassOrigin.GameBlueprint, null, null,
+            new PlacedObjectTransform(new PlacedVector(0, 0, 0), PlacedQuaternion.Identity, new PlacedVector(1, 1, 1)),
+            null, null, true, null, null, null, null, 0, 0, [], [],
+            [new PlacedCrop(1, "Plant_Tomato", 2), new PlacedCrop(0, "Plant_Corn", 4)]);
+        var variant = Assert.Single(Base3DScene.Build([row], _ => null).Objects).Variant;
+        Assert.Equal("#crops=0.Plant_Corn.4,1.Plant_Tomato.2", variant);
+
+        var (cls, state) = AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey("/Game/B/GardenPlot_Medium.GardenPlot_Medium_C" + variant);
+        Assert.Equal("/Game/B/GardenPlot_Medium.GardenPlot_Medium_C", cls);
+        Assert.Null(state!.PaintColor);
+        Assert.Equal([new SceneCrop(0, "Plant_Corn", 4), new SceneCrop(1, "Plant_Tomato", 2)], state.Crops!);
+        // A crop row with characters a row name cannot have is refused.
+        Assert.Null(AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey("/Game/B/X.X_C#crops=0.../etc.4").State);
+    }
+
+    [Fact]
+    public void The_census_reads_what_grows_in_each_garden_plot_spot()
+    {
+        var facility = Path.Combine(Fixtures.ServerWorldsDir ?? "", "WorldSave_Facility.sav");
+        if (!File.Exists(facility)) return;
+        var census = PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(facility));
+        var plots = census.Objects!.Where(o => o.ClassName?.StartsWith("GardenPlot_", StringComparison.Ordinal) == true).ToList();
+        Assert.NotEmpty(plots);
+        var crops = plots.Where(o => o.Crops is not null).SelectMany(o => o.Crops!).ToList();
+        Assert.NotEmpty(crops);
+        Assert.All(crops, c =>
+        {
+            Assert.StartsWith("Plant_", c.Row, StringComparison.Ordinal);
+            Assert.InRange(c.Stage, 0, 7);
+            Assert.True(c.Spot >= 0);
+        });
+    }
 
     // ---------- plugin loading ----------
 
@@ -426,6 +468,43 @@ public sealed class GameModels3DTests
         // Keys that are not landscape components are refused.
         Assert.Null(assets.UseFileProvider(p => LandscapeBaker.Load(p, "/Game/Maps/V_Alps.V_Alps#land=0")));
         Assert.Null(assets.UseFileProvider(p => LandscapeBaker.Load(p, "/Game/Maps/V_Alps.V_Alps#land=x")));
+    }
+
+    [Fact]
+    public void Crops_stand_on_their_spot_with_the_stage_mesh_and_fruit_when_grown()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        const string Plot = "/Game/Blueprints/DeployedObjects/Farming/GardenPlot_Medium.GardenPlot_Medium_C";
+
+        var plants = assets.UseFileProvider(PlantTable.Read);
+        Assert.Equal(32, plants.Count);
+        Assert.Contains("Corn", plants.Keys);
+
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-crops-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var plain = provider.DescribeClass(Plot)!;
+            var grown = provider.DescribeClass(Plot, new SceneObjectState(null, [new SceneCrop(1, "Plant_Corn", 4)]))!;
+            var sprout = provider.DescribeClass(Plot, new SceneObjectState(null, [new SceneCrop(1, "Plant_Corn", 0)]))!;
+
+            var cornGrown = grown.Parts.Single(p => p.Name == "Plot2/Plant_Corn");
+            var cornSprout = sprout.Parts.Single(p => p.Name == "Plot2/Plant_Corn");
+            Assert.NotEqual(cornGrown.Mesh, cornSprout.Mesh);
+            Assert.Contains("Farmable", cornGrown.Mesh, StringComparison.Ordinal);
+            // Corn's grown stage carries three ears (FruitMeshCount 3); a sprout has none.
+            Assert.Equal(3, grown.Parts.Count(p => p.Name?.StartsWith("Plot2/Plant_Corn/Fruit", StringComparison.Ordinal) == true));
+            Assert.Equal(plain.Parts.Count + 1, sprout.Parts.Count);
+            // Spot 2 of a medium plot is its second planting square: +X and +Y of the centre (viewer X, Z).
+            Assert.True(cornGrown.Matrix[12] > 0.3f && cornGrown.Matrix[14] > 0.3f, $"corn at {cornGrown.Matrix[12]}, {cornGrown.Matrix[14]}");
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
     }
 
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog

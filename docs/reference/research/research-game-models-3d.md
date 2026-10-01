@@ -138,4 +138,5 @@ direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep
 ## Not covered
 
 Skeletal animation (bind
-pose is drawn), decals, lights, and per-object state such as open lids or crop growth.
+pose is drawn), decals, lights, and per-object state such as open lids or fill levels. Crops in garden plots are
+drawn (see `research-garden-crops-and-pet-mutation.md`, "DT_Plants, read").

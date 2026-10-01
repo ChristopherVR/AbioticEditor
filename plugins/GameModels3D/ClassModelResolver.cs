@@ -42,10 +42,21 @@ internal static class ClassModelResolver
 
     public static IReadOnlyList<ResolvedPart> Resolve(IFileProvider provider, string classPath)
         => provider.TryLoadPackageObject(classPath, out var obj) && obj is UStruct cls
-            ? Resolve(cls, 0)
+            ? Resolve(cls, 0, null, "")
             : [];
 
-    private static List<ResolvedPart> Resolve(UStruct cls, int depth)
+    /// <summary>
+    /// Every component's transform relative to the object's origin, by name; components of child
+    /// actors are named <c>ChildNode/Component</c> (a garden plot's <c>Plot2/PlantLocation</c>).
+    /// </summary>
+    public static IReadOnlyDictionary<string, Matrix4x4> Anchors(IFileProvider provider, string classPath)
+    {
+        var anchors = new Dictionary<string, Matrix4x4>(StringComparer.OrdinalIgnoreCase);
+        if (provider.TryLoadPackageObject(classPath, out var obj) && obj is UStruct cls) Resolve(cls, 0, anchors, "");
+        return anchors;
+    }
+
+    private static List<ResolvedPart> Resolve(UStruct cls, int depth, Dictionary<string, Matrix4x4>? anchors, string prefix)
     {
         var chain = new List<UBlueprintGeneratedClass>();
         for (UStruct? c = cls; c is UBlueprintGeneratedClass bp && chain.Count < 16; c = c.SuperStruct?.Load<UStruct>())
@@ -114,6 +125,11 @@ internal static class ClassModelResolver
             return guard > 32 || node.Parent is null || !nodes.TryGetValue(node.Parent, out var parent) || Visible(parent, guard + 1);
         }
 
+        if (anchors is not null)
+        {
+            foreach (var node in nodes.Values) anchors[prefix + node.Name] = LocalOf(node, 0);
+        }
+
         var parts = new List<ResolvedPart>();
         foreach (var node in nodes.Values)
         {
@@ -124,7 +140,9 @@ internal static class ClassModelResolver
                 if (Props.TryGet(node.Templates, "ChildActorClass", out FPackageIndex childClass) && childClass.Load<UStruct>() is { } child)
                 {
                     var at = LocalOf(node, 0);
-                    parts.AddRange(Resolve(child, depth + 1).Select(p => p with { Local = p.Local * at, Name = $"{node.Name}/{p.Name}" }));
+                    var childAnchors = anchors is null ? null : new Dictionary<string, Matrix4x4>(StringComparer.OrdinalIgnoreCase);
+                    parts.AddRange(Resolve(child, depth + 1, childAnchors, "").Select(p => p with { Local = p.Local * at, Name = $"{node.Name}/{p.Name}" }));
+                    foreach (var (name, local) in childAnchors ?? []) anchors![$"{prefix}{node.Name}/{name}"] = local * at;
                 }
                 continue;
             }

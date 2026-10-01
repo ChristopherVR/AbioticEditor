@@ -198,10 +198,10 @@ export function createView(host, dotnet) {
         return tmpColor;
     }
 
-    /** Which model an object wears: its class, or its class in the paint colour it was saved with. */
+    /** Which model an object wears: its class, plus what changes its look (paint, crops; see Base3DScene.VariantOf). */
     function modelKey(o) {
         if (!o.cls) return null;
-        return o.paint === null || o.paint === undefined ? o.cls : `${o.cls}#paint=${o.paint}`;
+        return o.variant ? o.cls + o.variant : o.cls;
     }
 
     function readyModel(o) {
@@ -893,7 +893,7 @@ export function createView(host, dotnet) {
     requestRender();
 
     const api = {
-        /** Replaces every object. Each is {key, cat, p:[x,y,z], q:[x,y,z,w], s:[x,y,z], built, label, cls?, paint?}. */
+        /** Replaces every object. Each is {key, cat, p:[x,y,z], q:[x,y,z,w], s:[x,y,z], built, label, cls?, paint?, variant?}. */
         setScene(list) {
             objects = list;
             keyToIndex = new Map(list.map((o, i) => [o.key, i]));

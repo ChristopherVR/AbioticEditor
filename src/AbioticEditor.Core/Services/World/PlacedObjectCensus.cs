@@ -57,7 +57,15 @@ public sealed record PlacedObjectSummary(
     int InventoryCount,
     int StoredItemCount,
     IReadOnlyList<string> PoweredBySocketIds,
-    IReadOnlyList<string> FieldNames);
+    IReadOnlyList<string> FieldNames,
+    IReadOnlyList<PlacedCrop>? Crops = null);
+
+/// <summary>
+/// One planting spot of a garden plot: the spot (<c>SpotIndex_</c>), the crop's item row
+/// (<c>ItemRow_.RowName</c>, e.g. <c>Plant_Corn</c>) and its growth stage (the spot's
+/// <c>EDynamicProperty::GrowthStage</c>, 0 Sprout to 7 Dead; missing means 0, the default).
+/// </summary>
+public sealed record PlacedCrop(int Spot, string Row, int Stage);
 
 /// <summary>Per-class rollup.</summary>
 public sealed record PlacedClassCount(
@@ -236,6 +244,26 @@ public static partial class PlacedObjectCensus
     }
 
     /// <summary>Shape of a map key: <c>actor-path</c>, <c>guid32</c> or <c>other</c>.</summary>
+    /// <summary>The planted spots of a garden plot (its <c>ItemProxies_</c>), or null when it has none.</summary>
+    private static List<PlacedCrop>? ReadCrops(IList<FPropertyTag> props)
+    {
+        if (props.FindByPrefix("ItemProxies_")?.Property is not ArrayProperty { Value: { Length: > 0 } elements }) return null;
+        var crops = new List<PlacedCrop>();
+        foreach (var element in elements.OfType<StructProperty>().Select(e => e.Value).OfType<PropertiesStruct>())
+        {
+            if (element.Properties.FindByPrefix("SpotIndex_")?.Property?.Value is not int spot) continue;
+            var row = (element.Properties.FindByPrefix("ItemRow_")?.Property as StructProperty)?.Value is PropertiesStruct handle
+                ? handle.Properties.FindByPrefix("RowName")?.Property?.Value?.ToString()
+                : null;
+            if (string.IsNullOrEmpty(row) || row == "None") continue;
+            var stage = (element.Properties.FindByPrefix("ChangeableData_")?.Property as StructProperty)?.Value is PropertiesStruct data
+                ? PetDynamicProperties.Read(data.Properties, "GrowthStage") ?? 0
+                : 0;
+            crops.Add(new PlacedCrop(spot, row, stage));
+        }
+        return crops.Count == 0 ? null : crops;
+    }
+
     public static string KeyShape(string key)
     {
         if (key.StartsWith('/') && key.Contains(':', StringComparison.Ordinal)) return "actor-path";
@@ -319,6 +347,8 @@ public static partial class PlacedObjectCensus
                 paint = PetDynamicProperties.Read(cps.Properties, DeployablePaintCatalog.DynamicPropertyKey);
             }
 
+            var crops = ReadCrops(props);
+
             var invCount = props.FindByPrefix("ContainerInventories_")?.Property is ArrayProperty ia && ia.Value is { } iv
                 ? iv.Length
                 : 0;
@@ -334,7 +364,8 @@ public static partial class PlacedObjectCensus
                 claim.OwnerId, claim.Name, paint, invCount,
                 storedById.TryGetValue(entry.Key, out var stored) ? stored : 0,
                 poweredBy.TryGetValue(entry.Key, out var pb) ? pb : [],
-                names));
+                names,
+                crops));
         }
 
         var classes = objects

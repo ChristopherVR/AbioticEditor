@@ -69,6 +69,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         _host = host;
         _cacheRoot = new Lazy<string>(() => Path.Combine(host.DataDirectory, "cache", InstallStamp()));
         _mapsByName = new Lazy<Dictionary<string, string>>(IndexMapNames);
+        _plants = new Lazy<IReadOnlyDictionary<string, CUE4Parse.UE4.Assets.Objects.FStructFallback>>(() => Read(PlantTable.Read));
     }
 
     public string Id => "pak-models";
@@ -111,6 +112,104 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var model = paint is null ? DescribeClass(classPath) : BuildClass(classPath, paint);
         WriteJson(cacheFile, new CachedClass(model));
         return model;
+    }
+
+    /// <summary>
+    /// An object as saved: painted, and for a garden plot with its crops at their growth stages,
+    /// each placed where the game puts it (see <see cref="CropParts"/>).
+    /// </summary>
+    public SceneClassModel? DescribeClass(string classPath, SceneObjectState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        var plain = state.PaintColor is { } paint ? DescribeClass(classPath, paint) : DescribeClass(classPath);
+        if (state.Crops is not { Count: > 0 } crops || plain is null) return plain;
+        var key = $"{classPath}#paint={state.PaintColor}#crops={string.Join(',', crops.OrderBy(c => c.Spot).Select(c => $"{c.Spot}.{c.Row}.{c.Stage}"))}";
+        var cacheFile = CachePath(ClassesFolder, key, ".json");
+        if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
+
+        var parts = plain.Parts.ToList();
+        var min = new Vector3(plain.BoundsMin[0], plain.BoundsMin[1], plain.BoundsMin[2]);
+        var max = new Vector3(plain.BoundsMax[0], plain.BoundsMax[1], plain.BoundsMax[2]);
+        foreach (var (part, local, info) in CropParts(classPath, crops))
+        {
+            SceneMath.Encapsulate(ref min, ref max, info.BoundsMin, info.BoundsMax, local);
+            parts.Add(part);
+        }
+        var model = new SceneClassModel(parts, [min.X, min.Y, min.Z], [max.X, max.Y, max.Z]);
+        WriteJson(cacheFile, new CachedClass(model));
+        return model;
+    }
+
+    private readonly Lazy<IReadOnlyDictionary<string, CUE4Parse.UE4.Assets.Objects.FStructFallback>> _plants;
+
+    /// <summary>
+    /// The crop parts of a garden plot, as the game draws them: spot <c>n</c> is the plot's
+    /// <c>Plot{n+1}</c> child (a <c>FarmingPlot_BP</c>) and the plant stands on its
+    /// <c>PlantLocation</c>; the plant is the crop's proxy actor (<c>PlantData.ProxyBP</c>) with the
+    /// stage's mesh on its <c>ItemProxyMesh</c> (<c>PlantData.GrowthStages</c>), and a grown crop
+    /// carries <c>FruitMeshCount</c> copies of its <c>FruitMesh</c> at the proxy's <c>Fruit1..n</c>.
+    /// A stage the crop has no mesh for uses the nearest earlier one.
+    /// </summary>
+    private IEnumerable<(ScenePart Part, Matrix4x4 Local, MeshInfo Info)> CropParts(string classPath, IReadOnlyList<SceneCrop> crops)
+    {
+        var anchors = Read(p => ClassModelResolver.Anchors(p, classPath));
+        var plants = _plants.Value;
+        foreach (var crop in crops)
+        {
+            var plant = plants.Values.FirstOrDefault(r => RowName(r, "PlantItem") == crop.Row);
+            if (plant is null || StageMesh(plant, crop.Stage) is not { } meshPath || MeshInfoOf(meshPath) is not { } info) continue;
+            var spot = anchors.TryGetValue($"Plot{crop.Spot + 1}/PlantLocation", out var at) ? at
+                : anchors.TryGetValue($"Plot{crop.Spot + 1}", out var plot) ? plot
+                : Matrix4x4.Identity;
+            var proxyClass = plant.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FSoftObjectPath>("ProxyBP").AssetPathName.Text;
+            var proxy = string.IsNullOrEmpty(proxyClass) || proxyClass == "None"
+                ? new Dictionary<string, Matrix4x4>()
+                : Read(p => ClassModelResolver.Anchors(p, proxyClass));
+            var meshAt = (proxy.TryGetValue("ItemProxyMesh", out var m) ? m : Matrix4x4.Identity) * spot;
+            var name = $"Plot{crop.Spot + 1}/{crop.Row}";
+            yield return (new ScenePart($"mesh/0{meshPath}", SceneMath.ToViewer(meshAt), MaterialsFor(info, [], ObjectTextureSize), name), meshAt, info);
+
+            if (crop.Stage != GrownStage) continue;
+            var fruit = plant.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FSoftObjectPath>("FruitMesh").AssetPathName.Text;
+            if (string.IsNullOrEmpty(fruit) || fruit == "None" || MeshInfoOf(fruit) is not { } fruitInfo) continue;
+            var count = plant.GetOrDefault("FruitMeshCount", 0);
+            for (var i = 1; i <= count; i++)
+            {
+                if (!proxy.TryGetValue($"Fruit{i}", out var f)) continue;
+                var fruitAt = f * spot;
+                yield return (new ScenePart($"mesh/0{fruit}", SceneMath.ToViewer(fruitAt), MaterialsFor(fruitInfo, [], ObjectTextureSize), $"{name}/Fruit{i}"), fruitAt, fruitInfo);
+            }
+        }
+    }
+
+    /// <summary><c>EPlantGrowthStage::Grown</c>.</summary>
+    private const int GrownStage = 4;
+
+    private static readonly string[] StageNames = ["Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead"];
+
+    private static string? RowName(CUE4Parse.UE4.Assets.Objects.FStructFallback row, string handle)
+        => row.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>(handle)?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("RowName").Text;
+
+    /// <summary>The mesh for a growth stage, or the nearest earlier stage that has one.</summary>
+    private static string? StageMesh(CUE4Parse.UE4.Assets.Objects.FStructFallback plant, int stage)
+    {
+        if (plant.GetOrDefault<CUE4Parse.UE4.Assets.Objects.UScriptMap?>("GrowthStages") is not { } map) return null;
+        var meshes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in map.Properties)
+        {
+            var name = key?.GenericValue?.ToString() ?? "";
+            name = name[(name.LastIndexOf(':') + 1)..];
+            if (value?.GenericValue is CUE4Parse.UE4.Assets.Objects.FScriptStruct { StructType: CUE4Parse.UE4.Assets.Objects.FStructFallback data }
+                && data.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FSoftObjectPath>("GrowthStageMesh").AssetPathName.Text is { Length: > 0 } path && path != "None")
+            {
+                meshes[name] = path;
+            }
+        }
+        for (var s = Math.Clamp(stage, 0, StageNames.Length - 1); s >= 0; s--)
+        {
+            if (meshes.TryGetValue(StageNames[s], out var path)) return path;
+        }
+        return meshes.Values.FirstOrDefault();
     }
 
     /// <summary>A cached answer, including "no model" so a class without one is not re-read every run.</summary>

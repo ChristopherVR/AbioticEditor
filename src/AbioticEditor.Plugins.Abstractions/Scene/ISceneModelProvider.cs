@@ -53,6 +53,14 @@ public interface ISceneModelProvider
     SceneClassModel? DescribeClass(string classPath, int paintColor) => DescribeClass(classPath);
 
     /// <summary>
+    /// Describes a class as one saved object looks: painted, and with the crops planted in a
+    /// garden plot. Providers that do not know a part of the state ignore it; the default draws the
+    /// paint only.
+    /// </summary>
+    SceneClassModel? DescribeClass(string classPath, SceneObjectState state)
+        => state?.PaintColor is { } paint ? DescribeClass(classPath, paint) : DescribeClass(classPath);
+
+    /// <summary>
     /// The static level geometry inside a box of one region, for context around a base. Returns
     /// null when the provider does not draw levels or knows nothing about the region.
     /// </summary>
@@ -87,6 +95,14 @@ public sealed record ScenePart(string Mesh, float[] Matrix, IReadOnlyList<SceneM
 /// <param name="Emissive">Draws unlit at full brightness (lamps, screens).</param>
 public sealed record SceneMaterial(
     string? Texture, float[] Color, float Opacity = 1f, bool TwoSided = false, bool Masked = false, bool Emissive = false);
+
+/// <summary>The saved state of one object that changes how it looks.</summary>
+/// <param name="PaintColor">The save's <c>EPaintColor</c> value, or null when unpainted.</param>
+/// <param name="Crops">What grows in each spot of a garden plot, or null.</param>
+public sealed record SceneObjectState(int? PaintColor = null, IReadOnlyList<SceneCrop>? Crops = null);
+
+/// <summary>One planted spot: the spot index, the crop's item row (<c>Plant_Corn</c>) and its growth stage (0 Sprout to 7 Dead).</summary>
+public sealed record SceneCrop(int Spot, string Row, int Stage);
 
 /// <summary>A request for the level geometry near a base.</summary>
 /// <param name="Region">The save's region name, e.g. <c>Facility_Office1</c> for <c>WorldSave_Facility_Office1.sav</c>.</param>

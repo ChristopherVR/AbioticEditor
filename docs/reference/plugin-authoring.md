@@ -309,6 +309,9 @@ delete, duplicate, SAVE); the provider only says what things look like:
   matrix and one `SceneMaterial` per slot) and local bounds, or null to keep the box.
 - `DescribeClass(classPath, paintColor)` optionally returns the class painted in one of the
   game's colours (the save's `EPaintColor` value). The default returns the unpainted model.
+- `DescribeClass(classPath, state)` optionally returns one saved object's look: its paint and,
+  for a garden plot, the crops in each spot (`SceneObjectState`, `SceneCrop`). The default
+  applies the paint only.
 - `DescribeLevel(query)` optionally returns the level around a box, batched by mesh for
   instanced drawing. Set `PendingMaps` above zero while still reading and the view asks again.
 - `OpenAsset(id)` returns mesh bytes in the `SceneMeshFormat` layout or a PNG texture. Validate

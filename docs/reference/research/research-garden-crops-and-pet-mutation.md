@@ -61,7 +61,20 @@ counter that starts at 0 by construction. Choosing a different crop resets both 
 a generic, plant-independent reset, not a per-crop lookup, so no per-plant grow-time table was
 needed to implement it safely.
 
-### What was not attempted: DT_Plants
+### DT_Plants, read (2026-10-01)
+
+The table is not composite and its rows are cooked in (15 KB export, 32 rows: the 24 crops and
+the 8 digital-plot cartridges). CUE4Parse reads 0 rows because the export's properties are
+`RowStruct` plus a one-byte `bLoadFromJSON` the mappings do not describe, so the reader lands one
+byte early and takes the object's "has GUID" zero as the row count. Rows follow the real count.
+`PlantData` as cooked has eight fields, one more than the bundled mappings: `DisplayName`,
+`ProxyBP`, `PlantItem`, `HarvestedItem`, `SeedItem` (new, e.g. `ItemTable_Pickups.seed_corn`),
+`GrowthStages` (map `EPlantGrowthStage` to `PlantMeshData{GrowthStageMesh, GrowthStageTexture[]}`),
+`FruitMesh`, `FruitMeshCount`. The 3D plugin's `PlantTable` reads it (row block found by trial,
+corrected schema registered under its own name). Rows are keyed by short names (`Corn`,
+`RopePlant`); `PlantItem.RowName` is the `Plant_` row the save stores.
+
+### What was not attempted (before 2026-10-01): DT_Plants
 
 `AbioticFactor/Content/Blueprints/DataTables/DT_Plants` (row struct `PlantData`) is almost
 certainly the table that actually defines each plant's grow time and stage meshes -

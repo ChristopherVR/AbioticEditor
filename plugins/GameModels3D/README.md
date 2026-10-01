@@ -57,6 +57,8 @@ gizmo, delete, duplicate and group edits, and SAVE. Selection outlines fit the r
   script: every parent class's components, with each class's overrides applied, following the
   parent chain rather than a list of names, so objects added in future game updates work too.
   Attached parts (lids, taps, plug sockets) sit where the game puts them.
+- **Painted objects and crops.** Objects you painted wear the game's painted materials, and garden
+  plots show what grows in each spot at its saved growth stage (with the fruit on grown crops).
 - **Materials.** Each material is reduced to its base colour texture and tint, plus glass,
   cut-out and glowing flags. It is a preview, not the game's lighting, so see-through glows
   (fake light beams under lamps, glow cards) are left out.

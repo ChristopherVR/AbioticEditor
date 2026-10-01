@@ -58,9 +58,28 @@
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 
+- **Crops drawn in garden plots.** `DT_Plants` reads as empty in CUE4Parse for two reasons
+  (`PlantTable` works around both without touching the submodule or the shared mappings): the
+  table export carries a one-byte `bLoadFromJSON` flag the mappings do not list, so the reader
+  takes the following "has GUID" zero as the row count (the real count, 32, follows it); and the
+  game's `PlantData` has a third row handle after `HarvestedItem` (`SeedItem`, e.g.
+  `ItemTable_Pickups.seed_corn`) that the bundled `Mappings.usmap` lacks, so a corrected copy is
+  registered as `AbioticEditor_PlantData`. The census now reads each plot spot's crop row and
+  `GrowthStage` (`PlacedObjectSummary.Crops`); the viewer keys models by
+  `<class>#paint=..#crops=<spot>.<row>.<stage>,..`; SDK `DescribeClass(classPath, SceneObjectState)`
+  (default: paint only). Placement from the game data: spot n is the plot's `Plot{n+1}` child
+  (`FarmingPlot_BP`), plant on its `PlantLocation`, the stage mesh on the proxy's `ItemProxyMesh`,
+  fruit (`FruitMesh` x `FruitMeshCount`) on the proxy's `Fruit1..n` when grown. Verified on the
+  Cascade copy's seven large plots (pumpkins, eggs, tomatoes, corn, glow tulips, shadowberries).
+  Tests: `Garden_plots_carry_their_crops_into_the_model_key`,
+  `The_census_reads_what_grows_in_each_garden_plot_spot`,
+  `Crops_stand_on_their_spot_with_the_stage_mesh_and_fruit_when_grown`.
+
 ### Open issues to keep in view (round 137)
 
-- Not drawn: per-object state (open lids, crop growth, fill levels); skeletal meshes show their
+- The bundled `assets/Mappings.usmap` predates the current game (`PlantData` gained `SeedItem`);
+  regenerating it would remove the need for `PlantTable`'s corrected schema.
+- Not drawn: per-object state (open lids, fill levels); skeletal meshes show their
   bind pose; landscape layer blending (one layer texture per landscape); decals.
 - The Nexus optional file for the plugin needs a file entry on the mod page and the
   `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.
