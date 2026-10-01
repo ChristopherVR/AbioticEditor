@@ -180,7 +180,8 @@ public sealed class Base3DScene
     public static string? RegionOf(string? savePath)
     {
         if (string.IsNullOrWhiteSpace(savePath)) return null;
-        var name = System.IO.Path.GetFileNameWithoutExtension(savePath);
+        // Either separator: a Windows path still names its region on a Linux host (and the other way round).
+        var name = System.IO.Path.GetFileNameWithoutExtension(savePath[(savePath.LastIndexOfAny(['/', '\\']) + 1)..]);
         const string prefix = "WorldSave_";
         if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
         var region = name[prefix.Length..];
