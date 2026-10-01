@@ -4629,4 +4629,25 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_WalkStop" xml:space="preserve"><value>Stop walking</value></data>
   <data name="World3D_WalkFloor" xml:space="preserve"><value>Stay on the floor</value></data>
   <data name="World3D_WalkHint" xml:space="preserve"><value>Walking: drag to look around, W A S D or the arrow keys to move, Shift to go faster. With "Stay on the floor" off, E and Q go up and down. Escape stops walking.</value></data>
+  <data name="World3D_PlaceOpen" xml:space="preserve"><value>Place a new object</value></data>
+  <data name="World3D_PlaceTitle" xml:space="preserve"><value>PLACE A NEW OBJECT</value></data>
+  <data name="World3D_PlaceIntro" xml:space="preserve"><value>Pick a kind of object you have already built in this area. A fresh copy of one of them goes where the view is looking (or at the numbers you type). It starts empty and unplugged.</value></data>
+  <data name="World3D_PlaceNoKinds" xml:space="preserve"><value>Nothing you have built is saved in this file, so there is nothing to copy from yet. Bases in this world are saved in the main area file.</value></data>
+  <data name="World3D_PlaceKind" xml:space="preserve"><value>Object</value></data>
+  <data name="World3D_PlaceKindFormat" xml:space="preserve"><value>{0} ({1} built)</value></data>
+  <data name="World3D_PlaceTurn" xml:space="preserve"><value>Turn (degrees)</value></data>
+  <data name="World3D_PlaceUseView" xml:space="preserve"><value>Use where the view is looking</value></data>
+  <data name="World3D_PlaceConfirm" xml:space="preserve"><value>Place it</value></data>
+  <data name="World3D_PlaceDone" xml:space="preserve"><value>Placed. It waits for SAVE, and you can undo it from its card.</value></data>
+  <data name="World3D_PlaceNoKind" xml:space="preserve"><value>Pick an object to place first.</value></data>
+  <data name="World3D_PlaceRefused" xml:space="preserve"><value>That object cannot be copied, so nothing was placed.</value></data>
+  <data name="World3D_Npcs" xml:space="preserve"><value>Show characters</value></data>
+  <data name="World3D_NpcsHint" xml:space="preserve"><value>Diamonds are characters: violet for story characters and traders, dark red for ones the story has removed, and cyan for pets.</value></data>
+  <data name="World3D_NpcCard" xml:space="preserve"><value>Character</value></data>
+  <data name="World3D_PetCard" xml:space="preserve"><value>Pet</value></data>
+  <data name="World3D_NpcStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="World3D_NpcRemoved" xml:space="preserve"><value>Removed by story</value></data>
+  <data name="World3D_NpcAtLevelSpot" xml:space="preserve"><value>Where the level places them (never moved)</value></data>
+  <data name="World3D_OpenNpcs" xml:space="preserve"><value>Open in NPCs</value></data>
+  <data name="World3D_OpenPets" xml:space="preserve"><value>Open in Pets</value></data>
 </root>

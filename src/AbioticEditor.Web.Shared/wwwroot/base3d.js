@@ -170,21 +170,18 @@ export function createView(host, dotnet) {
     scene.add(cableGroup);
     const cableMaterial = new THREE.LineBasicMaterial({ color: 0xffd23f, depthTest: false, transparent: true, opacity: 0.9 });
 
-    // Doors of the region's levels: one round marker each, coloured by state (C# picks the colour),
-    // drawn over everything at a fixed pixel size and picked in screen space.
-    const doorGroup = new THREE.Group();
-    scene.add(doorGroup);
-    let doors = []; // [{ id, p: [x, y, z], color }]
-    let doorsOn = true;
-    let selectedDoor = null;
-    const DOOR_PICK_PX = 10;
-    const DOOR_LIFT_M = 1.2; // markers float at head height over the door's root
-    const doorDot = (() => {
+    // Markers for things of the level the view can reach: doors (round, coloured by state) and NPCs
+    // (diamonds: alive, dead, pets). Each is drawn over everything at a fixed pixel size and picked in
+    // screen space before objects; C# picks the colours and handles the click.
+    const MARKER_PICK_PX = 10;
+    const MARKER_LIFT_M = 1.2; // markers float at head height over the actor's root
+    function markerTexture(draw) {
         const c = document.createElement("canvas");
         c.width = c.height = 64;
         const g = c.getContext("2d");
         g.beginPath();
-        g.arc(32, 32, 26, 0, Math.PI * 2);
+        draw(g);
+        g.closePath();
         g.fillStyle = "#ffffff";
         g.fill();
         g.lineWidth = 8;
@@ -193,11 +190,83 @@ export function createView(host, dotnet) {
         const t = new THREE.CanvasTexture(c);
         t.colorSpace = THREE.SRGBColorSpace;
         return t;
-    })();
-    const doorMaterial = new THREE.PointsMaterial({ size: 14, sizeAttenuation: false, map: doorDot, vertexColors: true,
-        transparent: true, alphaTest: 0.3, depthTest: false });
-    const doorSelectedMaterial = new THREE.PointsMaterial({ size: 24, sizeAttenuation: false, map: doorDot, color: 0xffffff,
-        transparent: true, alphaTest: 0.3, depthTest: false });
+    }
+
+    function createMarkerLayer(texture, size) {
+        const group = new THREE.Group();
+        scene.add(group);
+        const material = new THREE.PointsMaterial({ size, sizeAttenuation: false, map: texture, vertexColors: true,
+            transparent: true, alphaTest: 0.3, depthTest: false });
+        const ringMaterial = new THREE.PointsMaterial({ size: size + 10, sizeAttenuation: false, map: texture, color: 0xffffff,
+            transparent: true, alphaTest: 0.3, depthTest: false });
+        const layer = {
+            items: [], // [{ id, p: [x, y, z], color }]
+            on: true,
+            selected: null,
+            rebuild() {
+                for (const child of [...group.children]) {
+                    group.remove(child);
+                    child.geometry.dispose();
+                }
+                group.visible = layer.on;
+                const items = layer.items;
+                if (!items.length) return;
+                const pos = new Float32Array(items.length * 3), col = new Float32Array(items.length * 3);
+                const c = new THREE.Color();
+                items.forEach((d, i) => {
+                    pos.set([d.p[0], d.p[1] + MARKER_LIFT_M, d.p[2]], i * 3);
+                    c.setHex(d.color ?? 0x8e9aaf, THREE.SRGBColorSpace);
+                    col.set([c.r, c.g, c.b], i * 3);
+                });
+                const g = new THREE.BufferGeometry();
+                g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+                g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+                const points = new THREE.Points(g, material);
+                points.renderOrder = 12;
+                points.frustumCulled = false;
+                group.add(points);
+                const sel = items.find(d => d.id === layer.selected);
+                if (sel) {
+                    const sg = new THREE.BufferGeometry();
+                    sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + MARKER_LIFT_M, sel.p[2]]), 3));
+                    const ring = new THREE.Points(sg, ringMaterial);
+                    ring.renderOrder = 11; // under the coloured marker, so it reads as a white outline
+                    ring.frustumCulled = false;
+                    group.add(ring);
+                }
+            },
+            /** Screen position (CSS pixels relative to the page) of a marker, or null. */
+            screen(d) {
+                const v = new THREE.Vector3(d.p[0], d.p[1] + MARKER_LIFT_M, d.p[2]).project(camera);
+                const rect = renderer.domElement.getBoundingClientRect();
+                return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, depth: v.z };
+            },
+            /** The marker nearest a screen point (within a few pixels, in front of the camera), and its distance. */
+            at(clientX, clientY) {
+                if (!layer.on) return null;
+                let best = null, bestD = MARKER_PICK_PX;
+                for (const d of layer.items) {
+                    const sp = layer.screen(d);
+                    if (sp.depth < -1 || sp.depth > 1) continue;
+                    const dist = Math.hypot(sp.x - clientX, sp.y - clientY);
+                    if (dist < bestD) { bestD = dist; best = d; }
+                }
+                return best ? { item: best, dist: bestD } : null;
+            },
+            dispose() {
+                for (const child of group.children) child.geometry.dispose();
+                material.dispose();
+                ringMaterial.dispose();
+                texture.dispose();
+            },
+        };
+        return layer;
+    }
+
+    const doorLayer = createMarkerLayer(markerTexture(g => g.arc(32, 32, 26, 0, Math.PI * 2)), 14);
+    const npcLayer = createMarkerLayer(markerTexture(g => {
+        g.moveTo(32, 4); g.lineTo(60, 32); g.lineTo(32, 60); g.lineTo(4, 32);
+    }), 16);
 
     // Walk mode: a first-person camera (drag to look, WASD to move) that keeps eye height above
     // whatever is under it when "stay on the floor" is on. The orbit camera is off meanwhile.
@@ -933,54 +1002,6 @@ export function createView(host, dotnet) {
         return best;
     }
 
-    /** The door marker nearest a screen point (within a few pixels, in front of the camera), or null. */
-    function doorAt(clientX, clientY) {
-        if (!doorsOn || !doors.length) return null;
-        const rect = renderer.domElement.getBoundingClientRect();
-        const v = new THREE.Vector3();
-        let best = null, bestD = DOOR_PICK_PX;
-        for (const d of doors) {
-            v.set(d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]).project(camera);
-            if (v.z < -1 || v.z > 1) continue;
-            const x = rect.left + ((v.x + 1) / 2) * rect.width, y = rect.top + ((1 - v.y) / 2) * rect.height;
-            const dist = Math.hypot(x - clientX, y - clientY);
-            if (dist < bestD) { bestD = dist; best = d; }
-        }
-        return best;
-    }
-
-    function rebuildDoors() {
-        for (const child of [...doorGroup.children]) {
-            doorGroup.remove(child);
-            child.geometry.dispose();
-        }
-        doorGroup.visible = doorsOn;
-        if (!doors.length) return;
-        const pos = new Float32Array(doors.length * 3), col = new Float32Array(doors.length * 3);
-        const c = new THREE.Color();
-        doors.forEach((d, i) => {
-            pos.set([d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]], i * 3);
-            c.setHex(d.color ?? 0x8e9aaf, THREE.SRGBColorSpace);
-            col.set([c.r, c.g, c.b], i * 3);
-        });
-        const g = new THREE.BufferGeometry();
-        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
-        const points = new THREE.Points(g, doorMaterial);
-        points.renderOrder = 12;
-        points.frustumCulled = false;
-        doorGroup.add(points);
-        const sel = doors.find(d => d.id === selectedDoor);
-        if (sel) {
-            const sg = new THREE.BufferGeometry();
-            sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + DOOR_LIFT_M, sel.p[2]]), 3));
-            const ring = new THREE.Points(sg, doorSelectedMaterial);
-            ring.renderOrder = 11; // under the coloured dot, so it reads as a white ring
-            ring.frustumCulled = false;
-            doorGroup.add(ring);
-        }
-    }
-
     // ---- walk mode ---------------------------------------------------------------------------
     function walkForward() {
         return new THREE.Vector3(-Math.sin(walkYaw) * Math.cos(walkPitch), Math.sin(walkPitch), -Math.cos(walkYaw) * Math.cos(walkPitch));
@@ -1116,9 +1137,10 @@ export function createView(host, dotnet) {
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 4) return;
-        const door = doorAt(e.clientX, e.clientY);
-        if (door) {
-            dotnet.invokeMethodAsync("OnDoorPicked", door.id).catch(() => { });
+        const door = doorLayer.at(e.clientX, e.clientY), npc = npcLayer.at(e.clientX, e.clientY);
+        if (door || npc) {
+            if (npc && (!door || npc.dist < door.dist)) dotnet.invokeMethodAsync("OnNpcPicked", npc.item.id).catch(() => { });
+            else dotnet.invokeMethodAsync("OnDoorPicked", door.item.id).catch(() => { });
             return;
         }
         const hit = pick(e.clientX, e.clientY);
@@ -1327,37 +1349,42 @@ export function createView(host, dotnet) {
             requestRender();
         },
         /** The region's doors as markers: each {id, p:[x,y,z] (viewer space), color}. Replaces any drawn before. */
-        setDoors(list) {
-            doors = list ?? [];
-            rebuildDoors();
-            requestRender();
-        },
+        setDoors(list) { doorLayer.items = list ?? []; doorLayer.rebuild(); requestRender(); },
         /** Shows or hides the door markers. */
-        setDoorsVisible(on) {
-            doorsOn = !!on;
-            rebuildDoors();
-            requestRender();
-        },
+        setDoorsVisible(on) { doorLayer.on = !!on; doorLayer.rebuild(); requestRender(); },
         /** Rings one door marker (null clears it). */
-        setDoorSelection(id) {
-            selectedDoor = id ?? null;
-            rebuildDoors();
-            requestRender();
-        },
+        setDoorSelection(id) { doorLayer.selected = id ?? null; doorLayer.rebuild(); requestRender(); },
         /** Screen position (CSS pixels relative to the page) of a door marker, or null. Used by UI tests. */
-        doorScreenPosition(id) {
-            const d = doors.find(x => x.id === id);
-            if (!d) return null;
-            const v = new THREE.Vector3(d.p[0], d.p[1] + DOOR_LIFT_M, d.p[2]).project(camera);
-            const rect = renderer.domElement.getBoundingClientRect();
-            return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, depth: v.z };
-        },
+        doorScreenPosition(id) { const d = doorLayer.items.find(x => x.id === id); return d ? doorLayer.screen(d) : null; },
         /** The door markers drawn (id and viewer position), for UI tests. */
-        doorList() { return doors.map(d => ({ id: d.id, p: d.p })); },
+        doorList() { return doorLayer.items.map(d => ({ id: d.id, p: d.p })); },
+        /** The region's NPCs and pets as markers: each {id, p:[x,y,z] (viewer space), color}. */
+        setNpcs(list) { npcLayer.items = list ?? []; npcLayer.rebuild(); requestRender(); },
+        /** Shows or hides the NPC markers. */
+        setNpcsVisible(on) { npcLayer.on = !!on; npcLayer.rebuild(); requestRender(); },
+        /** Outlines one NPC marker (null clears it). */
+        setNpcSelection(id) { npcLayer.selected = id ?? null; npcLayer.rebuild(); requestRender(); },
+        /** Screen position of an NPC marker, or null. Used by UI tests. */
+        npcScreenPosition(id) { const d = npcLayer.items.find(x => x.id === id); return d ? npcLayer.screen(d) : null; },
+        /** The NPC markers drawn, for UI tests. */
+        npcList() { return npcLayer.items.map(d => ({ id: d.id, p: d.p })); },
         /** Walk mode on or off; floor=true keeps the eye at standing height over what is underneath. */
         setWalk(on, floor) {
             walkFloor = floor !== false;
             setWalk(!!on);
+        },
+        /**
+         * The point under the middle of the view (the floor, a level piece, a model or a box the view
+         * looks at, above the ceiling cut ignored), or the orbit target when nothing is there. Viewer space.
+         */
+        placementPoint() {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
+            for (const hit of raycaster.intersectObjects(targets, false)) {
+                if (levelClip.distanceToPoint(hit.point) < 0) continue;
+                return hit.point.toArray();
+            }
+            return controls.target.toArray();
         },
         /** Where the camera is and looks (viewer space), for tests and the place tool. */
         cameraState() {
@@ -1436,8 +1463,10 @@ export function createView(host, dotnet) {
                 levelMeshes: levelGroup.children.length,
                 cables: cableGroup.children.reduce((n, c) => n + c.geometry.attributes.position.count / 2, 0),
                 levelInstances,
-                doors: doors.length,
-                selectedDoor,
+                doors: doorLayer.items.length,
+                selectedDoor: doorLayer.selected,
+                npcs: npcLayer.items.length,
+                selectedNpc: npcLayer.selected,
                 walk: walkOn,
             };
         },
@@ -1445,10 +1474,8 @@ export function createView(host, dotnet) {
             disposed = true;
             window.removeEventListener("keydown", onWalkKeyDown);
             window.removeEventListener("keyup", onWalkKeyUp);
-            for (const child of doorGroup.children) child.geometry.dispose();
-            doorMaterial.dispose();
-            doorSelectedMaterial.dispose();
-            doorDot.dispose();
+            doorLayer.dispose();
+            npcLayer.dispose();
             clearTimeout(levelRetry);
             observer.disconnect();
             transform.dispose();

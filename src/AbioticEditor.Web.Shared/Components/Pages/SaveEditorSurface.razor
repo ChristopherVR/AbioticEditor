@@ -218,8 +218,9 @@
 
     private RenderFragment<AbioticEditor.Core.WorldSaves.WorldBase?> ThreeDBases(WorldSaveSession world, string title) => focus => __builder =>
     {
-        <WorldBases3DTab Title="@title" Session="@world" FocusBase="@focus" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" OnOpenPowerSockets="OpenPowerSockets" PowerSocketsAvailable="@world.MapFeatureTabs.Any(f => f.Id == PowerSocketsFeatureId)" />
+        <WorldBases3DTab Title="@title" Session="@world" FocusBase="@focus" OnError="WorldError" OnOpenContainer="OpenVehicleContainer" OnOpenPowerSockets="OpenPowerSockets" OnOpenTab="OpenWorldTab" PowerSocketsAvailable="@world.MapFeatureTabs.Any(f => f.Id == PowerSocketsFeatureId)" />
     };
+    private void OpenWorldTab(string id) { _worldTab = id; Selection.Clear(); }
     private void OpenPowerSockets() { _worldTab = FeatureTabPrefix + PowerSocketsFeatureId; Selection.Clear(); }
     private void OpenVehicleContainer(string containerId) { _containersInitialFilter = containerId; _worldTab = "containers"; }
     @* Each of these has to tell the workspace it changed something, the way PlayerChanged does.

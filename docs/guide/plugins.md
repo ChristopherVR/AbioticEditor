@@ -39,6 +39,9 @@ Round markers show the area's doors, coloured by state: green is open, grey is c
 closed security door, red is locked and orange is jammed or broken. Click one to open, close or
 lock it; the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
+Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
+that edits it. With **Experimental: move objects** on, **Place a new object** puts a fresh copy of
+something you have already built where the view is looking.
 
 ## Use and manage plugins
 

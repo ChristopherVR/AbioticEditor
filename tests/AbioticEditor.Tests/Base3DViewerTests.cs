@@ -458,6 +458,42 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
+    public async Task Placing_a_new_object_stages_a_copy_of_a_built_one_at_the_chosen_spot_and_saves_it()
+    {
+        if (SmallFacility() is not { } source) return;
+        using var temp = new TempCopy(source);
+        var session = Open(temp.SavePath);
+        var kinds = Base3DScene.PlaceKinds(session.PlacedObjects, new HashSet<string>());
+        Assert.NotEmpty(kinds);
+        // Only player-built objects are offered, one entry per kind.
+        Assert.Equal(kinds.Count, kinds.Select(k => k.ClassPath).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.All(kinds, k => Assert.True(session.FindPlacedObject(k.DonorKey)!.DeployedByPlayer));
+
+        var kind = kinds.First(k => session.FindPlacedObject(k.DonorKey)!.Transform?.Rotation is not null);
+        var donor = session.FindPlacedObject(kind.DonorKey)!;
+        var from = donor.Transform!.Translation!.Value;
+        var at = new PlacedVector(from.X + 400, from.Y - 150, from.Z);
+        var before = session.PlacedObjects.Count;
+
+        var staged = session.StagePlacedNew(kind.DonorKey, at, 90);
+        Assert.NotNull(staged);
+        Assert.True(session.IsDirty);
+        var row = Assert.Single(session.PreviewBaseEdits().Duplications);
+        Assert.False(row.Blocked);
+        AssertVectorClose(at, row.After!.Translation!.Value, 1e-6);
+        var turned = row.After.Rotation!.Value.YawDegrees - donor.Transform.Rotation!.Value.YawDegrees;
+        Assert.InRange(Math.Abs(Math.IEEERemainder(turned - 90, 360)), 0, 1e-6);
+        Assert.Equal(ContentsMode.Empty, row.Contents); // a new object starts empty
+
+        await session.SaveAsync();
+        var reread = Open(temp.SavePath);
+        Assert.Equal(before + 1, reread.PlacedObjects.Count);
+        var placed = reread.FindPlacedObject(row.NewKey)!;
+        Assert.Equal(donor.ClassPath, placed.ClassPath);
+        AssertVectorClose(at, placed.Transform!.Translation!.Value, 0.01);
+    }
+
+    [Fact]
     public void Doors_are_clickable_markers_whose_card_stages_like_the_doors_tab()
     {
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
@@ -469,9 +505,23 @@ public sealed class Base3DViewerTests
         Assert.Contains("_doorsDirty = true;", tab, StringComparison.Ordinal); // recoloured after SAVE / REVERT / another region
 
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
-        Assert.Contains("const door = doorAt(e.clientX, e.clientY);", js, StringComparison.Ordinal); // doors win over objects behind them
+        Assert.Contains("const door = doorLayer.at(e.clientX, e.clientY), npc = npcLayer.at(e.clientX, e.clientY);", js, StringComparison.Ordinal); // markers win over objects behind them
         Assert.Contains("\"OnDoorPicked\"", js, StringComparison.Ordinal);
         Assert.Contains("setDoors(list)", js, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Characters_are_markers_whose_card_links_to_the_tab_that_edits_them()
+    {
+        var npcs = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Npcs.razor.cs");
+        Assert.Contains("public async Task OnNpcPicked(string id)", npcs, StringComparison.Ordinal);
+        Assert.Contains("if (IsHologram(npc)) continue;", npcs, StringComparison.Ordinal); // no place in the world
+        Assert.Contains("Art.TryGetActorWorldTransformAsync(npc.Id)", npcs, StringComparison.Ordinal); // never moved: the level's spot
+        Assert.DoesNotContain("Session.SetNpc", npcs, StringComparison.Ordinal); // story removal stays read-only, as in the NPCs tab
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("OnOpenTab.InvokeAsync(npc.IsPet ? \"pets\" : \"npcs\")", tab, StringComparison.Ordinal);
+        var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
+        Assert.Contains("OnOpenTab=\"OpenWorldTab\"", surface, StringComparison.Ordinal);
     }
 
     [Fact]

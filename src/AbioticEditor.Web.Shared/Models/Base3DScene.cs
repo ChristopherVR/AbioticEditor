@@ -54,6 +54,9 @@ public sealed record Base3DFilter
 }
 
 /// <summary>An object whose saved location is missing: listed apart, never drawn at the origin.</summary>
+/// <summary>One kind of player-built object that can be placed again: its class, label, how many there are, and the one copied from.</summary>
+public sealed record Base3DPlaceKind(string ClassPath, string Label, int Count, string DonorKey);
+
 public sealed record Base3DUnresolved(string Key, string Label, string? ClassName, bool Built, string Reason);
 
 /// <summary>Everything the 3D view needs from a region, built from the session's saved and staged state.</summary>
@@ -207,6 +210,23 @@ public sealed class Base3DScene
     }
 
     /// <summary>The class name as a readable label (mirrors <see cref="WorldDeployable.FriendlyClass"/>).</summary>
+    /// <summary>
+    /// The kinds that can be placed: player-built objects with a saved position and a fresh-style id (not
+    /// staged for deletion). The donor is one with a saved rotation when there is one, so a turn can be applied.
+    /// </summary>
+    public static IReadOnlyList<Base3DPlaceKind> PlaceKinds(IEnumerable<PlacedObjectSummary> objects, IReadOnlySet<string> deleted)
+        => objects
+            .Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.ClassPath is { Length: > 0 }
+                        && o.Transform?.Translation is not null && !deleted.Contains(o.Key))
+            .GroupBy(o => o.ClassPath!, StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var donor = g.OrderBy(o => o.Transform?.Rotation is null ? 1 : 0).ThenBy(o => o.Key, StringComparer.Ordinal).First();
+                return new Base3DPlaceKind(g.Key, FriendlyClass(donor.ClassName), g.Count(), donor.Key);
+            })
+            .OrderBy(k => k.Label, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
     public static string FriendlyClass(string? className)
     {
         if (string.IsNullOrEmpty(className)) return "(unknown class)";

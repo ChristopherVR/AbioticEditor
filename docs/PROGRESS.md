@@ -28,8 +28,27 @@
   `Walk_mode_moves_the_camera_and_hands_back_to_the_orbit_camera`,
   `A_sub_levels_door_is_placed_where_the_game_places_the_door`,
   `Portal_worlds_whose_name_does_not_nest_are_placed_by_the_map_that_streams_them`.
-- Not done yet from the "what we can't do" list: placing new objects from scratch, and reaching
-  NPCs from the 3D view. Walking has no collision with walls or closed doors.
+- **Placing new objects.** Under the Experimental opt-in, "Place a new object" lists every kind of
+  player-built object in the save (`Base3DScene.PlaceKinds`: player-built, 32-hex key, saved
+  position, not staged for deletion; donor = one with a saved rotation). The spot is the point under
+  the middle of the view (viewer `placementPoint`: ray from the screen centre to level pieces,
+  models or boxes, above the ceiling cut ignored; the orbit target otherwise) or typed numbers, plus
+  an optional turn. `WorldSaveSession.StagePlacedNew(donor, at, yaw)` stages a one-object duplicate
+  with offset `at - donor` about the donor itself and the default policy (empty, unplugged), so the
+  new object carries every member the game wrote for that kind. Only the Facility save holds
+  player-built objects in the test world (all 911 of them, `/Game/Maps/Facility.Facility` actor
+  paths); a region save with none shows "nothing to copy from yet". Copying a kind from another
+  save (portal worlds with nothing built yet) is not done. Verified headlessly: Bench AmmoStation
+  placed on a base floor in the level view, SAVE wrote 949 objects (947 + 2) with a `.bak`.
+- **Characters in 3D.** Story characters, traders and pets are diamond markers (violet, dark red
+  when the story removed them, cyan for pets): the saved position, else (a story character never
+  moved) the level actor's world transform; holograms are left out. A click opens a card (name from
+  the narrative-name registry, status, position) with "Open in NPCs" / "Open in Pets"
+  (`OnOpenTab`, wired in `SaveEditorSurface`). Removal stays read-only, as in the NPCs tab.
+  Markers are one viewer `createMarkerLayer` used by doors and characters; a click takes the nearer
+  marker. Verified headlessly on Office1: 4 characters, Dr. Jager's card, the NPCs tab opens.
+- Walking has no collision with walls or closed doors. Moved, copied and placed objects are still
+  not checked in a running game.
 
 ## Round-137: 3D view follows the base, clearer level view (2026-10-01)
 

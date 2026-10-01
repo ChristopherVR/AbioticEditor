@@ -42,6 +42,10 @@
                     <input type="checkbox" checked="@_doorsOn" data-b3d="doors-toggle" @onchange="e => SetDoorsVisibleAsync(e.Value is true)" />
                     @L.Resource("World3D_Doors")
                 </label>
+                <label class="wt-check">
+                    <input type="checkbox" checked="@_npcsOn" data-b3d="npcs-toggle" @onchange="e => SetNpcsVisibleAsync(e.Value is true)" />
+                    @L.Resource("World3D_Npcs")
+                </label>
                 <button type="button" class="wt-btn @(_walkOn ? "active" : null)" aria-pressed="@(_walkOn ? "true" : "false")" data-b3d="walk-toggle"
                         @onclick="() => SetWalkAsync(!_walkOn)">@L.Resource(_walkOn ? "World3D_WalkStop" : "World3D_Walk")</button>
                 @if (_walkOn)
@@ -56,7 +60,7 @@
             @if (!_viewReady) { <span class="b3d-loading">@L.Resource("World3D_Loading")</span> }
             <div @ref="_host" class="b3d-canvas" role="img" aria-label="@L.Resource("World3D_ViewLabel")" data-b3d="canvas"></div>
             @if (_walkOn) { <p class="wt-muted b3d-hint" data-b3d="walk-hint">@L.Resource("World3D_WalkHint")</p> }
-            <p class="wt-muted b3d-hint">@L.Resource("World3D_AxesHint") @L.Resource("World3D_MultiSelectHint") @L.Resource("World3D_DoorsHint")</p>
+            <p class="wt-muted b3d-hint">@L.Resource("World3D_AxesHint") @L.Resource("World3D_MultiSelectHint") @L.Resource("World3D_DoorsHint") @L.Resource("World3D_NpcsHint")</p>
             @if (_doorsNote is not null) { <p class="wt-muted b3d-hint" data-b3d="doors-note">@_doorsNote</p> }
             @if (_levelPicked is not null) { <p class="wt-muted b3d-hint" data-b3d="level-picked">@L.Resource("World3D_LevelPickedFormat", _levelPicked)</p> }
         </div>
@@ -151,7 +155,53 @@
                     <strong>@L.Resource("World3D_MoveOptIn")</strong>
                 </label>
                 @if (_moveOptIn) { <p class="error-text b3d-warning" role="alert" data-b3d="move-warning">@L.Resource("World3D_MoveWarning")</p> }
+                @if (_moveOptIn && !_placeOpen)
+                {
+                    <button type="button" class="wt-btn" data-b3d="place-open" @onclick="OpenPlaceAsync">@L.Resource("World3D_PlaceOpen")</button>
+                }
             </div>
+
+            @if (_moveOptIn && _placeOpen)
+            {
+                var kinds = PlaceKinds;
+                <div class="wt-card b3d-panel b3d-op" data-b3d="place-panel">
+                    <span class="wt-label accent-orange-text">@L.Resource("World3D_PlaceTitle")</span>
+                    <p class="error-text b3d-warning" role="alert" data-b3d="place-unverified">@L.Resource("World3D_EditUnverified")</p>
+                    @if (kinds.Count == 0)
+                    {
+                        <p class="wt-muted" data-b3d="place-none">@L.Resource("World3D_PlaceNoKinds")</p>
+                    }
+                    else
+                    {
+                        <p class="wt-muted">@L.Resource("World3D_PlaceIntro")</p>
+                        <label>@L.Resource("World3D_PlaceKind")
+                            <select class="wt-input" data-b3d="place-kind" @onchange="e => _placeClass = e.Value?.ToString()">
+                                @foreach (var k in kinds)
+                                {
+                                    <option value="@k.ClassPath" selected="@string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase)">@L.Resource("World3D_PlaceKindFormat", k.Label, k.Count)</option>
+                                }
+                            </select>
+                        </label>
+                        <div class="b3d-numbers">
+                            <label>@L.Resource("World3D_X")<input class="wt-input" inputmode="decimal" @bind="_placeX" @bind:event="oninput" data-b3d="place-x" /></label>
+                            <label>@L.Resource("World3D_Y")<input class="wt-input" inputmode="decimal" @bind="_placeY" @bind:event="oninput" data-b3d="place-y" /></label>
+                            <label>@L.Resource("World3D_Z")<input class="wt-input" inputmode="decimal" @bind="_placeZ" @bind:event="oninput" data-b3d="place-z" /></label>
+                            <label>@L.Resource("World3D_PlaceTurn")<input class="wt-input" inputmode="decimal" @bind="_placeYaw" @bind:event="oninput" data-b3d="place-yaw" /></label>
+                        </div>
+                        <button type="button" class="wt-btn wt-plain" data-b3d="place-here" @onclick="UseViewCentreAsync">@L.Resource("World3D_PlaceUseView")</button>
+                        @if (_placeError is not null) { <p class="error-text" role="alert" data-b3d="place-error">@_placeError</p> }
+                        @if (_placeLastId is not null)
+                        {
+                            <p class="wt-muted" data-b3d="place-done">@L.Resource("World3D_PlaceDone")</p>
+                            @IssueList(LastPlaceIssues, "place-issues")
+                        }
+                    }
+                    <div class="b3d-links">
+                        <button type="button" class="wt-btn" data-b3d="place-confirm" disabled="@(kinds.Count == 0)" @onclick="ConfirmPlaceAsync">@L.Resource("World3D_PlaceConfirm")</button>
+                        <button type="button" class="wt-btn wt-plain" data-b3d="place-close" @onclick="ClosePlace">@L.Resource("World3D_Cancel")</button>
+                    </div>
+                </div>
+            }
 
             @if (_moveOptIn && _deleteOpen)
             {
@@ -352,6 +402,33 @@
                     }
                     <div class="b3d-links">
                         <button type="button" class="wt-btn wt-plain" data-b3d="door-close-card" @onclick="CloseDoorCardAsync">@L.Resource("World3D_DoorCardClose")</button>
+                    </div>
+                </div>
+            }
+
+            @if (SelectedNpc is { } npc)
+            {
+                <div class="wt-card b3d-panel" data-b3d="npc-card">
+                    <span class="wt-label accent-orange-text">@L.Resource(npc.IsPet ? "World3D_PetCard" : "World3D_NpcCard")</span>
+                    <strong class="b3d-title" data-b3d="npc-title" title="@npc.Id">@NpcName(npc)</strong>
+                    <dl class="b3d-fields">
+                        <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@npc.ActorName</dd>
+                        @if (npc.X != 0 || npc.Y != 0 || npc.Z != 0)
+                        {
+                            <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(npc.X), @Num(npc.Y), @Num(npc.Z)</dd>
+                        }
+                        else
+                        {
+                            <dt>@L.Resource("World3D_Position")</dt><dd>@L.Resource("World3D_NpcAtLevelSpot")</dd>
+                        }
+                        @if (npc.IsDead) { <dt>@L.Resource("World3D_NpcStatus")</dt><dd data-b3d="npc-status">@L.Resource(npc.IsPet ? "WorldPets_StatusDead" : "World3D_NpcRemoved")</dd> }
+                    </dl>
+                    <div class="b3d-links">
+                        @if (OnOpenTab.HasDelegate)
+                        {
+                            <button type="button" class="wt-btn" data-b3d="npc-open-tab" @onclick="@(() => OnOpenTab.InvokeAsync(npc.IsPet ? "pets" : "npcs"))">@L.Resource(npc.IsPet ? "World3D_OpenPets" : "World3D_OpenNpcs")</button>
+                        }
+                        <button type="button" class="wt-btn wt-plain" data-b3d="npc-close-card" @onclick="CloseNpcCardAsync">@L.Resource("World3D_DoorCardClose")</button>
                     </div>
                 </div>
             }
@@ -929,6 +1006,7 @@
         {
             SyncFromSession();
             _doorsDirty = true;
+            _npcsDirty = true;
             StateHasChanged();
         });
     }
@@ -948,6 +1026,8 @@
                 _levelProgress = null;
                 _doorsDirty = true;
                 _selectedDoorId = null;
+                _npcsDirty = true;
+                _selectedNpcId = null;
             }
             _sceneSession = Session;
         }
@@ -1019,6 +1099,11 @@
         {
             _doorsDirty = false;
             _ = PushDoorsAsync(); // the first read of a level's doors is slow; the markers arrive when ready
+        }
+        if (_view is not null && _npcsDirty)
+        {
+            _npcsDirty = false;
+            _ = PushNpcsAsync();
         }
     }
 

@@ -266,6 +266,20 @@ public sealed partial class WorldSaveSession
         return new PlacedGroupStageResult(accepted.Count, refused, []);
     }
 
+    /// <summary>
+    /// Stages a new object: a copy of <paramref name="donorKey"/> (a player-built object of the wanted kind)
+    /// standing at <paramref name="at"/> (cm), turned by <paramref name="yawDegrees"/> about itself. It is a
+    /// one-object duplicate, so it starts empty and unplugged and keeps every member the game wrote for the
+    /// donor. Returns the staged duplication, or null when the donor cannot be copied.
+    /// </summary>
+    public StagedDuplication? StagePlacedNew(string donorKey, PlacedVector at, double yawDegrees = 0)
+    {
+        if (CurrentPlacedTransform(donorKey)?.Translation is not { } from) return null;
+        var result = StagePlacedDuplicate([donorKey], new PlacedVector(at.X - from.X, at.Y - from.Y, at.Z - from.Z), yawDegrees,
+            GroupPivot.OfObject(donorKey), DuplicatePolicy.Default);
+        return result.Staged > 0 ? StagedPlacedDuplications[^1] : null;
+    }
+
     /// <summary>Drops the staged deletion of one object.</summary>
     public bool RevertPlacedDeletion(string key)
     {
