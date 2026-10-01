@@ -509,9 +509,9 @@ public sealed partial class WorldSaveSession
         if (result is null) return;
         if (result.Deleted.Count > 0 || result.Created.Count > 0)
         {
-            // Objects came or went, so the derived lists are rebuilt from a fresh read of what was
-            // just written (every other staged edit is already in it).
-            var fresh = CloneForFeatures(workingData);
+            // Objects came or went, so the derived lists are rebuilt from the tree that was just
+            // written (every other staged edit is already in it); no bytes are re-read.
+            var fresh = WorldSaveReader.ReadFromSave(workingData.Raw);
             _deployables = fresh.Deployables.ToDictionary(d => d.Id, StringComparer.Ordinal);
             _containers = fresh.Containers.ToDictionary(ContainerKey, StringComparer.Ordinal);
         }

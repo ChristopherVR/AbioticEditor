@@ -50,7 +50,18 @@ public static partial class WorldSaveReader
     public static WorldSaveData ReadFromStream(Stream stream)
     {
         var save = SaveGame.LoadFrom(stream);
+        var data = ReadFromSave(save);
+        LogUnmodeledKeys(save);
+        return data;
+    }
 
+    /// <summary>
+    /// Builds the typed view over an already-loaded save tree, without re-reading any bytes. The
+    /// returned <see cref="WorldSaveData.Raw"/> is <paramref name="save"/> itself.
+    /// </summary>
+    public static WorldSaveData ReadFromSave(SaveGame save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
         var containers = new List<WorldContainer>();
         containers.AddRange(ReadDeployedContainers(save));
         containers.AddRange(ReadCustomInventoryContainers(save));
@@ -69,8 +80,6 @@ public static partial class WorldSaveReader
         var pets = ReadPets(save);
         var vehicles = ReadVehicles(save);
         var deployables = ReadDeployables(save);
-
-        LogUnmodeledKeys(save);
 
         return new WorldSaveData(save, containers, flags, doors, story, minutes, globalRecipes, droppedItems, npcs, deployables, pets, vehicles);
     }

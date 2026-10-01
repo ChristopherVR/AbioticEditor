@@ -104,13 +104,15 @@ public static class GardenPlotPlanting
     /// </summary>
     private static StructProperty? CaptureTemplate(SaveGame save)
     {
-        SaveGame clone;
-        using (var buffer = new MemoryStream())
+        // Only garden plots are searched, so the copy holds just those.
+        var plots = WorldMapAccessor.Entries(save, "DeployedObjectMap")
+            .Where(e => (e.Props.FindByPrefix("Class_")?.Property?.Value?.ToString() ?? "").Contains("/Farming/GardenPlot_", StringComparison.Ordinal))
+            .Select(e => e.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        var clone = PlacedObjectCloner.CreateDonor(save, new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal)
         {
-            save.WriteTo(buffer);
-            buffer.Position = 0;
-            clone = SaveGame.LoadFrom(buffer);
-        }
+            ["DeployedObjectMap"] = plots,
+        });
         foreach (var entry in WorldMapAccessor.Entries(clone, "DeployedObjectMap"))
         {
             var cls = entry.Props.FindByPrefix("Class_")?.Property?.Value?.ToString() ?? "";

@@ -1,5 +1,39 @@
 # Abiotic Editor - Session history
 
+## Round-145: faster walking collisions, faster 3D open, much faster SAVE (2026-10-02)
+
+- **Walk collisions.** The floor and wall rays used to test every level piece. base3d.js now vendors
+  three-mesh-bvh 0.9.15 (`lib/three/three-mesh-bvh.min.js`, import rewritten to the vendored three,
+  MIT notice in THIRD-PARTY-NOTICES) and keeps a list of the solids near the walker (`nearSolids`:
+  14 m for checks, 6 m while walking, rebuilt after moving 3 m), each with a lazily built bounds tree.
+  `floorBelow`, `wallAhead`, `placementReport` and `floorAt` use it. Measured from the walker with
+  `rayBenchmark`: 0.13 ms per ray against 3.25 ms per ray over the whole level (~25x). Walking behaves
+  as before: stopped 0.35 m from a wall after 10.87 m; flying went 24 m.
+- **3D open.** Textures decode off the main thread (`ImageBitmapLoader`), materials compile with
+  `renderer.compileAsync` before meshes are added (`addWhenCompiled`, stale meshes disposed), shader
+  error checks are off, class chunks load in parallel, and `SceneModelHostService.DescribeClasses`
+  describes classes in parallel. Headless profile: texSubImage2D 573 -> ~100 ms, cold model load
+  1.93 -> 1.26 s, classes batch 568 -> ~310 ms, mesh span 848 -> 344 ms.
+- **SAVE** on the 16 MB Cascade Facility save, one move: 3.1-3.4 s -> 0.2-0.3 s.
+  - Writing straight to the file stream was ~2 s of it: the GVAS writer seeks back to patch sizes and
+    every seek flushes the FileStream buffer. `SaveBackup.WriteWithBackup` now serializes to memory
+    and writes once (helps the CLI and player saves too).
+  - `WorldSaveSession.SaveAsync` no longer applies edits to a full serialize-and-reparse clone. It
+    keeps the serialized bytes as a restore point, applies to the loaded tree and, on any failure,
+    re-reads the restore point (census reset, revision bumped). `LoadOtherSavesAsync` resumes on the
+    caller's context so renders never see the tree mid-edit.
+  - `CommitBaseEdits` rebuilds deployables and containers with the new
+    `WorldSaveReader.ReadFromSave(SaveGame)` (no re-read of bytes).
+  - Donors are partial: `PlacedObjectCloner.CreateDonor(live, keep)` narrows the named maps to the
+    listed entries (others emptied) for one serialize, then restores them. Each copy group gets its own
+    small donor (the shared-donor/taken-set logic is gone; a cable route no longer costs ~1 s per
+    reroute). Outlet templates, pet and dropped-item templates and garden-plot crop templates use
+    partial donors too.
+- **Measured and not adopted:** ReadyToRun. Exclusions are ignored in single-file publish (exe 459 MB
+  vs 328 MB) and first-page gains were within noise. Startup background work (pak mount ~245 ms,
+  registry ~150 ms, discovery ~130 ms) and tab switches (80-170 ms) were already small.
+- Tests: the refused-save test now also checks the move lands once after a refused attempt.
+
 ## Round-144: placement checks, 3D in the browser build, performance (2026-10-02)
 
 - **Placement checks.** The game places a piece exactly where written and never checks that it fits.

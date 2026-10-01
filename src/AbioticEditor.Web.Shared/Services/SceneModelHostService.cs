@@ -69,10 +69,13 @@ public sealed class SceneModelHostService
     public IReadOnlyDictionary<string, SceneClassModel?> DescribeClasses(IEnumerable<string> classPaths)
     {
         var provider = Provider?.Value;
-        var result = new Dictionary<string, SceneClassModel?>(StringComparer.Ordinal);
-        foreach (var path in classPaths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).Take(2000))
+        var paths = classPaths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).Take(2000).ToList();
+        var result = new System.Collections.Concurrent.ConcurrentDictionary<string, SceneClassModel?>(StringComparer.Ordinal);
+        // Each class is mostly a small cache file read (or, the first time, a game-file read the
+        // provider serializes itself), so a batch is worked out in parallel rather than one by one.
+        Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, path =>
         {
-            if (provider is null) { result[path] = null; continue; }
+            if (provider is null) { result[path] = null; return; }
             result[path] = _classes.GetOrAdd(path, p =>
             {
                 try { return ParseModelKey(p) is (var cls, { } state) ? provider.DescribeClass(cls, state) : provider.DescribeClass(p); }
@@ -82,8 +85,8 @@ public sealed class SceneModelHostService
                     return null;
                 }
             });
-        }
-        return result;
+        });
+        return new Dictionary<string, SceneClassModel?>(result, StringComparer.Ordinal);
     }
 
     /// <summary>

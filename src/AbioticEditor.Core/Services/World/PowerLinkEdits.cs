@@ -269,7 +269,11 @@ public static class PowerLinkEdits
 
         private void Refill()
         {
-            var donor = PlacedObjectCloner.CreateDonor(live);
+            // Only the outlet records are needed, so the other maps are left out of the copy.
+            var donor = PlacedObjectCloner.CreateDonor(live, new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal)
+            {
+                ["PowerSocketMap"] = null,
+            });
             var pairs = WorldMapAccessor.GetPairs(donor, "PowerSocketMap") ?? [];
             // Prefer outlet records that carry the plugged-device member: the shape the game writes for an outlet.
             var usable = pairs

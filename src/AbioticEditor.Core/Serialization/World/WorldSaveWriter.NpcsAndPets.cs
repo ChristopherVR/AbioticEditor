@@ -114,13 +114,12 @@ public static partial class WorldSaveWriter
             return null;
         }
 
-        SaveGame clone;
-        using (var buffer = new MemoryStream())
+        // A detached copy of just the pet and story-character maps, the only places a template is taken from.
+        var clone = PlacedObjectCloner.CreateDonor(data.Raw, new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal)
         {
-            data.Raw.WriteTo(buffer);
-            buffer.Position = 0;
-            clone = SaveGame.LoadFrom(buffer);
-        }
+            ["PetNPC"] = null,
+            ["NarrativeNPCMap"] = null,
+        });
 
         var template = FindCreatureTemplate(clone, pet.NpcClass);
         if (template.Key is null)

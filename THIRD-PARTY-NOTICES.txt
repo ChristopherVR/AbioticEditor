@@ -104,6 +104,13 @@ AbioticEditor.Core NuGet package does not contain or reference them.
       https://threejs.org / https://github.com/mrdoob/three.js
       Licensed under the MIT License (reproduced below and in wwwroot/lib/three/LICENSE).
 
+  * three-mesh-bvh 0.9.15 (wwwroot/lib/three/three-mesh-bvh.min.js: the package's
+    build/index.module.js, minified with esbuild, its "three" import rewritten to a relative path).
+    Speeds up the 3D view's raycasts (walking, picking, placement checks).
+      Copyright (c) 2018 Garrett Johnson
+      https://github.com/gkjohnson/three-mesh-bvh
+      Licensed under the MIT License (wwwroot/lib/three/LICENSE.three-mesh-bvh; same terms as below).
+
     The MIT License
 
     Copyright © 2010-2026 three.js authors

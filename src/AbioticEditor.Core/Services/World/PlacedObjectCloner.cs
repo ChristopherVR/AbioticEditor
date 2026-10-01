@@ -23,12 +23,47 @@ internal sealed record BuiltDuplicate(
 internal static class PlacedObjectCloner
 {
     /// <summary>A detached deep copy of a save (serialize, reload).</summary>
-    public static SaveGame CreateDonor(SaveGame live)
+    public static SaveGame CreateDonor(SaveGame live) => CreateDonor(live, null);
+
+    /// <summary>
+    /// A detached deep copy of only part of a save: each top-level map named in <paramref name="keep"/>
+    /// holds just the listed entries (all of them when the set is null), and every other top-level map
+    /// is empty. Everything else is copied whole. On the ~16 MB Facility save a full copy costs about a
+    /// second; a copy of a handful of entries costs a few milliseconds.
+    /// </summary>
+    /// <remarks>
+    /// The maps of <paramref name="live"/> are narrowed for the length of one serialize and put back in
+    /// a <c>finally</c>, so callers must not read the live save from another thread meanwhile.
+    /// </remarks>
+    public static SaveGame CreateDonor(SaveGame live, IReadOnlyDictionary<string, IReadOnlySet<string>?>? keep)
     {
-        using var buffer = new MemoryStream();
-        live.WriteTo(buffer);
-        buffer.Position = 0;
-        return SaveGame.LoadFrom(buffer);
+        var swapped = new List<(MapProperty Map, IList<KeyValuePair<FProperty, FProperty>> Full)>();
+        try
+        {
+            if (keep is not null)
+            {
+                foreach (var tag in live.Properties ?? [])
+                {
+                    if (tag.Property is not MapProperty { Value: { } full } map) continue;
+                    var name = tag.Name?.Value ?? string.Empty;
+                    var wanted = keep.FirstOrDefault(k => name.StartsWith(k.Key, StringComparison.Ordinal));
+                    if (wanted.Key is not null && wanted.Value is null) continue;
+                    var keys = wanted.Value;
+                    swapped.Add((map, full));
+                    map.Value = keys is null
+                        ? []
+                        : full.Where(p => WorldSaveReader.ExtractMapKeyString(p.Key) is { } k && keys.Contains(k)).ToList();
+                }
+            }
+            using var buffer = new MemoryStream();
+            live.WriteTo(buffer);
+            buffer.Position = 0;
+            return SaveGame.LoadFrom(buffer);
+        }
+        finally
+        {
+            foreach (var (map, full) in swapped) map.Value = full;
+        }
     }
 
     public static BuiltDuplicate Build(

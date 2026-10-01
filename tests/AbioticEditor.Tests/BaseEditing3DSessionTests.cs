@@ -274,7 +274,11 @@ public sealed class BaseEditing3DSessionTests
         await session.SaveAsync();
         Assert.False(session.IsDirty);
         Assert.Empty(session.LastBaseEditRefusal);
-        Assert.DoesNotContain(PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(temp.SavePath)).Objects!, o => o.Key == device);
+        var written = PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(temp.SavePath)).Objects!;
+        Assert.DoesNotContain(written, o => o.Key == device);
+        // The refused attempt left nothing behind in memory either: the move lands once, not twice.
+        var moved = written.Single(o => o.Key == free[0].Key).Transform!.Translation!.Value;
+        Assert.Equal(free[0].Transform!.Translation!.Value.X + 100, moved.X, 3);
     }
 
     // ---------- the other saves of the world ----------

@@ -20,6 +20,14 @@
 import * as THREE from "./lib/three/three.module.min.js";
 import { OrbitControls } from "./lib/three/OrbitControls.min.js";
 import { TransformControls } from "./lib/three/TransformControls.min.js";
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from "./lib/three/three-mesh-bvh.min.js";
+
+// Raycasts (walking, placement checks, picking) test a mesh's triangles through a bounding-volume
+// tree when its geometry has one, instead of every triangle. Trees are built lazily, for the
+// geometries a ray actually reaches (see nearSolids).
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // Index = PlacedObjectCategory enum value: Unknown, Bench, Container, Power, Light, Structure, Other.
 const CATEGORY_COLORS = [0x9aa0a8, 0xf08418, 0x8ccb58, 0x56c4e8, 0xf5d020, 0xd14a30, 0xb08ce0];
@@ -112,6 +120,9 @@ export function createView(host, dotnet) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.localClippingEnabled = true; // the level's ceiling cut
+    // Reading every shader's compile log (three's error check) makes the browser finish each compile on
+    // the spot, which defeats parallel compiling (compileAsync). The view's shaders are fixed and tested.
+    renderer.debug.checkShaderErrors = false;
     host.appendChild(renderer.domElement);
     renderer.domElement.classList.add("b3d-canvas-el");
 
@@ -486,9 +497,40 @@ export function createView(host, dotnet) {
     }
 
     /** One InstancedMesh per part of every class that has a ready model and a visible object. */
+    // Shaders for materials seen for the first time are compiled in parallel (compileAsync) before
+    // their meshes join the scene, instead of synchronously inside the next frame.
+    const compiledMaterials = new WeakSet();
+    const pendingCompile = new THREE.Group();
+    const materialsOf = mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material]);
+    const isCompiled = mesh => materialsOf(mesh).every(m => compiledMaterials.has(m));
+
+    /** Adds meshes to a parent now when their shaders are ready, or after compiling them in parallel. */
+    function addWhenCompiled(meshes, parent, stillWanted) {
+        const ready = meshes.filter(isCompiled), waiting = meshes.filter(m => !isCompiled(m));
+        for (const m of ready) parent.add(m);
+        if (!waiting.length) return;
+        if (typeof renderer.compileAsync !== "function") {
+            for (const m of waiting) { materialsOf(m).forEach(x => compiledMaterials.add(x)); parent.add(m); }
+            return;
+        }
+        const group = new THREE.Group();
+        for (const m of waiting) group.add(m);
+        pendingCompile.add(group);
+        renderer.compileAsync(group, camera, scene).catch(() => { }).then(() => {
+            pendingCompile.remove(group);
+            for (const m of [...group.children]) {
+                materialsOf(m).forEach(x => compiledMaterials.add(x));
+                if (!disposed && stillWanted(m)) parent.add(m);
+                else { group.remove(m); m.dispose(); }
+            }
+            requestRender();
+        });
+    }
+
     function rebuildModelInstances() {
         disposeModelMeshes();
         if (!modelsOn) return;
+        const built = [];
         const byClass = new Map();
         for (const idx of visible) {
             const o = objects[idx];
@@ -515,10 +557,11 @@ export function createView(host, dotnet) {
                 mesh.instanceMatrix.needsUpdate = true;
                 if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
                 mesh.computeBoundingSphere();
-                scene.add(mesh);
+                built.push(mesh);
                 modelMeshes.push(mesh);
             }
         }
+        addWhenCompiled(built, scene, m => modelMeshes.includes(m));
     }
 
     function rebuildInstances() {
@@ -657,10 +700,25 @@ export function createView(host, dotnet) {
         return geometryCache.get(id);
     }
 
+    // Textures are decoded off the main thread (an ImageBitmap) instead of during the GPU upload,
+    // which with plain images stalled the first frames of the view by half a second on a big base.
+    const bitmapLoader = typeof createImageBitmap === "function"
+        ? new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "none", premultiplyAlpha: "none" })
+        : null;
+
     function textureFor(id) {
         let texture = textureCache.get(id);
         if (!texture) {
-            texture = new THREE.TextureLoader().load(assetUrl(id), requestRender);
+            if (bitmapLoader) {
+                texture = new THREE.Texture();
+                bitmapLoader.load(assetUrl(id), bitmap => {
+                    texture.image = bitmap;
+                    texture.needsUpdate = true;
+                    requestRender();
+                });
+            } else {
+                texture = new THREE.TextureLoader().load(assetUrl(id), requestRender);
+            }
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.flipY = false; // Unreal's texture coordinates start at the top-left, like glTF
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -835,8 +893,10 @@ export function createView(host, dotnet) {
         for (const cls of wanted) classModels.set(cls, { state: "pending" });
         let done = 0;
         report("models", 0, wanted.length);
-        for (let i = 0; i < wanted.length; i += CLASS_BATCH) {
-            const chunk = wanted.slice(i, i + CLASS_BATCH);
+        // Batches are asked for together (the host works each one out in parallel).
+        const chunks = [];
+        for (let i = 0; i < wanted.length; i += CLASS_BATCH) chunks.push(wanted.slice(i, i + CLASS_BATCH));
+        await Promise.all(chunks.map(async chunk => {
             let answer;
             try {
                 answer = await postJson(`${MODEL_BASE}/classes`, chunk) ?? {};
@@ -844,7 +904,7 @@ export function createView(host, dotnet) {
                 for (const cls of chunk) classModels.set(cls, { state: "none" });
                 done += chunk.length;
                 report("models", done, wanted.length, "error");
-                continue;
+                return;
             }
             await Promise.all(chunk.map(async cls => {
                 const description = answer[cls];
@@ -854,7 +914,7 @@ export function createView(host, dotnet) {
                 if (done % 10 === 0 || done === wanted.length) report("models", done, wanted.length);
                 scheduleModelRebuild();
             }));
-        }
+        }));
         report("models", wanted.length, wanted.length);
     }
 
@@ -961,10 +1021,8 @@ export function createView(host, dotnet) {
             return;
         }
         clearLevel();
-        for (const mesh of built) {
-            levelGroup.add(mesh);
-            levelInstances += mesh.count;
-        }
+        for (const mesh of built) levelInstances += mesh.count;
+        addWhenCompiled(built, levelGroup, () => token === levelToken);
         setLamps(slice.lights);
         if (grid) grid.visible = built.length === 0;
         updateLevelCut();
@@ -1095,11 +1153,48 @@ export function createView(host, dotnet) {
         requestRender();
     }
 
+    // ---- nearby solids -----------------------------------------------------------------------
+    // A level slice holds thousands of instances. Rays from the walker (several per frame) and the
+    // placement checks only ever reach a few metres, so they test a cached list of the level pieces
+    // near the point instead: one plain mesh per nearby instance, sharing the instance's geometry
+    // (with its bounding-volume tree) and material. Rebuilt when the point moves a few metres or a
+    // new level slice arrives.
+    const NEAR_RADIUS_M = 14;
+    const WALK_NEAR_RADIUS_M = 6; // walking rays reach about 1.5 m; floor rays look straight down
+    const NEAR_REFRESH_M = 3;
+    const nearCaches = new Map(); // radius -> { at: Vector3, token, count, list: Mesh[] }
+    const nearMatrix = new THREE.Matrix4();
+    const nearSphere = new THREE.Sphere();
+
+    function nearSolids(at, radius = NEAR_RADIUS_M) {
+        const nearCache = nearCaches.get(radius);
+        if (nearCache && nearCache.token === levelToken && nearCache.count === levelGroup.children.length
+            && nearCache.at.distanceTo(at) < NEAR_REFRESH_M) return nearCache.list;
+        const list = [];
+        for (const mesh of levelGroup.children) {
+            const g = mesh.geometry;
+            if (!g.boundingSphere) g.computeBoundingSphere();
+            for (let i = 0; i < mesh.count; i++) {
+                mesh.getMatrixAt(i, nearMatrix);
+                nearSphere.copy(g.boundingSphere).applyMatrix4(nearMatrix);
+                if (nearSphere.center.distanceTo(at) - nearSphere.radius > radius) continue;
+                if (!g.boundsTree) g.computeBoundsTree();
+                const proxy = new THREE.Mesh(g, mesh.material);
+                proxy.matrixAutoUpdate = false;
+                proxy.matrix.copy(mesh.matrixWorld).multiply(nearMatrix);
+                proxy.matrixWorld.copy(proxy.matrix);
+                list.push(proxy);
+            }
+        }
+        nearCaches.set(radius, { at: at.clone(), token: levelToken, count: levelGroup.children.length, list });
+        return list;
+    }
+
     /** The height of the floor under a viewer-space point (level, models and boxes), or null. */
     function floorBelow(at) {
         raycaster.set(new THREE.Vector3(at.x, at.y + 0.5, at.z), new THREE.Vector3(0, -1, 0));
         raycaster.far = 40;
-        const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
+        const targets = [...nearSolids(at, WALK_NEAR_RADIUS_M), ...modelMeshes, ...meshes.filter(m => m.count > 0)];
         const hits = raycaster.intersectObjects(targets, false);
         raycaster.far = Infinity;
         for (const hit of hits) {
@@ -1114,7 +1209,7 @@ export function createView(host, dotnet) {
 
     /** The nearest solid surface along a horizontal step from the walker (waist and chest height), or null. */
     function wallAhead(dir, dist) {
-        const targets = [...levelGroup.children, ...modelMeshes];
+        const targets = [...nearSolids(camera.position, WALK_NEAR_RADIUS_M), ...modelMeshes];
         let best = null;
         for (const above of [0.8, 1.4]) {
             const from = new THREE.Vector3(camera.position.x, camera.position.y - EYE_M + above, camera.position.z);
@@ -1172,8 +1267,8 @@ export function createView(host, dotnet) {
         if (idx === undefined) return null;
         const o = objects[idx];
         const box = orientedBox(o);
-        const level = levelGroup.children;
-        const levelLoaded = level.length > 0;
+        const levelLoaded = levelGroup.children.length > 0;
+        const level = levelLoaded ? nearSolids(box.centre) : [];
         const [ax, ay, az] = box.axes;
         const [hx, hy, hz] = box.half;
 
@@ -1647,9 +1742,32 @@ export function createView(host, dotnet) {
         checkPlacement(keys) { return (keys ?? []).map(placementReport).filter(Boolean); },
         /** The floor height (viewer Y) under a viewer-space point, looking from 1 m above it, or null. */
         floorAt(point) {
-            const solids = [...levelGroup.children, ...modelMeshes];
+            const solids = [...nearSolids(new THREE.Vector3(point[0], point[1], point[2])), ...modelMeshes];
             const hit = solidHit(new THREE.Vector3(point[0], point[1] + 1, point[2]), new THREE.Vector3(0, -1, 0), 41, solids, -1);
             return hit ? hit.point.y : null;
+        },
+        /**
+         * Diagnostics: milliseconds for n horizontal rays from the camera against the whole level (how
+         * walking used to test walls) and against the nearby list with bounding-volume trees (how it
+         * does now), plus whether both found the same nearest wall.
+         */
+        rayBenchmark(n = 50) {
+            const from = camera.position.clone(), dir = new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
+            const run = targets => {
+                const t0 = performance.now(); let hit = null;
+                for (let i = 0; i < n; i++) {
+                    walkProbe.set(from, dir); walkProbe.far = 6;
+                    hit = walkProbe.intersectObjects(targets, false)[0] ?? null;
+                }
+                return { ms: performance.now() - t0, distance: hit ? hit.distance : null };
+            };
+            nearCaches.clear();
+            const built = performance.now(); const near = nearSolids(from, WALK_NEAR_RADIUS_M); const buildMs = performance.now() - built;
+            const fast = run([...near]);
+            const saved = THREE.Mesh.prototype.raycast;
+            const brute = run([...levelGroup.children]);
+            return { rays: n, levelInstances, nearPieces: near.length, nearBuildMs: buildMs, nearMs: fast.ms, wholeLevelMs: brute.ms,
+                nearDistance: fast.distance, wholeDistance: brute.distance, raycast: saved === acceleratedRaycast };
         },
         /** Where the camera is and looks (viewer space), for tests and the place tool. */
         cameraState() {

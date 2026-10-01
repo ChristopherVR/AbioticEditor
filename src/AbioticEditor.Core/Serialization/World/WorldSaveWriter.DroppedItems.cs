@@ -50,16 +50,13 @@ public static partial class WorldSaveWriter
             return null;
         }
 
-        // Clone the whole save to a fresh object graph, then lift one entry out of the clone:
+        // Copy the dropped-item map to a fresh object graph, then lift one entry out of the copy:
         // that entry shares no references with the live map, so grafting it back in (with new
         // leaf values) can't alias or corrupt the existing entries.
-        SaveGame clone;
-        using (var buffer = new MemoryStream())
+        var clone = PlacedObjectCloner.CreateDonor(data.Raw, new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal)
         {
-            data.Raw.WriteTo(buffer);
-            buffer.Position = 0;
-            clone = SaveGame.LoadFrom(buffer);
-        }
+            ["DroppedItemMap"] = null,
+        });
         if (clone.Properties?.FindByPrefix("DroppedItemMap")?.Property is not MapProperty cloneMap
             || cloneMap.Value is null || cloneMap.Value.Count == 0)
         {

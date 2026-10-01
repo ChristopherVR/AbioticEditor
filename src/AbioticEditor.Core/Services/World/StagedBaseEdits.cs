@@ -436,23 +436,18 @@ public sealed class StagedBaseEdits
             var problems = new List<string>();
             try
             {
-                // A donor is a full serialize-and-reload of a save, and building a copy takes (renames) the
-                // donor's own entries. So a donor is shared between copy groups only while none of a group's
-                // source objects or outlets has been taken from it yet; copying the same object twice (a cable
-                // route's reroutes) needs a fresh donor each time.
-                var donors = new List<(WorldSaveData Source, UeSaveGame.SaveGame Donor, HashSet<string> Taken)>();
+                // Each copy group gets its own donor: a detached copy of just the entries it copies (its
+                // objects and their outlets), so building a copy can take (rename) the donor's entries freely.
                 foreach (var group in dup.RowPlans.GroupBy(r => r.Duplication.Id))
                 {
                     var source = group.First().Duplication.Donor ?? data;
-                    var needs = group.SelectMany(r => r.Sockets.Select(s => s.OldId).Prepend(r.SourceKey)).ToHashSet(StringComparer.Ordinal);
-                    var slot = donors.FindIndex(d => ReferenceEquals(d.Source, source) && !d.Taken.Overlaps(needs));
-                    if (slot < 0)
+                    var objects = group.Select(r => r.SourceKey).ToHashSet(StringComparer.Ordinal);
+                    var sockets = group.SelectMany(r => r.Sockets.Select(s => s.OldId)).ToHashSet(StringComparer.Ordinal);
+                    var donor = PlacedObjectCloner.CreateDonor(source.Raw, new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal)
                     {
-                        donors.Add((source, PlacedObjectCloner.CreateDonor(source.Raw), new HashSet<string>(StringComparer.Ordinal)));
-                        slot = donors.Count - 1;
-                    }
-                    var donor = donors[slot].Donor;
-                    donors[slot].Taken.UnionWith(needs);
+                        ["DeployedObjectMap"] = objects,
+                        ["PowerSocketMap"] = sockets,
+                    });
                     foreach (var rowPlan in group)
                     {
                         var copy = PlacedObjectCloner.Build(donor, rowPlan, rowPlan.Duplication.Policy.Contents, _idFactory);

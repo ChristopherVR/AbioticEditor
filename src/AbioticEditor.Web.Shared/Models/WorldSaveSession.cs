@@ -1214,9 +1214,33 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsDirty) return;
-        // Apply all staged state to a disposable clone. A rejected writer or failed disk write
-        // therefore cannot leak partial mutations into this session's baseline.
-        var workingData = CloneForFeatures(_data);
+        // Edits are applied to the loaded tree itself, with its bytes kept as a restore point: a
+        // rejected writer or failed disk write puts the untouched baseline back, so no partial
+        // mutation leaks into the session. (Serializing is a fraction of the cost of the full
+        // re-read a separate working copy needed.)
+        byte[] restorePoint;
+        using (var snapshot = new MemoryStream())
+        {
+            _data.Raw.WriteTo(snapshot);
+            restorePoint = snapshot.ToArray();
+        }
+        try
+        {
+            await ApplyAndWriteAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            _data = WorldSaveReader.ReadFromStream(new MemoryStream(restorePoint));
+            _placedObjects = null;
+            _placedByKey = null;
+            PlacedTransformsRevision++;
+            throw;
+        }
+    }
+
+    private async Task ApplyAndWriteAsync(CancellationToken cancellationToken)
+    {
+        var workingData = _data;
         if (!_originalFlags.SetEquals(Flags))
         {
             if (!CanEditFlags) throw new InvalidOperationException("This save does not contain an editable WorldFlags array.");
@@ -1322,7 +1346,9 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         foreach (var edit in _rawEdits)
             if (!RawSavePropertyEditor.TryApply(workingData.Raw, edit.Key, edit.Value, out var error))
                 throw new InvalidOperationException($"Raw edit '{edit.Key}' is no longer valid: {error}");
-        if (_baseEdits.Deletions.Count > 0) await LoadOtherSavesAsync().ConfigureAwait(false);
+        // Stay on the caller's context: the edits below change the loaded save in place, and a render
+        // must not read it from another thread while they do.
+        if (_baseEdits.Deletions.Count > 0) await LoadOtherSavesAsync().ConfigureAwait(true);
         var baseEditResult = ApplyStagedBaseEdits(workingData);
         await AbioticEditor.Web.Services.SaveFilePersistence
             .WriteAsync(_files, _path, workingData.Raw, cancellationToken).ConfigureAwait(false);
