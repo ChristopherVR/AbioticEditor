@@ -43,27 +43,33 @@ internal static class MeshBaker
         }
     }
 
+    /// <summary>
+    /// Moves one vertex in Unreal space before it is converted: given the position and normal (cm,
+    /// mesh space), returns the new ones. Used to bend spline meshes (see <see cref="SplineBaker"/>).
+    /// </summary>
+    public delegate (Vector3 Position, Vector3 Normal) Deform(Vector3 position, Vector3 normal);
+
     /// <summary>Bakes LOD <paramref name="lod"/> (clamped to what the mesh has), or null when it has no geometry.</summary>
-    public static byte[]? Bake(UObject mesh, int lod)
+    public static byte[]? Bake(UObject mesh, int lod, Deform? deform = null)
     {
         switch (mesh)
         {
             case UStaticMesh sm:
             {
                 using var dto = new StaticMeshDto(sm, EMeshQuality.All);
-                return Bake(dto, lod);
+                return Bake(dto, lod, deform);
             }
             case USkeletalMesh sk:
             {
                 using var dto = new SkeletalMeshDto(sk, EMeshQuality.All);
-                return Bake(dto, lod);
+                return Bake(dto, lod, deform);
             }
             default:
                 return null;
         }
     }
 
-    private static byte[]? Bake<TVertex>(MeshDto<TVertex> dto, int lod) where TVertex : struct, IMeshVertex
+    private static byte[]? Bake<TVertex>(MeshDto<TVertex> dto, int lod, Deform? deform) where TVertex : struct, IMeshVertex
     {
         var lods = dto.LODs.Where(l => !l.IsNanite && l.Vertices.Length > 0 && l.Indices.Length > 0).ToList();
         if (lods.Count == 0) lods = dto.LODs.Where(l => l.Vertices.Length > 0 && l.Indices.Length > 0).ToList();
@@ -77,13 +83,16 @@ internal static class MeshBaker
         for (var i = 0; i < vertexCount; i++)
         {
             var v = source.Vertices[i];
+            var position = new Vector3(v.Position.X, v.Position.Y, v.Position.Z);
+            var normal = new Vector3(v.Normal.X, v.Normal.Y, v.Normal.Z);
+            if (deform is not null) (position, normal) = deform(position, normal);
             // Unreal (X, Y, Z) cm -> viewer (X, Z, Y) m. The swap is a reflection, which is exactly
             // what makes Unreal's triangle order counter-clockwise in the right-handed viewer, so the
             // index order is kept (the glTF writer in CUE4Parse does the same).
-            positions[i * 3] = v.Position.X / 100f;
-            positions[(i * 3) + 1] = v.Position.Z / 100f;
-            positions[(i * 3) + 2] = v.Position.Y / 100f;
-            var n = new Vector3(v.Normal.X, v.Normal.Z, v.Normal.Y);
+            positions[i * 3] = position.X / 100f;
+            positions[(i * 3) + 1] = position.Z / 100f;
+            positions[(i * 3) + 2] = position.Y / 100f;
+            var n = new Vector3(normal.X, normal.Z, normal.Y);
             var length = n.Length();
             n = length > 1e-6f ? n / length : Vector3.UnitY;
             normals[i * 3] = n.X;

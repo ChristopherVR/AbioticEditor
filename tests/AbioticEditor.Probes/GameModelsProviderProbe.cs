@@ -238,4 +238,51 @@ public class GameModelsProviderProbe
         }
         _output.WriteLine($"total: {maps.Count} maps, spline meshes {splines}, landscape components {landscape}, static mesh components {statics}");
     }
+
+    /// <summary>Where a map's spline meshes are (ABIOTIC_MAP, default Facility), grouped by their straight mesh, with a sample position each.</summary>
+    [Fact]
+    public void Dump_SplineMeshPlaces()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var map = Environment.GetEnvironmentVariable("ABIOTIC_MAP") ?? "Facility";
+        var index = assets.UseFileProvider(p => AbioticEditor.Plugins.GameModels3D.LevelIndex.Build(p, $"AbioticFactor/Content/Maps/{map}.umap"));
+        var splines = index.Entries.Where(e => AbioticEditor.Plugins.GameModels3D.SplineBaker.IsKey(index.Meshes[e.Mesh])).ToList();
+        _output.WriteLine($"{splines.Count} spline mesh entries");
+        foreach (var g in splines.GroupBy(e => assets.UseFileProvider(p => AbioticEditor.Plugins.GameModels3D.SplineBaker.Load(p, index.Meshes[e.Mesh]) is { } c
+                     && AbioticEditor.Plugins.GameModels3D.ClassModelResolver.TryMesh([c], out var m) ? m.Split('.')[^1] : "?")).OrderByDescending(g => g.Count()))
+        {
+            foreach (var e in g.Take(4))
+            {
+                var curve = assets.UseFileProvider(p => AbioticEditor.Plugins.GameModels3D.SplineBaker.Load(p, index.Meshes[e.Mesh]) is { } c ? AbioticEditor.Plugins.GameModels3D.SplineBaker.Read(c) : null);
+                var start = curve is null ? default : System.Numerics.Vector3.Transform(curve.StartPos, e.World);
+                var end = curve is null ? default : System.Numerics.Vector3.Transform(curve.EndPos, e.World);
+                _output.WriteLine($"  {g.Key,-28} component at {e.World.Translation.X:0},{e.World.Translation.Y:0},{e.World.Translation.Z:0}  curve {start.X:0},{start.Y:0},{start.Z:0} -> {end.X:0},{end.Y:0},{end.Z:0}  tangent {curve?.StartTangent}  axis {curve?.ForwardAxis}");
+            }
+        }
+    }
+
+    /// <summary>One spline mesh component's transform chain (ABIOTIC_KEY, a "#spline=" key).</summary>
+    [Fact]
+    public void Dump_SplineComponentChain()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var key = Environment.GetEnvironmentVariable("ABIOTIC_KEY");
+        if (assets is null || key is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var c = AbioticEditor.Plugins.GameModels3D.SplineBaker.Load(p, key);
+            _output.WriteLine($"key [{key}] loaded={c is not null}");
+            for (var o = c; o is not null; o = o.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("AttachParent")?.Load())
+            {
+                var props = string.Join(", ", o.Properties.Where(x => x.Name.Text.StartsWith("Relative", StringComparison.Ordinal) || x.Name.Text.StartsWith("bAbsolute", StringComparison.Ordinal) || x.Name.Text.Contains("Mobility", StringComparison.Ordinal))
+                    .Select(x => $"{x.Name.Text}={x.Tag?.GenericValue}"));
+                _output.WriteLine($"{o.ExportType} {o.Name} outer={o.Outer?.Name} [{props}] template={o.Template?.Name}");
+                if (o.Template?.Load() is { } t) _output.WriteLine($"   template {t.ExportType} {t.Name} [{string.Join(", ", t.Properties.Where(x => x.Name.Text.StartsWith("Relative", StringComparison.Ordinal) || x.Name.Text.StartsWith("bAbsolute", StringComparison.Ordinal)).Select(x => $"{x.Name.Text}={x.Tag?.GenericValue}"))}]");
+            }
+            var actor = c?.Outer;
+            _output.WriteLine($"actor {actor?.Name} class {actor?.GetType().Name}");
+            return 0;
+        });
+    }
 }

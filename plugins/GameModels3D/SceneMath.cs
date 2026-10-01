@@ -70,4 +70,21 @@ internal static class SceneMath
             max = Vector3.Max(max, p);
         }
     }
+
+    /// <summary>
+    /// A component's world transform from its relative one and its parent's world transform. A
+    /// component flagged absolute in location, rotation or scale ignores that part of its parent
+    /// (the tram rails' spline is absolute, so its points are world positions).
+    /// </summary>
+    public static Matrix4x4 Attach(Matrix4x4 local, Matrix4x4 parentWorld, bool absoluteLocation, bool absoluteRotation, bool absoluteScale)
+    {
+        if (!absoluteLocation && !absoluteRotation && !absoluteScale) return local * parentWorld;
+        if (!Matrix4x4.Decompose(parentWorld, out var scale, out var rotation, out var translation)) return local * parentWorld;
+        var parent = Matrix4x4.CreateScale(absoluteScale ? Vector3.One : scale)
+                     * Matrix4x4.CreateFromQuaternion(absoluteRotation ? Quaternion.Identity : rotation)
+                     * Matrix4x4.CreateTranslation(absoluteLocation ? Vector3.Zero : translation);
+        var world = local * parent;
+        if (absoluteLocation) world.Translation = local.Translation;
+        return world;
+    }
 }

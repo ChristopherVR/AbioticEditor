@@ -53,14 +53,14 @@ internal sealed class LevelIndexData
 /// <remarks>
 /// Components of blueprint actors placed in a level are saved as differences from their
 /// construction-script templates, so every property falls back to the component's archetype (see
-/// <see cref="Props"/>); a plain read would lose most of their meshes. Spline meshes are skipped (they
-/// bend at run time), as are brush geometry and far-distance LOD proxies; landscape terrain is
-/// indexed per component (see <see cref="LandscapeBaker"/>).
+/// <see cref="Props"/>); a plain read would lose most of their meshes. Brush geometry and
+/// far-distance LOD proxies are skipped; landscape terrain and spline meshes (which bend at run
+/// time) are indexed per component (see <see cref="LandscapeBaker"/> and <see cref="SplineBaker"/>).
 /// </remarks>
 internal static class LevelIndex
 {
     private const uint Magic = 0x3149_4C41; // "ALI1"
-    public const int FormatVersion = 4; // 4: landscape terrain components
+    public const int FormatVersion = 6; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -90,7 +90,8 @@ internal static class LevelIndex
             if (guard < 32 && component.TryGetValue(out FPackageIndex parentIndex, "AttachParent")
                 && parentIndex is { IsNull: false } && parentIndex.Load() is { } parent)
             {
-                result *= WorldOf(parent, guard + 1);
+                result = SceneMath.Attach(result, WorldOf(parent, guard + 1),
+                    Props.Get(component, "bAbsoluteLocation", false), Props.Get(component, "bAbsoluteRotation", false), Props.Get(component, "bAbsoluteScale", false));
             }
             worlds[component] = result;
             return result;
@@ -133,9 +134,25 @@ internal static class LevelIndex
                 }
                 continue;
             }
-            foreach (var component in ComponentsOf(actor))
+            foreach (var (componentIndex, component) in ComponentsOf(actor))
             {
                 if (!seen.Add(component)) continue;
+                // Spline meshes bend their mesh along a curve: one mesh per component (SplineBaker),
+                // drawn with the component's own transform.
+                if (SplineBaker.IsSplineMesh(component.ExportType))
+                {
+                    if (!componentIndex.IsExport || !Visible(component, 0) || !ClassModelResolver.TryMesh([component], out _)) continue;
+                    var splineOverrides = Props.Get(component, "OverrideMaterials", Array.Empty<FPackageIndex?>())
+                        .Select(m => m is { IsNull: false } ? m.ResolvedObject?.GetPathName() : null)
+                        .ToArray();
+                    var splineKey = SplineBaker.Key(mapObjectPath, componentIndex.Index - 1);
+                    var splineMesh = Intern(meshIds, data.Meshes, splineKey, splineKey);
+                    var splineOverride = Intern(overrideIds, data.OverrideSets, string.Join('|', splineOverrides), splineOverrides);
+                    if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
+                    var at = WorldOf(component, 0);
+                    data.Entries.Add(new LevelEntry(splineMesh, splineOverride, actorId, at, at.Translation, 0));
+                    continue;
+                }
                 if (!ClassModelResolver.IsMeshComponent(component.ExportType) || !Visible(component, 0)) continue;
                 if (!ClassModelResolver.TryMesh([component], out var mesh)) continue;
                 var overrides = Props.Get(component, "OverrideMaterials", Array.Empty<FPackageIndex?>())
@@ -183,7 +200,7 @@ internal static class LevelIndex
         data.ComputeBounds();
     }
 
-    private static IEnumerable<UObject> ComponentsOf(UObject actor)
+    private static IEnumerable<(FPackageIndex Index, UObject Component)> ComponentsOf(UObject actor)
     {
         var indices = new List<FPackageIndex?> { actor.GetOrDefault<FPackageIndex?>("RootComponent") };
         indices.AddRange(actor.GetOrDefault<FPackageIndex?[]>("InstanceComponents", []));
@@ -191,7 +208,7 @@ internal static class LevelIndex
         foreach (var index in indices)
         {
             if (index is { IsNull: false } && index.TryLoad(out UObject? component) && component is not null)
-                yield return component;
+                yield return (index, component);
         }
     }
 

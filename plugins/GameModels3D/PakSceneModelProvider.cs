@@ -490,12 +490,29 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         }
         var info = LandscapeBaker.IsKey(path)
             ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Describe(land, null) : null)
+            : SplineBaker.IsKey(path) ? DescribeSpline(path)
             : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Describe(obj) : null);
         WriteJson(file, info is null
             ? new CachedMeshInfo(null, null, null)
             : new CachedMeshInfo(info.Materials.ToArray(), [info.BoundsMin.X, info.BoundsMin.Y, info.BoundsMin.Z], [info.BoundsMax.X, info.BoundsMax.Y, info.BoundsMax.Z]));
         return info;
     });
+
+    /// <summary>A spline mesh component's bent bounds and its static mesh's materials.</summary>
+    private MeshInfo? DescribeSpline(string key)
+    {
+        var (curve, meshPath) = Read(p => SplineBaker.Load(p, key) is { } c && ClassModelResolver.TryMesh([c], out var m)
+            ? (SplineBaker.Read(c), m)
+            : (null, null));
+        return curve is null || meshPath is null || MeshInfoOf(meshPath) is not { } straight ? null : SplineBaker.Describe(curve, straight);
+    }
+
+    private static byte[]? BakeSpline(IFileProvider provider, string key, int lod)
+    {
+        if (SplineBaker.Load(provider, key) is not { } component || !ClassModelResolver.TryMesh([component], out var meshPath)
+            || !provider.TryLoadPackageObject(meshPath, out var mesh) || MeshBaker.Describe(mesh) is not { } straight) return null;
+        return MeshBaker.Bake(mesh, lod, SplineBaker.Bender(SplineBaker.Read(component), straight));
+    }
 
     private sealed record CachedMeshInfo(string?[]? Materials, float[]? Min, float[]? Max);
 
@@ -558,6 +575,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var data = isMesh
             ? LandscapeBaker.IsKey(path)
                 ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Bake(land, size) : null)
+                : SplineBaker.IsKey(path) ? Read(p => BakeSpline(p, path, size))
                 : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Bake(obj, size) : null)
             : BakeTexture(path, Math.Clamp(size, 16, 2048));
         WriteBytes(file, data ?? []);
@@ -663,8 +681,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     [GeneratedRegex(@"^/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+$")]
     private static partial Regex GamePath();
 
-    // A mesh may name a landscape component: the map's object path plus "#land=<export index>".
-    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+(#land=\d{1,7})?)$")]
+    // A mesh may name a landscape or spline mesh component: the map's object path plus
+    // "#land=<export index>" or "#spline=<export index>".
+    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+(#(land|spline)=\d{1,7})?)$")]
     private static partial Regex AssetId();
 
     [GeneratedRegex(@"^[A-Za-z0-9_]{1,80}$")]

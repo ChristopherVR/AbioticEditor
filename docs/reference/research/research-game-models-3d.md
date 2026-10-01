@@ -117,6 +117,18 @@ meet). Material: the component's `OverrideMaterial`, else the proxy's `Landscape
 colour pick finds the first layer texture (snow in the Alps, grass in the Dam valley), tiled every
 4 quads. Layer blending (weightmaps) is not drawn.
 
+### Spline meshes and absolute components
+
+All 391 `SplineMeshComponent`s are tram rail sections (`SM_Rail_Spline_300a`) in `Facility`,
+created by `TramSystem_Rail_C` construction scripts and attached to a `SplineComponent` whose
+template sets `bAbsoluteLocation` and `bAbsoluteRotation`: its points are world positions, so the
+actor's location must not be added (without that the rails drew twice as far from the origin).
+`SceneMath.Attach` honours the three absolute flags for every level component. `SplineBaker`
+bends the static mesh per component as `USplineMeshComponent::CalcSliceTransform` does: alpha
+along the forward axis (mesh bounds unless `SplineBoundaryMin/Max` differ), Hermite position and
+direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep when
+`bSmoothInterpRollScale`), per-axis slice frames. Key `<map>#spline=<export index>`.
+
 ## Cost
 
 - Resolving 212 classes with materials: 18 s the first time, 45 ms from the disk cache.
@@ -125,5 +137,5 @@ colour pick finds the first layer texture (snow in the Alps, grass in the Dam va
 
 ## Not covered
 
-Spline meshes (pipes and cables bent at run time; 391 in all, every one in `Facility`), skeletal animation (bind
+Skeletal animation (bind
 pose is drawn), decals, lights, and per-object state such as open lids or crop growth.

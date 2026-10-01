@@ -224,6 +224,36 @@ public sealed class GameModels3DTests
         Assert.Equal(("/Game/B/X.X_C#paint=-1", (int?)null), AbioticEditor.Web.Services.SceneModelHostService.SplitPaint("/Game/B/X.X_C#paint=-1"));
     }
 
+    [Fact]
+    public void Spline_meshes_bend_like_the_engine()
+    {
+        var straight = new MeshInfo([], new Vector3(0, -50, -50), new Vector3(300, 50, 50));
+        // A straight curve the length of the mesh leaves it as it is.
+        var line = new SplineBaker.Curve(Vector3.Zero, new Vector3(300, 0, 0), new Vector3(300, 0, 0), new Vector3(300, 0, 0),
+            Vector2.One, Vector2.One, 0, 0, Vector2.Zero, Vector2.Zero, Vector3.UnitZ, 0, false, 0, 0);
+        var (p, n) = SplineBaker.Bender(line, straight)(new Vector3(150, 10, 20), Vector3.UnitY);
+        AssertNear(new Vector3(150, 10, 20), p);
+        AssertNear(Vector3.UnitY, n);
+
+        // A quarter turn: the mesh's far end follows the curve to its end point, facing along +Y.
+        var turn = new SplineBaker.Curve(Vector3.Zero, new Vector3(400, 0, 0), new Vector3(200, 200, 0), new Vector3(0, 400, 0),
+            Vector2.One, new Vector2(2, 2), 0, 0, Vector2.Zero, Vector2.Zero, Vector3.UnitZ, 0, false, 0, 0);
+        var bend = SplineBaker.Bender(turn, straight);
+        AssertNear(new Vector3(200, 200, 0), bend(new Vector3(300, 0, 0), Vector3.UnitZ).Position);
+        // At the end the cross-section is doubled (EndScale 2) and turned: the mesh's +Y now points along -X.
+        AssertNear(new Vector3(200 - 20, 200, 0), bend(new Vector3(300, 10, 0), Vector3.UnitZ).Position);
+        AssertNear(new Vector3(200, 200, 20), bend(new Vector3(300, 0, 10), Vector3.UnitZ).Position);
+
+        // Absolute components ignore their parent's transform (the tram rails' spline does).
+        var parent = Matrix4x4.CreateTranslation(-12450, 32250, 500);
+        var local = Matrix4x4.CreateTranslation(1, 2, 3);
+        Assert.Equal(new Vector3(-12449, 32252, 503), SceneMath.Attach(local, parent, false, false, false).Translation);
+        Assert.Equal(new Vector3(1, 2, 3), SceneMath.Attach(local, parent, true, true, false).Translation);
+    }
+
+    private static void AssertNear(Vector3 expected, Vector3 actual)
+        => Assert.True(Vector3.Distance(expected, actual) < 0.01f, $"expected {expected}, got {actual}");
+
     // ---------- plugin loading ----------
 
     [Fact]

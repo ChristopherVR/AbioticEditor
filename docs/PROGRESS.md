@@ -49,6 +49,12 @@
   lodge stands on its snow slope, the Dam valley has its grass floor (27,270 pieces at 150 m). Test:
   `Landscape_terrain_is_indexed_and_bakes_to_a_height_grid`. Layer blending is not drawn (one
   layer texture per landscape).
+- **Tram rails drawn.** The 391 spline meshes (all tram rail sections) are bent per component
+  like the engine (`SplineBaker`, key `<map>#spline=<export index>`, level index format 6). Their
+  parent spline is flagged absolute in location and rotation; `SceneMath.Attach` now honours
+  absolute location, rotation and scale for every level component (the rails were drawn at twice
+  their distance from the origin before). Verified: the rail curves through the tunnel at the
+  MF West tram station. Test: `Spline_meshes_bend_like_the_engine`.
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 
