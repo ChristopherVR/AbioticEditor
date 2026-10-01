@@ -89596,5 +89596,841 @@
     "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": "\u30DA\u30F3\u30C9\u30EB\u30C8\u30F3\u535A\u58EB"
+  },
+  "NarrativeNpcPlacements": {
+    "Facility:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Cahn_Res",
+      "DisappearFlag": "Residence_IceWallRemoved"
+    },
+    "Facility:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Labs_Witch",
+      "AppearFlag": "LABS_OpenVacuumDoor",
+      "DisappearFlag": "Security_Gate2Opened"
+    },
+    "Facility:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "SECURITY_Cahn_2",
+      "AppearFlag": "Security_ExitOpened",
+      "DisappearFlag": "Dams_ActivatedPump1"
+    },
+    "Facility_Botanical:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_TT_04"
+    },
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_SisterUnlost_PreWall",
+      "DisappearFlag": "Residence_Fracture_Complete"
+    },
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Jimmy_Mall",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Newman",
+      "DisappearFlag": "Residence_Wall"
+    },
+    "Facility_Botanical:NarrativeNPC_UnlostMage_C_0": {
+      "Row": "Res_MageUnlost_PreWall",
+      "DisappearFlag": "Residence_Fracture_Complete"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Containment_Abe_83"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "LABS_Containment_RT_01"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_10": {
+      "Row": "Manse_Sg"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_13": {
+      "Row": "Manse_Art"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_14": {
+      "Row": "Manse_Gc"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_16": {
+      "Row": "Manse_GM"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_17": {
+      "Row": "Manse_Mdr"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Z_02"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ss_02"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_Rc"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_T_01"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Manse_ToB"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_As_03"
+    },
+    "Facility_Containment:NarrativeNPC_Human_Hologram_C_8": {
+      "Row": "Manse_Af"
+    },
+    "Facility_Containment:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "LABS_Cahn_Contained_01",
+      "DisappearFlag": "LABS_TurretsDeactivated"
+    },
+    "Facility_Containment:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Labs_Petra_Tara"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Elwyn_Pumps",
+      "DisappearFlag": "Dams_SpillwayOpen"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Dams_Jonas",
+      "DisappearFlag": "Dams_MetElwyn"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_7": {
+      "Row": "DAMS_Isaiah_Entry",
+      "DisappearFlag": "Dams_SpillwayOpen"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_DWB_01"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cp_04"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_ND_01"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Janet",
+      "DisappearFlag": "Plant_EnteredPlant"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "DAMS_Abe",
+      "DisappearFlag": "Plant_EnteredPlant"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Dams_Elwyn_SpillwayOpen",
+      "AppearFlag": "Dams_SpillwayOpen",
+      "DisappearFlag": "Dams_MetWitch"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_TT_03"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_DWB_02"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Tang",
+      "DisappearFlag": "Plant_AnteC_Entered"
+    },
+    "Facility_Dam_Lower:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_WRb"
+    },
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Dams_Kylie_01"
+    },
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Dams_Witch",
+      "DisappearFlag": "Plant_ExitOpened"
+    },
+    "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_X_04"
+    },
+    "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Rv_01"
+    },
+    "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Yt_02"
+    },
+    "Facility_Dam_Waterfall:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_SwimInstructor"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_GK3"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ass_04"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "REACTORS_Cahn_Entry",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_S1Labs_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "REACTORS_Cahn_Platform1",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_AllStations_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Reactors_Witch",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Reactors_DrHill_01",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_S4RadWaste_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Reactors_Heavy",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DF_Central:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Shd"
+    },
+    "Facility_DF_Central:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_DrHill_03",
+      "AppearFlag": "Reactors_AllStations_Complete",
+      "DisappearFlag": "Reactors_SG_Interior"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_AW_01"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_C_03"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_TT_02"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Reactors_Tengku_01",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Entered"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Vol_04"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Vol_02"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Janet",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Reactors_DrHill_02",
+      "AppearFlag": "Reactors_S4RadWaste_Complete",
+      "DisappearFlag": "Reactors_AllStations_Complete"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Reactors_Abe",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DF_RadWaste:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Frake",
+      "DisappearFlag": "Reactors_AllStations_Complete"
+    },
+    "Facility_DF_War:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_C_04"
+    },
+    "Facility_DF_War:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Douglas"
+    },
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_GK_01"
+    },
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ex_05"
+    },
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_CaptiveGod"
+    },
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Riggs_Mall",
+      "DisappearFlag": "Residence_Fracture_Complete"
+    },
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Cahn_DarkLens",
+      "AppearFlag": "Fracture_Forcefield_Complete",
+      "DisappearFlag": "Residence_Fracture_Complete"
+    },
+    "Facility_Fracture:NarrativeNPC_SignPost_VWinter_C_1": {
+      "Row": "Res_Fili_FractureSignPost_01"
+    },
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_AG"
+    },
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_TI"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Houston"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "LABS_Thule_AdustmentWing",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "LABS_Elanor",
+      "DisappearFlag": "Security_ExitOpened"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Cp_03"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Lk_04"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ref"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_DL_02"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_TT_01"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ss_01"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "LABS_AdjustWing_RT_01",
+      "DisappearFlag": "Security_ExitOpened"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Or_03"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Athresh"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ref"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ldg"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_As_02"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Pw"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Manse_Dbr"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_Tbr"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "LABS_Cahn_Freed_01",
+      "AppearFlag": "LABS_TurretsDeactivated",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Lk_01"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MF_Varsha_Foundry",
+      "AppearFlag": "Manufacturing_Arrived",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Frake_Foundry",
+      "AppearFlag": "MF_PumpsFixed",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_MFHQ:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Or_01"
+    },
+    "Facility_MFMaggot:NarrativeNPC_Larva_C_1": {
+      "Row": "Mgt_Maggot"
+    },
+    "Facility_MFMines:NarrativeNPC_HastaTria_C_1": {
+      "Row": "MF_Crazy_Soldier",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Pr_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Tr_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Or_02"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ps_02"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_As_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_8": {
+      "Row": "Manse_Ex_2"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Douglas_01",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "MF_Frake_Fortress",
+      "DisappearFlag": "MF_PumpsFixed"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_DL_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ps_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_X_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MF_Crane_Guy"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Frake_Minion_2"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "MF_FrakeMinionRadiation",
+      "DisappearFlag": "Security_SurfaceElevatorEvent"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "MF_FrakeMinionVent",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_0": {
+      "Row": "MF_Blacksmith_Quest",
+      "AppearFlag": "MF_MetFrake"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_1": {
+      "Row": "MF_Blacksmith_PreQuest",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cb_01"
+    },
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ab"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Jager"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Thule",
+      "DisappearFlag": "Office_Silo3Opened"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "OFFICE_Alice",
+      "DisappearFlag": "Office_Silo3Opened"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Warren"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cb_02"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Pe_02"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_Cb_03"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Pe_01"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "OFFICE_DrShepherd",
+      "DisappearFlag": "Office_ForkliftDoorOpened"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Dr_Roberts",
+      "DisappearFlag": "LABS_EnteredLabs"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_7": {
+      "Row": "Receptionist_Offices"
+    },
+    "Facility_Office3:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Vr_01"
+    },
+    "Facility_Office3:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Or_01"
+    },
+    "Facility_Office3:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Cp_01"
+    },
+    "Facility_Office3:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Order_Survivor"
+    },
+    "Facility_Office3:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Janet_Offices",
+      "AppearFlag": "Fog_Completed",
+      "DisappearFlag": "MF_MetBlacksmith"
+    },
+    "Facility_Office3:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Silo_3_Scientist",
+      "DisappearFlag": "LABS_ExploredLabs"
+    },
+    "Facility_Office3:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Dr_Regal_Offices"
+    },
+    "Facility_Office3:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Abe_Offices",
+      "AppearFlag": "Fog_Completed",
+      "DisappearFlag": "MF_MetBlacksmith"
+    },
+    "Facility_Office4:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Dr_Sukov_Offices",
+      "DisappearFlag": "MF_ExitOpened"
+    },
+    "Facility_Pens:NarrativeNPC_Ela_C_1": {
+      "Row": "Labs_Ela_Pest",
+      "DisappearFlag": "Labs_AbeJanetElectroPestScene"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_DL_03"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "LABS_Pens_RT_01"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_10": {
+      "Row": "Manse_Ex_3"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Lk_03"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_Z_01"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Kc"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Riggs_Holo_Salem_01"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_Vol_01"
+    },
+    "Facility_Pens:NarrativeNPC_Human_Hologram_C_8": {
+      "Row": "Manse_As_02"
+    },
+    "Facility_Pens:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "LABS_Janet",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_Pens:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Labs_Janet_Pest",
+      "DisappearFlag": "Labs_AbeJanetElectroPestScene"
+    },
+    "Facility_Pens:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "LABS_Abe",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_Pens:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Labs_Abe_Pest",
+      "DisappearFlag": "Labs_AbeJanetElectroPestScene"
+    },
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "PLANT_ManseHologram"
+    },
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_GK2"
+    },
+    "Facility_Plant:NarrativeNPC_Waterbot_C_1": {
+      "Row": "PLANT_Waterbot"
+    },
+    "Facility_Reservoir:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Yt_01"
+    },
+    "Facility_Reservoir:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Quercy",
+      "DisappearFlag": "DAMS_CompletedVoussoir"
+    },
+    "Facility_Residence:NarrativeNPC_HastaTria_C_1": {
+      "Row": "Res_HastaTria_Laser",
+      "AppearFlag": "Res_HastaTria_PortalTriggered",
+      "DisappearFlag": "Res_HastaTria_EndCutscene"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_AW_03"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cn_05"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Or_05"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Hat"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_EndPortal"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Residences_Janet",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Residences_Abe",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Thule_Res",
+      "DisappearFlag": "Residence_IceWallRemoved"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Shepherd_Res",
+      "DisappearFlag": "Residence_Wall"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Rp_01"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Rp_02"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Z_04"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Manse_Or_04"
+    },
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "SEC_CelineAhmed",
+      "DisappearFlag": "Dams_DarkWaterDrained"
+    },
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "SECURITY_Cahn_1",
+      "AppearFlag": "LABS_OpenVacuumDoor",
+      "DisappearFlag": "Security_ExitOpened"
+    },
+    "MainMenu_Offices:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Warren"
+    },
+    "V_Alps:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Alps_Dupont"
+    },
+    "V_Anteverse_A:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_A_01"
+    },
+    "V_Anteverse_C:NarrativeNPC_ExorChieftain_C_0": {
+      "Row": "AnteverseC_ExorChief"
+    },
+    "V_Anteverse_C:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "ANTEVERSE_C_ManseHologram"
+    },
+    "V_BOTANICAL:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Res_Riggs_Holo_BotanicalWing"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_F_02"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_F_01"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Cp_02"
+    },
+    "V_FOG:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Flathill_Marion",
+      "DisappearFlag": "MF_ManufacturingOpen"
+    },
+    "V_Inq:NarrativeNPC_HastaTria_C_0": {
+      "Row": "Res_HastaTria_Sundisk",
+      "AppearFlag": "V_INQ_SunDiskTouched",
+      "DisappearFlag": "Residence_Entered"
+    },
+    "V_Inq:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Res_ClericusArtem_01"
+    },
+    "V_Inq:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Res_ClericusArtem_02"
+    },
+    "V_Inq:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Res_ClericusArtem_03"
+    },
+    "V_Inq:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Res_Interfector_01"
+    },
+    "V_Intro:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Intro_Manse_OrdoContainment_01"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Intro_Guard_3_Welcome"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Intro_Guard_1"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_14": {
+      "Row": "Intro_Driver_3",
+      "AppearFlag": "Intro_Driver_Exit"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_17": {
+      "Row": "Intro_Driver_3",
+      "AppearFlag": "Intro_Driver_FinishedTalking",
+      "DisappearFlag": "Intro_Driver_Arrived"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Intro_Guard_2"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_20": {
+      "Row": "Intro_Driver_2",
+      "AppearFlag": "Intro_Driver_Talks",
+      "DisappearFlag": "Intro_Driver_FinishedTalking"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_21": {
+      "Row": "Intro_Driver",
+      "DisappearFlag": "Intro_Driver_Talks"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_22": {
+      "Row": "Intro_Driver_4",
+      "AppearFlag": "Intro_Driver_Arrived",
+      "DisappearFlag": "Intro_Driver_Exit"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Intro_Guard_3_Net"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Intro_Guard_3_SmashCrate"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Intro_Guard_3_ActivateDevice"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Cahn_SouthIsland_PostBoss",
+      "AppearFlag": "EndBossDefeated",
+      "DisappearFlag": "End_CahnDisappears"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Thule_SouthIsland",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Riggs_Endgame",
+      "AppearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Cahn_SouthIsland_PreBoss",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Res_Janet_Endgame",
+      "AppearFlag": "EndBossDefeated"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Night_Soul_01",
+      "AppearFlag": "NightRealm_ShadowD_Destroyed"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_10": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_11": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_12": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_13": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_14": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_15": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_16": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_17": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_19": {
+      "Row": "NIGHTREALM_DrShade",
+      "DisappearFlag": "NightRealm_ShadowD_Destroyed"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Night_Soul_Muffled"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_7": {
+      "Row": "Night_Soul_01"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_8": {
+      "Row": "Night_Soul_F"
+    },
+    "V_NIGHT:NarrativeNPC_Human_ParentBP_C_9": {
+      "Row": "Night_PondSoul_01",
+      "AppearFlag": "NightRealm_ShadowD_Destroyed",
+      "DisappearFlag": "NightRealm_LakeVisitor"
+    },
+    "V_RISE:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Bv"
+    },
+    "V_RISE:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Z_03"
+    },
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Canaan_Fisherman"
+    },
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Canaan_Witch",
+      "DisappearFlag": "Residence_Entered"
+    },
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "SalemSwampMegaphone",
+      "DisappearFlag": "Salem_MetRiggs"
+    },
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MX_Hud_Encounter_01",
+      "DisappearFlag": "V_Signal_FixedFinalDish"
+    },
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MX_Hud_Radio_UFOAppears",
+      "AppearFlag": "V_Signal_FixedFinalDish",
+      "DisappearFlag": "V_Signal_Complete"
+    },
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "SHADOWGATE_Cahn",
+      "DisappearFlag": "Reactors_SG_Interior"
+    },
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "SHADOWGATE_Cahn_02",
+      "AppearFlag": "Reactors_SG_Interior",
+      "DisappearFlag": "Reactors_SG_ExitOpened"
+    },
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Wall_Jotun_01"
+    },
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Wall_AG_01"
+    },
+    "V_Train:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_T_02"
+    },
+    "V_Train:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Train_Soldier",
+      "DisappearFlag": "TrainCompletedOnce"
+    },
+    "V_Train:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Train_Scientist"
+    },
+    "V_Winter:NarrativeNPC_Penguin_VWinter_C_1": {
+      "Row": "Winter_Penny"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_1": {
+      "Row": "VWinter_SignPost_01"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_3": {
+      "Row": "VWinter_SignPost_02"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_5": {
+      "Row": "VWinter_SignPost_03"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_7": {
+      "Row": "VWinter_SignPost_04"
+    }
   }
 }

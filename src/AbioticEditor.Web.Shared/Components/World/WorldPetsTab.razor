@@ -72,6 +72,7 @@
                 var identityEditable = editable && pet.Matched;
                 <h3 class="wt-h3">@PetName(pet)</h3>
                 <p class="wt-status-text">@FriendlyClass(pet)</p>
+                <ShowIn3DButton Target="@(new WorldLocateTarget(WorldLocateKind.Character, pet.Id, PetName(pet), pet.X != 0 || pet.Y != 0 || pet.Z != 0 ? new PlacedVector(pet.X, pet.Y, pet.Z) : null))" />
 
                 <div class="wt-field">
                     <span class="wt-label">@L.Resource("WorldPets_Location")</span>

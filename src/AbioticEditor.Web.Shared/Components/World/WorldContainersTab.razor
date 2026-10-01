@@ -105,6 +105,10 @@
                     <h3 class="wc-title">@DisplayName(selected)</h3>
                     @if (HealthText(selected) is { Length: > 0 } detailHealth) { <p class="wc-health">@detailHealth</p> }
                     <p class="wc-id">@WhereText(selected)</p>
+                    @if (selected.Source == WorldContainerSource.Deployed)
+                    {
+                        <ShowIn3DButton Target="@WorldLocateTarget.Placed(selected.Id, DisplayName(selected))" />
+                    }
                     @if (selected.Source == WorldContainerSource.Deployed || selected.Source == WorldContainerSource.Live)
                     {
                         <label class="wc-rename">

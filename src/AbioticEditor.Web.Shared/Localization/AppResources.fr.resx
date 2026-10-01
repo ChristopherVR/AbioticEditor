@@ -3502,4 +3502,7 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Règle cela, puis appuie sur ENREGISTRER comme d'habitude. Si tu préfères ne pas attendre, ENREGISTRER te proposera de l'écrire quand même.</value>
   </data>
+  <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>apparaît quand : {0}</value></data>
+  <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>part quand : {0}</value></data>
 </root>

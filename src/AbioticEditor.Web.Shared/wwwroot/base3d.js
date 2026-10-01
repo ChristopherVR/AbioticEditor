@@ -706,19 +706,33 @@ export function createView(host, dotnet) {
         ? new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "none", premultiplyAlpha: "none" })
         : null;
 
+    // Texture progress, so the view can say what it is still waiting for.
+    let texturesAsked = 0, texturesDone = 0, textureReportQueued = false;
+    function textureSettled() {
+        texturesDone++;
+        if (textureReportQueued) return;
+        textureReportQueued = true;
+        setTimeout(() => { textureReportQueued = false; report("textures", texturesDone, texturesAsked); }, 250);
+    }
+
     function textureFor(id) {
         let texture = textureCache.get(id);
         if (!texture) {
+            texturesAsked++;
+            let settle;
+            const ready = new Promise(resolve => { settle = resolve; });
+            const done = () => { textureSettled(); settle(); requestRender(); };
             if (bitmapLoader) {
                 texture = new THREE.Texture();
                 bitmapLoader.load(assetUrl(id), bitmap => {
                     texture.image = bitmap;
                     texture.needsUpdate = true;
-                    requestRender();
-                });
+                    done();
+                }, undefined, done);
             } else {
-                texture = new THREE.TextureLoader().load(assetUrl(id), requestRender);
+                texture = new THREE.TextureLoader().load(assetUrl(id), done, undefined, done);
             }
+            texture.userData.ready = ready;
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.flipY = false; // Unreal's texture coordinates start at the top-left, like glTF
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -742,6 +756,7 @@ export function createView(host, dotnet) {
         const textures = layers.map(l => (l && l.texture ? textureFor(l.texture) : null));
         const fallback = textures.find(Boolean) ?? null;
         material = new THREE.MeshLambertMaterial({ color: 0xffffff, map: fallback, vertexColors: true, clippingPlanes: [levelClip] });
+        material.userData.textures = textures.filter(Boolean);
         material.onBeforeCompile = shader => {
             for (let i = 0; i < 5; i++) {
                 shader.uniforms[`terrainMap${i}`] = { value: textures[i] ?? fallback };
@@ -830,6 +845,23 @@ export function createView(host, dotnet) {
         return (Math.max(size.x, size.z) / span) * scale;
     }
 
+    /**
+     * Waits (up to a limit) for every texture the materials use, so a model or level piece appears
+     * finished instead of flat white first and textured a moment later. A texture that never comes
+     * does not hold the piece back for longer than the limit.
+     */
+    const TEXTURE_WAIT_MS = 6000;
+    function texturesReady(materials) {
+        const waits = [];
+        for (const material of materials) {
+            for (const t of [material.map, ...(material.userData.textures ?? [])]) {
+                if (t && t.userData.ready) waits.push(t.userData.ready);
+            }
+        }
+        if (!waits.length) return Promise.resolve();
+        return Promise.race([Promise.all(waits), new Promise(resolve => setTimeout(resolve, TEXTURE_WAIT_MS))]);
+    }
+
     function materialFor(m, level) {
         if (level && m.layers && m.layers.length) return terrainMaterialFor(m);
         const key = `${level ? "L" : "O"}|${m.texture}|${m.color}|${m.opacity}|${m.twoSided}|${m.masked}|${m.emissive}|${m.decal ? 1 : 0}`;
@@ -882,6 +914,7 @@ export function createView(host, dotnet) {
             classModels.set(cls, { state: "none" });
             return;
         }
+        await texturesReady(ready.flatMap(p => p.materials));
         const box = new THREE.Box3(new THREE.Vector3(...description.boundsMin), new THREE.Vector3(...description.boundsMax));
         classModels.set(cls, { state: "ready", parts: ready, box });
     }
@@ -1020,6 +1053,12 @@ export function createView(host, dotnet) {
             for (const mesh of built) mesh.dispose();
             return;
         }
+        report("level", 0, 0, "textures");
+        await texturesReady(built.flatMap(mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material])));
+        if (token !== levelToken || disposed) {
+            for (const mesh of built) mesh.dispose();
+            return;
+        }
         clearLevel();
         for (const mesh of built) levelInstances += mesh.count;
         addWhenCompiled(built, levelGroup, () => token === levelToken);
@@ -1119,6 +1158,45 @@ export function createView(host, dotnet) {
         for (let i = used; i < labelPool.length; i++) labelPool[i].style.display = "none";
     }
 
+    // ---- locating -----------------------------------------------------------------------------
+    // "Show in 3D" from another tab: the camera looks down at the spot at an angle, and a pin marks
+    // it, drawn over everything so it shows even inside walls or under a floor.
+    const pinGroup = new THREE.Group();
+    pinGroup.visible = false;
+    pinGroup.renderOrder = 20;
+    {
+        const pinMaterial = new THREE.MeshBasicMaterial({ color: 0xf08418, depthTest: false, transparent: true, opacity: 0.95 });
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8), pinMaterial);
+        stem.position.y = 1.1 + 0.25;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), pinMaterial);
+        head.position.y = 2.6;
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 12), pinMaterial);
+        tip.rotation.x = Math.PI;
+        tip.position.y = 0.25;
+        for (const part of [stem, head, tip]) { part.renderOrder = 20; pinGroup.add(part); }
+    }
+    scene.add(pinGroup);
+
+    function setPin(at) {
+        pinGroup.visible = !!at;
+        if (at) pinGroup.position.copy(at);
+        requestRender();
+    }
+
+    function flyTo(target, distance) {
+        if (walkOn) setWalk(false);
+        const d = Math.max(2, distance || 12);
+        const direction = camera.position.clone().sub(controls.target);
+        direction.y = 0;
+        if (direction.lengthSq() < 1e-6) direction.set(1, 0, 1);
+        direction.normalize().multiplyScalar(Math.cos(0.6)).setY(Math.sin(0.6)).normalize();
+        controls.target.copy(target);
+        camera.position.copy(target).addScaledVector(direction, d);
+        controls.update();
+        if (levelOptions.enabled) loadLevel();
+        requestRender();
+    }
+
     // ---- picking -----------------------------------------------------------------------------
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -1137,6 +1215,27 @@ export function createView(host, dotnet) {
                 : instanceToObject[meshes.indexOf(hit.object)][hit.instanceId];
             best = objects[objIndex];
             break;
+        }
+        return best ?? nearestOnScreen(clientX, clientY);
+    }
+
+    // A whole region's pieces are a few pixels across. A click that hits none of them takes the
+    // visible piece whose centre is closest to the pointer on screen, within a small radius.
+    const PICK_SLOP_PX = 14;
+    const pickProjected = new THREE.Vector3();
+    function nearestOnScreen(clientX, clientY) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        let best = null, bestDistance = PICK_SLOP_PX, bestDepth = Infinity;
+        for (const idx of visible) {
+            const o = objects[idx];
+            pickProjected.set(o.p[0], o.p[1], o.p[2]).project(camera);
+            if (pickProjected.z < -1 || pickProjected.z > 1) continue;
+            const x = rect.left + (pickProjected.x + 1) / 2 * rect.width;
+            const y = rect.top + (1 - pickProjected.y) / 2 * rect.height;
+            const d = Math.hypot(x - clientX, y - clientY);
+            if (d < bestDistance - 0.5 || (Math.abs(d - bestDistance) <= 0.5 && pickProjected.z < bestDepth)) {
+                best = o; bestDistance = d; bestDepth = pickProjected.z;
+            }
         }
         return best;
     }
@@ -1779,6 +1878,30 @@ export function createView(host, dotnet) {
         setLabels(on) { labelsOn = !!on; requestRender(); },
         /** mode: null | "translate" | "rotate". */
         setGizmo(mode) { gizmoMode = mode; attachGizmo(); requestRender(); },
+        /**
+         * Shows the player where something is: looks at a viewer-space point from above at an angle,
+         * from the given distance (metres), drops a pin on it that shows through walls, and loads the
+         * level around it when the level is on. Used by "Show in 3D" from the other tabs.
+         */
+        focusPoint(point, distance) {
+            const target = new THREE.Vector3(point[0], point[1], point[2]);
+            flyTo(target, distance);
+            setPin(target);
+            return true;
+        },
+        /** Frames a door ("door") or character ("npc") marker by id. False when no such marker is drawn. */
+        focusMarker(kind, id, distance) {
+            const layer = kind === "door" ? doorLayer : npcLayer;
+            const item = layer.items.find(x => x.id === id);
+            if (!item) return false;
+            flyTo(new THREE.Vector3(item.p[0], item.p[1], item.p[2]), distance);
+            setPin(null);
+            return true;
+        },
+        /** Removes the pin left by focusPoint. */
+        clearPin() { setPin(null); },
+        /** Scrolls the page so the whole view is in sight. */
+        reveal() { host.scrollIntoView({ block: "start", behavior: "smooth" }); },
         frameSelection() {
             const list = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined);
             if (list.length) frameIndices(list);

@@ -206,6 +206,7 @@
                             <small>(@bench.X.ToString("F0"), @bench.Y.ToString("F0"), @bench.Z.ToString("F0")) · id @(bench.Id[..Math.Min(8, bench.Id.Length)])…</small>
                             <small>@SubLevelText(bench)@(DistanceText(bench) is { } benchDistance ? " · " + benchDistance : null)</small>
                         </button>
+                        <ShowIn3DButton Target="@WorldLocateTarget.Placed(bench.Id, bench.DisplayName)" Compact="true" />
                         @if (Session.BenchSupportsUpgrades(bench.Id))
                         {
                             <span class="wt-label bench-upgrades-label">@L.Resource("WorldBases_Upgrades")</span>
@@ -339,7 +340,23 @@
     }
 
     // A redraw driven from outside this tab means the world moved on, so re-read the open crate.
-    protected override void OnParametersSet() => SyncSlotsFromSession();
+    /// <summary>
+    /// A "Show in 3D" request from another tab. A new request switches to the 3D view of the whole
+    /// region (the view itself then frames the target).
+    /// </summary>
+    [Parameter] public WorldLocateTarget? Locate { get; set; }
+    private WorldLocateTarget? _seenLocate;
+
+    protected override void OnParametersSet()
+    {
+        SyncSlotsFromSession();
+        if (Locate is not null && !ReferenceEquals(Locate, _seenLocate) && ThreeDView is not null)
+        {
+            _seenLocate = Locate;
+            _show3D = true;
+            FocusBase(null);
+        }
+    }
 
     private void Refresh() => InvokeAsync(StateHasChanged);
 

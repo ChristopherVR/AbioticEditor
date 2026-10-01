@@ -1,0 +1,27 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Models
+
+@* "Show in 3D": switches to the Bases tab's 3D view and shows where this thing is. Renders nothing
+   when the world editor has no 3D view (no cascading WorldLocator) or there is nothing to show. *@
+@if (Locator is not null && Target is not null)
+{
+    <button type="button" class="wt-btn wt-plain show-in-3d @Class" data-show3d="@Target.Kind" title="@L.Resource("World3D_ShowIn3DTitle")"
+            @onclick="ShowAsync" @onclick:stopPropagation="true">
+        <span class="material-symbol" aria-hidden="true">view_in_ar</span>
+        @if (!Compact) { <span>@L.Resource("World3D_ShowIn3D")</span> }
+    </button>
+}
+
+@code {
+    [CascadingParameter] public WorldLocator? Locator { get; set; }
+
+    /// <summary>What to show; null hides the button.</summary>
+    [Parameter] public WorldLocateTarget? Target { get; set; }
+
+    /// <summary>Icon only, for dense rows.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private Task ShowAsync() => Locator is not null && Target is not null ? Locator.ShowAsync(Target) : Task.CompletedTask;
+}

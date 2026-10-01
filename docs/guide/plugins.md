@@ -35,16 +35,29 @@ the rooms around your base with the ceilings cut away. Nothing from the game is 
 The editor must be able to read your game files (the same setting that shows item icons). The
 first look at a new area takes a little while as the level is read; after that it is quick.
 
+The view fills the window. Its buttons sit on top of it (frame everything, frame the selection,
+walk, labels, doors, characters and the surrounding level), and a box in the corner shows what is
+still loading: models, their textures and the level. A model appears once its textures are in, so
+nothing shows up blank first. The panel beside the view has five tabs: **Inspect** (what you
+clicked), **Objects** (search and the full list), **Filters**, **Display** (game models and the
+level) and **Edit**.
+
 Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
 closed security door and orange is destroyed or smashed. Click one to open or close it (either
 way round for a swinging door); the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
 You bump into walls while walking; turn off **Stay on the floor** to fly through them.
 Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
-that edits it. With **Experimental: move objects** on, **Place a new object** puts a fresh copy of
+that edits it. In the **Edit** tab, turn on **Edit mode**, then **Place a new object** puts a fresh copy of
 something you have already built where the view is looking. **Also list things built in my other
 worlds** adds everything you have built in your other worlds on this computer, so you can place a
 kind this world has never had.
+
+Most other tabs have a **Show in 3D** button next to what you pick: a door, a container, a chemistry
+bench, an item on the ground, a vehicle, a story character, a pet, a button, a breakable wall, a
+resource node and the other lists of world objects. It opens the 3D view and takes you there. A
+piece you built is selected; a door or a character has its marker picked; anything else gets an
+orange pin that shows through walls, with the level around it switched on.
 
 A new object can be wired up straight away, before you save: click it and use its **POWER** card,
 or pick its outlet from another device's card. To run a cable the way the game does, tick **Route

@@ -4494,8 +4494,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_OpenContainer" xml:space="preserve"><value>Open in Containers</value></data>
   <data name="World3D_OpenPower" xml:space="preserve"><value>Open Power sockets</value></data>
   <data name="World3D_Move" xml:space="preserve"><value>MOVE OBJECTS</value></data>
-  <data name="World3D_MoveOptIn" xml:space="preserve"><value>Experimental: move objects</value></data>
-  <data name="World3D_MoveWarning" xml:space="preserve"><value>Experimental. Moving a piece rewrites its saved position and rotation, and the game loads it exactly there. The game does not check that it fits: a moved piece can end up inside a wall, floating, or off its supports. Keep a copy of your save. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_MoveOptIn" xml:space="preserve"><value>Edit mode</value></data>
+  <data name="World3D_MoveWarning" xml:space="preserve"><value>Move, turn, copy, place and remove pieces. The game loads a piece exactly where the save puts it and does not check that it fits, so the view warns when one cuts into a wall, overlaps another piece or has nothing holding it up. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
   <data name="World3D_MoveLevelRefused" xml:space="preserve"><value>This object is placed by the level itself, not built by a player, so it cannot be moved. The level puts it back where it belongs when the game loads.</value></data>
   <data name="World3D_MoveOmittedRefused" xml:space="preserve"><value>The save leaves out this object's position or rotation, and the editor never invents one, so it cannot be moved.</value></data>
   <data name="World3D_MoveNotFound" xml:space="preserve"><value>This object is no longer in the save.</value></data>
@@ -4545,8 +4545,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_DupOutlets" xml:space="preserve"><value>Power outlets created</value></data>
   <data name="World3D_DuplicateButtonFormat" xml:space="preserve"><value>Duplicate ({0})...</value></data>
   <data name="World3D_DuplicateTitleFormat" xml:space="preserve"><value>DUPLICATE {0} OBJECT(S)</value></data>
-  <data name="World3D_EditNeedsOptIn" xml:space="preserve"><value>Turn on "Experimental: move objects" to delete, duplicate or arrange objects.</value></data>
-  <data name="World3D_EditUnverified" xml:space="preserve"><value>Experimental. Moving, copying, placing and deleting base objects rewrites the save, and the game loads the result as written. The game does not check that a piece fits where you put it, so look before you SAVE: pieces can end up inside walls or floating. Keep a copy of your save. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_EditNeedsOptIn" xml:space="preserve"><value>Turn on Edit mode (in the Edit tab) to remove, copy or arrange objects.</value></data>
+  <data name="World3D_EditUnverified" xml:space="preserve"><value>The game loads moved, copied, placed and removed pieces exactly as written and does not check that a piece fits where you put it, so look over the warnings before you SAVE. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
   <data name="World3D_GroupAlignYaw" xml:space="preserve"><value>Align yaw to the primary</value></data>
   <data name="World3D_GroupArrange" xml:space="preserve"><value>Align and distribute</value></data>
   <data name="World3D_GroupDistribute" xml:space="preserve"><value>Distribute along axis</value></data>
@@ -4672,5 +4672,24 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_CheckNeedsLevel" xml:space="preserve"><value>Turn on the level to check walls and floors too.</value></data>
   <data name="World3D_StandOnFloor" xml:space="preserve"><value>Stand it on the floor</value></data>
   <data name="World3D_PlaceOnFloor" xml:space="preserve"><value>Stand it on the floor under the spot</value></data>
+  <data name="World3D_LevelQuick" xml:space="preserve"><value>Level</value></data>
+  <data name="World3D_ShowIn3D" xml:space="preserve"><value>Show in 3D</value></data>
+  <data name="World3D_ShowIn3DTitle" xml:space="preserve"><value>Open the 3D view and show where this is in the world</value></data>
+  <data name="World3D_LocatedFormat" xml:space="preserve"><value>Showing: {0}</value></data>
+  <data name="World3D_LocateNoPlaceFormat" xml:space="preserve"><value>{0} has no place in the world the view knows of.</value></data>
+  <data name="World3D_LocateNoLevelFormat" xml:space="preserve"><value>{0} is placed by the level: the game files are needed to find where.</value></data>
+  <data name="World3D_HintModels" xml:space="preserve"><value>Drag to orbit, right-drag to pan, scroll to zoom, click an object to inspect it. Objects the game has no model for are drawn as coloured boxes.</value></data>
+  <data name="World3D_HintBoxes" xml:space="preserve"><value>Drag to orbit, right-drag to pan, scroll to zoom, click a box to inspect it.</value></data>
+  <data name="World3D_PanelTabs" xml:space="preserve"><value>3D view panels</value></data>
+  <data name="World3D_TabInspect" xml:space="preserve"><value>Inspect</value></data>
+  <data name="World3D_TabObjectsFormat" xml:space="preserve"><value>Objects ({0})</value></data>
+  <data name="World3D_TabFilters" xml:space="preserve"><value>Filters</value></data>
+  <data name="World3D_TabDisplay" xml:space="preserve"><value>Display</value></data>
+  <data name="World3D_TabEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="World3D_TexturesProgressFormat" xml:space="preserve"><value>Loading textures: {0} of {1}</value></data>
+  <data name="World3D_LevelTextures" xml:space="preserve"><value>Loading the level's textures...</value></data>
   <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box: the game's own models, the surrounding level, doors and characters need the desktop app with the Game Models plugin, which reads your installed game.</value></data>
+  <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>appears when: {0}</value></data>
+  <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>leaves when: {0}</value></data>
 </root>

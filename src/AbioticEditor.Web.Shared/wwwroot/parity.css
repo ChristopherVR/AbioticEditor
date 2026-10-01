@@ -2294,3 +2294,5 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 .wg-send:hover{background:var(--hover)}
 .wg-row.selected{box-shadow:inset 3px 0 0 var(--orange)}
 .wg-send-chooser{padding:8px 14px;background:var(--elevated)}
+.show-in-3d{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:12px;white-space:nowrap}
+.show-in-3d .material-symbol{font-size:16px}

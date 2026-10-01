@@ -73,6 +73,7 @@ public partial class WorldBases3DTab
 
     private async Task OpenPlaceAsync()
     {
+        _sideTab = "edit";
         _placeOpen = true;
         _placeError = null;
         _placeLastId = null;

@@ -172,6 +172,13 @@ public sealed class GameDataRegistry
     public IReadOnlyDictionary<string, string>? NarrativeNpcNames { get; init; }
 
     /// <summary>
+    /// Placed story-NPC actor (same key as <see cref="NarrativeNpcNames"/>) -> its conversation row and
+    /// the world flags that make it appear and leave. Tells apart two placements of one character
+    /// (two "Dr. Cahn" in the Facility level). Culture-independent; dump time only, like the names.
+    /// </summary>
+    public IReadOnlyDictionary<string, WorldSaves.NarrativeNpcPlacement>? NarrativeNpcPlacements { get; init; }
+
+    /// <summary>
     /// Builds a registry from a mounted game install. Requires usmap mappings (each catalog's
     /// own loader throws without them). Adding a catalog: load it here and assign the payload.
     /// </summary>
@@ -210,6 +217,7 @@ public sealed class GameDataRegistry
             // Slow (walks every level package, ~85s) - fine for a dump-time maintainer command,
             // never called by the running app (see NarrativeNpcNameCatalog's own remarks).
             NarrativeNpcNames = Optional("narrative NPC names", () => NarrativeNpcNameCatalog.BuildFrom(provider) is { Count: > 0 } names ? names : null),
+            NarrativeNpcPlacements = Optional("narrative NPC placements", () => NarrativeNpcNameCatalog.BuildPlacementsFrom(provider) is { Count: > 0 } placements ? placements : null),
         };
     }
 

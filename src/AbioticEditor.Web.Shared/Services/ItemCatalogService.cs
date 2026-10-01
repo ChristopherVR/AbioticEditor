@@ -40,6 +40,7 @@ public sealed class ItemCatalogService : IDisposable
         var registry = GameDataRegistry.LoadBundled();
         _bundledNpcDisplayNames = registry?.NpcDisplayNames;
         _narrativeNpcNames = registry?.NarrativeNpcNames;
+        _narrativeNpcPlacements = registry?.NarrativeNpcPlacements;
         var merged = (registry?.Items ?? []).ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         // The slot editor is always present in the desktop shell. Do not make resolving it
         // mount and scan the installed game paks before a save can open. Bundled registry
@@ -134,6 +135,30 @@ public sealed class ItemCatalogService : IDisposable
     /// </summary>
     public string? GetNarrativeNpcName(string? actorId)
         => AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog.Resolve(_narrativeNpcNames, actorId);
+
+    private readonly IReadOnlyDictionary<string, AbioticEditor.Core.WorldSaves.NarrativeNpcPlacement>? _narrativeNpcPlacements;
+
+    /// <summary>
+    /// Where the story puts a placed story character (its conversation row and the world flags that
+    /// make it appear and leave), from the bundled registry; null when the actor is not in it.
+    /// </summary>
+    public AbioticEditor.Core.WorldSaves.NarrativeNpcPlacement? GetNarrativeNpcPlacement(string? actorId)
+        => AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog.ResolvePlacement(_narrativeNpcPlacements, actorId);
+
+    /// <summary>
+    /// The name to show for a story character. The game places some characters more than once (two
+    /// "Dr. Cahn" in the Facility level, each its own conversation), so when another character in
+    /// <paramref name="all"/> resolves to the same name, the area its conversation belongs to is added.
+    /// </summary>
+    public string? GetNarrativeNpcDisplayName(AbioticEditor.Core.WorldSaves.WorldNpc npc, IEnumerable<AbioticEditor.Core.WorldSaves.WorldNpc> all, Func<string, string, string> withArea)
+    {
+        if (GetNarrativeNpcName(npc.Id) is not { } name) return null;
+        var twin = all.Any(other => !other.IsPet && !string.Equals(other.Id, npc.Id, StringComparison.Ordinal)
+            && string.Equals(GetNarrativeNpcName(other.Id), name, StringComparison.Ordinal));
+        if (!twin || GetNarrativeNpcPlacement(npc.Id) is not { } placement) return name;
+        var area = AbioticEditor.Core.WorldSaves.QuestFlagCatalog.Lookup(placement.Row).Area;
+        return string.IsNullOrEmpty(area) ? name : withArea(name, area);
+    }
 
     private readonly IReadOnlyDictionary<string, string>? _bundledNpcDisplayNames;
     private IReadOnlyDictionary<string, string>? _liveNpcDisplayNames;

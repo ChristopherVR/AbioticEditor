@@ -3502,4 +3502,7 @@
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Разберитесь с этим и нажмите СОХРАНИТЬ как обычно. Если ждать не хочется, СОХРАНИТЬ предложит записать всё равно.</value>
   </data>
+  <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>появляется: {0}</value></data>
+  <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>уходит: {0}</value></data>
 </root>

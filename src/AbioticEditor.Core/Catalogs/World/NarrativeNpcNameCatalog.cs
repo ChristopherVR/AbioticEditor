@@ -111,6 +111,67 @@ public static class NarrativeNpcNameCatalog
         return result;
     }
 
+    /// <summary>
+    /// Looks a <c>WorldNpc.Id</c> up against a resolved placement dictionary (typically
+    /// <see cref="GameDataRegistry.NarrativeNpcPlacements"/>), or null when nothing matches.
+    /// </summary>
+    public static NarrativeNpcPlacement? ResolvePlacement(IReadOnlyDictionary<string, NarrativeNpcPlacement>? placements, string? actorPath)
+    {
+        if (placements is null || placements.Count == 0) return null;
+        var key = KeyForActorPath(actorPath);
+        return key is not null && placements.TryGetValue(key, out var placement) ? placement : null;
+    }
+
+    /// <summary>
+    /// Every placed <c>NarrativeNPC_*</c> actor's story placement: its conversation row and the world
+    /// flags that make it appear and leave. The game places the same character more than once (Dr. Cahn
+    /// stands in Security and later in the Residence, each with its own conversation), and these are what
+    /// tell the placements apart. Culture-independent. Dump-time only and slow, like <see cref="BuildFrom"/>.
+    /// </summary>
+    public static IReadOnlyDictionary<string, NarrativeNpcPlacement> BuildPlacementsFrom(GameAssetProvider provider)
+    {
+        var result = new Dictionary<string, NarrativeNpcPlacement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in provider.AssetPaths.Where(p =>
+                     p.StartsWith(MapsRoot, StringComparison.OrdinalIgnoreCase)
+                     && p.EndsWith(".umap", StringComparison.OrdinalIgnoreCase)))
+        {
+            var mapName = System.IO.Path.GetFileNameWithoutExtension(path);
+            try
+            {
+                var pkg = provider.LoadPackageInternal(path);
+                foreach (var lazy in pkg.ExportsLazy)
+                {
+                    CUE4Parse.UE4.Assets.Exports.UObject? export;
+                    try { export = lazy.Value; }
+                    catch { continue; }
+
+                    if (export is null || !export.Name.StartsWith("NarrativeNPC_", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    var row = RowNameOf(export.Properties.FirstOrDefault(p => p.Name.Text == "NarrativeNPC_ConversationRow")?.Tag?.GenericValue);
+                    if (row is null) continue;
+                    result[KeyFor(mapName, export.Name)] = new NarrativeNpcPlacement(
+                        row,
+                        FlagRowOf(export.Properties.FirstOrDefault(p => p.Name.Text == "WorldFlagToAppear")?.Tag?.GenericValue),
+                        FlagRowOf(export.Properties.FirstOrDefault(p => p.Name.Text == "WorldFlagToDisappear")?.Tag?.GenericValue));
+                }
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.EditorLog.Warn("NarrativeNpcNames", $"Could not load {path}: {ex.Message}");
+            }
+        }
+        return result;
+    }
+
+    /// <summary>The <c>RowName</c> of a world-flag row handle (<c>{RowName}</c>), or null / "None"-as-null.</summary>
+    private static string? FlagRowOf(object? value)
+    {
+        if (value is FScriptStruct ss) value = ss.StructType;
+        if (value is not FStructFallback sf) return null;
+        var v = sf.Properties.FirstOrDefault(p => p.Name.Text == "RowName")?.Tag?.GenericValue?.ToString();
+        return string.IsNullOrEmpty(v) || v == "None" ? null : v;
+    }
+
     /// <summary>Row name -&gt; <c>NPCName</c> (localized text, matching the mounted culture) from
     /// <c>DT_NPC_Conversations</c> - the same table/field <c>GameAssetProvider.
     /// TryGetNarrativeCharacterName</c> already reads for a single live actor.</summary>
@@ -138,3 +199,9 @@ public static class NarrativeNpcNameCatalog
         return string.IsNullOrEmpty(v) || v == "None" ? null : v;
     }
 }
+
+/// <summary>
+/// Where the story puts one placed story character: its conversation row in <c>DT_NPC_Conversations</c>
+/// and the world flags that make it appear and leave (null when the level does not set one).
+/// </summary>
+public sealed record NarrativeNpcPlacement(string Row, string? AppearFlag, string? DisappearFlag);

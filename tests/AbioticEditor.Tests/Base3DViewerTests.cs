@@ -417,7 +417,7 @@ public sealed class Base3DViewerTests
         Assert.All(mine, e => Assert.DoesNotContain('\u2014',(string)e.Element("value")!));
 
         var english = HostLanguageService.ResourceFor("en", "World3D_MoveOptIn");
-        Assert.Equal("Experimental: move objects", english);
+        Assert.Equal("Edit mode", english);
         foreach (var language in new[] { "de", "es", "fr", "ru" })
             Assert.Equal(english, HostLanguageService.ResourceFor(language, "World3D_MoveOptIn"));
     }
@@ -730,7 +730,7 @@ public sealed class Base3DViewerTests
 
         var warning = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx")).Root!.Elements("data")
             .First(e => (string)e.Attribute("name")! == "World3D_MoveWarning").Element("value")!.Value;
-        Assert.Contains("Experimental", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("Experimental", warning, StringComparison.Ordinal);
         Assert.Contains("does not check that it fits", warning, StringComparison.Ordinal);
     }
 

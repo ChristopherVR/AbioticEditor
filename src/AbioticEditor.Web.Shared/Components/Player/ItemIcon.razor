@@ -9,7 +9,11 @@
    (loading="lazy"), and an item with no artwork falls back to the "?" mark when its request
    404s. *@
 <span class="item-artwork @Class">
-    @if (!_missing && !string.IsNullOrWhiteSpace(ItemId))
+    @if (string.Equals(ItemId, "Empty", StringComparison.OrdinalIgnoreCase))
+    {
+        @* The save's own "nothing here" marker: an empty slot, not an item with missing artwork. *@
+    }
+    else if (!_missing && !string.IsNullOrWhiteSpace(ItemId))
     {
         <img src="@Catalog.IconUrl(ItemId)" alt="@Alt" loading="lazy" decoding="async" @onerror="MarkMissing" />
     }

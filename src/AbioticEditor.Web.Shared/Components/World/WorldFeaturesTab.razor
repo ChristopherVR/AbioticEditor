@@ -83,6 +83,7 @@ else
                 else
                 {
                     <h3>@selected.Label</h3>
+                    <ShowIn3DButton Target="@WorldLocateTarget.ForMapKey(selected.Key, selected.Label)" />
                     @if (FeatureId is "buttons" or "decals")
                     {
                         <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>

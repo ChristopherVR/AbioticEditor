@@ -58,6 +58,7 @@
             {
                 <h3 class="wt-h3">@vehicle.DisplayName</h3>
                 <p class="wt-status-text">@L.Resource("WorldVehicles_WorldFormat", PlainNames.Area(vehicle.Region))</p>
+                <ShowIn3DButton Target="@WorldLocateTarget.Point(vehicle.Id, vehicle.DisplayName, vehicle.X, vehicle.Y, vehicle.Z)" />
                 @if (!IsEditable(vehicle))
                 {
                     <p class="wt-muted">@L.Resource("WorldVehicles_DisplayOnlyNoEditableState")</p>

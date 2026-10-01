@@ -90,6 +90,7 @@
                         <button class="world-row-name" type="button" @onclick="() => Inspect(item)" @onclick:stopPropagation>@DisplayName(item)</button>
                         <small>@SubText(item)</small>
                     </span>
+                    <ShowIn3DButton Target="@WorldLocateTarget.Point(item.Id, DisplayName(item), item.X, item.Y, item.Z)" Compact="true" />
                     @if (CanSend)
                     {
                         <button class="wg-send" type="button" disabled="@_busy" @onclick="() => OpenSendChooser(item)" @onclick:stopPropagation>@L.Resource("WorldPets_SendToPlayer")</button>

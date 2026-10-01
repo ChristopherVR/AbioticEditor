@@ -3503,4 +3503,7 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="Main_GpNotWritableFix" xml:space="preserve">
     <value>Resuelve eso y pulsa GUARDAR como siempre. Si prefieres no esperar, GUARDAR te ofrecerá escribirlo de todos modos.</value>
   </data>
+  <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>aparece cuando: {0}</value></data>
+  <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>se va cuando: {0}</value></data>
 </root>

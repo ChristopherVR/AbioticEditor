@@ -87,6 +87,7 @@ public partial class WorldBases3DTab
             if (!additive) await SetSelectionAsync([], null, false);
             return;
         }
+        ShowInspector();
         if (!additive)
         {
             await SetSelectionAsync([key], key, frame);
@@ -231,6 +232,7 @@ public partial class WorldBases3DTab
 
     private async Task OpenDeleteAsync()
     {
+        _sideTab = "edit";
         _dupOpen = false;
         _dupPreview = null;
         _deleteOpen = true;
@@ -303,6 +305,7 @@ public partial class WorldBases3DTab
 
     private void OpenDuplicate()
     {
+        _sideTab = "edit";
         _deleteOpen = false;
         _deletePreview = null;
         _dupOpen = true;

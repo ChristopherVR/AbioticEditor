@@ -32,7 +32,8 @@ public partial class WorldBases3DTab
     /// <summary>Marker colour: pets cyan, story characters violet, ones the story has removed dark red.</summary>
     internal static int NpcColor(WorldNpc npc) => npc.IsPet ? 0x40d8e0 : npc.IsDead ? 0x8a1c1c : 0xb57bff;
 
-    private string NpcName(WorldNpc npc) => npc.IsPet ? npc.ActorName : Items.GetNarrativeNpcName(npc.Id) ?? npc.FriendlyLabel;
+    private string NpcName(WorldNpc npc) => npc.IsPet ? npc.ActorName
+        : Items.GetNarrativeNpcDisplayName(npc, Session.Npcs, (name, area) => L.Resource("WorldNpcs_NameWithAreaFormat", name, area)) ?? npc.FriendlyLabel;
 
     /// <summary>
     /// Sends the area's characters to the view: the saved position when there is one; for a story
@@ -78,6 +79,7 @@ public partial class WorldBases3DTab
     public async Task OnNpcPicked(string id)
     {
         _selectedNpcId = id;
+        ShowInspector();
         if (_view is not null) await _view.InvokeVoidAsync("setNpcSelection", id);
         StateHasChanged();
     }

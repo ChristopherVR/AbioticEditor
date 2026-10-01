@@ -1,5 +1,44 @@
 # Abiotic Editor - Session history
 
+## Round-146: Show in 3D from every tab, a reworked 3D panel, textures before models, two Dr. Cahn (2026-10-02)
+
+- **Two "Dr. Cahn" on the Facility NPCs tab** (reported as a duplicate). Not a duplicate: the Facility
+  level places `NarrativeNPC_Human_ParentBP_C_0` (row `Res_Cahn_Res`, leaves on `Residence_IceWallRemoved`)
+  and `_C_2` (row `SECURITY_Cahn_2`, appears on `Security_ExitOpened`, leaves on `Dams_ActivatedPump1`);
+  `_C_1` is the Sister of the Unlost (`Labs_Witch`). Found with `NarrativeNpcLevelProbe`. The registry now
+  carries `NarrativeNpcPlacements` (row, appear flag, disappear flag; culture-independent, 240 actors,
+  built by `NarrativeNpcNameCatalog.BuildPlacementsFrom` at dump time; this round's data was injected into
+  all 10 registry files from the probe dump, no other registry content changed). A name two characters
+  share gets the area of its conversation row (`QuestFlagCatalog.Lookup(row).Area`): "Dr. Cahn
+  (Residence)" / "Dr. Cahn (Security)", in the NPCs tab and the 3D card; the detail line says when the
+  character appears and leaves.
+- **Show in 3D.** A `WorldLocator` cascades from `SaveEditorSurface` (only when the 3D view exists) to
+  every world tab; `ShowIn3DButton` sits on doors (rows), containers (deployed), ground items, NPCs, pets,
+  vehicles, chemistry benches, every world-map feature list (buttons, breakables, resource nodes,
+  elevators, NPC spawns, portals, trams, garden plots, power sockets via the owning object, ...) and the
+  Bases bench list. A request switches to Bases > 3D (whole region); `WorldBases3DTab.Locate.razor.cs`
+  selects and frames a placed object (clearing filters that hide it), picks and frames a door or
+  character marker (`focusMarker`), or flies to a level actor (`Art.TryGetActorWorldTransformAsync`) or
+  a saved position and drops a pin drawn through walls (`focusPoint`). The level is switched on for
+  context except for placed objects. Headless on Cascade: Blast Door, Button 1, IceWall_BP_C_1, Dr. Cahn
+  (Residence), 12g Buckshot on the ground, Stove Deployable Oven and Chemistry bench 1 all shown.
+- **3D panel rework.** The view fills the window height (`calc(100vh - 210px)`); view buttons (frame,
+  walk, labels, doors, characters, level) float on it; the side panel is five tabs: Inspect, Objects
+  (search, select all shown, full list, unresolved), Filters, Display (models, level), Edit (edit mode,
+  place, delete, copy panels). Picking switches to Inspect; opening place/delete/copy switches to Edit.
+  "Experimental: move objects" is now "Edit mode" and the edit warnings drop "Experimental" (edits were
+  checked in the running game in round 139) but keep "the game does not check that a piece fits".
+- **Textures before models, and a loading readout.** A class model joins the scene only once its
+  textures have arrived (or after 6 s), and a level slice waits for its textures the same way, so pieces
+  no longer appear flat white first. Texture progress is reported (`report("textures", ...)`); a box on
+  the view lists models, textures and level loading with progress bars and a spinner.
+- **Clicking.** Headless, clicks on framed pieces selected 5 of 6 (two hit the piece in front). A click
+  that hits no mesh now takes the visible piece whose centre is within 14 px on screen
+  (`nearestOnScreen`), which is what makes whole-region pieces (a few pixels across) clickable.
+- `ItemIcon` no longer requests an icon for the save's "Empty" slot marker (it was a 404 per empty flask).
+- Tests: `ShowIn3DTests` (map-key resolution, every tab wired, textures and readout, the two Cahn
+  placements); 3D wording tests updated.
+
 ## Round-145: faster walking collisions, faster 3D open, much faster SAVE (2026-10-02)
 
 - **Walk collisions.** The floor and wall rays used to test every level piece. base3d.js now vendors

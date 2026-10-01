@@ -54,6 +54,7 @@
                     @if (expanded)
                     {
                         <div class="detail-card detail-card--terminal" aria-label="@bench.Label">
+                            <ShowIn3DButton Target="@WorldLocateTarget.ForMapKey(bench.Id, bench.Label)" />
                             @* The bench itself is a real, placeable item (Deployable_Bench_Chemistry)
                                with its own catalog icon, the same as any item - no separate
                                wiki/game-texture lookup needed, matching how the garden-plot crop

@@ -96,6 +96,7 @@
                         }
                         <h3 class="wt-h3" title="@selected.Id">@CharacterName(selected)</h3>
                         <p class="wt-muted">@CharacterSecondary(selected)</p>
+                        <ShowIn3DButton Target="@WorldLocateTarget.Character(selected, CharacterName(selected))" />
                         @if (HasRealLocation(selected))
                         {
                         <div class="wt-field">
@@ -304,15 +305,27 @@
     /// <c>NpcIdentityCatalog</c> hint) exactly as before whenever the registry has nothing for
     /// this actor, so this degrades to the old behavior until the bundled registry is re-dumped.
     /// </summary>
-    private string CharacterName(WorldNpc npc) => Items.GetNarrativeNpcName(npc.Id) ?? _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
+    private string CharacterName(WorldNpc npc)
+        => Items.GetNarrativeNpcDisplayName(npc, Session.Npcs, (name, area) => L.Resource("WorldNpcs_NameWithAreaFormat", name, area))
+           ?? _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
 
     /// <summary>The row's secondary line: once a real name resolved above, this becomes the
     /// hint/class context that used to be the primary label (<c>NpcIdentityCatalog.LabelFor</c>);
     /// otherwise it stays today's raw actor-id tail. The full raw id is never hidden - it's the
     /// row/detail's <c>title</c> tooltip either way.</summary>
-    private string CharacterSecondary(WorldNpc npc) => Items.GetNarrativeNpcName(npc.Id) is not null
-        ? NpcClassName(npc)
-        : npc.ActorName;
+    private string CharacterSecondary(WorldNpc npc)
+    {
+        if (Items.GetNarrativeNpcName(npc.Id) is null) return npc.ActorName;
+        // When the story brings a character in or takes it away, which is also what tells two
+        // placements of one character apart.
+        var parts = new List<string> { NpcClassName(npc) };
+        if (Items.GetNarrativeNpcPlacement(npc.Id) is { } placement)
+        {
+            if (placement.AppearFlag is { } appear) parts.Add(L.Resource("WorldNpcs_AppearsWhenFormat", QuestFlagCatalog.Lookup(appear).FriendlyName));
+            if (placement.DisappearFlag is { } leave) parts.Add(L.Resource("WorldNpcs_LeavesWhenFormat", QuestFlagCatalog.Lookup(leave).FriendlyName));
+        }
+        return string.Join(" · ", parts);
+    }
 
     private static bool IsHologram(WorldNpc npc) => string.Equals(
         NpcIdentityCatalog.MatchedHint(npc.Id, npc.ActorName), "Human_Hologram", StringComparison.Ordinal);

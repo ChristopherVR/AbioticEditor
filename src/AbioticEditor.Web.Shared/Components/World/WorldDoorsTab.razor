@@ -59,6 +59,7 @@
                         <span class="wd-kind-chip">@KindLabel(door)</span>
                         <button class="world-row-name" type="button" @onclick:stopPropagation @onclick="() => ToggleSelectAsync(door, map, actor)">@friendlyClass</button>
                         <span class="wd-lock-chip">@L.Resource("WorldDoors_LockChip_" + lockKind)</span>
+                        <ShowIn3DButton Target="@WorldLocateTarget.Door(door.Id, friendlyClass)" Compact="true" />
                         @* "Keep state" only means anything to the save file's own session-restart
                            logic - a live door has no such concept, so the control is left out
                            rather than shown disabled and unexplained. *@
