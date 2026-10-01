@@ -38,6 +38,11 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// <summary>Bumped when the cached formats change.</summary>
     private const int CacheVersion = 1;
 
+    // Answers that depend on how materials are read carry their own version, so a reader fix does not
+    // throw away the slow level indexes and baked meshes. v2: blend modes read as enum names.
+    private const string MaterialsFolder = "materials-v2";
+    private const string ClassesFolder = "classes-v2";
+
     private const int ObjectTextureSize = 1024;
     private const int LevelTextureSize = 512;
     private const int LevelLod = 1;
@@ -82,7 +87,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     public SceneClassModel? DescribeClass(string classPath)
     {
         if (string.IsNullOrWhiteSpace(classPath) || !GamePath().IsMatch(classPath)) return null;
-        var cacheFile = CachePath("classes", classPath, ".json");
+        var cacheFile = CachePath(ClassesFolder, classPath, ".json");
         if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
 
         var model = BuildClass(classPath);
@@ -103,7 +108,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var max = new Vector3(float.MinValue);
         foreach (var part in parts)
         {
-            if (MeshInfoOf(part.Mesh) is not { } info) continue;
+            if (MeshInfoOf(part.Mesh) is not { } info || IsEffectOnly(info, part.MaterialOverrides)) continue;
             SceneMath.Encapsulate(ref min, ref max, info.BoundsMin, info.BoundsMax, part.Local);
             scene.Add(new ScenePart(
                 $"mesh/0{part.Mesh}", SceneMath.ToViewer(part.Local),
@@ -172,7 +177,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         {
             var (first, firstEntry, _) = group.First();
             var mesh = first.Meshes[firstEntry.Mesh];
-            if (MeshInfoOf(mesh) is not { } info) continue;
+            if (MeshInfoOf(mesh) is not { } info || IsEffectOnly(info, first.OverrideSets[firstEntry.Overrides])) continue;
             var matrices = new float[group.Count() * 16];
             var i = 0;
             foreach (var x in group)
@@ -447,9 +452,24 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         return result;
     }
 
+    /// <summary>
+    /// True when every material of the mesh is a see-through glow (a fake light beam or glow card);
+    /// drawn without the game's lighting they are solid shapes that hide the room.
+    /// </summary>
+    private bool IsEffectOnly(MeshInfo info, IReadOnlyList<string?> overrides)
+    {
+        var slots = Math.Max(1, info.Materials.Count);
+        for (var slot = 0; slot < slots; slot++)
+        {
+            var path = slot < overrides.Count && overrides[slot] is { } o ? o : slot < info.Materials.Count ? info.Materials[slot] : null;
+            if (path is null || !MaterialOf(path).Effect) return false;
+        }
+        return true;
+    }
+
     private ResolvedMaterial MaterialOf(string materialPath) => _materials.GetOrAdd(materialPath, path =>
     {
-        var file = CachePath("materials", path, ".json");
+        var file = CachePath(MaterialsFolder, path, ".json");
         if (TryReadJson<ResolvedMaterial>(file) is { } cached) return cached;
         var resolved = Read(p => p.TryLoadPackageObject(path, out var obj) ? MaterialResolver.Resolve(obj as UMaterialInterface) : ResolvedMaterial.Fallback);
         WriteJson(file, resolved);

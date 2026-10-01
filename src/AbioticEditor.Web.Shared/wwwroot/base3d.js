@@ -42,6 +42,9 @@ const MODEL_FETCH_CONCURRENCY = 6;
 const CLASS_BATCH = 120;
 const LEVEL_MAX_INSTANCES = 25000;
 const LEVEL_RETRY_MS = 4000;
+// The ceiling cut measures the base floor from player-built objects within this reach of the view
+// centre (bases group objects within about 30 m of a bench).
+const BASE_REACH_M = 30;
 
 /** Fetches with a JSON body and a JSON answer; null for "no content", throws on failure. */
 async function postJson(url, body) {
@@ -172,7 +175,7 @@ export function createView(host, dotnet) {
     const levelGroup = new THREE.Group();
     scene.add(levelGroup);
     const levelClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
-    let levelOptions = { enabled: false, region: null, radius: 40, cutAbove: 2, excludeActors: [] };
+    let levelOptions = { enabled: false, region: null, radius: 40, cutAbove: 3, excludeActors: [] };
     let levelToken = 0;
     let levelRetry = 0;
     let levelInstances = 0;
@@ -567,19 +570,28 @@ export function createView(host, dotnet) {
         if (levelOptions.cutAbove === null || levelOptions.cutAbove === undefined || levelOptions.cutAbove <= 0) {
             levelClip.constant = 1e6;
         } else {
-            // The top of the objects around the view centre (the base being looked at), not of the
-            // whole region, whose other bases can sit floors higher.
-            const c = levelCentre ?? controls.target;
-            const reach = Math.max(5, levelOptions.radius || 40);
-            let top = -Infinity;
-            for (const i of visible) {
-                const p = objects[i].p;
-                if (Math.hypot(p[0] - c.x, p[2] - c.z) <= reach && Math.abs(p[1] - c.y) <= reach / 2) top = Math.max(top, p[1]);
-            }
-            if (!isFinite(top)) top = c.y;
-            levelClip.constant = top + levelOptions.cutAbove;
+            levelClip.constant = baseFloor(levelCentre ?? controls.target) + levelOptions.cutAbove;
         }
         requestRender();
+    }
+
+    /**
+     * The height of the base floor being looked at: player-built objects (level-placed lamps and
+     * shelves hang higher) within a base's reach of the view centre, the one whose height is
+     * nearest the centre. Object origins sit at their feet, so this is the floor they stand on, and
+     * a multi-storey base is cut above whichever floor the view is on.
+     */
+    function baseFloor(c) {
+        let floor = null;
+        let any = false;
+        for (const i of visible) {
+            const o = objects[i];
+            if (Math.hypot(o.p[0] - c.x, o.p[2] - c.z) > BASE_REACH_M) continue;
+            if (o.built && !any) { any = true; floor = null; }
+            if (any && !o.built) continue;
+            if (floor === null || Math.abs(o.p[1] - c.y) < Math.abs(floor - c.y)) floor = o.p[1];
+        }
+        return floor ?? c.y;
     }
 
     async function loadLevel() {
@@ -906,7 +918,7 @@ export function createView(host, dotnet) {
             if (modelsOn) loadClassModels();
         },
         /**
-         * Level geometry around the view: {enabled, region, radius (m), cutAbove (m above the base, 0 = no cut),
+         * Level geometry around the view: {enabled, region, radius (m), cutAbove (m above the base floor, 0 = no cut),
          * excludeActors}. Any field left out keeps its value. Reloads around the current view centre.
          */
         setLevel(options) {
@@ -915,7 +927,7 @@ export function createView(host, dotnet) {
         },
         /** Reloads the level geometry around the current view centre. */
         reloadLevel() { loadLevel(); },
-        /** Moves the ceiling cut without reloading (metres above the base's top; 0 or null = no cut). */
+        /** Moves the ceiling cut without reloading (metres above the base floor; 0 or null = no cut). */
         setLevelCut(metres) {
             levelOptions.cutAbove = metres;
             updateLevelCut();
@@ -982,6 +994,14 @@ export function createView(host, dotnet) {
         },
         /** Frames every drawn object; with robust=true, the densest 85% (ignores far outliers). */
         frameVisible(robust) { frameIndices(visible, !!robust); },
+        /** Frames the given objects (a base's deployables); unknown keys are skipped. False when none is drawn. */
+        frameKeys(keys) {
+            const list = (keys ?? []).map(k => keyToIndex.get(k)).filter(i => i !== undefined);
+            if (!list.length) return false;
+            frameIndices(list, true);
+            if (levelOptions.enabled) loadLevel();
+            return true;
+        },
         /** Screen position (CSS pixels relative to the page) of an object's origin, or null. Used by UI tests. */
         screenPositionOf(key) {
             const idx = keyToIndex.get(key);

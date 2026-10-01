@@ -1,5 +1,27 @@
 # Abiotic Editor - Session history
 
+## Round-137: 3D view follows the base, clearer level view (2026-10-01)
+
+- **Light-beam cones and glass fixed.** Material blend modes are enum properties stored as names
+  (`EBlendMode::BLEND_TranslucentGreyTransmittance`); the typed read always fell back to opaque, so
+  window glass was solid and the fake light-beam meshes (`SM_Lightbeam_Wide`,
+  `S_EV_SimpleLightBeam_01`, master `M_EV_Lightbeam_Master_01`, translucent + unlit) drew as big
+  black and white cones over Manyon's office base. `Props.EnumText` reads them;
+  `ResolvedMaterial.Effect` (additive, or translucent and unlit) marks glow-only materials and the
+  provider leaves out parts and level pieces whose every material is one. Material and class answers
+  moved to `materials-v2` / `classes-v2` cache folders (level indexes and baked meshes kept).
+- **Ceiling cut measured from the floor.** It used the highest object origin within 40 m (lamps,
+  shelves and stacked items pushed it up, so roof trusses 5.8 m up stayed). Now: the player-built
+  object nearest the view centre's height within 30 m gives the floor, and the cut is that floor
+  plus the chosen height ("Cut away above the floor", default 3 m). Multi-storey bases: the cut
+  follows whichever floor the view is framed on.
+- **3D view follows the base.** The Bases tab's 3D mode has a "Base to show" picker (same selection
+  as the map); the view frames that base's objects and reloads the level around it when the level
+  is on (`WorldBasesTab.ThreeDView` is now a `RenderFragment<WorldBase?>`, `WorldBases3DTab.FocusBase`,
+  viewer `frameKeys`).
+- Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
+  with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
+
 ## Round-136: power rerouting and repair (2026-10-01)
 
 - **Evidence** (section 5 of `research-power-network-links.md`): the game's rolling world snapshots give

@@ -35,6 +35,35 @@ internal static class Props
         return false;
     }
 
+    /// <summary>
+    /// The text of an enum property (<c>BLEND_Translucent</c>), from the first object in
+    /// <paramref name="chain"/> (or its archetypes) that stores it. Enum values are serialized as
+    /// names like <c>EBlendMode::BLEND_Translucent</c>, which a typed string read does not return.
+    /// </summary>
+    public static string? EnumText(IEnumerable<UObject> chain, string name)
+    {
+        foreach (var start in chain)
+        {
+            var current = start;
+            for (var depth = 0; current is not null && depth < MaxArchetypeDepth; depth++)
+            {
+                if (EnumText(current.Properties, name) is { } text) return text;
+                current = current.Template is { } template && template.TryLoad(out var next) ? next : null;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The text of an enum property in a property list (an object's or a struct's), without the enum prefix.</summary>
+    public static string? EnumText(IEnumerable<CUE4Parse.UE4.Assets.Objects.FPropertyTag> properties, string name)
+    {
+        var tag = properties.FirstOrDefault(t => t.Name.Text == name);
+        var text = tag?.Tag?.GenericValue?.ToString();
+        if (string.IsNullOrEmpty(text)) return null;
+        var colons = text.LastIndexOf("::", StringComparison.Ordinal);
+        return colons >= 0 ? text[(colons + 2)..] : text;
+    }
+
     public static T Get<T>(UObject obj, string name, T fallback) => TryGet(obj, name, out T value) ? value : fallback;
 
     public static T Get<T>(IEnumerable<UObject> chain, string name, T fallback) => TryGet(chain, name, out T value) ? value : fallback;

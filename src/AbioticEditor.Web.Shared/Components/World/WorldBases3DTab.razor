@@ -691,6 +691,14 @@
     /// <summary>True when this save has a power sockets tab to jump to.</summary>
     [Parameter] public bool PowerSocketsAvailable { get; set; }
 
+    /// <summary>
+    /// The base chosen in the Bases tab; the view frames its objects when it changes (null shows the
+    /// whole region). The surrounding level, when on, is loaded around it.
+    /// </summary>
+    [Parameter] public WorldBase? FocusBase { get; set; }
+
+    private string? _framedBase;
+
 
     private static readonly string[] GizmoModes = ["off", "translate", "rotate"];
     private const int ListLimit = 150;
@@ -784,6 +792,16 @@
             _pushScene = false;
             await PushSceneAsync();
         }
+        if (_view is not null && _framedOnce && _framedBase != FocusBase?.Name)
+        {
+            _framedBase = FocusBase?.Name;
+            try
+            {
+                if (FocusBase is null || !await _view.InvokeAsync<bool>("frameKeys", (object)FocusKeys(FocusBase)))
+                    await _view.InvokeVoidAsync("frameVisible", true);
+            }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException) { }
+        }
         await PushCablesAsync();
     }
 
@@ -801,13 +819,17 @@
             if (!_framedOnce && _scene.Objects.Count > 0)
             {
                 _framedOnce = true;
-                await _view.InvokeVoidAsync("frameVisible", true);
+                _framedBase = FocusBase?.Name;
+                if (FocusBase is null || !await _view.InvokeAsync<bool>("frameKeys", (object)FocusKeys(FocusBase)))
+                    await _view.InvokeVoidAsync("frameVisible", true);
             }
         }
         catch (JSDisconnectedException) { }
     }
 
     private bool _framedOnce;
+
+    private static string[] FocusKeys(WorldBase focus) => focus.Deployables.Select(d => d.Id).ToArray();
 
     /// <summary>Pink outlines at the saved location of every moved object; red outlines around objects staged for deletion.</summary>
     private async Task PushGhostsAsync()
@@ -841,7 +863,7 @@
     private string? _modelProgress;
     private bool _levelOn;
     private int _levelRadius = 40;
-    private int _levelCut = 2;
+    private int _levelCut = 3;
     private string? _levelProgress;
 
     /// <summary>The region this save covers, which names the game level to draw (null for a non-region save).</summary>

@@ -275,6 +275,29 @@ public sealed class GameModels3DTests
         Assert.Contains(strip, part => part.Name.StartsWith("PowerSocket", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Materials_read_their_blend_mode_and_light_beams_count_as_effects()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        static ResolvedMaterial Of(GameAssetProvider a, string path) => a.UseFileProvider(p =>
+            p.TryLoadPackageObject(path, out var o) ? MaterialResolver.Resolve(o as CUE4Parse.UE4.Assets.Exports.Material.UMaterialInterface) : ResolvedMaterial.Fallback);
+
+        // The fake light-beam cones hung under ceiling lamps: translucent and unlit, so left out of the view.
+        var beam = Of(assets, "/Game/Models/FX/M_EV_Lightbeam_Master_01.M_EV_Lightbeam_Master_01");
+        Assert.True(beam.Effect);
+        Assert.True(beam.Opacity < 1f);
+        // Window glass: see-through (its blend mode comes from the master, stored as an enum name), but lit, so kept.
+        var glass = Of(assets, "/Game/Textures/Glass/M_Glass_Unbreakable_01.M_Glass_Unbreakable_01");
+        Assert.True(glass.Opacity < 1f);
+        Assert.False(glass.Effect);
+        // An ordinary opaque surface stays solid.
+        var wall = Of(assets, "/Game/Models/Environment/Walls/M_SecurityKit.M_SecurityKit");
+        Assert.Equal(1f, wall.Opacity);
+        Assert.False(wall.Effect);
+    }
+
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);

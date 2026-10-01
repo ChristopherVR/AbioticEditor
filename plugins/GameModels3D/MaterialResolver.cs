@@ -7,7 +7,11 @@ using CUE4Parse.UE4.Objects.UObject;
 namespace AbioticEditor.Plugins.GameModels3D;
 
 /// <summary>A simplified material in Unreal terms, before texture ids are minted.</summary>
-internal sealed record ResolvedMaterial(string? BaseColorTexture, float[] Color, float Opacity, bool TwoSided, bool Masked, bool Emissive)
+/// <param name="Effect">
+/// A see-through glow (additive, or translucent and unlit): fake light beams, glow cards and fog
+/// planes. They only make sense with the game's lighting, so the view leaves them out.
+/// </param>
+internal sealed record ResolvedMaterial(string? BaseColorTexture, float[] Color, float Opacity, bool TwoSided, bool Masked, bool Emissive, bool Effect = false)
 {
     public static readonly ResolvedMaterial Fallback = new(null, [0.62f, 0.62f, 0.6f], 1f, false, false, false);
 }
@@ -86,26 +90,29 @@ internal static class MaterialResolver
         }
 
         var tint = PickTint(vectors, texture is null);
-        var blend = Props.Get(chain, "BlendMode", "BLEND_Opaque");
-        var shading = Props.Get(chain, "ShadingModel", "MSM_DefaultLit");
+        // Enum properties are stored as names (EBlendMode::BLEND_Translucent), so they are read as
+        // text; only serialized values count (an unset one is the engine default, opaque and lit).
+        var blend = Props.EnumText(chain, "BlendMode") ?? "BLEND_Opaque";
+        var shading = Props.EnumText(chain, "ShadingModel") ?? "MSM_DefaultLit";
         var overrides = Props.Get<FStructFallback?>(chain, "BasePropertyOverrides", null);
         if (overrides is not null)
         {
-            if (overrides.GetOrDefault("bOverride_BlendMode", false)) blend = overrides.GetOrDefault("BlendMode", blend);
-            if (overrides.GetOrDefault("bOverride_ShadingModel", false)) shading = overrides.GetOrDefault("ShadingModel", shading);
+            if (overrides.GetOrDefault("bOverride_BlendMode", false)) blend = Props.EnumText(overrides.Properties, "BlendMode") ?? blend;
+            if (overrides.GetOrDefault("bOverride_ShadingModel", false)) shading = Props.EnumText(overrides.Properties, "ShadingModel") ?? shading;
         }
         var twoSided = Props.Get(chain, "TwoSided", false)
             || (overrides?.GetOrDefault("bOverride_TwoSided", false) == true && overrides.GetOrDefault("TwoSided", false));
 
-        var translucent = blend.Contains("Translucent", StringComparison.OrdinalIgnoreCase)
-                          || blend.Contains("Additive", StringComparison.OrdinalIgnoreCase)
+        var additive = blend.Contains("Additive", StringComparison.OrdinalIgnoreCase);
+        var translucent = additive
+                          || blend.Contains("Translucent", StringComparison.OrdinalIgnoreCase)
                           || blend.Contains("Modulate", StringComparison.OrdinalIgnoreCase);
         var opacity = translucent
             ? Math.Clamp(scalars.TryGetValue("Opacity", out var o) ? o : 0.35f, 0.12f, 0.85f)
             : 1f;
         var masked = blend.Contains("Masked", StringComparison.OrdinalIgnoreCase);
         var unlit = shading.Contains("Unlit", StringComparison.OrdinalIgnoreCase);
-        return new ResolvedMaterial(texture, tint, opacity, twoSided, masked, unlit);
+        return new ResolvedMaterial(texture, tint, opacity, twoSided, masked, unlit, additive || (translucent && unlit));
     }
 
     private static string? ParameterName(FStructFallback parameter)

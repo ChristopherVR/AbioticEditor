@@ -4421,6 +4421,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldBases_ViewSwitch" xml:space="preserve"><value>How to show the bases</value></data>
   <data name="WorldBases_ViewMap" xml:space="preserve"><value>Map</value></data>
   <data name="WorldBases_View3D" xml:space="preserve"><value>3D view</value></data>
+  <data name="WorldBases_3DFocus" xml:space="preserve"><value>Base to show</value></data>
+  <data name="WorldBases_3DWholeRegion" xml:space="preserve"><value>Whole region</value></data>
   <data name="World3D_IssueTimesFormat" xml:space="preserve"><value>(x{0})</value></data>
   <data name="World3D_Power" xml:space="preserve"><value>POWER</value></data>
   <data name="World3D_PowerFedFormat" xml:space="preserve"><value>Takes power from {0}.</value></data>
@@ -4439,7 +4441,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_ModelsError" xml:space="preserve"><value>Some models could not be loaded; those objects stay as boxes.</value></data>
   <data name="World3D_LevelShow" xml:space="preserve"><value>Show the level around the view</value></data>
   <data name="World3D_LevelRadius" xml:space="preserve"><value>Distance</value></data>
-  <data name="World3D_LevelCut" xml:space="preserve"><value>Cut away above the base</value></data>
+  <data name="World3D_LevelCut" xml:space="preserve"><value>Cut away above the floor</value></data>
   <data name="World3D_LevelCutOff" xml:space="preserve"><value>Nothing</value></data>
   <data name="World3D_MetresFormat" xml:space="preserve"><value>{0} m</value></data>
   <data name="World3D_LevelReload" xml:space="preserve"><value>Load level here</value></data>

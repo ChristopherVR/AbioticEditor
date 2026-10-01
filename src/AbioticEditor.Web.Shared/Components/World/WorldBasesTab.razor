@@ -39,7 +39,18 @@
     }
     @if (ThreeDView is not null && _show3D)
     {
-        @ThreeDView
+        @* The 3D view frames the base picked here (or the whole region), the same selection the map uses. *@
+        <label class="wt-field bases-3d-focus">
+            <span>@L.Resource("WorldBases_3DFocus")</span>
+            <select data-b3d="base-focus" @onchange="e => FocusBase(e.Value?.ToString())">
+                <option value="" selected="@(SelectedBase is null)">@L.Resource("WorldBases_3DWholeRegion")</option>
+                @foreach (var worldBase in Bases)
+                {
+                    <option value="@worldBase.Name" selected="@(_selectedBaseName == worldBase.Name)">@worldBase.Name - @AnchorText(worldBase)</option>
+                }
+            </select>
+        </label>
+        @ThreeDView(SelectedBase)
     }
     else
     {
@@ -298,7 +309,7 @@
     /// The 3D view of the same region, shown behind the tab's Map / 3D switch. Null (no switch) for
     /// the live host and whenever the optional game models plugin is not available.
     /// </summary>
-    [Parameter] public RenderFragment? ThreeDView { get; set; }
+    [Parameter] public RenderFragment<WorldBase?>? ThreeDView { get; set; }
     private bool _show3D;
     /// <summary>Round 121: "which bench is closest to me" - same parameter shape and source as
     /// WorldContainersTab/WorldDroppedItemsTab (live: LiveConnect passes the connected player's own
@@ -401,6 +412,12 @@
     private WorldContainer? OpenContainer => _openContainerId is null || FileSession is not { } fileSession
         ? null
         : fileSession.Containers.FirstOrDefault(container => container.Source == WorldContainerSource.Deployed && container.Id == _openContainerId);
+
+    private void FocusBase(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) { _selectedBaseName = null; _openContainerId = null; _slotEdits = []; return; }
+        if (Bases.FirstOrDefault(b => b.Name == name) is { } worldBase) SelectBase(worldBase);
+    }
 
     private void SelectBase(WorldBase worldBase)
     {
