@@ -374,6 +374,30 @@ public sealed class GameModels3DTests
         }
     }
 
+    [Fact]
+    public void Landscape_terrain_is_indexed_and_bakes_to_a_height_grid()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/V_Alps.umap"));
+        var terrain = index.Meshes.Where(LandscapeBaker.IsKey).ToList();
+        Assert.True(terrain.Count > 100, $"only {terrain.Count} terrain pieces indexed");
+        Assert.All(terrain, key => Assert.StartsWith("/Game/Maps/V_Alps.V_Alps#land=", key, StringComparison.Ordinal));
+
+        var component = assets.UseFileProvider(p => LandscapeBaker.Load(p, terrain[0]));
+        Assert.NotNull(component);
+        var full = assets.UseFileProvider(_ => LandscapeBaker.Bake(component!, 0));
+        var coarse = assets.UseFileProvider(_ => LandscapeBaker.Bake(component!, 1));
+        var side = component!.ComponentSizeQuads + 1;
+        Assert.Equal((uint)(side * side), BinaryPrimitives.ReadUInt32LittleEndian(full.AsSpan(4)));
+        Assert.True(BinaryPrimitives.ReadUInt32LittleEndian(coarse.AsSpan(4)) < (uint)(side * side));
+
+        // Keys that are not landscape components are refused.
+        Assert.Null(assets.UseFileProvider(p => LandscapeBaker.Load(p, "/Game/Maps/V_Alps.V_Alps#land=0")));
+        Assert.Null(assets.UseFileProvider(p => LandscapeBaker.Load(p, "/Game/Maps/V_Alps.V_Alps#land=x")));
+    }
+
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);

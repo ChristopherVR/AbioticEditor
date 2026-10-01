@@ -63,7 +63,8 @@ gizmo, delete, duplicate and group edits, and SAVE. Selection outlines fit the r
 - **Level.** The plugin reads the level's static meshes. Streamed areas are placed where the game
   places them, and only drawn where the game's own streaming volumes would load them, so dream
   sequences and other set pieces that share the same space stay hidden. Sky domes, far-distance
-  stand-ins, landscape terrain and bendable pipes and cables are left out.
+  stand-ins and bendable pipes and cables are left out. Outdoor ground (the game's landscape
+  terrain, in the Dam, the portal worlds and other open areas) is drawn from its height data.
 
 ## Cache
 

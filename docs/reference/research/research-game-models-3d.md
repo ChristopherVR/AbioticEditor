@@ -104,6 +104,19 @@ and no streaming volume. Their own region saves (`WorldSave_V_Alps.sav`) store p
 Facility coordinates, so the region's map is placed by the streaming entry of the single-word
 world map that streams it. Without that the level sits at the map's origin, kilometres away.
 
+### Landscape terrain
+
+8,255 `LandscapeComponent`s across 32 maps (the Dam valley, portal worlds, the Garden, Suomi,
+Anteverse; `GameModelsProviderProbe.Dump_SplineAndLandscapeCounts`). Each component is a level
+entry whose mesh key is the map's object path plus `#land=<export index>`, drawn with its proxy's
+transform (`AttachParent`). `LandscapeBaker` uses CUE4Parse's `LandscapeMeshDto(component)`
+(heights decoded from the heightmap with the component's scale and bias, vertices in proxy-local
+quad units plus the component's offset), rebuilds the grid from each vertex's landscape
+coordinates, and at level detail keeps every other row and column (always the edges, so pieces
+meet). Material: the component's `OverrideMaterial`, else the proxy's `LandscapeMaterial`; the base
+colour pick finds the first layer texture (snow in the Alps, grass in the Dam valley), tiled every
+4 quads. Layer blending (weightmaps) is not drawn.
+
 ## Cost
 
 - Resolving 212 classes with materials: 18 s the first time, 45 ms from the disk cache.
@@ -112,5 +125,5 @@ world map that streams it. Without that the level sits at the map's origin, kilo
 
 ## Not covered
 
-Landscape terrain, spline meshes (pipes and cables bent at run time), skeletal animation (bind
+Spline meshes (pipes and cables bent at run time; 391 in all, every one in `Facility`), skeletal animation (bind
 pose is drawn), decals, lights, and per-object state such as open lids or crop growth.

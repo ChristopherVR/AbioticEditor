@@ -488,7 +488,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             return cached.Min is null || cached.Max is null ? null
                 : new MeshInfo(cached.Materials ?? [], new Vector3(cached.Min[0], cached.Min[1], cached.Min[2]), new Vector3(cached.Max[0], cached.Max[1], cached.Max[2]));
         }
-        var info = Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Describe(obj) : null);
+        var info = LandscapeBaker.IsKey(path)
+            ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Describe(land, null) : null)
+            : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Describe(obj) : null);
         WriteJson(file, info is null
             ? new CachedMeshInfo(null, null, null)
             : new CachedMeshInfo(info.Materials.ToArray(), [info.BoundsMin.X, info.BoundsMin.Y, info.BoundsMin.Z], [info.BoundsMax.X, info.BoundsMax.Y, info.BoundsMax.Z]));
@@ -554,7 +556,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         }
 
         var data = isMesh
-            ? Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Bake(obj, size) : null)
+            ? LandscapeBaker.IsKey(path)
+                ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Bake(land, size) : null)
+                : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Bake(obj, size) : null)
             : BakeTexture(path, Math.Clamp(size, 16, 2048));
         WriteBytes(file, data ?? []);
         return data is null ? null : new SceneAsset(contentType, data);
@@ -659,7 +663,8 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     [GeneratedRegex(@"^/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+$")]
     private static partial Regex GamePath();
 
-    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+)$")]
+    // A mesh may name a landscape component: the map's object path plus "#land=<export index>".
+    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+(#land=\d{1,7})?)$")]
     private static partial Regex AssetId();
 
     [GeneratedRegex(@"^[A-Za-z0-9_]{1,80}$")]

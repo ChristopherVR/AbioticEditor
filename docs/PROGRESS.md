@@ -43,6 +43,12 @@
   region of the Cascade copy (`GameModelsProviderProbe.Dump_LevelAroundEveryRegion`): all 47
   regions with saved objects (34 Facility areas, 13 portal and vignette worlds, H_Garden) return
   level pieces around their objects. Test: `Portal_world_levels_are_placed_where_the_facility_streams_them`.
+- **Landscape terrain drawn.** 8,255 terrain components in 32 maps were skipped; now each is a
+  level mesh (`LandscapeBaker`, key `<map>#land=<export index>`, level index format 4), baked from
+  CUE4Parse's landscape reader and thinned to every other row at level detail. Verified: the Alps
+  lodge stands on its snow slope, the Dam valley has its grass floor (27,270 pieces at 150 m). Test:
+  `Landscape_terrain_is_indexed_and_bakes_to_a_height_grid`. Layer blending is not drawn (one
+  layer texture per landscape).
 - Verified headless on a copy of the user's Manyon world: Base 1 framed on pick, 10,311 level pieces
   with no cones or trusses over the rooms. Test: `Materials_read_their_blend_mode_and_light_beams_count_as_effects`.
 

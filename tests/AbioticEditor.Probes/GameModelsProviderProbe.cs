@@ -213,4 +213,29 @@ public class GameModelsProviderProbe
             _output.WriteLine($"{region,-28} objects {points.Count,5}  level pieces {slice?.TotalInBox ?? -1,6}  {slice?.Note ?? "no answer"}");
         }
     }
+
+    /// <summary>How many spline meshes and landscape components each map has, to judge what the level view leaves out.</summary>
+    [Fact]
+    public void Dump_SplineAndLandscapeCounts()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var maps = assets.AssetPaths.Where(p => p.EndsWith(".umap", StringComparison.OrdinalIgnoreCase) && p.Contains("/Maps/", StringComparison.OrdinalIgnoreCase)).ToList();
+        long splines = 0, landscape = 0, statics = 0;
+        foreach (var map in maps)
+        {
+            var (sp, la, st, sample) = assets.UseFileProvider(p =>
+            {
+                if (!p.TryLoadPackage(map, out var pkg)) return (0, 0, 0, "");
+                var exports = pkg.GetExports().ToList();
+                var spl = exports.Where(e => e.ExportType == "SplineMeshComponent").ToList();
+                var meshes = spl.Select(e => e.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("StaticMesh")?.ResolvedObject?.Name.Text ?? "?")
+                    .GroupBy(n => n).OrderByDescending(g => g.Count()).Take(3).Select(g => $"{g.Key} x{g.Count()}");
+                return (spl.Count, exports.Count(e => e.ExportType == "LandscapeComponent"), exports.Count(e => e.ExportType is "StaticMeshComponent" or "InstancedStaticMeshComponent" or "HierarchicalInstancedStaticMeshComponent"), string.Join(", ", meshes));
+            });
+            splines += sp; landscape += la; statics += st;
+            if (sp > 20 || la > 0) _output.WriteLine($"{Path.GetFileNameWithoutExtension(map),-34} splines {sp,5}  landscape {la,4}  static {st,6}  {sample}");
+        }
+        _output.WriteLine($"total: {maps.Count} maps, spline meshes {splines}, landscape components {landscape}, static mesh components {statics}");
+    }
 }

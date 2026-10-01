@@ -1,6 +1,8 @@
 using System.Numerics;
 using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets.Exports;
+using CUE4Parse.UE4.Assets.Exports.Actor;
+using CUE4Parse.UE4.Assets.Exports.Component.Landscape;
 using CUE4Parse.UE4.Assets.Exports.Component.StaticMesh;
 using CUE4Parse.UE4.Objects.Core.Math;
 using CUE4Parse.UE4.Objects.Engine;
@@ -52,18 +54,20 @@ internal sealed class LevelIndexData
 /// Components of blueprint actors placed in a level are saved as differences from their
 /// construction-script templates, so every property falls back to the component's archetype (see
 /// <see cref="Props"/>); a plain read would lose most of their meshes. Spline meshes are skipped (they
-/// bend at run time), as are landscape and brush geometry and far-distance LOD proxies.
+/// bend at run time), as are brush geometry and far-distance LOD proxies; landscape terrain is
+/// indexed per component (see <see cref="LandscapeBaker"/>).
 /// </remarks>
 internal static class LevelIndex
 {
     private const uint Magic = 0x3149_4C41; // "ALI1"
-    public const int FormatVersion = 3;
+    public const int FormatVersion = 4; // 4: landscape terrain components
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
         var data = new LevelIndexData { Map = mapPackage, Meshes = [], OverrideSets = [], Actors = [], Entries = [] };
         if (!provider.TryLoadPackage(mapPackage, out var package)) return data;
         var world = package.GetExports().OfType<UWorld>().FirstOrDefault();
+        var mapObjectPath = world?.GetPathName() ?? mapPackage;
         var level = world?.PersistentLevel.Load<ULevel>();
         if (level is null) return data;
 
@@ -108,6 +112,27 @@ internal static class LevelIndex
             // near a base they would sit on top of the real walls they replace.
             if (actor.ExportType.Equals("LODActor", StringComparison.OrdinalIgnoreCase)) continue;
             var actorId = -1;
+            // Landscape terrain: each component is its own mesh (see LandscapeBaker), drawn with the
+            // proxy's transform because the baked vertices already include the component's offset.
+            if (actor is ALandscapeProxy proxy)
+            {
+                var proxyMaterial = proxy.LandscapeMaterial is { IsNull: false } lm ? lm.ResolvedObject?.GetPathName() : null;
+                foreach (var componentIndex in proxy.LandscapeComponents)
+                {
+                    if (componentIndex is not { IsNull: false, IsExport: true } || componentIndex.Load<ULandscapeComponent>() is not { } land) continue;
+                    if (!seen.Add(land) || !Visible(land, 0)) continue;
+                    var material = land.OverrideMaterial is { IsNull: false } om ? om.ResolvedObject?.GetPathName() : proxyMaterial;
+                    var key = LandscapeBaker.Key(mapObjectPath, componentIndex.Index - 1);
+                    var meshId = Intern(meshIds, data.Meshes, key, key);
+                    var overrideId = Intern(overrideIds, data.OverrideSets, material ?? "", [material]);
+                    if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
+                    var proxyWorld = land.TryGetValue(out FPackageIndex parentIndex, "AttachParent") && parentIndex is { IsNull: false } && parentIndex.Load() is { } parent
+                        ? WorldOf(parent, 0)
+                        : Matrix4x4.Identity;
+                    data.Entries.Add(new LevelEntry(meshId, overrideId, actorId, proxyWorld, proxyWorld.Translation, 0));
+                }
+                continue;
+            }
             foreach (var component in ComponentsOf(actor))
             {
                 if (!seen.Add(component)) continue;
