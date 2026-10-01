@@ -43,7 +43,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     private const string MaterialsFolder = "materials-v4"; // v3: world tiling (Scale); v4: decal domain
     private const string ClassesFolder = "classes-v3"; // v3: decals on objects
 
-    private const int ObjectTextureSize = 1024;
+    private const int ObjectTextureSize = 512; // props are small on screen; 1024 px cost four times the decode and video memory for no visible gain
     private const int LevelTextureSize = 512;
     private const int LevelLod = 1;
     private const float LevelMarginCm = 300f;

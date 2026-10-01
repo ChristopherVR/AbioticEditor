@@ -616,7 +616,7 @@ public sealed class Base3DViewerTests
         Assert.Contains("_doorsDirty = true;", tab, StringComparison.Ordinal); // recoloured after SAVE / REVERT / another region
 
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
-        Assert.Contains("const door = doorLayer.at(e.clientX, e.clientY), npc = npcLayer.at(e.clientX, e.clientY);", js, StringComparison.Ordinal); // markers win over objects behind them
+        Assert.Contains("const found = layer.at(e.clientX, e.clientY);", js, StringComparison.Ordinal); // markers win over objects behind them
         Assert.Contains("\"OnDoorPicked\"", js, StringComparison.Ordinal);
         Assert.Contains("setDoors(list)", js, StringComparison.Ordinal);
     }

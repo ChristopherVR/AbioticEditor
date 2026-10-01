@@ -68,25 +68,59 @@ public sealed class SceneModelHostService
     /// </summary>
     public IReadOnlyDictionary<string, SceneClassModel?> DescribeClasses(IEnumerable<string> classPaths)
     {
-        var provider = Provider?.Value;
         var paths = classPaths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).Take(2000).ToList();
         var result = new System.Collections.Concurrent.ConcurrentDictionary<string, SceneClassModel?>(StringComparer.Ordinal);
-        // Each class is mostly a small cache file read (or, the first time, a game-file read the
-        // provider serializes itself), so a batch is worked out in parallel rather than one by one.
-        Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount) }, path =>
-        {
-            if (provider is null) { result[path] = null; return; }
-            result[path] = _classes.GetOrAdd(path, p =>
-            {
-                try { return ParseModelKey(p) is (var cls, { } state) ? provider.DescribeClass(cls, state) : provider.DescribeClass(p); }
-                catch (Exception ex)
-                {
-                    EditorLog.Warn("Scene", $"No 3D model for {p}: {ex.Message}");
-                    return null;
-                }
-            });
-        });
+        // Each class is mostly a small cache file read (or, the first time, a game-file read), so a
+        // batch is worked out in parallel. Half the cores at most: the first read of an area keeps
+        // these busy for seconds, and taking every core starved the editor's own window, which then
+        // could not even show its loading progress.
+        Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = WorkerCount }, path => result[path] = DescribeOne(path));
         return new Dictionary<string, SceneClassModel?>(result, StringComparer.Ordinal);
+    }
+
+    private static int WorkerCount => Math.Max(2, Environment.ProcessorCount / 2);
+
+    private SceneClassModel? DescribeOne(string path)
+    {
+        if (Provider?.Value is not { } provider) return null;
+        return _classes.GetOrAdd(path, p =>
+        {
+            try { return ParseModelKey(p) is (var cls, { } state) ? provider.DescribeClass(cls, state) : provider.DescribeClass(p); }
+            catch (Exception ex)
+            {
+                EditorLog.Warn("Scene", $"No 3D model for {p}: {ex.Message}");
+                return null;
+            }
+        });
+    }
+
+    private readonly HashSet<string> _prewarmed = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Starts working out the given model keys in the background, at low priority, so the 3D view
+    /// finds them ready. Called when a world save opens: the first read of an area's models from
+    /// the game files takes tens of seconds, and most of it can happen before the 3D view is opened.
+    /// Keys already asked for are skipped; nothing is returned or awaited.
+    /// </summary>
+    public void Prewarm(Func<IEnumerable<string>> keys)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        if (Provider is null || OperatingSystem.IsBrowser()) return;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                List<string> todo;
+                lock (_prewarmed) todo = keys().Where(k => !string.IsNullOrWhiteSpace(k) && _prewarmed.Add(k)).ToList();
+                Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, key => DescribeOne(key));
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                EditorLog.Warn("Scene", $"Preparing 3D models in the background stopped: {ex.Message}");
+            }
+        })
+        { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "3D model warm-up" };
+        thread.Start();
     }
 
     /// <summary>

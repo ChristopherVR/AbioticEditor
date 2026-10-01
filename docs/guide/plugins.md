@@ -42,6 +42,11 @@ nothing shows up blank first. The panel beside the view has five tabs: **Inspect
 clicked), **Objects** (search and the full list), **Filters**, **Display** (game models and the
 level) and **Edit**.
 
+Scroll to zoom towards whatever is under the pointer, and double-click a spot to swing the view
+round it and move in close. Leaving the 3D view and coming back keeps it exactly as you left it.
+Triangles mark items lying on the ground and squares mark buttons, breakable walls, resource nodes
+and the like; click one to see what it is and jump to the tab that edits it.
+
 Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
 closed security door and orange is destroyed or smashed. Click one to open or close it (either
 way round for a swinging door); the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye

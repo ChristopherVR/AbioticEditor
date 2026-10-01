@@ -1,5 +1,47 @@
 # Abiotic Editor - Session history
 
+## Round-147: why the 3D view loaded slowly, and fixes; clickable ground items and level things (2026-10-02)
+
+- **Measured** (headless, Cascade Facility, 949 objects, 273 model classes). All `/scene-models/*`
+  requests are local (the editor's own host on 127.0.0.1), not internet downloads. Warm (disk cache
+  filled): the view is complete in about 1.5 s. Cold (empty plugin cache, fresh browser): the three
+  `classes` requests took 27-30 s on the host (first read of blueprints, meshes and materials from the
+  paks), and the page showed nothing meanwhile: last round's `Parallel.ForEach` over all cores starved
+  the Blazor circuit, so even the progress report did not arrive. Then meshes and textures streamed in
+  about 5 s. (An earlier "30 s freeze" reading was Playwright's `textContent` waiting 30 s for a
+  missing element, not the page.)
+- **Fixes:**
+  - `DescribeClasses` uses half the cores at most (`WorkerCount`); `Prewarm` starts the open save's
+    model keys (class path + `Base3DScene.VariantOf`) on a below-normal background thread when a world
+    save opens (`SaveEditorSurface.WorldTabsFor`), so most of the cold read happens before the 3D view
+    is opened. Keys go through the same `_classes` cache the view's requests use.
+  - The viewer asks for 24 classes per request, 3 requests at a time (was 3 x 120 at once), so models
+    appear from the first seconds.
+  - Arriving models add only the new classes' instances (`addArrivedModels`); the full rebuild (all
+    741 meshes) now happens only when the scene or filters change.
+  - Object textures are 512 px (was 1024): a quarter of the decode and video memory.
+  - **Leaving and coming back:** the view is parked (`park(key)`, keyed by the save path, kept 15 min,
+    one at a time) instead of disposed; `createView(host, dotnet, key)` reattaches it (canvas moved into
+    the new host). The component's settings (models, level, radius, cut, lamps, labels, doors,
+    characters, side tab, filters) are kept per session (`WorldBases3DTab.Keep.razor.cs`), and the Bases
+    tab remembers Map or 3D per session. Headless: coming back took 0.12 s with all 949 models and the
+    same camera (was a full reload).
+- **Zoom:** `zoomToCursor`, zoom speed 1.4, near limit 0.15 m; double-click a spot to orbit it and move
+  in to 40% of the distance.
+- **Clickable ground items and level things:** two more marker layers (`item` triangles just above the
+  floor, `thing` squares) with one generic click path (nearest marker of any layer wins, then objects).
+  Ground items come from the save; level things are the entries of the buttons, destructibles,
+  resource-nodes, elevators, npc-spawns, portals and trams lists, placed with
+  `Art.TryGetActorWorldTransformAsync` (8 at a time, up to 600; desktop only). Cards show the name and
+  place with a link to the Ground Items tab or the list's tab. HUD toggles: Ground items, Buttons and
+  more. Headless: 728 ground items and 38 level things drawn (the level things took ~14 s the first
+  time, in the background); clicking opened "12g Buckshot" and "Button 1".
+- **Inspect hover scrollbars:** the editor's global `button:hover { transform: scale(1.02) }` grew the
+  tab inside the strip's `overflow-x: auto`; the strip now wraps with `overflow: hidden` and the 3D
+  panel's buttons do not scale on hover. The empty Inspector card is hidden while a door, character or
+  marker card shows.
+- Not done: draw calls stay at ~1,030 on the Facility with models (one instanced mesh per class part).
+
 ## Round-146: Show in 3D from every tab, a reworked 3D panel, textures before models, two Dr. Cahn (2026-10-02)
 
 - **Two "Dr. Cahn" on the Facility NPCs tab** (reported as a duplicate). Not a duplicate: the Facility

@@ -4674,6 +4674,12 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_PlaceOnFloor" xml:space="preserve"><value>Stand it on the floor under the spot</value></data>
   <data name="World3D_LevelQuick" xml:space="preserve"><value>Level</value></data>
   <data name="World3D_ShowIn3D" xml:space="preserve"><value>Show in 3D</value></data>
+  <data name="World3D_GroundItemsToggle" xml:space="preserve"><value>Ground items</value></data>
+  <data name="World3D_ThingsToggle" xml:space="preserve"><value>Buttons and more</value></data>
+  <data name="World3D_ItemCard" xml:space="preserve"><value>Item on the ground</value></data>
+  <data name="World3D_ItemCount" xml:space="preserve"><value>Count</value></data>
+  <data name="World3D_OpenGroundItems" xml:space="preserve"><value>Open Ground Items</value></data>
+  <data name="World3D_OpenListFormat" xml:space="preserve"><value>Open {0}</value></data>
   <data name="World3D_ShowIn3DTitle" xml:space="preserve"><value>Open the 3D view and show where this is in the world</value></data>
   <data name="World3D_LocatedFormat" xml:space="preserve"><value>Showing: {0}</value></data>
   <data name="World3D_LocateNoPlaceFormat" xml:space="preserve"><value>{0} has no place in the world the view knows of.</value></data>

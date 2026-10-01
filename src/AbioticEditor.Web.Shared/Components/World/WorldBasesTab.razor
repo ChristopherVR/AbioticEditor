@@ -311,7 +311,13 @@
     /// the live host and whenever the optional game models plugin is not available.
     /// </summary>
     [Parameter] public RenderFragment<WorldBase?>? ThreeDView { get; set; }
-    private bool _show3D;
+    /// <summary>Map or 3D, remembered per open save so coming back to the tab shows what was left.</summary>
+    private bool _show3D
+    {
+        get => Shown3D.TryGetValue(Session, out _);
+        set { if (value) Shown3D.AddOrUpdate(Session, Session); else Shown3D.Remove(Session); }
+    }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IWorldBasesSession, object> Shown3D = new();
     /// <summary>Round 121: "which bench is closest to me" - same parameter shape and source as
     /// WorldContainersTab/WorldDroppedItemsTab (live: LiveConnect passes the connected player's own
     /// read position; file: SaveEditorSurface passes the workspace's selected player's saved

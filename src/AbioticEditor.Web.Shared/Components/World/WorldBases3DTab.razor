@@ -40,6 +40,11 @@
                     <label class="b3d-hud-check"><input type="checkbox" checked="@_labels" @onchange="e => SetLabelsAsync(e.Value is true)" /> @L.Resource("World3D_Labels")</label>
                     <label class="b3d-hud-check"><input type="checkbox" checked="@_doorsOn" data-b3d="doors-toggle" @onchange="e => SetDoorsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_Doors")</label>
                     <label class="b3d-hud-check"><input type="checkbox" checked="@_npcsOn" data-b3d="npcs-toggle" @onchange="e => SetNpcsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_Npcs")</label>
+                    <label class="b3d-hud-check"><input type="checkbox" checked="@_itemsOn" data-b3d="items-toggle" @onchange="e => SetItemsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_GroundItemsToggle")</label>
+                    @if (!InBrowser)
+                    {
+                        <label class="b3d-hud-check"><input type="checkbox" checked="@_thingsOn" data-b3d="things-toggle" @onchange="e => SetThingsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_ThingsToggle")</label>
+                    }
                     @if (!InBrowser && _modelStatus is { Available: true } && LevelRegion is not null)
                     {
                         <label class="b3d-hud-check"><input type="checkbox" checked="@_levelOn" data-b3d="level-quick" @onchange="e => SetLevelAsync(e.Value is true)" /> @L.Resource("World3D_LevelQuick")</label>
@@ -81,6 +86,42 @@
             <div class="b3d-tab-body" role="tabpanel">
             @if (_sideTab == "inspect")
             {
+                @if (PickedItem is { } item)
+                {
+                    <div class="wt-card b3d-panel" data-b3d="item-card">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_ItemCard")</span>
+                        <strong class="b3d-title" data-b3d="item-title">@ItemName(item)</strong>
+                        <dl class="b3d-fields">
+                            <dt>@L.Resource("World3D_ItemCount")</dt><dd>@Math.Max(1, item.Slot.Count)</dd>
+                            <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(item.X), @Num(item.Y), @Num(item.Z)</dd>
+                        </dl>
+                        <div class="b3d-links">
+                            @if (OnOpenTab.HasDelegate)
+                            {
+                                <button type="button" class="wt-btn" data-b3d="item-open-tab" @onclick="@(() => OnOpenTab.InvokeAsync("dropped"))">@L.Resource("World3D_OpenGroundItems")</button>
+                            }
+                            <button type="button" class="wt-btn wt-plain" @onclick="CloseMarkerCardAsync">@L.Resource("World3D_DoorCardClose")</button>
+                        </div>
+                    </div>
+                }
+                else if (PickedThing is { } thing)
+                {
+                    <div class="wt-card b3d-panel" data-b3d="thing-card">
+                        <span class="wt-label accent-orange-text">@thing.FeatureName</span>
+                        <strong class="b3d-title" data-b3d="thing-title" title="@thing.Key">@thing.Label</strong>
+                        <dl class="b3d-fields">
+                            <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(thing.At.X), @Num(thing.At.Y), @Num(thing.At.Z)</dd>
+                        </dl>
+                        <div class="b3d-links">
+                            @if (OnOpenTab.HasDelegate)
+                            {
+                                <button type="button" class="wt-btn" data-b3d="thing-open-tab" @onclick="@(() => OnOpenTab.InvokeAsync("feature:" + thing.FeatureId))">@L.Resource("World3D_OpenListFormat", thing.FeatureName)</button>
+                            }
+                            <button type="button" class="wt-btn wt-plain" @onclick="CloseMarkerCardAsync">@L.Resource("World3D_DoorCardClose")</button>
+                        </div>
+                    </div>
+                }
+
                 @if (SelectedDoor is { } door)
                 {
                     var (doorMap, doorActor) = DoorIdParser.Parse(door.Id);
@@ -167,144 +208,147 @@
                     </div>
                 }
 
-                <div class="wt-card b3d-panel" data-b3d="inspector">
-                    <span class="wt-label accent-orange-text">@L.Resource("World3D_Inspector")</span>
-                    @if (SelectedObject is not { } obj)
-                    {
-                        @if (SelectedCopy is { } copy)
+                @if (SelectedObject is not null || SelectedCopy is not null || (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null))
+                {
+                    <div class="wt-card b3d-panel" data-b3d="inspector">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_Inspector")</span>
+                        @if (SelectedObject is not { } obj)
                         {
-                            <strong class="b3d-title">@Base3DScene.FriendlyClass(copy.ClassName)</strong>
-                            <p class="wt-muted" data-b3d="copy-inspector">@L.Resource("World3D_CopyInspectorFormat", copy.NewKey)</p>
-                            <dl class="b3d-fields">
-                                <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Describe(copy.After)</dd>
-                            </dl>
-                            @PlacementWarnings(copy.NewKey)
-                            <button type="button" class="wt-btn wt-plain" data-b3d="revert-copy" @onclick="() => RevertDuplicationAsync(copy.DuplicationId)">@L.Resource("World3D_RevertCopy")</button>
-                            @* A new object can be wired up before SAVE: it and its outlets are written first. *@
-                            @PowerCard(copy.NewKey)
+                            @if (SelectedCopy is { } copy)
+                            {
+                                <strong class="b3d-title">@Base3DScene.FriendlyClass(copy.ClassName)</strong>
+                                <p class="wt-muted" data-b3d="copy-inspector">@L.Resource("World3D_CopyInspectorFormat", copy.NewKey)</p>
+                                <dl class="b3d-fields">
+                                    <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Describe(copy.After)</dd>
+                                </dl>
+                                @PlacementWarnings(copy.NewKey)
+                                <button type="button" class="wt-btn wt-plain" data-b3d="revert-copy" @onclick="() => RevertDuplicationAsync(copy.DuplicationId)">@L.Resource("World3D_RevertCopy")</button>
+                                @* A new object can be wired up before SAVE: it and its outlets are written first. *@
+                                @PowerCard(copy.NewKey)
+                            }
+                            else
+                            {
+                                @if (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null) { <p class="wt-muted">@L.Resource("World3D_NothingSelected")</p> }
+                            }
                         }
                         else
                         {
-                            @if (SelectedDoor is null && SelectedNpc is null) { <p class="wt-muted">@L.Resource("World3D_NothingSelected")</p> }
-                        }
-                    }
-                    else
-                    {
-                        var current = Session.CurrentPlacedTransform(obj.Key) ?? obj.Transform;
-                        <strong class="b3d-title">@Base3DScene.LabelOf(obj)</strong>
-                        @PlacementWarnings(obj.Key)
-                        @if (_moveOptIn && Session.IsPlacedTransformStaged(obj.Key) && CheckOf(obj.Key) is { LevelLoaded: true })
-                        {
-                            <button type="button" class="wt-btn wt-plain" data-b3d="stand-on-floor" @onclick="() => StandOnFloorAsync(obj.Key)">@L.Resource("World3D_StandOnFloor")</button>
-                        }
-                        <dl class="b3d-fields">
-                            <dt>@L.Resource("World3D_Class")</dt><dd>@(obj.ClassName ?? "-")</dd>
-                            <dt>@L.Resource("World3D_Origin")</dt><dd>@(obj.DeployedByPlayer == true ? L.Resource("World3D_OriginPlayer") : L.Resource("World3D_OriginLevel"))</dd>
-                            <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@obj.Key</dd>
-                            @if (obj.ActorPath is not null) { <dt>@L.Resource("World3D_ActorPath")</dt><dd class="b3d-mono">@obj.ActorPath</dd> }
-                            @if (obj.SubLevel is not null) { <dt>@L.Resource("World3D_SubLevel")</dt><dd>@obj.SubLevel</dd> }
-                            @if (current?.Translation is { } t)
+                            var current = Session.CurrentPlacedTransform(obj.Key) ?? obj.Transform;
+                            <strong class="b3d-title">@Base3DScene.LabelOf(obj)</strong>
+                            @PlacementWarnings(obj.Key)
+                            @if (_moveOptIn && Session.IsPlacedTransformStaged(obj.Key) && CheckOf(obj.Key) is { LevelLoaded: true })
                             {
-                                <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(t.X), @Num(t.Y), @Num(t.Z)</dd>
+                                <button type="button" class="wt-btn wt-plain" data-b3d="stand-on-floor" @onclick="() => StandOnFloorAsync(obj.Key)">@L.Resource("World3D_StandOnFloor")</button>
                             }
-                            @if (current?.Rotation is { } r)
-                            {
-                                <dt>@L.Resource("World3D_Rotation")</dt><dd class="b3d-mono">yaw @Num(r.YawDegrees), pitch @Num(r.PitchDegrees), roll @Num(r.RollDegrees)</dd>
-                            }
-                            @if (current?.Scale3D is { } sc)
-                            {
-                                <dt>@L.Resource("World3D_Scale")</dt><dd class="b3d-mono">@Num(sc.X, 2), @Num(sc.Y, 2), @Num(sc.Z, 2)</dd>
-                            }
-                            @if (obj.CustomName is not null && obj.OwnerName is null) { <dt>@L.Resource("World3D_Name")</dt><dd>@obj.CustomName</dd> }
-                            @if (obj.OwnerName is not null) { <dt>@L.Resource("World3D_Owner")</dt><dd>@obj.OwnerName</dd> }
-                            @if (obj.StoredItemCount > 0) { <dt>@L.Resource("World3D_Items")</dt><dd>@obj.StoredItemCount</dd> }
-                            @if (obj.PoweredBySocketIds.Count > 0) { <dt>@L.Resource("World3D_PoweredBy")</dt><dd class="b3d-mono">@string.Join(", ", obj.PoweredBySocketIds)</dd> }
-                        </dl>
-                        <div class="b3d-links">
-                            @if (OnOpenContainer.HasDelegate && HasContainer(obj.Key))
-                            {
-                                <button type="button" class="wt-btn" data-b3d="open-container" @onclick="() => OnOpenContainer.InvokeAsync(obj.Key)">@L.Resource("World3D_OpenContainer")</button>
-                            }
-                            @if (OnOpenPowerSockets.HasDelegate && PowerSocketsAvailable
-                                && (obj.PoweredBySocketIds.Count > 0 || PlacedObjectCategoryCatalog.Classify(obj.ClassName, obj.InventoryCount > 0) == PlacedObjectCategory.Power))
-                            {
-                                <button type="button" class="wt-btn" data-b3d="open-power" @onclick="() => OnOpenPowerSockets.InvokeAsync()">@L.Resource("World3D_OpenPower")</button>
-                            }
-                        </div>
-
-                        @* Power for the selected object: where it takes power from, plugging it in elsewhere
-                           (nearest outlets first), and its own outlets. Stages with the other base edits. *@
-                        @if (obj.DeployedByPlayer == true && obj.Key.Length == 32)
-                        {
-                            @PowerCard(obj.Key)
-                        }
-
-                        @* EXTENSION POINT (delete and duplicate): wired. The buttons act on the whole selection,
-                           open a confirmation panel with a preview (Core's StagedBaseEdits.Preview), and stage
-                           through the same session as the move controls, so the unsaved-edit indicator, the staged
-                           table and REVERT cover them. *@
-                        <div class="b3d-extension-point" data-extension-point="placed-object-delete-duplicate">
-                            @if (!_moveOptIn)
-                            {
-                                <span class="wt-muted">@L.Resource("World3D_EditNeedsOptIn")</span>
-                            }
-                            else
-                            {
-                                @if (Session.IsPlacedDeletionStaged(obj.Key))
+                            <dl class="b3d-fields">
+                                <dt>@L.Resource("World3D_Class")</dt><dd>@(obj.ClassName ?? "-")</dd>
+                                <dt>@L.Resource("World3D_Origin")</dt><dd>@(obj.DeployedByPlayer == true ? L.Resource("World3D_OriginPlayer") : L.Resource("World3D_OriginLevel"))</dd>
+                                <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@obj.Key</dd>
+                                @if (obj.ActorPath is not null) { <dt>@L.Resource("World3D_ActorPath")</dt><dd class="b3d-mono">@obj.ActorPath</dd> }
+                                @if (obj.SubLevel is not null) { <dt>@L.Resource("World3D_SubLevel")</dt><dd>@obj.SubLevel</dd> }
+                                @if (current?.Translation is { } t)
                                 {
-                                    <p class="error-text" data-b3d="staged-delete-note">@L.Resource("World3D_StagedForDeletion")
-                                        <button type="button" class="wt-btn wt-plain" @onclick="() => RevertDeletionAsync(obj.Key)">@L.Resource("World3D_RevertObject")</button></p>
+                                    <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(t.X), @Num(t.Y), @Num(t.Z)</dd>
                                 }
-                                <div class="b3d-links">
-                                    <button type="button" class="wt-btn b3d-danger" data-b3d="delete-open" disabled="@(_selected.Count == 0)"
-                                            @onclick="OpenDeleteAsync">@L.Resource("World3D_DeleteButtonFormat", _selected.Count)</button>
-                                    <button type="button" class="wt-btn" data-b3d="duplicate-open" disabled="@(_selected.Count == 0)"
-                                            @onclick="OpenDuplicate">@L.Resource("World3D_DuplicateButtonFormat", _selected.Count)</button>
-                                </div>
-                            }
-                        </div>
+                                @if (current?.Rotation is { } r)
+                                {
+                                    <dt>@L.Resource("World3D_Rotation")</dt><dd class="b3d-mono">yaw @Num(r.YawDegrees), pitch @Num(r.PitchDegrees), roll @Num(r.RollDegrees)</dd>
+                                }
+                                @if (current?.Scale3D is { } sc)
+                                {
+                                    <dt>@L.Resource("World3D_Scale")</dt><dd class="b3d-mono">@Num(sc.X, 2), @Num(sc.Y, 2), @Num(sc.Z, 2)</dd>
+                                }
+                                @if (obj.CustomName is not null && obj.OwnerName is null) { <dt>@L.Resource("World3D_Name")</dt><dd>@obj.CustomName</dd> }
+                                @if (obj.OwnerName is not null) { <dt>@L.Resource("World3D_Owner")</dt><dd>@obj.OwnerName</dd> }
+                                @if (obj.StoredItemCount > 0) { <dt>@L.Resource("World3D_Items")</dt><dd>@obj.StoredItemCount</dd> }
+                                @if (obj.PoweredBySocketIds.Count > 0) { <dt>@L.Resource("World3D_PoweredBy")</dt><dd class="b3d-mono">@string.Join(", ", obj.PoweredBySocketIds)</dd> }
+                            </dl>
+                            <div class="b3d-links">
+                                @if (OnOpenContainer.HasDelegate && HasContainer(obj.Key))
+                                {
+                                    <button type="button" class="wt-btn" data-b3d="open-container" @onclick="() => OnOpenContainer.InvokeAsync(obj.Key)">@L.Resource("World3D_OpenContainer")</button>
+                                }
+                                @if (OnOpenPowerSockets.HasDelegate && PowerSocketsAvailable
+                                    && (obj.PoweredBySocketIds.Count > 0 || PlacedObjectCategoryCatalog.Classify(obj.ClassName, obj.InventoryCount > 0) == PlacedObjectCategory.Power))
+                                {
+                                    <button type="button" class="wt-btn" data-b3d="open-power" @onclick="() => OnOpenPowerSockets.InvokeAsync()">@L.Resource("World3D_OpenPower")</button>
+                                }
+                            </div>
 
-                        @if (_moveOptIn)
-                        {
-                            @if (obj.DeployedByPlayer != true)
+                            @* Power for the selected object: where it takes power from, plugging it in elsewhere
+                               (nearest outlets first), and its own outlets. Stages with the other base edits. *@
+                            @if (obj.DeployedByPlayer == true && obj.Key.Length == 32)
                             {
-                                <p class="error-text" role="alert" data-b3d="move-refused">@L.Resource("World3D_MoveLevelRefused")</p>
+                                @PowerCard(obj.Key)
                             }
-                            else if (obj.Transform?.Translation is null || obj.Transform.Rotation is null)
-                            {
-                                <p class="error-text" role="alert" data-b3d="move-refused">@L.Resource("World3D_MoveOmittedRefused")</p>
-                            }
-                            else
-                            {
-                                <div class="b3d-move" data-b3d="move-controls">
-                                    <span class="wt-label">@L.Resource("World3D_MoveGizmo")</span>
-                                    <div class="b3d-gizmo-modes" role="radiogroup" aria-label="@L.Resource("World3D_MoveGizmo")">
-                                        @foreach (var mode in GizmoModes)
-                                        {
-                                            var m = mode;
-                                            <label class="wt-check" @key="m">
-                                                <input type="radio" name="b3d-gizmo" checked="@(_gizmo == m)" @onchange="() => SetGizmoAsync(m)" />
-                                                @L.Resource("World3D_Gizmo" + char.ToUpperInvariant(m[0]) + m[1..])
-                                            </label>
-                                        }
-                                    </div>
-                                    <div class="b3d-numbers">
-                                        <label>@L.Resource("World3D_X")<input class="wt-input" inputmode="decimal" @bind="_xText" @bind:event="oninput" data-b3d="x" /></label>
-                                        <label>@L.Resource("World3D_Y")<input class="wt-input" inputmode="decimal" @bind="_yText" @bind:event="oninput" data-b3d="y" /></label>
-                                        <label>@L.Resource("World3D_Z")<input class="wt-input" inputmode="decimal" @bind="_zText" @bind:event="oninput" data-b3d="z" /></label>
-                                        <label>@L.Resource("World3D_Yaw")<input class="wt-input" inputmode="decimal" @bind="_yawText" @bind:event="oninput" data-b3d="yaw" /></label>
-                                    </div>
-                                    @if (_numberError is not null) { <p class="error-text" role="alert">@_numberError</p> }
+
+                            @* EXTENSION POINT (delete and duplicate): wired. The buttons act on the whole selection,
+                               open a confirmation panel with a preview (Core's StagedBaseEdits.Preview), and stage
+                               through the same session as the move controls, so the unsaved-edit indicator, the staged
+                               table and REVERT cover them. *@
+                            <div class="b3d-extension-point" data-extension-point="placed-object-delete-duplicate">
+                                @if (!_moveOptIn)
+                                {
+                                    <span class="wt-muted">@L.Resource("World3D_EditNeedsOptIn")</span>
+                                }
+                                else
+                                {
+                                    @if (Session.IsPlacedDeletionStaged(obj.Key))
+                                    {
+                                        <p class="error-text" data-b3d="staged-delete-note">@L.Resource("World3D_StagedForDeletion")
+                                            <button type="button" class="wt-btn wt-plain" @onclick="() => RevertDeletionAsync(obj.Key)">@L.Resource("World3D_RevertObject")</button></p>
+                                    }
                                     <div class="b3d-links">
-                                        <button type="button" class="wt-btn" data-b3d="stage-numbers" @onclick="StageNumbersAsync">@L.Resource("World3D_StageNumbers")</button>
-                                        <button type="button" class="wt-btn wt-plain" disabled="@(!Session.IsPlacedTransformStaged(obj.Key))" data-b3d="revert-object"
-                                                @onclick="() => RevertObjectAsync(obj.Key)">@L.Resource("World3D_RevertObject")</button>
+                                        <button type="button" class="wt-btn b3d-danger" data-b3d="delete-open" disabled="@(_selected.Count == 0)"
+                                                @onclick="OpenDeleteAsync">@L.Resource("World3D_DeleteButtonFormat", _selected.Count)</button>
+                                        <button type="button" class="wt-btn" data-b3d="duplicate-open" disabled="@(_selected.Count == 0)"
+                                                @onclick="OpenDuplicate">@L.Resource("World3D_DuplicateButtonFormat", _selected.Count)</button>
                                     </div>
-                                </div>
+                                }
+                            </div>
+
+                            @if (_moveOptIn)
+                            {
+                                @if (obj.DeployedByPlayer != true)
+                                {
+                                    <p class="error-text" role="alert" data-b3d="move-refused">@L.Resource("World3D_MoveLevelRefused")</p>
+                                }
+                                else if (obj.Transform?.Translation is null || obj.Transform.Rotation is null)
+                                {
+                                    <p class="error-text" role="alert" data-b3d="move-refused">@L.Resource("World3D_MoveOmittedRefused")</p>
+                                }
+                                else
+                                {
+                                    <div class="b3d-move" data-b3d="move-controls">
+                                        <span class="wt-label">@L.Resource("World3D_MoveGizmo")</span>
+                                        <div class="b3d-gizmo-modes" role="radiogroup" aria-label="@L.Resource("World3D_MoveGizmo")">
+                                            @foreach (var mode in GizmoModes)
+                                            {
+                                                var m = mode;
+                                                <label class="wt-check" @key="m">
+                                                    <input type="radio" name="b3d-gizmo" checked="@(_gizmo == m)" @onchange="() => SetGizmoAsync(m)" />
+                                                    @L.Resource("World3D_Gizmo" + char.ToUpperInvariant(m[0]) + m[1..])
+                                                </label>
+                                            }
+                                        </div>
+                                        <div class="b3d-numbers">
+                                            <label>@L.Resource("World3D_X")<input class="wt-input" inputmode="decimal" @bind="_xText" @bind:event="oninput" data-b3d="x" /></label>
+                                            <label>@L.Resource("World3D_Y")<input class="wt-input" inputmode="decimal" @bind="_yText" @bind:event="oninput" data-b3d="y" /></label>
+                                            <label>@L.Resource("World3D_Z")<input class="wt-input" inputmode="decimal" @bind="_zText" @bind:event="oninput" data-b3d="z" /></label>
+                                            <label>@L.Resource("World3D_Yaw")<input class="wt-input" inputmode="decimal" @bind="_yawText" @bind:event="oninput" data-b3d="yaw" /></label>
+                                        </div>
+                                        @if (_numberError is not null) { <p class="error-text" role="alert">@_numberError</p> }
+                                        <div class="b3d-links">
+                                            <button type="button" class="wt-btn" data-b3d="stage-numbers" @onclick="StageNumbersAsync">@L.Resource("World3D_StageNumbers")</button>
+                                            <button type="button" class="wt-btn wt-plain" disabled="@(!Session.IsPlacedTransformStaged(obj.Key))" data-b3d="revert-object"
+                                                    @onclick="() => RevertObjectAsync(obj.Key)">@L.Resource("World3D_RevertObject")</button>
+                                        </div>
+                                    </div>
+                                }
                             }
                         }
-                    }
-                </div>
+                    </div>
+                }
 
                 @if (_moveOptIn && _selected.Count > 0)
                 {
@@ -1045,7 +1089,11 @@
 
     private PlacedObjectSummary? SelectedObject => _selectedKey is null ? null : Session.FindPlacedObject(_selectedKey);
 
-    protected override void OnInitialized() => Workspace.Changed += WorkspaceChanged;
+    protected override void OnInitialized()
+    {
+        Workspace.Changed += WorkspaceChanged;
+        RestoreKept();
+    }
 
     protected override void OnParametersSet()
     {
@@ -1064,6 +1112,8 @@
             if (doorState != _doorStamp) { _doorStamp = doorState; _doorsDirty = true; }
             var npcState = NpcStateStamp();
             if (npcState != _npcStamp) { _npcStamp = npcState; _npcsDirty = true; }
+            var itemCount = Session.DroppedItems.Count;
+            if (itemCount != _itemStamp) { _itemStamp = itemCount; _markersDirty = true; }
             StateHasChanged();
         });
     }
@@ -1085,6 +1135,8 @@
                 _selectedDoorId = null;
                 _npcsDirty = true;
                 _selectedNpcId = null;
+                _markersDirty = true;
+                _pickedMarker = null;
             }
             _sceneSession = Session;
         }
@@ -1119,8 +1171,9 @@
                     return;
                 }
                 _self = DotNetObjectReference.Create(this);
-                _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self);
+                _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self, ParkKey);
                 _viewReady = true;
+                await AfterViewCreatedAsync();
                 StateHasChanged();
                 await InitModelsAsync();
             }
@@ -1161,6 +1214,11 @@
         {
             _npcsDirty = false;
             _ = PushNpcsAsync();
+        }
+        if (_view is not null && _markersDirty && _framedOnce)
+        {
+            _markersDirty = false;
+            _ = PushMarkersAsync();
         }
         await ProcessLocateAsync();
     }
@@ -1287,7 +1345,7 @@
         try
         {
             _modelStatus = await _view.InvokeAsync<ModelStatus>("modelStatus");
-            _modelsOn = _modelStatus.Available;
+            _modelsOn = _modelStatus.Available && (_keptModelsOn ?? true);
             if (_modelsOn) await _view.InvokeVoidAsync("setModelsEnabled", true);
         }
         catch (Exception ex) when (ex is JSException or InvalidOperationException or System.Text.Json.JsonException or NotSupportedException)
@@ -1866,7 +1924,7 @@
         {
             if (_view is not null)
             {
-                await _view.InvokeVoidAsync("dispose");
+                await ParkViewAsync();
                 await _view.DisposeAsync();
             }
             if (_module is not null) await _module.DisposeAsync();

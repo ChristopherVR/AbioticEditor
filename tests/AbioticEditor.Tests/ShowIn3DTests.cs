@@ -77,6 +77,49 @@ public sealed class ShowIn3DTests
     }
 
     [Fact]
+    public void Leaving_the_3d_view_keeps_it_and_coming_back_loads_nothing_again()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("export function createView(host, dotnet, parkKey)", js, StringComparison.Ordinal);
+        Assert.Contains("park(key) {", js, StringComparison.Ordinal);
+        Assert.Contains("reattach(newHost, newDotnet) {", js, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("\"createView\", _host, _self, ParkKey", tab, StringComparison.Ordinal);
+        Assert.Contains("await ParkViewAsync();", tab, StringComparison.Ordinal);
+        Assert.DoesNotContain("InvokeVoidAsync(\"dispose\")", tab, StringComparison.Ordinal);
+        // The Bases tab remembers Map or 3D per open save.
+        Assert.Contains("Shown3D.TryGetValue(Session, out _)", UiSource.ReadAllText("Components", "World", "WorldBasesTab.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Models_arrive_incrementally_and_the_first_read_starts_early_without_starving_the_window()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("if (!disposed) addArrivedModels();", js, StringComparison.Ordinal); // no full rebuild per batch
+        Assert.Contains("const CLASS_BATCH = 24;", js, StringComparison.Ordinal);
+        var service = UiSource.ReadAllText("Services", "SceneModelHostService.cs");
+        Assert.Contains("Math.Max(2, Environment.ProcessorCount / 2)", service, StringComparison.Ordinal);
+        Assert.Contains("public void Prewarm(", service, StringComparison.Ordinal);
+        Assert.Contains("scene.Prewarm(", UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ground_items_and_level_things_are_clickable_and_zoom_reaches_details()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("const markerLayers = { door: doorLayer, npc: npcLayer, item: itemLayer, thing: thingLayer };", js, StringComparison.Ordinal);
+        Assert.Contains("dotnet.invokeMethodAsync(\"OnMarkerPicked\"", js, StringComparison.Ordinal);
+        Assert.Contains("controls.zoomToCursor = true;", js, StringComparison.Ordinal);
+        Assert.Contains("addEventListener(\"dblclick\"", js, StringComparison.Ordinal);
+        var markers = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Markers.razor.cs");
+        Assert.Contains("[JSInvokable]", markers, StringComparison.Ordinal);
+        Assert.Contains("\"buttons\", \"destructibles\", \"resource-nodes\"", markers, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("data-b3d=\"item-card\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"thing-card\"", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_two_Dr_Cahn_placements_are_told_apart_by_area()
     {
         var registry = GameDataRegistry.LoadBundled();

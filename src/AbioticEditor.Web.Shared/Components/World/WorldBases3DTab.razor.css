@@ -22,11 +22,11 @@
 .b3d-hud-walk { left: 50%; bottom: 10px; transform: translateX(-50%); margin: 0; padding: 4px 10px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.85); }
 .b3d-hud-locate { right: 10px; bottom: 10px; margin: 0; max-width: 45%; padding: 6px 10px; font-size: 12px; color: #fff; background: rgba(240, 132, 24, 0.9); }
 .b3d-side { display: flex; flex-direction: column; min-width: 0; height: clamp(420px, calc(100vh - 210px), 980px); border: 1px solid var(--line, #224158); background: rgba(8, 17, 25, 0.35); }
-.b3d-tabs { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--line, #224158); overflow-x: auto; }
+.b3d-tabs { display: flex; flex-wrap: wrap; flex: 0 0 auto; border-bottom: 1px solid var(--line, #224158); overflow: hidden; }
 .b3d-tab { flex: 1 1 auto; padding: 8px 6px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; color: var(--muted, #a9cbe0); background: transparent; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
 .b3d-tab:hover { color: #eaf3f8; }
 .b3d-tab.active { color: #fff; border-bottom-color: var(--accent, #f08418); }
-.b3d-tab-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+.b3d-tab-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 .b3d-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .b3d-objects-tools { display: flex; gap: 6px; }
 .b3d-search { flex: 1 1 auto; min-width: 0; }
@@ -90,3 +90,7 @@
     .b3d-side { height: auto; max-height: 80vh; }
     .b3d-hud-top { right: 10px; top: 40px; }
 }
+
+/* The editor's buttons grow slightly on hover; in the tab strip, the panel and over the view that
+   growth pushed the edges out and brought up scrollbars. */
+.b3d-tab:hover, .b3d-hud-btn:hover, .b3d-tab-body ::deep button:hover { transform: none !important; }

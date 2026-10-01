@@ -47,7 +47,8 @@ const MODEL_TINT_COPY = 0x7ff6f6;
 const MODEL_TINT_LEVEL_PLACED = 0xc4c4c4;
 const MODEL_BASE = "scene-models";
 const MODEL_FETCH_CONCURRENCY = 6;
-const CLASS_BATCH = 120;
+const CLASS_BATCH = 24; // small batches, so models start appearing while the rest are still being read
+const CLASS_REQUESTS = 3; // batches asked for at once
 const LEVEL_MAX_INSTANCES = 25000;
 const LEVEL_RETRY_MS = 4000;
 // The ceiling cut measures the base floor from player-built objects within this reach of the view
@@ -116,7 +117,25 @@ export function isWebGlAvailable() {
     }
 }
 
-export function createView(host, dotnet) {
+// A view the player left (another tab, the map) is kept for a while instead of being thrown away:
+// its renderer, compiled shaders, models, textures and level stay in memory, so coming back shows
+// it at once instead of reading and uploading everything again. One per save, the latest only.
+const PARK_MS = 15 * 60 * 1000;
+const parked = new Map(); // key -> { api, timer }
+
+export function createView(host, dotnet, parkKey) {
+    const waiting = parkKey ? parked.get(parkKey) : null;
+    if (waiting) {
+        parked.delete(parkKey);
+        clearTimeout(waiting.timer);
+        waiting.api.reattach(host, dotnet);
+        return waiting.api;
+    }
+    for (const [key, entry] of parked) { clearTimeout(entry.timer); entry.api.dispose(); parked.delete(key); }
+    return buildView(host, dotnet);
+}
+
+function buildView(host, dotnet) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.localClippingEnabled = true; // the level's ceiling cut
@@ -143,6 +162,11 @@ export function createView(host, dotnet) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
     controls.screenSpacePanning = true;
+    // The wheel zooms towards what is under the pointer, not only the orbit centre, so a detail
+    // anywhere on screen can be reached; the near limit lets the camera get right up to a small item.
+    controls.zoomToCursor = true;
+    controls.zoomSpeed = 1.4;
+    controls.minDistance = 0.15;
     controls.maxPolarAngle = Math.PI * 0.499 + 0.02;
 
     // Orientation aids.
@@ -162,6 +186,7 @@ export function createView(host, dotnet) {
     let selectedKeys = new Set(); // every selected key, primary included
     let labelsOn = false;
     let disposed = false;
+    let reattached = false;
     let dirty = false; // true while a frame is already scheduled
 
     // One outline per selected object; the primary is white, the rest amber.
@@ -204,7 +229,7 @@ export function createView(host, dotnet) {
         return t;
     }
 
-    function createMarkerLayer(texture, size) {
+    function createMarkerLayer(texture, size, lift = MARKER_LIFT_M) {
         const group = new THREE.Group();
         scene.add(group);
         const material = new THREE.PointsMaterial({ size, sizeAttenuation: false, map: texture, vertexColors: true,
@@ -226,7 +251,7 @@ export function createView(host, dotnet) {
                 const pos = new Float32Array(items.length * 3), col = new Float32Array(items.length * 3);
                 const c = new THREE.Color();
                 items.forEach((d, i) => {
-                    pos.set([d.p[0], d.p[1] + MARKER_LIFT_M, d.p[2]], i * 3);
+                    pos.set([d.p[0], d.p[1] + lift, d.p[2]], i * 3);
                     c.setHex(d.color ?? 0x8e9aaf, THREE.SRGBColorSpace);
                     col.set([c.r, c.g, c.b], i * 3);
                 });
@@ -240,7 +265,7 @@ export function createView(host, dotnet) {
                 const sel = items.find(d => d.id === layer.selected);
                 if (sel) {
                     const sg = new THREE.BufferGeometry();
-                    sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + MARKER_LIFT_M, sel.p[2]]), 3));
+                    sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + lift, sel.p[2]]), 3));
                     const ring = new THREE.Points(sg, ringMaterial);
                     ring.renderOrder = 11; // under the coloured marker, so it reads as a white outline
                     ring.frustumCulled = false;
@@ -249,7 +274,7 @@ export function createView(host, dotnet) {
             },
             /** Screen position (CSS pixels relative to the page) of a marker, or null. */
             screen(d) {
-                const v = new THREE.Vector3(d.p[0], d.p[1] + MARKER_LIFT_M, d.p[2]).project(camera);
+                const v = new THREE.Vector3(d.p[0], d.p[1] + lift, d.p[2]).project(camera);
                 const rect = renderer.domElement.getBoundingClientRect();
                 return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height, depth: v.z };
             },
@@ -279,6 +304,11 @@ export function createView(host, dotnet) {
     const npcLayer = createMarkerLayer(markerTexture(g => {
         g.moveTo(32, 4); g.lineTo(60, 32); g.lineTo(32, 60); g.lineTo(4, 32);
     }), 16);
+    // Items lying on the ground (small triangles just above the floor) and things of the level from
+    // the world lists: buttons, breakable walls, resource nodes and the like (squares).
+    const itemLayer = createMarkerLayer(markerTexture(g => { g.moveTo(32, 6); g.lineTo(60, 56); g.lineTo(4, 56); }), 12, 0.35);
+    const thingLayer = createMarkerLayer(markerTexture(g => g.rect(8, 8, 48, 48)), 12, 0.6);
+    const markerLayers = { door: doorLayer, npc: npcLayer, item: itemLayer, thing: thingLayer };
 
     // Walk mode: a first-person camera (drag to look, WASD to move) that keeps eye height above
     // whatever is under it when "stay on the floor" is on. The orbit camera is off meanwhile.
@@ -494,7 +524,11 @@ export function createView(host, dotnet) {
         }
         modelMeshes = [];
         objInstances = new Map();
+        builtClasses.clear();
     }
+
+    /** Model classes with instances in the scene (so arriving models add only what is new). */
+    const builtClasses = new Set();
 
     /** One InstancedMesh per part of every class that has a ready model and a visible object. */
     // Shaders for materials seen for the first time are compiled in parallel (compileAsync) before
@@ -527,21 +561,26 @@ export function createView(host, dotnet) {
         });
     }
 
-    function rebuildModelInstances() {
-        disposeModelMeshes();
-        if (!modelsOn) return;
-        const built = [];
+    /** The visible objects with a ready model, grouped by model class (only classes not built yet when onlyNew). */
+    function visibleByClass(onlyNew) {
         const byClass = new Map();
         for (const idx of visible) {
             const o = objects[idx];
             if (!readyModel(o)) continue;
             const key = modelKey(o);
+            if (onlyNew && builtClasses.has(key)) continue;
             if (!byClass.has(key)) byClass.set(key, []);
             byClass.get(key).push(idx);
         }
+        return byClass;
+    }
+
+    function buildClassInstances(byClass) {
+        const built = [];
         const base = new THREE.Matrix4();
         const m = new THREE.Matrix4();
         for (const [cls, list] of byClass) {
+            builtClasses.add(cls);
             for (const part of classModels.get(cls).parts) {
                 const mesh = new THREE.InstancedMesh(part.geometry, part.materials, list.length);
                 mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -561,15 +600,37 @@ export function createView(host, dotnet) {
                 modelMeshes.push(mesh);
             }
         }
-        addWhenCompiled(built, scene, m => modelMeshes.includes(m));
+        addWhenCompiled(built, scene, mesh => modelMeshes.includes(mesh));
+    }
+
+    function rebuildModelInstances() {
+        disposeModelMeshes();
+        if (!modelsOn) return;
+        buildClassInstances(visibleByClass(false));
+    }
+
+    /**
+     * Models arrived: adds instances for the newly ready classes only. Rebuilding every class each
+     * time a batch arrived threw away and recreated hundreds of meshes dozens of times per load.
+     */
+    function addArrivedModels() {
+        if (!modelsOn) return;
+        buildClassInstances(visibleByClass(true));
+        rebuildBoxes();
     }
 
     function rebuildInstances() {
+        rebuildModelInstances();
+        rebuildBoxes();
+        rebuildDots();
+    }
+
+    /** The coloured boxes, for every visible object without a ready model. */
+    function rebuildBoxes() {
         const perCat = CATEGORY_COLORS.map(() => []);
         for (const idx of visible) {
-            if (!readyModel(objects[idx])) perCat[objects[idx].cat].push(idx);
+            if (!(modelsOn && readyModel(objects[idx]))) perCat[objects[idx].cat].push(idx);
         }
-        rebuildModelInstances();
         const m = new THREE.Matrix4();
         instanceToObject = perCat;
         perCat.forEach((list, cat) => {
@@ -584,7 +645,6 @@ export function createView(host, dotnet) {
             if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
             mesh.computeBoundingSphere();
         });
-        rebuildDots();
         updateSelectionBox();
         requestRender();
     }
@@ -892,10 +952,7 @@ export function createView(host, dotnet) {
         modelRebuildQueued = true;
         setTimeout(() => {
             modelRebuildQueued = false;
-            if (!disposed) {
-                rebuildInstances();
-                updateSelectionBox();
-            }
+            if (!disposed) addArrivedModels();
         }, 120);
     }
 
@@ -929,7 +986,8 @@ export function createView(host, dotnet) {
         // Batches are asked for together (the host works each one out in parallel).
         const chunks = [];
         for (let i = 0; i < wanted.length; i += CLASS_BATCH) chunks.push(wanted.slice(i, i + CLASS_BATCH));
-        await Promise.all(chunks.map(async chunk => {
+        const queue = [...chunks];
+        const runChunk = async chunk => {
             let answer;
             try {
                 answer = await postJson(`${MODEL_BASE}/classes`, chunk) ?? {};
@@ -947,6 +1005,10 @@ export function createView(host, dotnet) {
                 if (done % 10 === 0 || done === wanted.length) report("models", done, wanted.length);
                 scheduleModelRebuild();
             }));
+        };
+        // A few batches at a time, each started as soon as one finishes.
+        await Promise.all(Array.from({ length: Math.min(CLASS_REQUESTS, queue.length) }, async () => {
+            while (queue.length && !disposed) await runChunk(queue.shift());
         }));
         report("models", wanted.length, wanted.length);
     }
@@ -1570,10 +1632,15 @@ export function createView(host, dotnet) {
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 4) return;
-        const door = doorLayer.at(e.clientX, e.clientY), npc = npcLayer.at(e.clientX, e.clientY);
-        if (door || npc) {
-            if (npc && (!door || npc.dist < door.dist)) dotnet.invokeMethodAsync("OnNpcPicked", npc.item.id).catch(() => { });
-            else dotnet.invokeMethodAsync("OnDoorPicked", door.item.id).catch(() => { });
+        let marker = null;
+        for (const [kind, layer] of Object.entries(markerLayers)) {
+            const found = layer.at(e.clientX, e.clientY);
+            if (found && (!marker || found.dist < marker.dist)) marker = { kind, ...found };
+        }
+        if (marker) {
+            if (marker.kind === "npc") dotnet.invokeMethodAsync("OnNpcPicked", marker.item.id).catch(() => { });
+            else if (marker.kind === "door") dotnet.invokeMethodAsync("OnDoorPicked", marker.item.id).catch(() => { });
+            else dotnet.invokeMethodAsync("OnMarkerPicked", marker.kind, marker.item.id).catch(() => { });
             return;
         }
         const hit = pick(e.clientX, e.clientY);
@@ -1583,6 +1650,23 @@ export function createView(host, dotnet) {
         if (additive && !hit) return; // a modified click on nothing keeps the selection
         // C# owns the selection (it also drives the list and the inspector) and pushes it back.
         dotnet.invokeMethodAsync("OnPicked", hit ? hit.key : null, additive);
+    });
+
+    // Double-click a spot to orbit around it and move in closer: the quick way to look at a detail.
+    renderer.domElement.addEventListener("dblclick", e => {
+        if (walkOn) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -(((e.clientY - rect.top) / rect.height) * 2 - 1));
+        raycaster.setFromCamera(pointer, camera);
+        const targets = [...modelMeshes, ...meshes.filter(m => m.count > 0), ...levelGroup.children];
+        const hit = raycaster.intersectObjects(targets, false).find(h => levelClip.distanceToPoint(h.point) >= 0);
+        if (!hit) return;
+        const offset = camera.position.clone().sub(controls.target).multiplyScalar(0.4);
+        if (offset.length() < 1.5) offset.setLength(1.5);
+        controls.target.copy(hit.point);
+        camera.position.copy(hit.point).add(offset);
+        controls.update();
+        requestRender();
     });
 
     function setSelection(keys, primary) {
@@ -1891,13 +1975,24 @@ export function createView(host, dotnet) {
         },
         /** Frames a door ("door") or character ("npc") marker by id. False when no such marker is drawn. */
         focusMarker(kind, id, distance) {
-            const layer = kind === "door" ? doorLayer : npcLayer;
+            const layer = markerLayers[kind];
+            if (!layer) return false;
             const item = layer.items.find(x => x.id === id);
             if (!item) return false;
             flyTo(new THREE.Vector3(item.p[0], item.p[1], item.p[2]), distance);
             setPin(null);
             return true;
         },
+        /** Ground items ("item") or level things ("thing") as markers: each {id, p:[x,y,z] (viewer space), color}. */
+        setMarkers(kind, list) { const layer = markerLayers[kind]; if (!layer) return; layer.items = list ?? []; layer.rebuild(); requestRender(); },
+        /** Shows or hides one kind of marker. */
+        setMarkersVisible(kind, on) { const layer = markerLayers[kind]; if (!layer) return; layer.on = !!on; layer.rebuild(); requestRender(); },
+        /** Rings one marker of a kind (null clears it). */
+        setMarkerSelection(kind, id) { const layer = markerLayers[kind]; if (!layer) return; layer.selected = id ?? null; layer.rebuild(); requestRender(); },
+        /** The markers of a kind (id and viewer position), for UI tests. */
+        markerList(kind) { return (markerLayers[kind]?.items ?? []).map(d => ({ id: d.id, p: d.p })); },
+        /** Screen position of a marker of any kind, or null. Used by UI tests. */
+        markerScreenPosition(kind, id) { const layer = markerLayers[kind]; const d = layer?.items.find(x => x.id === id); return d ? layer.screen(d) : null; },
         /** Removes the pin left by focusPoint. */
         clearPin() { setPin(null); },
         /** Scrolls the page so the whole view is in sight. */
@@ -1985,14 +2080,37 @@ export function createView(host, dotnet) {
                 walk: walkOn,
             };
         },
+        /** True when this view was kept from a previous visit (nothing to load again). */
+        isReattached() { return reattached; },
+        /** Moves the kept view into a new host element and reports to a new component. */
+        reattach(newHost, newDotnet) {
+            observer.unobserve(host);
+            while (host.firstChild) newHost.appendChild(host.firstChild);
+            host = newHost;
+            dotnet = newDotnet;
+            host.__base3d = api;
+            observer.observe(host);
+            reattached = true;
+            resize();
+            requestRender();
+        },
+        /** Keeps the view for a while (see PARK_MS) instead of disposing it; createView with the same key takes it back. */
+        park(key) {
+            if (!key) { api.dispose(); return; }
+            if (walkOn) setWalk(false);
+            observer.unobserve(host);
+            const old = parked.get(key);
+            if (old && old.api !== api) { clearTimeout(old.timer); old.api.dispose(); }
+            parked.set(key, { api, timer: setTimeout(() => { parked.delete(key); api.dispose(); }, PARK_MS) });
+        },
         dispose() {
+            if (disposed) return;
             disposed = true;
             window.removeEventListener("keydown", onWalkKeyDown);
             window.removeEventListener("keyup", onWalkKeyUp);
             clearLamps();
             glowTexture.dispose();
-            doorLayer.dispose();
-            npcLayer.dispose();
+            for (const layer of Object.values(markerLayers)) layer.dispose();
             clearTimeout(levelRetry);
             observer.disconnect();
             transform.dispose();

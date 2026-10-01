@@ -152,6 +152,11 @@
         {
             _tabSession = world;
             _worldTabItems = BuildWorldTabs(world);
+            // The first read of an area's 3D models from the game files takes tens of seconds, so it
+            // starts in the background as soon as the save opens, long before the 3D view is.
+            if (!IsBrowserHost && GameModelsAvailable && Services.GetService(typeof(SceneModelHostService)) is SceneModelHostService scene)
+                scene.Prewarm(() => world.PlacedObjects.Where(o => o.Transform?.Translation is not null && o.ClassPath is not null)
+                    .Select(o => o.ClassPath + Base3DScene.VariantOf(o)));
         }
         if (_worldTabItems.Count > 0 && !_worldTabItems.Any(tab => string.Equals(tab.Id, _worldTab, StringComparison.Ordinal)))
             _worldTab = _worldTabItems[0].Id;
