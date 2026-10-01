@@ -424,8 +424,11 @@
     background: var(--af-accent-soft, #1d2b34);
 }
 
-/* Keep discovery central until there is a world or a live session to navigate. */
-.workspace-shell.shell-with-splitters.workspace-start {
+/* Keep discovery central until there is a world or a live session to navigate. The
+   .workspace-start class is repeated so this outweighs the four-class file-collapsed /
+   details-unavailable rules above; otherwise a mid-width window (folded file pane) put the
+   only visible column in a zero-width track and the whole start page rendered blank. */
+.workspace-shell.shell-with-splitters.workspace-start.workspace-start.workspace-start {
     grid-template-columns: minmax(0, 1fr) !important;
 }
 .workspace-start > .file-pane,
