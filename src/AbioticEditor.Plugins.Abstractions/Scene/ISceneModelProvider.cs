@@ -146,8 +146,9 @@ public sealed record SceneLevelQuery(
     string Region, float[] Min, float[] Max, int MaxInstances, IReadOnlyCollection<string>? ExcludeActors = null)
 {
     /// <summary>
-    /// Doors the save holds open, as <c>Map:Actor</c> (e.g. <c>Facility_Office1:BlastDoor_C_2</c>). The
-    /// level draws every door closed; for these the moving leaf is left out, so the doorway shows open.
+    /// Doors the save holds open, as <c>Map:Actor</c> (e.g. <c>Facility_Office1:BlastDoor_C_2</c>), with
+    /// <c>|in</c> or <c>|out</c> for a swinging door open inwards or outwards. The level draws every door
+    /// closed; for these the closed leaf is left out, and a swinging door's leaf is drawn swung that way.
     /// </summary>
     public IReadOnlyCollection<string>? OpenDoors { get; init; }
 }

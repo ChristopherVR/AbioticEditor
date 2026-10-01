@@ -1259,8 +1259,10 @@
     /// <summary>The doors this save holds open, as <c>Map:Actor</c>, so the level shows their doorways open.</summary>
     private string[] OpenDoorKeys() => Session.Doors
         .Where(d => d.Kind == WorldDoorKind.Security ? d.IsDoorOpen == true : DoorStateNames.IsOpen(d.DoorState))
-        .Select(d => DoorIdParser.Parse(d.Id))
-        .Select(p => (string.IsNullOrEmpty(p.Map) ? "Facility" : p.Map) + ":" + p.Actor)
+        .Select(d => (Id: DoorIdParser.Parse(d.Id), Way: d.Kind == WorldDoorKind.Simple
+            ? DoorStateNames.Friendly(d.DoorState) switch { "OpenInwards" => "|in", "OpenOutwards" => "|out", _ => "" }
+            : ""))
+        .Select(x => (string.IsNullOrEmpty(x.Id.Map) ? "Facility" : x.Id.Map) + ":" + x.Id.Actor + x.Way)
         .ToArray();
 
     private async Task PushLevelAsync()

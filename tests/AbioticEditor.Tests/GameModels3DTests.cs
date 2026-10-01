@@ -544,6 +544,45 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void A_swinging_door_open_inwards_or_outwards_draws_its_leaf_swung_that_way()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        const string Door = "SimpleDoor_ParentBP_C_0";
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Office1.umap"));
+        int Of(HashSet<int> set) => set.Single(e => index.Actors[index.Entries[e].Actor] == Door);
+        var leaf = index.Entries[Of(index.DoorLeaves)];
+        var inward = index.Entries[Of(index.DoorOpenInward)];
+        var outward = index.Entries[Of(index.DoorOpenOutward)];
+        Assert.Equal(leaf.Mesh, inward.Mesh); // the same leaf, placed swung
+        Assert.NotEqual(leaf.World, inward.World);
+        Assert.NotEqual(inward.World, outward.World);
+
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-swing-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var root = DoorLocationResolver.RootsForMap(assets, "Facility_Office1")[Door];
+            var (x, y, z) = assets.PlaceInWorld("Facility_Office1", root.X, root.Y, root.Z);
+            var c = PlacedSceneSpace.ToViewer(new PlacedVector(x, y, z));
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var box = new SceneLevelQuery("Facility_Office1", [(float)c.X - 4, (float)c.Y - 2, (float)c.Z - 4], [(float)c.X + 4, (float)c.Y + 3, (float)c.Z + 4], 20000, []);
+            provider.DescribeLevel(box);
+            provider.WaitForLevels(TimeSpan.FromMinutes(5));
+            var closed = provider.DescribeLevel(box)!.TotalInBox;
+            var swungIn = provider.DescribeLevel(box with { OpenDoors = ["Facility_Office1:" + Door + "|in"] })!.TotalInBox;
+            var gone = provider.DescribeLevel(box with { OpenDoors = ["Facility_Office1:" + Door] })!.TotalInBox;
+            Assert.Equal(closed, swungIn); // the closed leaf out, the swung one in
+            Assert.Equal(closed - 1, gone);
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Landscape_terrain_is_indexed_and_bakes_to_a_height_grid()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();

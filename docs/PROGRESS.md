@@ -13,6 +13,15 @@
   are unchanged. Found while checking the saved `DoorRotationRootYaw`: across the fixtures, state 0
   doors carry about plus or minus 93 degrees and state 1 doors 0, so that field is not the open angle
   (left alone).
+- **Swinging doors drawn swung.** With the states named, an open swinging door's direction is known.
+  The door blueprint carries hidden editor previews of its leaf open each way (`EditorInwardDoorMesh`,
+  `EditorOutwardDoorMesh`); the index keeps them (`DoorOpenInward`/`DoorOpenOutward`, format 13) and
+  `OpenDoors` entries may end in `|in` or `|out`, which swaps the closed leaf for that preview.
+  Security doors, and destroyed or smashed doors, still just leave the doorway clear. Headless:
+  Office1's stall door closed, open inwards (swung into the stall) and open outwards (edge-on at the
+  opening). Test `A_swinging_door_open_inwards_or_outwards_draws_its_leaf_swung_that_way`.
+- v2.22.0 released from the round-141 push: the plugin zip carries `CUE4Parse-Natives.dll` and
+  `CUE4Parse-Natives.so`; `nexus-models` skipped (no `NEXUS_MODELS_FILE_ID`).
 - **Release run failed on Linux CI** at `Region_names_come_from_the_world_save_file`: `Path.GetFileName`
   on Linux does not split `C:\saves\...`. `Base3DScene.RegionOf` now splits on both separators.
 
@@ -65,8 +74,7 @@
   doorway; closed from its card the leaf returns.
 - Tests: `Characters_driven_by_an_animation_blueprint_rest_in_its_idle_animation`,
   `The_levels_lamps_and_door_leaves_are_indexed_and_open_doors_leave_their_doorway_clear`.
-- An open simple door is shown as an empty doorway, not swung (the swing direction is decided at run
-  time). (The terrain's fifth slot: round 141.)
+- (Swinging doors drawn swung: round 142. The terrain's fifth slot: round 141.)
 
 ## Round-139: base edits checked in the running game, walking collides, kinds from other worlds (2026-10-01)
 

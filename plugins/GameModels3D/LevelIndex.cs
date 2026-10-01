@@ -38,6 +38,14 @@ internal sealed class LevelIndexData
     /// <summary>Entries that are a door's moving leaf (the door blueprints' <c>DoorMesh</c> component).</summary>
     public HashSet<int> DoorLeaves { get; init; } = [];
 
+    /// <summary>
+    /// The door blueprints' hidden editor previews of the leaf swung open inwards and outwards
+    /// (<c>EditorInwardDoorMesh</c>, <c>EditorOutwardDoorMesh</c>): drawn only for a door the save
+    /// holds open that way, in place of its closed leaf.
+    /// </summary>
+    public HashSet<int> DoorOpenInward { get; init; } = [];
+    public HashSet<int> DoorOpenOutward { get; init; } = [];
+
     /// <summary>World-space box around every entry's bounding sphere (cm).</summary>
     public Vector3 Min { get; set; }
     public Vector3 Max { get; set; }
@@ -89,7 +97,7 @@ internal static class LevelIndex
         0, -2 * size.Y / PlaneSizeCm, 0, 0,
         1, 0, 0, 0,
         0, 0, 0, 1);
-    public const int FormatVersion = 12; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves
+    public const int FormatVersion = 13; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves; 13: door swing previews
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -230,7 +238,10 @@ internal static class LevelIndex
                     data.Entries.Add(new LevelEntry(splineMesh, splineOverride, actorId, at, at.Translation, 0));
                     continue;
                 }
-                if (!ClassModelResolver.IsMeshComponent(component.ExportType) || !Visible(component, 0)) continue;
+                var swingPreview = component.Name.StartsWith("EditorInwardDoorMesh", StringComparison.Ordinal) ? 1
+                    : component.Name.StartsWith("EditorOutwardDoorMesh", StringComparison.Ordinal) ? 2 : 0;
+                // The swing previews are hidden in game but are exactly where an open door's leaf sits.
+                if (!ClassModelResolver.IsMeshComponent(component.ExportType) || (swingPreview == 0 && !Visible(component, 0))) continue;
                 if (!ClassModelResolver.TryMesh([component], out var mesh)) continue;
                 var overrides = Props.Get(component, "OverrideMaterials", Array.Empty<FPackageIndex?>())
                     .Select(m => m is { IsNull: false } ? m.ResolvedObject?.GetPathName() : null)
@@ -252,6 +263,8 @@ internal static class LevelIndex
                     // The door blueprints (simple and security doors alike) keep the part that swings or
                     // slides in "DoorMesh"; the frame and editor previews are separate components.
                     if (component.Name.StartsWith("DoorMesh", StringComparison.Ordinal)) data.DoorLeaves.Add(data.Entries.Count);
+                    if (swingPreview == 1) data.DoorOpenInward.Add(data.Entries.Count);
+                    if (swingPreview == 2) data.DoorOpenOutward.Add(data.Entries.Count);
                     data.Entries.Add(new LevelEntry(meshId, overrideId, actorId, placed, placed.Translation, 0));
                 }
             }
@@ -356,8 +369,11 @@ internal static class LevelIndex
                 w.Write(l.Cone ?? -1f);
                 w.Write(l.Actor);
             }
-            w.Write(data.DoorLeaves.Count);
-            foreach (var leaf in data.DoorLeaves) w.Write(leaf);
+            foreach (var set in new[] { data.DoorLeaves, data.DoorOpenInward, data.DoorOpenOutward })
+            {
+                w.Write(set.Count);
+                foreach (var entry in set) w.Write(entry);
+            }
         }
         File.Move(temp, path, overwrite: true);
     }
@@ -407,9 +423,20 @@ internal static class LevelIndex
                 var cone = r.ReadSingle();
                 lights.Add(new LevelLight(position, colour, brightness, radius, hasDirection ? direction : null, cone < 0 ? null : cone, r.ReadInt32()));
             }
-            var leaves = new HashSet<int>();
-            for (var i = r.ReadInt32(); i > 0; i--) leaves.Add(r.ReadInt32());
-            return new LevelIndexData { Map = map, Meshes = meshes, OverrideSets = sets, Actors = actors, Entries = entries, Lights = lights, DoorLeaves = leaves, Min = min, Max = max };
+            HashSet<int> ReadSet()
+            {
+                var set = new HashSet<int>();
+                for (var i = r.ReadInt32(); i > 0; i--) set.Add(r.ReadInt32());
+                return set;
+            }
+            var leaves = ReadSet();
+            var inward = ReadSet();
+            var outward = ReadSet();
+            return new LevelIndexData
+            {
+                Map = map, Meshes = meshes, OverrideSets = sets, Actors = actors, Entries = entries, Lights = lights,
+                DoorLeaves = leaves, DoorOpenInward = inward, DoorOpenOutward = outward, Min = min, Max = max,
+            };
         }
         catch (Exception ex) when (ex is IOException or EndOfStreamException or UnauthorizedAccessException or ArgumentOutOfRangeException)
         {

@@ -300,7 +300,14 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var excluded = new HashSet<string>(
             (query.ExcludeActors ?? []).Select(ActorName).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase);
 
-        var openDoors = new HashSet<string>(query.OpenDoors ?? [], StringComparer.OrdinalIgnoreCase);
+        // "Map:Actor" (open: leaf left out), with "|in" or "|out" for a swinging door open that way
+        // (its swung leaf is drawn instead).
+        var openDoors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var door in query.OpenDoors ?? [])
+        {
+            var bar = door.IndexOf('|', StringComparison.Ordinal);
+            openDoors[bar < 0 ? door : door[..bar]] = bar < 0 ? "" : door[(bar + 1)..];
+        }
         var ready = new List<LevelIndexData>();
         var pending = 0;
         foreach (var map in maps)
@@ -324,9 +331,15 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             for (var entryIndex = 0; entryIndex < index.Entries.Count; entryIndex++)
             {
                 var local = index.Entries[entryIndex];
-                // A door the save holds open: its leaf is left out, so the doorway is clear.
-                if (openDoors.Count > 0 && index.DoorLeaves.Contains(entryIndex)
-                    && openDoors.Contains(mapName + ":" + index.Actors[local.Actor])) continue;
+                // A door the save holds open: its closed leaf is left out, and a swinging door's leaf is
+                // drawn swung the way it opened (the blueprint's own preview of that position).
+                var inward = index.DoorOpenInward.Contains(entryIndex);
+                var outward = index.DoorOpenOutward.Contains(entryIndex);
+                if (index.DoorLeaves.Contains(entryIndex) || inward || outward)
+                {
+                    var open = openDoors.TryGetValue(mapName + ":" + index.Actors[local.Actor], out var way);
+                    if (index.DoorLeaves.Contains(entryIndex) ? open : !(open && way == (inward ? "in" : "out"))) continue;
+                }
                 var e = placement.IsIdentity ? local : local with { World = local.World * placement, Centre = Vector3.Transform(local.Centre, placement) };
                 var closest = Vector3.Clamp(e.Centre, min, max);
                 if (e.Radius > MaxPieceRadiusCm || Vector3.DistanceSquared(closest, e.Centre) > e.Radius * e.Radius) continue;
