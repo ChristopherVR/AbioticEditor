@@ -755,7 +755,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var isMesh = kind == "mesh";
         // Terrain meshes carry layer weights since v2 (and texture coordinates in quads), so they
         // are cached apart from the ordinary meshes baked before.
-        var folder = !isMesh ? "textures" : LandscapeBaker.IsKey(path) ? "meshes-terrain-v2" : "meshes";
+        var folder = !isMesh ? "textures" : LandscapeBaker.IsKey(path) ? "meshes-terrain-v3" : "meshes"; // terrain v3: the fifth paint layer
         var file = CachePath(folder, assetId, isMesh ? ".abm" : ".png");
         var contentType = isMesh ? SceneMeshFormat.ContentType : "image/png";
         if (File.Exists(file))

@@ -1,5 +1,25 @@
 # Abiotic Editor - Session history
 
+## Round-141: the fifth terrain layer, Linux native decoder checked (2026-10-01)
+
+- **Terrain fifth slot found.** The earlier survey missed a paint layer named `Misc2`, painted only in
+  a few maps: H_Garden (LayerInfo_Moss, Quinary = moss), H_Japan and H_Cabin (LayerInfo_Cobblestone,
+  Quinary = stone path, gravel), V_ISLAND and V_Signal (cobblestone). The master's cached parameters
+  (`CachedExpressionData.RuntimeEntries`) show Quinary built exactly like the other slots (texture,
+  scale, variation, macro tiling, roughness) and no slope or height inputs; its functions are texture
+  variation and world-position helpers only. `LandscapeBaker.SlotLayers` gains `Misc2` (vertex alpha);
+  the shader already blended a fifth weight from alpha. Baked terrain cache folder `meshes-terrain-v3`.
+  Test `The_fifth_terrain_slot_is_painted_by_the_misc2_layer` (H_Japan: 142 pieces, fifth weight up
+  to 148/255). `Translucency` and the engine's visibility layer stay unmapped (not colour).
+- **Linux native decoder checked.** The release job's Linux step run as written in an `ubuntu:24.04`
+  container (gcc 13.3, CMake 3.28, what `ubuntu-latest` has) builds `CUE4Parse-Natives.so`
+  (SONAME `CUE4Parse-Natives.so`). In a .NET 10 container, the plugin's non-Windows path (load by
+  path, `SetDllImportResolver` on CUE4Parse) makes CUE4Parse's ACL `[DllImport]` entry points
+  (`ACLNative.nAllocate`/`nDeallocate`) reach it. `CUE4ParseNatives.IsInitialized` stays false there:
+  that static probe uses `NativeLibrary.TryLoad(name, assembly, AssemblyDirectory)`, which ignores the
+  resolver; it only gates Oodle, which the plugin does not use. The Windows job was already matched by
+  the local VS-CMake build (round 139). Only the GitHub run itself (needs a push) remains unseen.
+
 ## Round-140: blueprint-posed characters, level lamps, open doorways (2026-10-01)
 
 - **Animation-blueprint poses.** 1,329 level skeletal meshes had a mesh but no pose: 262 story
@@ -29,9 +49,8 @@
   doorway; closed from its card the leaf returns.
 - Tests: `Characters_driven_by_an_animation_blueprint_rest_in_its_idle_animation`,
   `The_levels_lamps_and_door_leaves_are_indexed_and_open_doors_leave_their_doorway_clear`.
-- Still not drawn: the terrain's fifth slot (`Quinary`: no paint layer feeds it, presumably mixed by
-  height or slope inside the material graph, which cooking strips). An open simple door is shown as an
-  empty doorway, not swung (the swing direction is decided at run time).
+- An open simple door is shown as an empty doorway, not swung (the swing direction is decided at run
+  time). (The terrain's fifth slot: round 141.)
 
 ## Round-139: base edits checked in the running game, walking collides, kinds from other worlds (2026-10-01)
 

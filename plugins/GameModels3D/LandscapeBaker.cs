@@ -23,10 +23,13 @@ internal static class LandscapeBaker
     /// paints with the same layer names. Which layer feeds which slot is not in the cooked data (the
     /// node graph is stripped), so it is read from the textures: across every outdoor map the rock
     /// textures sit in <c>Tertiary</c>, pebbles and larvae in <c>Quaternary</c> and road dirt in
-    /// <c>Secondary</c>, with <c>Main</c> as the base. Layers not listed here (translucency, the
-    /// engine's hole layer) do not change the colour. Index = vertex colour channel + 1.
+    /// <c>Secondary</c>, with <c>Main</c> as the base. The fifth slot (<c>Quinary</c>) is the layer
+    /// named <c>Misc2</c>, painted in a few maps only (moss in the garden, cobblestone paths at the
+    /// cabin, the Japanese shrine and the island): its texture there is moss or stone path. Layers not
+    /// listed here (translucency, the engine's hole layer) do not change the colour.
+    /// Index = vertex colour channel + 1.
     /// </summary>
-    internal static readonly string[] SlotLayers = ["Main", "Road", "Rock", "Misc"];
+    internal static readonly string[] SlotLayers = ["Main", "Road", "Rock", "Misc", "Misc2"];
 
     public static string Key(string mapObjectPath, int exportIndex)
         => mapObjectPath + Marker + exportIndex.ToString(CultureInfo.InvariantCulture);

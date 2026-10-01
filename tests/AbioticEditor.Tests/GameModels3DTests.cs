@@ -568,6 +568,34 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void The_fifth_terrain_slot_is_painted_by_the_misc2_layer()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        // The Japanese shrine paints its stone paths with "Misc2" (LayerInfo_Cobblestone); the material's
+        // fifth slot (Quinary) holds the stone path texture.
+        var layers = assets.UseFileProvider(p => TerrainMaterial.Read(p, "/Game/Textures/Landscape/M_ABF_LandscapeTorii.M_ABF_LandscapeTorii"));
+        Assert.EndsWith("T_TORII_StonePath_01", layers[4].Texture!, StringComparison.Ordinal);
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/H_Japan.umap"));
+        var maxAlpha = assets.UseFileProvider(p =>
+        {
+            var best = 0;
+            foreach (var key in index.Meshes.Where(LandscapeBaker.IsKey))
+            {
+                if (LandscapeBaker.Load(p, key) is not { } c || LandscapeBaker.Bake(c, 1) is not { } mesh) continue;
+                var vertices = (int)BinaryPrimitives.ReadUInt32LittleEndian(mesh.AsSpan(4));
+                var sections = (int)BinaryPrimitives.ReadUInt32LittleEndian(mesh.AsSpan(12));
+                var colours = 20 + (sections * 12) + (vertices * 12) + (((vertices * 6) + 3) & ~3) + (vertices * 8);
+                for (var v = 0; v < vertices; v++) best = Math.Max(best, mesh[colours + (v * 4) + 3]);
+                if (best > 128) break;
+            }
+            return best;
+        });
+        Assert.True(maxAlpha > 128, $"the fifth layer's weight never rises above {maxAlpha}");
+    }
+
+    [Fact]
     public void Crops_stand_on_their_spot_with_the_stage_mesh_and_fruit_when_grown()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();
