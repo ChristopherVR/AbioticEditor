@@ -41,7 +41,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     // Answers that depend on how materials are read carry their own version, so a reader fix does not
     // throw away the slow level indexes and baked meshes. v2: blend modes read as enum names.
     private const string MaterialsFolder = "materials-v4"; // v3: world tiling (Scale); v4: decal domain
-    private const string ClassesFolder = "classes-v2";
+    private const string ClassesFolder = "classes-v3"; // v3: decals on objects
 
     private const int ObjectTextureSize = 1024;
     private const int LevelTextureSize = 512;
@@ -121,9 +121,11 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     public SceneClassModel? DescribeClass(string classPath, SceneObjectState state)
     {
         ArgumentNullException.ThrowIfNull(state);
-        var plain = state.PaintColor is { } paint ? DescribeClass(classPath, paint) : DescribeClass(classPath);
+        var plain = state.LiquidLevel is { } liquid
+            ? DescribeFilled(classPath, state.PaintColor, liquid, state.LiquidType)
+            : state.PaintColor is { } paint ? DescribeClass(classPath, paint) : DescribeClass(classPath);
         if (state.Crops is not { Count: > 0 } crops || plain is null) return plain;
-        var key = $"{classPath}#paint={state.PaintColor}#crops={string.Join(',', crops.OrderBy(c => c.Spot).Select(c => $"{c.Spot}.{c.Row}.{c.Stage}"))}";
+        var key = $"{classPath}#paint={state.PaintColor}#liquid={state.LiquidLevel}#fluid={state.LiquidType}#crops={string.Join(',', crops.OrderBy(c => c.Spot).Select(c => $"{c.Spot}.{c.Row}.{c.Stage}"))}";
         var cacheFile = CachePath(ClassesFolder, key, ".json");
         if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
 
@@ -136,6 +138,26 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             parts.Add(part);
         }
         var model = new SceneClassModel(parts, [min.X, min.Y, min.Z], [max.X, max.Y, max.Z]);
+        WriteJson(cacheFile, new CachedClass(model));
+        return model;
+    }
+
+    /// <summary>A liquid container (painted or not) with its surface where the saved fill puts it (see <see cref="LiquidFill"/>).</summary>
+    private SceneClassModel? DescribeFilled(string classPath, int? paintColor, int level, string? liquidType)
+    {
+        var plain = paintColor is { } p0 ? DescribeClass(classPath, p0) : DescribeClass(classPath);
+        if (string.IsNullOrWhiteSpace(classPath) || !GamePath().IsMatch(classPath)) return plain;
+        var cacheFile = CachePath(ClassesFolder, $"{classPath}#paint={paintColor}#liquid={level}#fluid={liquidType}", ".json");
+        if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
+        var surface = Read(p => LiquidFill.SurfaceFor(p, classPath, level));
+        var paint = paintColor is { } pc && pc != AbioticEditor.Core.WorldSaves.DeployablePaintCatalog.NoneValue
+            ? Read(p => PaintResolver.Materials(p, classPath, pc))
+            : null;
+        var surfaceMaterial = surface is not null && level > 0 && liquidType is { Length: > 0 }
+            ? Read(p => LiquidFill.SurfaceMaterial(p, classPath, liquidType))
+            : null;
+        var model = surface is null ? plain : BuildClass(classPath, paint, surface,
+            surfaceMaterial is null ? null : new Dictionary<string, string> { [LiquidFill.SurfaceComponent] = surfaceMaterial });
         WriteJson(cacheFile, new CachedClass(model));
         return model;
     }
@@ -215,9 +237,11 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// <summary>A cached answer, including "no model" so a class without one is not re-read every run.</summary>
     private sealed record CachedClass(SceneClassModel? Model);
 
-    private SceneClassModel? BuildClass(string classPath, IReadOnlyList<string?>? paint = null)
+    private SceneClassModel? BuildClass(string classPath, IReadOnlyList<string?>? paint = null,
+        IReadOnlyDictionary<string, CUE4Parse.UE4.Objects.Core.Math.FVector?>? relativeLocations = null,
+        Dictionary<string, string>? partMaterials = null)
     {
-        var parts = Read(p => ClassModelResolver.Resolve(p, classPath));
+        var parts = Read(p => ClassModelResolver.Resolve(p, classPath, relativeLocations));
         if (parts.Count == 0) return null;
 
         var scene = new List<ScenePart>();
@@ -231,9 +255,12 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             var overrides = paint is not null && !part.Name.Contains('/', StringComparison.Ordinal)
                 ? Painted(part.MaterialOverrides, paint)
                 : part.MaterialOverrides;
-            scene.Add(new ScenePart(
-                $"mesh/0{part.Mesh}", SceneMath.ToViewer(part.Local),
-                MaterialsFor(info, overrides, ObjectTextureSize), part.Name));
+            // A component whose material the blueprint sets at run time (a liquid's surface).
+            if (partMaterials is not null && partMaterials.TryGetValue(part.Name, out var runtimeMaterial)) overrides = [runtimeMaterial];
+            var materials = MaterialsFor(info, overrides, ObjectTextureSize);
+            // As in the level: a decal without see-through pixels would be a solid square.
+            if (materials.Any(m => m.Decal && (m.Texture is null || !TextureHasAlpha(m.Texture)))) continue;
+            scene.Add(new ScenePart($"mesh/0{part.Mesh}", SceneMath.ToViewer(part.Local), materials, part.Name));
         }
         if (scene.Count == 0) return null;
         return new SceneClassModel(scene, [min.X, min.Y, min.Z], [max.X, max.Y, max.Z]);
@@ -599,6 +626,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var info = LandscapeBaker.IsKey(path)
             ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Describe(land, null) : null)
             : SplineBaker.IsKey(path) ? DescribeSpline(path)
+            : PoseBaker.IsKey(path) ? DescribePosed(path)
             : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Describe(obj) : null);
         WriteJson(file, info is null
             ? new CachedMeshInfo(null, null, null)
@@ -613,6 +641,13 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             ? (SplineBaker.Read(c), m)
             : (null, null));
         return curve is null || meshPath is null || MeshInfoOf(meshPath) is not { } straight ? null : SplineBaker.Describe(curve, straight);
+    }
+
+    /// <summary>A posed skeletal mesh component's mesh slots and a pose-proof bounding sphere.</summary>
+    private MeshInfo? DescribePosed(string key)
+    {
+        var meshPath = Read(p => PoseBaker.Load(p, key) is { } c && ClassModelResolver.TryMesh([c], out var m) ? m : null);
+        return meshPath is null || MeshInfoOf(meshPath) is not { } rest ? null : PoseBaker.Describe(rest);
     }
 
     private static byte[]? BakeSpline(IFileProvider provider, string key, int lod)
@@ -701,6 +736,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             ? LandscapeBaker.IsKey(path)
                 ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Bake(land, size) : null)
                 : SplineBaker.IsKey(path) ? Read(p => BakeSpline(p, path, size))
+                : PoseBaker.IsKey(path) ? Read(p => PoseBaker.Load(p, path) is { } posed ? PoseBaker.Bake(posed, size) : null)
                 : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Bake(obj, size) : null)
             : BakeTexture(path, Math.Clamp(size, 16, 2048));
         WriteBytes(file, data ?? []);
@@ -829,9 +865,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     [GeneratedRegex(@"^/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+$")]
     private static partial Regex GamePath();
 
-    // A mesh may name a landscape or spline mesh component: the map's object path plus
-    // "#land=<export index>" or "#spline=<export index>".
-    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+(#(land|spline)=\d{1,7})?)$")]
+    // A mesh may name a landscape, spline mesh or posed skeletal mesh component: the map's object
+    // path plus "#land=", "#spline=" or "#pose=" and the component's export index.
+    [GeneratedRegex(@"^(?<kind>mesh|tex)/(?<n>\d{1,4})(?<path>/[A-Za-z0-9_]+(/[A-Za-z0-9_\- ]+)+\.[A-Za-z0-9_\- ]+(#(land|spline|pose)=\d{1,7})?)$")]
     private static partial Regex AssetId();
 
     [GeneratedRegex(@"^[A-Za-z0-9_]{1,80}$")]

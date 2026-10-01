@@ -41,8 +41,16 @@ internal static class ClassModelResolver
     }
 
     public static IReadOnlyList<ResolvedPart> Resolve(IFileProvider provider, string classPath)
+        => Resolve(provider, classPath, null);
+
+    /// <summary>
+    /// As <see cref="Resolve(IFileProvider, string)"/>, with some of the object's own components
+    /// moved to another relative location (what a blueprint does at run time, such as a liquid
+    /// container's <c>WaterLevel</c> rising with its fill), or hidden when the location is null.
+    /// </summary>
+    public static IReadOnlyList<ResolvedPart> Resolve(IFileProvider provider, string classPath, IReadOnlyDictionary<string, FVector?>? relativeLocations)
         => provider.TryLoadPackageObject(classPath, out var obj) && obj is UStruct cls
-            ? Resolve(cls, 0, null, "")
+            ? Resolve(cls, 0, null, "", relativeLocations)
             : [];
 
     /// <summary>
@@ -56,7 +64,8 @@ internal static class ClassModelResolver
         return anchors;
     }
 
-    private static List<ResolvedPart> Resolve(UStruct cls, int depth, Dictionary<string, Matrix4x4>? anchors, string prefix)
+    private static List<ResolvedPart> Resolve(UStruct cls, int depth, Dictionary<string, Matrix4x4>? anchors, string prefix,
+        IReadOnlyDictionary<string, FVector?>? relativeLocations = null)
     {
         var chain = new List<UBlueprintGeneratedClass>();
         for (UStruct? c = cls; c is UBlueprintGeneratedClass bp && chain.Count < 16; c = c.SuperStruct?.Load<UStruct>())
@@ -108,8 +117,11 @@ internal static class ClassModelResolver
             }
             else
             {
+                var location = relativeLocations is not null && relativeLocations.TryGetValue(node.Name, out var moved) && moved is { } at
+                    ? at
+                    : Props.Get(node.Templates, "RelativeLocation", FVector.ZeroVector);
                 var relative = SceneMath.Transform(
-                    Props.Get(node.Templates, "RelativeLocation", FVector.ZeroVector),
+                    location,
                     Props.Get(node.Templates, "RelativeRotation", FRotator.ZeroRotator),
                     Props.Get(node.Templates, "RelativeScale3D", FVector.OneVector));
                 var parent = node.Parent is not null && nodes.TryGetValue(node.Parent, out var p) ? LocalOf(p, guard + 1) : Matrix4x4.Identity;
@@ -146,7 +158,17 @@ internal static class ClassModelResolver
                 }
                 continue;
             }
+            // Decals on the object (a garden plot's damp soil, signs): drawn like level decals.
+            if (type.Contains("DecalComponent", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!Visible(node, 0) || Props.Get<FPackageIndex?>(node.Templates, "DecalMaterial", null) is not { IsNull: false } decal
+                    || decal.ResolvedObject?.GetPathName() is not { Length: > 0 } decalPath) continue;
+                var quad = LevelIndex.DecalQuad(Props.Get(node.Templates, "DecalSize", LevelIndex.DefaultDecalSize));
+                parts.Add(new ResolvedPart(LevelIndex.DecalPlane, quad * LocalOf(node, 0), [decalPath], node.Name));
+                continue;
+            }
             if (!IsMeshComponent(type) || !Visible(node, 0)) continue;
+            if (relativeLocations is not null && relativeLocations.TryGetValue(node.Name, out var hidden) && hidden is null) continue;
             if (!TryMesh(node.Templates, out var mesh)) continue;
             var overrides = Props.Get(node.Templates, "OverrideMaterials", Array.Empty<FPackageIndex?>())
                 .Select(m => m is { IsNull: false } ? m.ResolvedObject?.GetPathName() : null)

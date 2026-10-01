@@ -744,7 +744,7 @@
     /// <summary>Rebuilds the scene when the session's saved objects or staged edits changed (SAVE, REVERT, an edit).</summary>
     private void SyncFromSession()
     {
-        // Blazor reuses this component when another region's save is opened; the new region's
+        // This component is reused when another region's save is opened; the new region's
         // objects must be framed and its level loaded, not the previous region's view kept.
         if (!ReferenceEquals(Session, _sceneSession))
         {

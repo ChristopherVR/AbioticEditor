@@ -89,7 +89,7 @@ public sealed class SceneModelHostService
     /// <summary>
     /// The viewer asks for an object's model as its class path followed by the parts of its state
     /// that change how it looks: <c>#paint=&lt;EPaintColor value&gt;</c> and
-    /// <c>#crops=&lt;spot&gt;.&lt;crop row&gt;.&lt;stage&gt;,...</c>. A plain class path has no state, and a
+    /// <c>#crops=&lt;spot&gt;.&lt;crop row&gt;.&lt;stage&gt;,...</c> and <c>#liquid=&lt;level&gt;</c>. A plain class path has no state, and a
     /// key with anything else after the class path is passed on unchanged.
     /// </summary>
     public static (string ClassPath, SceneObjectState? State) ParseModelKey(string key)
@@ -98,12 +98,23 @@ public sealed class SceneModelHostService
         var at = key.IndexOf('#', StringComparison.Ordinal);
         if (at <= 0) return (key, null);
         int? paint = null;
+        int? liquid = null;
+        string? fluid = null;
         List<SceneCrop>? crops = null;
         foreach (var part in key[(at + 1)..].Split('#', StringSplitOptions.RemoveEmptyEntries))
         {
             if (part.StartsWith(PaintPart, StringComparison.Ordinal) && TryNumber(part[PaintPart.Length..], out var p))
             {
                 paint = p;
+            }
+            else if (part.StartsWith(LiquidPart, StringComparison.Ordinal) && TryNumber(part[LiquidPart.Length..], out var l))
+            {
+                liquid = l;
+            }
+            else if (part.StartsWith(FluidPart, StringComparison.Ordinal) && part[FluidPart.Length..] is { Length: > 0 and <= 80 } name
+                     && name.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+            {
+                fluid = name;
             }
             else if (part.StartsWith(CropsPart, StringComparison.Ordinal))
             {
@@ -123,7 +134,7 @@ public sealed class SceneModelHostService
                 return (key, null);
             }
         }
-        return (key[..at], new SceneObjectState(paint, crops));
+        return (key[..at], new SceneObjectState(paint, crops, liquid, fluid));
     }
 
     private static bool TryNumber(string text, out int value)
@@ -134,6 +145,12 @@ public sealed class SceneModelHostService
 
     /// <summary>Crops part of a model key (see <see cref="ParseModelKey"/>).</summary>
     public const string CropsPart = "crops=";
+
+    /// <summary>Liquid part of a model key: how much a liquid container holds (see <see cref="ParseModelKey"/>).</summary>
+    public const string LiquidPart = "liquid=";
+
+    /// <summary>Fluid part of a model key: which liquid, as its enum value name (see <see cref="ParseModelKey"/>).</summary>
+    public const string FluidPart = "fluid=";
 
     /// <summary>The level geometry around a base, or null when the provider does not draw levels.</summary>
     public SceneLevelSlice? DescribeLevel(SceneLevelQuery query)

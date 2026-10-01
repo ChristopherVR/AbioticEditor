@@ -149,6 +149,6 @@ direction, a frame from `SplineUpDir`, roll, offset and scale lerped (smoothstep
 
 ## Not covered
 
-Skeletal animation (bind
-pose is drawn), decals on placed objects, lights, and per-object state such as open lids or fill levels. Crops in garden plots are
+Anim-blueprint and ACL-compressed poses (rest pose is drawn) and lights.
+Open lids are not saved by the game. Crops in garden plots are
 drawn (see `research-garden-crops-and-pet-mutation.md`, "DT_Plants, read").

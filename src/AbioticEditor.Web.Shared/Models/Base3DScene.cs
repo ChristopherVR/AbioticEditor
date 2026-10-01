@@ -146,6 +146,10 @@ public sealed class Base3DScene
         var text = new System.Text.StringBuilder();
         if (o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue)
             text.Append(System.Globalization.CultureInfo.InvariantCulture, $"#paint={paint}");
+        if (o.LiquidLevel is { } liquid)
+            text.Append(System.Globalization.CultureInfo.InvariantCulture, $"#liquid={Math.Max(0, liquid)}");
+        if (o.LiquidLevel is > 0 && o.LiquidType is { } fluid && fluid[(fluid.LastIndexOf(':') + 1)..] is { Length: > 0 } fluidName)
+            text.Append("#fluid=").Append(fluidName);
         if (o.Crops is { Count: > 0 } crops)
         {
             text.Append("#crops=").AppendJoin(',', crops.OrderBy(c => c.Spot)

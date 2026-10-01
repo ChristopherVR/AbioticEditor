@@ -467,4 +467,102 @@ public class GameModelsProviderProbe
             return 0;
         });
     }
+
+    /// <summary>Skeletal meshes placed in levels: how many, which meshes, and whether each names an animation to play (AnimationData.AnimToPlay) or uses an anim blueprint.</summary>
+    [Fact]
+    public void Dump_LevelSkeletalMeshes()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        var maps = assets.AssetPaths.Where(x => x.EndsWith(".umap", StringComparison.OrdinalIgnoreCase) && x.Contains("/Maps/", StringComparison.OrdinalIgnoreCase)).ToList();
+        var total = 0; var withAnim = 0; var withAbp = 0;
+        var meshes = new Dictionary<string, int>();
+        var anims = new Dictionary<string, int>();
+        foreach (var map in maps)
+        {
+            assets.UseFileProvider(p =>
+            {
+                if (!p.TryLoadPackage(map, out var pkg)) return 0;
+                foreach (var c in pkg.GetExports().Where(e => e.ExportType.Contains("SkeletalMeshComponent", StringComparison.Ordinal)))
+                {
+                    total++;
+                    var mesh = AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkeletalMesh", null)?.ResolvedObject?.Name.Text
+                               ?? AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkinnedAsset", null)?.ResolvedObject?.Name.Text ?? "?";
+                    meshes[mesh] = meshes.GetValueOrDefault(mesh) + 1;
+                    var data = AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Assets.Objects.FStructFallback?>(c, "AnimationData", null);
+                    var anim = data?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("AnimToPlay")?.ResolvedObject?.Name.Text;
+                    if (anim is not null) { withAnim++; anims[anim] = anims.GetValueOrDefault(anim) + 1; }
+                    if (AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "AnimClass", null) is { IsNull: false }) withAbp++;
+                }
+                return 0;
+            });
+        }
+        _output.WriteLine($"{total} skeletal mesh components, {withAnim} with AnimToPlay, {withAbp} with an anim blueprint");
+        foreach (var (m, n) in meshes.OrderByDescending(kv => kv.Value).Take(15)) _output.WriteLine($"  mesh {m} x{n}");
+        foreach (var (a, n) in anims.OrderByDescending(kv => kv.Value).Take(15)) _output.WriteLine($"  anim {a} x{n}");
+    }
+
+    /// <summary>Whether a level pose animation (ABIOTIC_ANIM, a name) decodes: its skeleton, track count and frame-0 transforms of a few bones.</summary>
+    [Fact]
+    public void Dump_DecodeAnimation()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var name = Environment.GetEnvironmentVariable("ABIOTIC_ANIM") ?? "Pose_Scientist_Dead_FlatBackrt";
+        if (assets is null) return;
+        var path = assets.AssetPaths.FirstOrDefault(x => x.EndsWith("/" + name + ".uasset", StringComparison.OrdinalIgnoreCase));
+        _output.WriteLine($"path {path}");
+        if (path is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var anim = p.LoadPackage(path).GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Animation.UAnimSequence>().First();
+            var codec = anim.BoneCompressionSettings?.GetPathName();
+            _output.WriteLine($"codec settings {codec}; frames {anim.NumFrames}");
+            try
+            {
+                var set = CUE4Parse_Conversion.Animations.AnimConverter.ConvertAnims(anim);
+                var seq = set.Sequences[0];
+                _output.WriteLine($"skeleton {set.Skeleton.Name} bones {set.Skeleton.ReferenceSkeleton.FinalRefBoneInfo.Length}; tracks {seq.Tracks.Count}, frames {seq.NumFrames}");
+                for (var b = 0; b < Math.Min(5, seq.Tracks.Count); b++)
+                {
+                    var t = seq.Tracks[b];
+                    _output.WriteLine($"  bone {set.Skeleton.ReferenceSkeleton.FinalRefBoneInfo[b].Name} quats {t.KeyQuat.Length} pos {t.KeyPos.Length} first {(t.KeyQuat.Length > 0 ? t.KeyQuat[0].ToString() : "-")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _output.WriteLine("decode failed: " + ex.GetType().Name + " " + ex.Message);
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>Why a posed mesh key (ABIOTIC_KEY) does or does not bake.</summary>
+    [Fact]
+    public void Debug_PoseKey()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var key = Environment.GetEnvironmentVariable("ABIOTIC_KEY");
+        if (assets is null || key is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var c = AbioticEditor.Plugins.GameModels3D.PoseBaker.Load(p, key);
+            _output.WriteLine($"component {c?.ExportType} {c?.Name}");
+            if (c is null) return 0;
+            var hasMesh = AbioticEditor.Plugins.GameModels3D.ClassModelResolver.TryMesh([c], out var meshPath);
+            _output.WriteLine($"mesh {hasMesh} {meshPath}");
+            var meshIndex = AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkeletalMesh", null)
+                            ?? AbioticEditor.Plugins.GameModels3D.Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(c, "SkinnedAsset", null);
+            var loaded = meshIndex?.Load();
+            _output.WriteLine($"mesh object {loaded?.GetType().Name} {loaded?.Name}");
+            var pose = AbioticEditor.Plugins.GameModels3D.PoseBaker.PoseOf(c);
+            _output.WriteLine($"pose {pose?.Anim.Name} t={pose?.Time}");
+            try
+            {
+                var bytes = AbioticEditor.Plugins.GameModels3D.PoseBaker.Bake(c, 1);
+                _output.WriteLine($"baked {bytes?.Length}");
+            }
+            catch (Exception ex) { _output.WriteLine("bake threw " + ex.GetType().Name + ": " + ex.Message + " | " + ex.StackTrace?[..Math.Min(1500, ex.StackTrace.Length)]); }
+            return 0;
+        });
+    }
 }

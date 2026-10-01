@@ -597,6 +597,73 @@ public sealed class GameModels3DTests
         Assert.All(decals, d => Assert.True(d.World.GetDeterminant() > 0));
     }
 
+    [Fact]
+    public void Liquid_containers_show_their_surface_at_the_saved_fill()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        const string Barrel = "/Game/Blueprints/DeployedObjects/Furniture/Deployed_LiquidContainer_Barrel.Deployed_LiquidContainer_Barrel_C";
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-liquid-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var empty = provider.DescribeClass(Barrel, new SceneObjectState(LiquidLevel: 0))!;
+            var low = provider.DescribeClass(Barrel, new SceneObjectState(LiquidLevel: 1000))!;
+            var full = provider.DescribeClass(Barrel, new SceneObjectState(LiquidLevel: 10000))!;
+            Assert.DoesNotContain(empty.Parts, p => p.Name == LiquidFill.SurfaceComponent);
+            var lowY = low.Parts.Single(p => p.Name == LiquidFill.SurfaceComponent).Matrix[13];
+            var fullY = full.Parts.Single(p => p.Name == LiquidFill.SurfaceComponent).Matrix[13];
+            // The barrel's surface runs from 1 cm to 97 cm (Liquid_FillLocationMin/Max), viewer Y is up in metres.
+            Assert.InRange(fullY, 0.95f, 0.99f);
+            Assert.InRange(lowY, 0.09f, 0.12f);
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+
+        var key = AbioticEditor.Web.Services.SceneModelHostService.ParseModelKey(Barrel + "#liquid=2500#fluid=NewEnumerator16");
+        Assert.Equal(2500, key.State!.LiquidLevel);
+        Assert.Equal("NewEnumerator16", key.State.LiquidType);
+
+        // The liquid picks its surface the way the game's RefreshLiquidTypeAppearance does: the enum
+        // value (Ink is NewEnumerator16 = 13, Water NewEnumerator1 = 1) selects a switch case.
+        Assert.EndsWith("M_Ink_Sink", assets.UseFileProvider(p => LiquidFill.SurfaceMaterial(p, Barrel, "E_LiquidType::NewEnumerator16"))!, StringComparison.Ordinal);
+        Assert.EndsWith("M_Water_Sink", assets.UseFileProvider(p => LiquidFill.SurfaceMaterial(p, Barrel, "E_LiquidType::NewEnumerator1"))!, StringComparison.Ordinal);
+        Assert.EndsWith("M_LiquidBlood_Red", assets.UseFileProvider(p => LiquidFill.SurfaceMaterial(p, Barrel, "E_LiquidType::NewEnumerator9"))!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Posed_corpses_in_the_level_are_skinned_in_their_pose()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Office1.umap"));
+        var posed = index.Meshes.Where(PoseBaker.IsKey).ToList();
+        Assert.True(posed.Count > 5, $"only {posed.Count} posed meshes");
+
+        // A posed component bakes, and its pose really moves the bones away from the rest pose.
+        var (moved, baked) = assets.UseFileProvider(p =>
+        {
+            foreach (var key in posed)
+            {
+                if (PoseBaker.Load(p, key) is not { } component || PoseBaker.PoseOf(component) is not { } pose) continue;
+                var meshIndex = Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(component, "SkeletalMesh", null)
+                                ?? Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(component, "SkinnedAsset", null);
+                if (meshIndex?.Load() is not CUE4Parse.UE4.Assets.Exports.SkeletalMesh.USkeletalMesh mesh) continue;
+                var skin = PoseBaker.SkinMatrices(mesh, pose.Anim, pose.Time)!;
+                var maxShift = skin.Max(m => Math.Abs(m.M11 - 1) + Math.Abs(m.M22 - 1) + Math.Abs(m.M33 - 1) + m.Translation.Length());
+                return (maxShift, PoseBaker.Bake(component, 1));
+            }
+            return (0f, (byte[]?)null);
+        });
+        Assert.NotNull(baked);
+        Assert.True(moved > 0.1f, $"pose barely differs from the rest pose ({moved})");
+    }
+
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);

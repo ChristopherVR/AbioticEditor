@@ -69,7 +69,17 @@ internal static class MeshBaker
         }
     }
 
-    private static byte[]? Bake<TVertex>(MeshDto<TVertex> dto, int lod, Deform? deform) where TVertex : struct, IMeshVertex
+    /// <summary>
+    /// Bakes a skeletal mesh posed: each vertex moves by its bones' <paramref name="skin"/> matrices
+    /// (indexed by mesh bone, Unreal space), weighted (linear blend skinning).
+    /// </summary>
+    public static byte[]? BakeSkinned(USkeletalMesh mesh, int lod, Matrix4x4[] skin)
+    {
+        using var dto = new SkeletalMeshDto(mesh, EMeshQuality.All);
+        return Bake(dto, lod, null, skin);
+    }
+
+    private static byte[]? Bake<TVertex>(MeshDto<TVertex> dto, int lod, Deform? deform, Matrix4x4[]? skin = null) where TVertex : struct, IMeshVertex
     {
         var lods = dto.LODs.Where(l => !l.IsNanite && l.Vertices.Length > 0 && l.Indices.Length > 0).ToList();
         if (lods.Count == 0) lods = dto.LODs.Where(l => l.Vertices.Length > 0 && l.Indices.Length > 0).ToList();
@@ -86,6 +96,24 @@ internal static class MeshBaker
             var position = new Vector3(v.Position.X, v.Position.Y, v.Position.Z);
             var normal = new Vector3(v.Normal.X, v.Normal.Y, v.Normal.Z);
             if (deform is not null) (position, normal) = deform(position, normal);
+            if (skin is not null && v is SkinnedMeshVertex skinned && skinned.Influences.Length > 0)
+            {
+                var skinnedPosition = Vector3.Zero;
+                var skinnedNormal = Vector3.Zero;
+                var total = 0f;
+                foreach (var influence in skinned.Influences)
+                {
+                    if (influence.Bone >= skin.Length || influence.Weight <= 0) continue;
+                    skinnedPosition += Vector3.Transform(position, skin[influence.Bone]) * influence.Weight;
+                    skinnedNormal += Vector3.TransformNormal(normal, skin[influence.Bone]) * influence.Weight;
+                    total += influence.Weight;
+                }
+                if (total > 1e-6f)
+                {
+                    position = skinnedPosition / total;
+                    normal = skinnedNormal;
+                }
+            }
             // Unreal (X, Y, Z) cm -> viewer (X, Z, Y) m. The swap is a reflection, which is exactly
             // what makes Unreal's triangle order counter-clockwise in the right-handed viewer, so the
             // index order is kept (the glTF writer in CUE4Parse does the same).

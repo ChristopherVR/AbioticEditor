@@ -64,7 +64,22 @@ internal static class LevelIndex
     /// <summary>The engine's 1 m square plane (normal +Z), used to draw decals.</summary>
     public const string DecalPlane = "/Engine/BasicShapes/Plane.Plane";
     private const float PlaneSizeCm = 100f;
-    public const int FormatVersion = 8; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals
+
+    /// <summary>The engine's default <c>DecalSize</c> (half size, cm) for a decal that keeps it.</summary>
+    public static readonly FVector DefaultDecalSize = new(128, 256, 256);
+
+    /// <summary>
+    /// The engine plane placed over a decal's projection box, in the decal component's space:
+    /// plane X becomes decal Z and plane Y decal -Y (Unreal's decal UVs: U along +Z, V along -Y),
+    /// plane normal Z becomes decal X. A rotation, not a mirror, so instanced lighting falls on
+    /// the visible side. <paramref name="size"/> is <c>DecalSize</c>, the box's half size.
+    /// </summary>
+    public static Matrix4x4 DecalQuad(FVector size) => new(
+        0, 0, 2 * size.Z / PlaneSizeCm, 0,
+        0, -2 * size.Y / PlaneSizeCm, 0, 0,
+        1, 0, 0, 0,
+        0, 0, 0, 1);
+    public const int FormatVersion = 9; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -148,19 +163,28 @@ internal static class LevelIndex
                 {
                     if (!Visible(component, 0) || Props.Get<FPackageIndex?>(component, "DecalMaterial", null) is not { IsNull: false } decalMaterial
                         || decalMaterial.ResolvedObject?.GetPathName() is not { Length: > 0 } decalPath) continue;
-                    var size = Props.Get(component, "DecalSize", new FVector(128, 256, 256));
-                    // Plane X -> decal Z, plane Y -> decal -Y, plane normal Z -> decal X: a rotation,
-                    // not a mirror (a mirrored instance would light the wrong side).
-                    var quad = new Matrix4x4(
-                        0, 0, 2 * size.Z / PlaneSizeCm, 0,
-                        0, -2 * size.Y / PlaneSizeCm, 0, 0,
-                        1, 0, 0, 0,
-                        0, 0, 0, 1);
+                    var quad = DecalQuad(Props.Get(component, "DecalSize", DefaultDecalSize));
                     var decalMesh = Intern(meshIds, data.Meshes, DecalPlane, DecalPlane);
                     var decalOverride = Intern(overrideIds, data.OverrideSets, decalPath, [decalPath]);
                     if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
                     var decalAt = quad * WorldOf(component, 0);
                     data.Entries.Add(new LevelEntry(decalMesh, decalOverride, actorId, decalAt, decalAt.Translation, 0));
+                    continue;
+                }
+                // Skeletal meshes posed by an animation (their own or their leader's): skinned per
+                // component (PoseBaker); the rest are drawn in their reference pose below.
+                if (PoseBaker.IsSkeletalComponent(component.ExportType) && componentIndex.IsExport && Visible(component, 0)
+                    && ClassModelResolver.TryMesh([component], out _) && PoseBaker.PoseOf(component) is not null)
+                {
+                    var poseOverrides = Props.Get(component, "OverrideMaterials", Array.Empty<FPackageIndex?>())
+                        .Select(m => m is { IsNull: false } ? m.ResolvedObject?.GetPathName() : null)
+                        .ToArray();
+                    var poseKey = PoseBaker.Key(mapObjectPath, componentIndex.Index - 1);
+                    var poseMesh = Intern(meshIds, data.Meshes, poseKey, poseKey);
+                    var poseOverride = Intern(overrideIds, data.OverrideSets, string.Join('|', poseOverrides), poseOverrides);
+                    if (actorId < 0) { actorId = data.Actors.Count; data.Actors.Add(actor.Name); }
+                    var posedAt = WorldOf(component, 0);
+                    data.Entries.Add(new LevelEntry(poseMesh, poseOverride, actorId, posedAt, posedAt.Translation, 0));
                     continue;
                 }
                 // Spline meshes bend their mesh along a curve: one mesh per component (SplineBaker),

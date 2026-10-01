@@ -125,11 +125,49 @@
   resets framing and reloads the level when its session changes
   (`Opening_another_regions_save_frames_its_objects_and_reloads_its_level`).
 
+- **Remaining 3D items.**
+  - Decals on placed objects (a garden plot's soil decal, signs) are drawn like level decals
+    (`ClassModelResolver` emits decal parts; shared `LevelIndex.DecalQuad`).
+  - Liquid fill: `Deployed_LiquidContainer_ParentBP.RefreshLiquidLevelAppearance` sets the
+    `WaterLevel` component's relative location to `VLerp(Liquid_FillLocationMin,
+    Liquid_FillLocationMax, FillLevel / Liquid_MaxFill)` and hides it at 0 (class defaults, e.g.
+    the barrel 1 to 97 cm over 10000). The census reads `ChangableData_.LiquidLevel_`
+    (`PlacedObjectSummary.LiquidLevel`), the model key carries `#liquid=`, SDK
+    `SceneObjectState.LiquidLevel`, and the plugin moves or hides the surface (`LiquidFill`).
+    The liquid's look follows the game too: the save's `CurrentLiquid_` value (an `E_LiquidType`
+    name such as `NewEnumerator16`) is turned into its number through the enum asset (Ink = 13,
+    Water = 1, Blood = 8) and picks a case of the switch in `RefreshLiquidTypeAppearance`, read
+    from the bytecode (case to local variable to material constant: Ink `M_Ink_Sink`, Water
+    `M_Water_Sink`, Blood `M_LiquidBlood_Red`; Soup and Laser keep the default). Key `#fluid=`.
+    The Cascade copy's barrel holds ink.
+  - Open lids: not stored. The deployable save struct has no open or closed field and
+    `EDynamicProperty` has no lid entry (CurrentAmmo, TimerState, GrowthStage, GrowthProgress,
+    CurrentFixState, TeleporterFrequency, PaintColor, Generic1-10, AmmoType, CookingState,
+    Portions, StovewareType, WeaponCoating, XP, PetMutation, MutationProgress,
+    CoatingDurability); containers load closed, which is what the view shows.
+  - Posed people and corpses: 6,161 level skeletal meshes, 622 naming an animation
+    (`AnimationData.AnimToPlay` at `SavedPosition`), modular parts following a leader
+    (`LeaderPoseComponent`). `PoseBaker` (key `<map>#pose=<export index>`, index format 9)
+    decodes the pose with CUE4Parse (`ConvertAnims`, tracks by skeleton bone name) and skins each
+    vertex on the CPU. Verified: Office1 workers stand holding pickaxes instead of a T-pose.
+    Animations compressed with ACL need CUE4Parse's native library, which the editor does not ship
+    (the security doors' open animation, for one); those keep their rest pose. Anim-blueprint
+    driven meshes (350) and meshes set at run time (3,151 with no mesh in the level data) are not posed.
+  - Terrain fifth slot (`Quinary`): no paint layer feeds it. The only layer names in any map are
+    Main, Road, Rock, Misc, Translucency and the engine's holes layer; Quinary textures vary (snow,
+    outback dirt, purple pebbles) with no matching layer, so it is presumably mixed by the
+    material itself (height or slope), which the stripped graph does not record. Left unmapped.
+  - The full suite caught a guard failure from the region-switch commit: a code comment in a Razor
+    file named the UI framework, which `Player_facing_copy_does_not_expose_application_architecture`
+    forbids; reworded. `PluginTests.RaiseEvent_DispatchesToJavaScriptHandler` failed once in a full
+    run and passes alone and with its class (4/4): intermittent.
+  - Tests: `Liquid_containers_show_their_surface_at_the_saved_fill`,
+    `Posed_corpses_in_the_level_are_skinned_in_their_pose`.
+
 ### Open issues to keep in view (round 137)
 
-- Not drawn: per-object state (open lids, fill levels); skeletal meshes show their
-  bind pose; decals on placed objects (only level decals are drawn); the terrain's fifth slot
-  (`Quinary`) has no paint layer mapped to it.
+- Not drawn: poses from ACL-compressed animations (needs CUE4Parse-Natives) and from anim blueprints; the
+  terrain's fifth slot (`Quinary`, no paint layer feeds it).
 - The Nexus optional file for the plugin needs a file entry on the mod page and the
   `NEXUS_MODELS_FILE_ID` repository variable; until then `nexus-models` skips with a warning.
 - Superseded from rounds 134 to 136: paint colour, terrain, spline meshes (tram rails), the view

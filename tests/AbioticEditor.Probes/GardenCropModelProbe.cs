@@ -271,4 +271,84 @@ public class GardenCropModelProbe
             return 0;
         });
     }
+
+    /// <summary>The liquid container parent: its defaults and the bytecode of functions touching the fill (ABIOTIC_LIQUID_OUT gets the JSON).</summary>
+    [Fact]
+    public void Dump_LiquidContainerFill()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var outPath = Environment.GetEnvironmentVariable("ABIOTIC_LIQUID_OUT");
+        if (assets is null || outPath is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var old = p.ReadScriptData;
+            p.ReadScriptData = true;
+            try
+            {
+                var pkg = p.LoadPackage(p.Files.Keys.First(k => k.EndsWith("/Deployed_LiquidContainer_ParentBP.uasset", StringComparison.OrdinalIgnoreCase)));
+                using var w = new StreamWriter(outPath);
+                var cls = pkg.GetExports().OfType<UBlueprintGeneratedClass>().First();
+                var defaults = cls.ClassDefaultObject.Load();
+                foreach (var prop in defaults?.Properties ?? []) w.WriteLine($"cdo {prop.Name.Text} = {Describe(prop.Tag?.GenericValue)}");
+                foreach (var f in pkg.GetExports().OfType<UFunction>())
+                {
+                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(f);
+                    if (!json.Contains("Liquid_Fill", StringComparison.Ordinal) && !json.Contains("WaterLevel", StringComparison.Ordinal)) continue;
+                    w.WriteLine("== " + f.Name);
+                    w.WriteLine(json);
+                }
+            }
+            finally { p.ReadScriptData = old; }
+            return 0;
+        });
+    }
+
+    /// <summary>The values of an enum from the mappings (ABIOTIC_ENUM).</summary>
+    [Fact]
+    public void Dump_Enum()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var name = Environment.GetEnvironmentVariable("ABIOTIC_ENUM") ?? "EDynamicProperty";
+        if (assets is null) return;
+        assets.UseFileProvider(p =>
+        {
+            if (p.MappingsForGame?.Enums.TryGetValue(name, out var e) == true) _output.WriteLine($"{name}: {string.Join(", ", e.Select(kv => $"{kv.Key}={kv.Value}"))}");
+            else _output.WriteLine(name + " not mapped");
+            return 0;
+        });
+    }
+
+    /// <summary>The ChangableData_ fields of liquid containers in a world save (ABIOTIC_SAVE).</summary>
+    [Fact]
+    public void Dump_LiquidContainerSaveFields()
+    {
+        var save = Environment.GetEnvironmentVariable("ABIOTIC_SAVE");
+        if (save is null || !File.Exists(save)) return;
+        var data = AbioticEditor.Core.WorldSaves.WorldSaveReader.ReadFromFile(save);
+        foreach (var e in AbioticEditor.Core.WorldSaves.Features.WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap"))
+        {
+            var cls = e.Props.FirstOrDefault(t => t.Name?.Value?.StartsWith("Class_", StringComparison.Ordinal) == true)?.Property?.Value?.ToString() ?? "";
+            if (!cls.Contains("Liquid", StringComparison.Ordinal) && !cls.Contains("GardenPlot", StringComparison.Ordinal)) continue;
+            var change = e.Props.FirstOrDefault(t => t.Name?.Value?.StartsWith("ChangableData", StringComparison.Ordinal) == true)?.Property?.Value as UeSaveGame.StructData.PropertiesStruct;
+            _output.WriteLine($"{cls.Split('.').Last()}: {string.Join(", ", change?.Properties.Select(t => $"{t.Name?.Value}={t.Property?.Value}") ?? [])}");
+        }
+    }
+
+    /// <summary>A user-defined enum asset's names, values and display names (ABIOTIC_ENUM_ASSET, a file name).</summary>
+    [Fact]
+    public void Dump_UserDefinedEnum()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        var name = Environment.GetEnvironmentVariable("ABIOTIC_ENUM_ASSET") ?? "E_LiquidType";
+        if (assets is null) return;
+        assets.UseFileProvider(p =>
+        {
+            var path = p.Files.Keys.First(k => k.EndsWith("/" + name + ".uasset", StringComparison.OrdinalIgnoreCase));
+            var e = p.LoadPackage(path).GetExports().OfType<CUE4Parse.UE4.Objects.UObject.UEnum>().First();
+            _output.WriteLine($"{path}: {string.Join(", ", e.Names.Select(n => $"{n.Item1.Text}={n.Item2}"))}");
+            var display = e.GetOrDefault<CUE4Parse.UE4.Assets.Objects.UScriptMap?>("DisplayNameMap");
+            if (display is not null) _output.WriteLine("display: " + string.Join(", ", display.Properties.Select(kv => $"{kv.Key?.GenericValue}={kv.Value?.GenericValue}")));
+            return 0;
+        });
+    }
 }

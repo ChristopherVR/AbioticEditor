@@ -58,7 +58,9 @@ public sealed record PlacedObjectSummary(
     int StoredItemCount,
     IReadOnlyList<string> PoweredBySocketIds,
     IReadOnlyList<string> FieldNames,
-    IReadOnlyList<PlacedCrop>? Crops = null);
+    IReadOnlyList<PlacedCrop>? Crops = null,
+    int? LiquidLevel = null,
+    string? LiquidType = null);
 
 /// <summary>
 /// One planting spot of a garden plot: the spot (<c>SpotIndex_</c>), the crop's item row
@@ -342,9 +344,15 @@ public static partial class PlacedObjectCensus
             var claim = WorldDeployable.ParseClaim(customName);
 
             int? paint = null;
+            int? liquid = null;
+            string? liquidType = null;
             if (props.FindByPrefix("ChangableData_")?.Property is StructProperty cs && cs.Value is PropertiesStruct cps)
             {
                 paint = PetDynamicProperties.Read(cps.Properties, DeployablePaintCatalog.DynamicPropertyKey);
+                // How much a liquid container holds (garden plots, barrels, cauldrons).
+                if (cps.Properties.FindByPrefix("LiquidLevel_")?.Property?.Value is int level) liquid = level;
+                // Which liquid (an E_LiquidType name such as "E_LiquidType::NewEnumerator16").
+                liquidType = cps.Properties.FindByPrefix("CurrentLiquid_")?.Property?.Value?.ToString();
             }
 
             var crops = ReadCrops(props);
@@ -365,7 +373,9 @@ public static partial class PlacedObjectCensus
                 storedById.TryGetValue(entry.Key, out var stored) ? stored : 0,
                 poweredBy.TryGetValue(entry.Key, out var pb) ? pb : [],
                 names,
-                crops));
+                crops,
+                liquid,
+                string.IsNullOrEmpty(liquidType) ? null : liquidType));
         }
 
         var classes = objects

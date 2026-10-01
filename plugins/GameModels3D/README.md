@@ -57,6 +57,8 @@ gizmo, delete, duplicate and group edits, and SAVE. Selection outlines fit the r
   script: every parent class's components, with each class's overrides applied, following the
   parent chain rather than a list of names, so objects added in future game updates work too.
   Attached parts (lids, taps, plug sockets) sit where the game puts them.
+- **Posed people, liquid levels.** The posed people and bodies placed in the levels stand or lie
+  in their pose, and barrels, plots and cauldrons show their liquid at the saved level.
 - **Outdoor ground, water and decals.** Terrain blends the game's painted layers (grass, road
   dirt, rock, pebbles), water surfaces tile like the game's, and the level's decals (signs,
   floor markings, papers, blood) are drawn where they lie.
