@@ -117,6 +117,14 @@
     `Outdoor_ground_blends_the_terrain_layers_the_game_paints`,
     `Water_tiles_by_its_own_scale_and_level_decals_are_indexed_as_quads`.
 
+- **3D view test pass.** Scripted in the headless host on the Cascade copy: list-click selection
+  fills the inspector, a 1 cm numeric move stages with before/after and reverts cleanly, models
+  off/on restores the same draw counts, no page or shader errors. Found and fixed: after opening
+  another region's save, Blazor reused the 3D tab and kept its "already framed" flag, so the new
+  region's objects were off screen (35 draw calls, empty canvas; 863 after the fix). The tab now
+  resets framing and reloads the level when its session changes
+  (`Opening_another_regions_save_frames_its_objects_and_reloads_its_level`).
+
 ### Open issues to keep in view (round 137)
 
 - Not drawn: per-object state (open lids, fill levels); skeletal meshes show their

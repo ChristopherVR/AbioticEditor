@@ -744,6 +744,19 @@
     /// <summary>Rebuilds the scene when the session's saved objects or staged edits changed (SAVE, REVERT, an edit).</summary>
     private void SyncFromSession()
     {
+        // Blazor reuses this component when another region's save is opened; the new region's
+        // objects must be framed and its level loaded, not the previous region's view kept.
+        if (!ReferenceEquals(Session, _sceneSession))
+        {
+            if (_sceneSession is not null)
+            {
+                _framedOnce = false;
+                _framedBase = null;
+                _regionChanged = true;
+                _levelProgress = null;
+            }
+            _sceneSession = Session;
+        }
         var source = Session.PlacedObjects;
         var revision = Session.PlacedTransformsRevision;
         if (ReferenceEquals(source, _sceneSource) && revision == _sceneRevision) return;
@@ -792,6 +805,11 @@
             _pushScene = false;
             await PushSceneAsync();
         }
+        if (_view is not null && _regionChanged)
+        {
+            _regionChanged = false;
+            await PushLevelAsync();
+        }
         if (_view is not null && _framedOnce && _framedBase != FocusBase?.Name)
         {
             _framedBase = FocusBase?.Name;
@@ -828,6 +846,8 @@
     }
 
     private bool _framedOnce;
+    private WorldSaveSession? _sceneSession;
+    private bool _regionChanged;
 
     private static string[] FocusKeys(WorldBase focus) => focus.Deployables.Select(d => d.Id).ToArray();
 

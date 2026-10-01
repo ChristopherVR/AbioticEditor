@@ -445,6 +445,18 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
+    public void Opening_another_regions_save_frames_its_objects_and_reloads_its_level()
+    {
+        // Blazor reuses the 3D tab when another region's save is opened in the same place; without
+        // a reset the camera stayed on the previous region and the new objects were off screen.
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("if (!ReferenceEquals(Session, _sceneSession))", tab, StringComparison.Ordinal);
+        Assert.Contains("_framedOnce = false;", tab, StringComparison.Ordinal);
+        Assert.Contains("_regionChanged = true;", tab, StringComparison.Ordinal);
+        Assert.Contains("if (_view is not null && _regionChanged)", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Move_controls_are_opt_in_warned_and_limited_to_player_built_objects()
     {
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
