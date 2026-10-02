@@ -57,8 +57,8 @@ public sealed class ServerEntitlementsFeature : WorldMapFeatureBase
     public override string DisplayName => "Server Entitlements";
 
     public override string Description =>
-        "Per-player ownership entitlements (Early Access, Supporter's Edition), keyed by SteamID64. "
-        + "Toggle an entitlement on or off for each player.";
+        "Edition rewards each player owns, such as Early Access or the Supporter's Edition. "
+        + "Turn one on or off for each player.";
 
     /// <summary>Entitlement entries are server metadata, not removable level actors.</summary>
     public override bool SupportsRemoval => false;

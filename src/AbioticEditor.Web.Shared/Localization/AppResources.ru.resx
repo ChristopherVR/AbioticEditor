@@ -2287,11 +2287,9 @@
   <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>ДОСТУПЕН в этом мире - флаг(и) открытия установлены.</value></data>
   <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>ЕЩЁ НЕ доступен в этом мире - требуется: {0}</value></data>
   <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>(условия обмена варьируются)</value></data>
-  <data name="WorldTraders_Card_AppearsAfter" xml:space="preserve"><value>появляется после: {0}</value></data>
   <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>(нет таблицы товаров)</value></data>
   <data name="WorldTraders_Card_MoreItems" xml:space="preserve"><value>+{0} ещё</value></data>
   <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Выше вашего уровня допуска - нажмите, чтобы раскрыть</value></data>
-  <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Нажмите, чтобы открыть в боковой панели →</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>РАЗБЛОКИРОВАТЬ ВЫБРАННОЕ ({0})</value></data>
 
   <!-- Skill (passives + milestones) -->
@@ -3353,9 +3351,6 @@
   <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, очищено строк кодекса игроков: {0} (сохранений: {1})</value></data>
   <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>Этот флаг задания</value></data>
   <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, очищено разблокировок кодекса мира: {0}</value></data>
-  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>Все эти флаги уже установлены в этом сохранении.</value></data>
-  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: нечего разблокировать.</value></data>
-  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>Подготовлено флагов мира: {0} - нажмите СОХРАНИТЬ, чтобы записать.</value></data>
   <data name="Compare_Containers" xml:space="preserve"><value>Контейнеры</value></data>
   <data name="Compare_Doors" xml:space="preserve"><value>Двери</value></data>
   <data name="Compare_ErrorTag" xml:space="preserve"><value>ошибка</value></data>

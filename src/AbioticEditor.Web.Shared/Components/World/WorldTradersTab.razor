@@ -76,7 +76,10 @@
                         <small class="wt-sells">@L.Resource("WorldTraders_SellsFormat", SellsText(trader))</small>
                     }
                     <small class="wt-availability">@(concealed ? L.Resource("Spoiler_ClassifiedTitle") : AvailabilityText(trader, lore))</small>
-                    <small class="wt-hint">@L.Resource(concealed ? "WorldTraders_Card_TapToReveal" : "WorldTraders_Card_TapToOpen")</small>
+                    @if (concealed)
+                    {
+                        <small class="wt-hint">@L.Resource("WorldTraders_Card_TapToReveal")</small>
+                    }
                 </span>
             </article>
         }
@@ -377,7 +380,10 @@
                             @onclick="() => RequestUnlockAll(trader)">@L.Resource("Slot_UnlockAll")</button>
                 }
             </div>
-            <p class="wm-note">@L.Resource("Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept")</p>
+            @if (MissingGatingFlags(trader).Count > 0)
+            {
+                <p class="wm-note">@L.Resource("Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept")</p>
+            }
 
             @if (_inspecting.TryGetValue(trader.Id, out var inspectedId) && Items.Find(inspectedId) is { } inspected)
             {
@@ -500,7 +506,7 @@
             <ul>
                 @foreach (var flag in flags)
                 {
-                    <li><b>@PlainNames.Flag(L, flag)</b><small>@flag</small></li>
+                    <li title="@flag"><b>@PlainNames.Flag(L, flag)</b></li>
                 }
             </ul>
             @if (alsoUnlocked.Count > 0)

@@ -151,7 +151,7 @@
   <data name="PlayerAchievements_CheckSteam" xml:space="preserve"><value>CHECK STEAM</value></data>
   <data name="PlayerAchievements_CheckSteamTooltip" xml:space="preserve"><value>Verifies against steamcommunity.com (needs a public profile or an in-app sign-in) - adds icons, unlock dates and the authoritative unlock state. The local cache only refreshes while Steam runs.</value></data>
   <data name="PlayerAchievements_CompareWith" xml:space="preserve"><value>Compare with...</value></data>
-  <data name="PlayerAchievements_GatedProfileHelp" xml:space="preserve"><value>The editor checks Steam anonymously, so profiles with non-public Game details come back empty. Sign in to Steam inside the app and CHECK STEAM reuses that session (works for your own account and friends). Alternatively view the page in your browser, or make Game details public so the anonymous check succeeds.</value></data>
+  <data name="PlayerAchievements_GatedProfileHelp" xml:space="preserve"><value>Steam only shows achievements for profiles with public Game details. Sign in to Steam here and CHECK STEAM will use that (it works for your account and your friends), or make Game details public.</value></data>
   <data name="PlayerAchievements_NoAchievementData" xml:space="preserve"><value>No achievement data - try CHECK STEAM.</value></data>
   <data name="PlayerAchievements_PrivacySettings" xml:space="preserve"><value>PRIVACY SETTINGS</value></data>
   <data name="PlayerAchievements_PrivacySettingsTooltip" xml:space="preserve"><value>Opens your Steam privacy settings - set 'Game details' to Public, wait a few minutes, then CHECK STEAM again.</value></data>
@@ -175,7 +175,7 @@
   <data name="PlayerCharacter_BackgroundHelp" xml:space="preserve"><value>Changes your listed job only. Starting gear and skill bonuses stay the same.</value></data>
   <data name="PlayerCharacter_Character" xml:space="preserve"><value>Character</value></data>
   <data name="PlayerCharacter_CompletedIntro" xml:space="preserve"><value>Completed the intro</value></data>
-  <data name="PlayerCharacter_CompletedIntroHelp" xml:space="preserve"><value>Ticked once the character has finished the opening cinematic/tutorial. Untick to have them see it again next time they load in.</value></data>
+  <data name="PlayerCharacter_CompletedIntroHelp" xml:space="preserve"><value>Untick to replay the opening cutscene and tutorial next time they load in.</value></data>
   <data name="PlayerCharacter_Description" xml:space="preserve"><value>DESCRIPTION</value></data>
   <data name="PlayerCharacter_NoTraitsMatch" xml:space="preserve"><value>No traits match (or all are already applied).</value></data>
   <data name="PlayerCharacter_SaveAppearance" xml:space="preserve"><value>SAVE APPEARANCE</value></data>
@@ -193,7 +193,7 @@
   <data name="PlayerCodex_EmailUnlocksJournal" xml:space="preserve"><value>READING THIS UNLOCKS JOURNAL: {0}</value></data>
   <data name="PlayerCodex_FetchingImage" xml:space="preserve"><value>Fetching image from the wiki...</value></data>
   <data name="PlayerCodex_FooterHelp" xml:space="preserve"><value>Emails, journal, compendium and fish can all be edited here. Compendium entries unlock their matching sections for you.</value></data>
-  <data name="PlayerCodex_LiveCompendiumReadOnlyHelp" xml:space="preserve"><value>Compendium entries unlocked only by defeating a creature may still be read-only live, depending on your connected game agent's version: a checkbox you can tick here works, one greyed out still needs the kill to happen normally.</value></data>
+  <data name="PlayerCodex_LiveCompendiumReadOnlyHelp" xml:space="preserve"><value>Some creature entries only unlock by defeating the creature. If a checkbox is greyed out, you'll need to get that kill in the game.</value></data>
   <data name="PlayerCodex_LiveMarkKnownOnlyHelp" xml:space="preserve"><value>Live editing can only mark an entry known, never un-know one - the running game has no way to take that back.</value></data>
   <data name="PlayerCodex_Journal" xml:space="preserve"><value>JOURNAL</value></data>
   <data name="PlayerCodex_Kills" xml:space="preserve"><value>KILLS</value></data>
@@ -230,7 +230,7 @@
   <data name="PlayerGeneral_ChangeSteamId" xml:space="preserve"><value>CHANGE STEAM ID</value></data>
   <data name="PlayerGeneral_ChangeSteamIdHelp" xml:space="preserve"><value>Hands this character over to a different account. Beds they claimed in the world move across with them.</value></data>
   <data name="PlayerGeneral_DiscoverAll" xml:space="preserve"><value>DISCOVER ALL</value></data>
-  <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Adds every catalog item to this player's seen-items list. Effect: no more yellow NEW badges in the inventory, and pickup-gated compendium hints treat everything as encountered. No quest or stat impact.</value></data>
+  <data name="PlayerGeneral_DiscoverAllItemsTooltip" xml:space="preserve"><value>Marks every item as seen by this player, so the yellow NEW badges go away. It doesn't affect quests or stats.</value></data>
   <data name="PlayerGeneral_ItemsSeenHelp" xml:space="preserve"><value>Removes the NEW badge from these items.</value></data>
   <data name="PlayerGeneral_ItemsCraftedHelp" xml:space="preserve"><value>Marks items as crafted, including their crafting hints.</value></data>
   <data name="PlayerGeneral_ItemsCraftedLiveReadOnlyHelp" xml:space="preserve"><value>Read-only on this connection: marking an item crafted needs an updated game agent. Update it, then reconnect.</value></data>
@@ -241,7 +241,7 @@
   <data name="PlayerGeneral_ItemsCrafted" xml:space="preserve"><value>ITEMS CRAFTED</value></data>
   <data name="PlayerGeneral_ItemsSeen" xml:space="preserve"><value>ITEMS SEEN</value></data>
   <data name="PlayerGeneral_Maps" xml:space="preserve"><value>MAPS</value></data>
-  <data name="PlayerGeneral_MapsTooltip" xml:space="preserve"><value>Maps are the paper pamphlets that reveal each sector's layout in the GATEPal map screen. UNLOCK ALL grants all of them as if picked up. Purely informational - it does not open doors or advance quests.</value></data>
+  <data name="PlayerGeneral_MapsTooltip" xml:space="preserve"><value>Maps are the paper pamphlets that show each sector's layout in GATEPal. UNLOCK ALL gives you every one. They don't open doors or advance quests.</value></data>
   <data name="PlayerGeneral_Recipes" xml:space="preserve"><value>RECIPES</value></data>
   <data name="PlayerGeneral_ReadingGameFiles" xml:space="preserve"><value>Reading your installed game to find out what can be unlocked. This takes a moment the first time.</value></data>
   <data name="PlayerGeneral_ReadingGameFilesShort" xml:space="preserve"><value>reading your installed game...</value></data>
@@ -429,7 +429,7 @@
   <data name="PlayerRaw_RawSaveJsonHelp" xml:space="preserve"><value>This save is too big to edit comfortably here. EXPORT RAW JSON writes it all out next to the save and shows it in your file manager. Edit it in any text editor, then press IMPORT RAW JSON to put it back.</value></data>
 
   <data name="PlayerInventory_SavedSelection" xml:space="preserve"><value>Saved selection (view only)</value></data>
-  <data name="PlayerInventory_SavedSelectionHelp" xml:space="preserve"><value>What the game remembers about your hotbar and starred slots. Shown as saved; the editor keeps it as it is.</value></data>
+  <data name="PlayerInventory_SavedSelectionHelp" xml:space="preserve"><value>Your saved hotbar and starred slots. The editor leaves these as they are.</value></data>
   <data name="PlayerInventory_LastHotbarSlot" xml:space="preserve"><value>Last selected hotbar slot</value></data>
   <data name="PlayerInventory_StarredSlots" xml:space="preserve"><value>Starred inventory slots</value></data>
   <data name="PlayerVitals_ActiveEffects" xml:space="preserve"><value>Active effects (view only)</value></data>
@@ -447,7 +447,7 @@
   <data name="PlayerRecipes_ResearchQueue" xml:space="preserve"><value>Awaiting research</value></data>
   <data name="PlayerRecipes_ResearchQueueAdd" xml:space="preserve"><value>ADD</value></data>
   <data name="PlayerRecipes_ResearchQueueEmpty" xml:space="preserve"><value>Nothing is waiting on the research bench.</value></data>
-  <data name="PlayerRecipes_ResearchQueueHelp" xml:space="preserve"><value>This is the player's saved list of recipes awaiting research. Add puts a recipe on that list; remove takes it off. These actions edit the pending-research list separately from the recipe's unlock checkbox above. SAVE applies your edits.</value></data>
+  <data name="PlayerRecipes_ResearchQueueHelp" xml:space="preserve"><value>Recipes waiting to be researched. Add one with the picker below, or press ✕ to remove one. This is separate from the unlock checkbox above. Press SAVE to keep your changes.</value></data>
   <data name="PlayerRecipes_ResearchQueuePickPlaceholder" xml:space="preserve"><value>Add a recipe to the queue…</value></data>
   <data name="PlayerRecipes_SearchPlaceholder" xml:space="preserve"><value>Search recipes by item name or id…</value></data>
   <data name="PlayerRecipes_SoldBy" xml:space="preserve"><value>SOLD BY</value></data>
@@ -461,7 +461,7 @@
   <data name="PlayerSkills_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="PlayerSkills_Max" xml:space="preserve"><value>MAX</value></data>
   <data name="PlayerSkills_MaxAll" xml:space="preserve"><value>MAX ALL</value></data>
-  <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tap a milestone for its full detail in the slot panel. Milestone counts vary per skill, and locked perks stay sealed (hidden in-game) until you reach the level - or tap one to override clearance.</value></data>
+  <data name="PlayerSkills_MilestoneHelp" xml:space="preserve"><value>Tap a milestone to see its details. Perks above your level stay hidden until you reach it, or tap one to reveal it.</value></data>
   <data name="PlayerSkills_RawXpTooltip" xml:space="preserve"><value>Exact XP. The level follows from it.</value></data>
   <data name="PlayerSkills_Skills" xml:space="preserve"><value>Skills</value></data>
   <data name="PlayerSkills_XpRate" xml:space="preserve"><value>XP RATE</value></data>
@@ -515,7 +515,7 @@
   <data name="PlayerVitals_RightArm" xml:space="preserve"><value>RIGHT ARM</value></data>
   <data name="PlayerVitals_RightLeg" xml:space="preserve"><value>RIGHT LEG</value></data>
   <data name="PlayerVitals_Sanity" xml:space="preserve"><value>SANITY</value></data>
-  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>The save file (and the running game) reports a Sanity value alongside Hunger, Thirst, Fatigue and Continence, but there's no confirmed public info yet on what it actually does in-game - it isn't documented on the wiki. Shown here because the game itself tracks it.</value></data>
+  <data name="PlayerVitals_SanityTooltip" xml:space="preserve"><value>The game tracks a Sanity value alongside the other survival stats. What it does in the game isn't known yet.</value></data>
   <data name="PlayerVitals_Thirst" xml:space="preserve"><value>THIRST</value></data>
   <data name="PlayerVitals_Torso" xml:space="preserve"><value>TORSO</value></data>
 
@@ -603,17 +603,17 @@
   <data name="Slot_TheLinkIsTheBenchsWorldGuidStoredOnTheItemSameAsSyncingAtABenchInGameStageSaveToWrite" xml:space="preserve"><value>This links the item to that bench, exactly like syncing at the bench in game. Press SAVE to write it.</value></data>
   <data name="Slot_TipDragASlotOntoAnotherToSwapDropOnAContainerInTheWorldEditorsListToMoveItemsBetweenContainers" xml:space="preserve"><value>Tip: drag a slot onto another to swap. Drop on a container in the world editor's list to move items between containers.</value></data>
   <data name="Slot_ToggleFlag" xml:space="preserve"><value>TOGGLE</value></data>
-  <data name="Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow" xml:space="preserve"><value>Trading is barter; hand over the items above to buy from the stock below.</value></data>
+  <data name="Slot_TradingIsBarterHandOverTheItemsAboveToBuyFromTheStockBelow" xml:space="preserve"><value>Trades are item for item: pay with the items above.</value></data>
   <data name="Slot_TriggerFlag" xml:space="preserve"><value>STORY TRIGGER</value></data>
   <data name="Slot_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
   <data name="Slot_UnlockStoryThroughHere" xml:space="preserve"><value>UNLOCK STORY THROUGH HERE</value></data>
-  <data name="Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept" xml:space="preserve"><value>Unlocking marks the story events those items need, plus anything needed for the trader to show up at all.</value></data>
+  <data name="Slot_UnlockingWritesTheChosenItemsFlagsPlusAnyFlagsNeededForTheTraderToAppearAtAllIntoWorldSaveFacilitySavABakIsKept" xml:space="preserve"><value>Tick locked items and press UNLOCK. This marks the story events they need as done, plus any the trader needs to show up.</value></data>
   <data name="Slot_Unsync" xml:space="preserve"><value>UNSYNC</value></data>
   <data name="Slot_Upgrade" xml:space="preserve"><value>UPGRADE</value></data>
   <data name="Slot_UsedIn" xml:space="preserve"><value>USED IN</value></data>
   <data name="Slot_Validation" xml:space="preserve"><value>VALIDATION</value></data>
   <data name="Slot_WhatTheyAcceptAsPayment" xml:space="preserve"><value>WHAT THEY ACCEPT AS PAYMENT</value></data>
-  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>WHAT THEY SELL · TAP AN ITEM TO INSPECT · TICK LOCKED ITEMS TO UNLOCK</value></data>
+  <data name="Slot_WhatTheySellTapAnItemToInspectTickLockedItemsToUnlock" xml:space="preserve"><value>WHAT THEY SELL</value></data>
   <data name="Slot_Where" xml:space="preserve"><value>WHERE</value></data>
 
   <!-- Status -->
@@ -624,9 +624,9 @@
   <data name="Status_ThemeLightDarkModeDiagnosticLoggingUsmapImport" xml:space="preserve"><value>Theme, light and dark mode, logging, game data</value></data>
 
   <!-- WorldBases -->
-  <data name="WorldBases_BaseManager" xml:space="preserve"><value>BASE MANAGER</value></data>
+  <data name="WorldBases_BaseManager" xml:space="preserve"><value>Base manager</value></data>
   <data name="WorldBases_BaseManagerIntro" xml:space="preserve"><value>Select a base to view its map and contents. Bases group objects within about 30 m of a crafting bench. Select a container to edit it.</value></data>
-  <data name="WorldBases_HowToHint" xml:space="preserve"><value>Once a base is selected you can tick the upgrades fitted to each of its benches, and open any of its containers to change how many of an item it holds.</value></data>
+  <data name="WorldBases_HowToHint" xml:space="preserve"><value>Tick the upgrades fitted to a bench, or open a container to change what it holds.</value></data>
   <data name="WorldBases_ContainerEditHint" xml:space="preserve"><value>Change a number to set how many of that item the container holds.</value></data>
   <data name="WorldBases_CloseContainerTooltip" xml:space="preserve"><value>Close the container and show the base map again</value></data>
   <data name="WorldBases_Composition" xml:space="preserve"><value>COMPOSITION</value></data>
@@ -672,7 +672,7 @@
   <data name="WorldContainment_Compendium" xml:space="preserve"><value>COMPENDIUM</value></data>
   <data name="WorldContainment_Contained" xml:space="preserve"><value>CONTAINED</value></data>
   <data name="WorldContainment_ContainedIn" xml:space="preserve"><value>CONTAINED IN</value></data>
-  <data name="WorldContainment_ContainmentUnits" xml:space="preserve"><value>CONTAINMENT UNITS</value></data>
+  <data name="WorldContainment_ContainmentUnits" xml:space="preserve"><value>Containment units</value></data>
   <data name="WorldContainment_ContainmentUnitsIntro" xml:space="preserve"><value>Use Holds to move or swap contained creatures. Select an occupied unit for details. Each creature can occupy one unit.</value></data>
   <data name="WorldContainment_DiscoverAll" xml:space="preserve"><value>DISCOVER ALL</value></data>
   <data name="WorldContainment_ConfirmDiscoverAll" xml:space="preserve"><value>This marks every item in the game as already seen by everyone in this world, so nothing carries a NEW badge any more. It cannot be undone except by reverting your unsaved changes.</value></data>
@@ -689,7 +689,7 @@
   <data name="WorldContainment_Release" xml:space="preserve"><value>RELEASE</value></data>
   <data name="WorldContainment_ReleaseTooltip" xml:space="preserve"><value>Lets this creature escape. REVERT puts it back.</value></data>
   <data name="WorldContainment_UnlockAll" xml:space="preserve"><value>UNLOCK ALL</value></data>
-  <data name="WorldContainment_WorldUnlocks" xml:space="preserve"><value>WORLD UNLOCKS</value></data>
+  <data name="WorldContainment_WorldUnlocks" xml:space="preserve"><value>World unlocks</value></data>
   <data name="WorldContainment_WorldUnlocksIntro" xml:space="preserve"><value>Shared discoveries for every player. Bulk unlocks add entries without removing existing ones.</value></data>
 
   <!-- WorldDoors -->
@@ -755,11 +755,11 @@
   <data name="WorldDropped_DeleteAllShown" xml:space="preserve"><value>DELETE ALL SHOWN</value></data>
   <data name="WorldDropped_FilterPlaceholder" xml:space="preserve"><value>Filter ground items by name or id…</value></data>
   <data name="WorldDropped_GroundItemsIntro" xml:space="preserve"><value>Find and remove loose items from this region. Search by item name to narrow the list.</value></data>
-  <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>ITEMS ON THE GROUND</value></data>
+  <data name="WorldDropped_ItemsOnTheGround" xml:space="preserve"><value>Items on the ground</value></data>
   <data name="WorldDropped_NoGroundItems" xml:space="preserve"><value>No ground items match.</value></data>
   <data name="WorldDropped_NearbyOnly" xml:space="preserve"><value>Nearby only</value></data>
   <data name="WorldDropped_NearbyRadius" xml:space="preserve"><value>Radius (cm)</value></data>
-  <data name="WorldDropped_NearbyRadiusHelp" xml:space="preserve"><value>Only show items within this distance of where you're standing. The Facility is one continuous map with no real area boundaries in the data, so this is the closest thing to "just this area" - turn it off to search everywhere.</value></data>
+  <data name="WorldDropped_NearbyRadiusHelp" xml:space="preserve"><value>Only show items within this distance of where you're standing. Turn it off to search the whole map.</value></data>
   <data name="WorldDropped_NoneNearby" xml:space="preserve"><value>Nothing within range. There are items elsewhere on the map - turn off "Nearby only" or widen the radius to see them.</value></data>
   <data name="WorldDropped_Restore" xml:space="preserve"><value>RESTORE</value></data>
   <data name="WorldDropped_SpawnItemIdPlaceholder" xml:space="preserve"><value>Item id, e.g. scrap_metal</value></data>
@@ -825,14 +825,14 @@
   <data name="WorldFlags_InThisFile" xml:space="preserve"><value>IN THIS AREA</value></data>
   <data name="WorldFlags_NoFlags" xml:space="preserve"><value>Nothing has happened in this area yet, or nothing matches your filter.</value></data>
   <data name="WorldFlags_NotYetHappened" xml:space="preserve"><value>NOT YET</value></data>
-  <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>STORY EVENTS</value></data>
+  <data name="WorldFlags_QuestFlags" xml:space="preserve"><value>Story events</value></data>
 
   <!-- WorldNpcs -->
   <data name="WorldNpcs_NoNarrativeNpcs" xml:space="preserve"><value>No story NPCs or traders found here.</value></data>
   <data name="WorldNpcs_NpcsIntro" xml:space="preserve"><value>Select a character to restore them or inspect their story stage.</value></data>
   <data name="WorldNpcs_ScriptPhase" xml:space="preserve"><value>STORY STAGE</value></data>
-  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>This is the raw per-character script state. The numbers have no universal meanings, so changing one without that character's script can break conversations. It is shown for diagnosis only.</value></data>
-  <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>STORY NPCS &amp; TRADERS IN THIS WORLD</value></data>
+  <data name="WorldNpcs_ScriptPhaseTooltip" xml:space="preserve"><value>This character's conversation stage. The numbers mean something different for each character, so changing one can break their conversations.</value></data>
+  <data name="WorldNpcs_StoryNpcsAndTraders" xml:space="preserve"><value>Story NPCs and traders in this world</value></data>
   <data name="WorldNpcs_TradersMoved" xml:space="preserve"><value>Looking for traders? Open the world's story save and use its TRADERS tab to unlock their stock for everyone.</value></data>
   <data name="WorldNpcs_SectionStory" xml:space="preserve"><value>Story characters</value></data>
   <data name="WorldNpcs_SectionCreatures" xml:space="preserve"><value>Creatures and NPCs nearby</value></data>
@@ -849,7 +849,7 @@
   <data name="WorldPets_HealToFull" xml:space="preserve"><value>HEAL TO FULL</value></data>
   <data name="WorldPets_Health" xml:space="preserve"><value>HEALTH</value></data>
   <data name="WorldPets_LevelAndXp" xml:space="preserve"><value>LEVEL &amp; XP</value></data>
-  <data name="WorldPets_LiveSpeciesChangeUnavailable" xml:space="preserve"><value>Changing this pet's creature type isn't available right now: either this pet carries no stable id the game can use to confirm the swap, or your connected game agent needs updating. Edit the save file instead.</value></data>
+  <data name="WorldPets_LiveSpeciesChangeUnavailable" xml:space="preserve"><value>This pet's creature type can't be changed while connected. Edit the save file instead.</value></data>
   <data name="WorldPets_Location" xml:space="preserve"><value>LOCATION</value></data>
   <data name="WorldPets_Lv" xml:space="preserve"><value>LV</value></data>
   <data name="WorldPets_Name" xml:space="preserve"><value>NAME</value></data>
@@ -862,7 +862,7 @@
   <data name="WorldPets_SendToAPlayer" xml:space="preserve"><value>SEND TO A PLAYER</value></data>
   <data name="WorldPets_SendToPlayer" xml:space="preserve"><value>SEND TO PLAYER</value></data>
   <data name="WorldPets_SendToPlayerHelp" xml:space="preserve"><value>Health, level and name carry over; the pet leaves the world. Save other world edits first.</value></data>
-  <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>TAMED PETS IN THIS WORLD</value></data>
+  <data name="WorldPets_TamedPetsInThisWorld" xml:space="preserve"><value>Tamed pets in this world</value></data>
   <data name="WorldPets_AddTitle" xml:space="preserve"><value>Add a companion</value></data>
   <data name="WorldPets_Add" xml:space="preserve"><value>ADD COMPANION</value></data>
   <data name="WorldPets_SearchCompanions" xml:space="preserve"><value>Search companions or class IDs</value></data>
@@ -870,7 +870,7 @@
   <data name="WorldPets_AddUnsupported" xml:space="preserve"><value>READ ONLY</value></data>
   <data name="WorldPets_AddUnsupportedReason" xml:space="preserve"><value>Armor-set summon, not a tamed companion.</value></data>
   <data name="WorldPets_UndoDelete" xml:space="preserve"><value>UNDO DELETE</value></data>
-  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>This pet's creature type gives the game no stable id to match live, so its name and level can't be read or changed here. Health and alive/dead status still can. Edit the save file for the rest.</value></data>
+  <data name="WorldPets_UnmatchedLiveNotice" xml:space="preserve"><value>This pet can't be matched in the running game, so its name and level can't be changed here. Its health and whether it's alive still can. Edit the save file for the rest.</value></data>
   <data name="WorldPets_Xp" xml:space="preserve"><value>XP</value></data>
 
   <!-- WorldRaw -->
@@ -882,10 +882,10 @@
   <data name="WorldRaw_RawSaveJson" xml:space="preserve"><value>Advanced data</value></data>
 
   <!-- WorldStory -->
-  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>Choose a chapter</value></data>
+  <data name="WorldStory_ChaptersHeader" xml:space="preserve"><value>CHOOSE A CHAPTER</value></data>
   <data name="WorldStory_ContainmentMoved" xml:space="preserve"><value>Trapped creatures and world-wide unlocks are on the CONTAINMENT tab.</value></data>
   <data name="WorldStory_Current" xml:space="preserve"><value>CURRENT</value></data>
-  <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>MAIN QUEST PROGRESSION</value></data>
+  <data name="WorldStory_MainQuestProgression" xml:space="preserve"><value>Main quest progression</value></data>
   <data name="WorldStory_MinutesPlayed" xml:space="preserve"><value>MINUTES PLAYED</value></data>
   <data name="WorldStory_MovePlayersLabel" xml:space="preserve"><value>ALSO MOVE PLAYERS TO THIS CHAPTER'S AREA</value></data>
   <data name="WorldStory_MovePlayersCaption" xml:space="preserve"><value>When ticked, SET also moves every character's respawn point to the punch-card terminal in that chapter's sector. Off by default, so leave it unticked if you only want the story itself changed.</value></data>
@@ -954,14 +954,14 @@
 
   <!-- WorldTraders -->
   <data name="WorldTraders_UnlockConfirmTitle" xml:space="preserve"><value>Unlock {0}?</value></data>
-  <data name="WorldTraders_UnlockFlagsIntro" xml:space="preserve"><value>These story flags will be written to this world:</value></data>
-  <data name="WorldTraders_UnlockAlsoTraders" xml:space="preserve"><value>Setting them also makes these traders available:</value></data>
+  <data name="WorldTraders_UnlockFlagsIntro" xml:space="preserve"><value>These story events will be marked as done:</value></data>
+  <data name="WorldTraders_UnlockAlsoTraders" xml:space="preserve"><value>This also unlocks these traders:</value></data>
   <data name="WorldTraders_UnlockNoOtherTraders" xml:space="preserve"><value>No other traders are affected.</value></data>
-  <data name="WorldTraders_UnlockConfirmAccept" xml:space="preserve"><value>Write the flags</value></data>
-  <data name="WorldTraders_Traders" xml:space="preserve"><value>TRADERS</value></data>
-  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Select a trader to inspect stock and unlock requirements. Availability depends on story progress.</value></data>
-  <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>Built-in trader data</value></data>
-  <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>The game isn't loaded, so this shows the editor's built-in trader snapshot. The trades and the world flags that unlock them (for example Dr. Carson's gear) are accurate and editable here, but item names and icons need the installed game. To load it, use Settings &gt; Game Data ("Locate game folder"); auto-detection only finds Steam installs, so Game Pass, Epic, or moved libraries need to be set manually.</value></data>
+  <data name="WorldTraders_UnlockConfirmAccept" xml:space="preserve"><value>UNLOCK</value></data>
+  <data name="WorldTraders_Traders" xml:space="preserve"><value>Traders</value></data>
+  <data name="WorldTraders_TradersIntro" xml:space="preserve"><value>Pick a trader to see what they sell and how to unlock them.</value></data>
+  <data name="WorldTraders_SnapshotTitle" xml:space="preserve"><value>GAME NOT FOUND</value></data>
+  <data name="WorldTraders_SnapshotBody" xml:space="preserve"><value>Item names and pictures are missing because the editor can't find your game. Trades and unlocks still work. Set your game folder in Settings &gt; Game Data. Steam installs are found automatically; Game Pass, Epic and moved installs need setting by hand.</value></data>
 
   <!-- WorldVehicles -->
   <data name="WorldVehicles_Area" xml:space="preserve"><value>AREA</value></data>
@@ -977,7 +977,7 @@
   <data name="WorldVehicles_SelectAVehicleToEditIt" xml:space="preserve"><value>Select a vehicle to edit it.</value></data>
   <data name="WorldVehicles_State" xml:space="preserve"><value>STATE</value></data>
   <data name="WorldVehicles_VehicleListIntro" xml:space="preserve"><value>Select a vehicle to change its condition, move it, restore its position, or open its storage.</value></data>
-  <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>VEHICLES IN THIS WORLD</value></data>
+  <data name="WorldVehicles_VehiclesInThisWorld" xml:space="preserve"><value>Vehicles in this world</value></data>
   <data name="WorldVehicles_Wrecked" xml:space="preserve"><value>WRECKED</value></data>
   <data name="Compare_Title" xml:space="preserve">
     <value>Compare</value>
@@ -2268,7 +2268,7 @@ This writes to the save straight away and reloads the editor, so anything you ha
     <value>{0} item(s) revealed (clearance overridden).</value>
   </data>
   <data name="Settings_SpoilersHint" xml:space="preserve">
-    <value>Seals content you haven't reached yet (future quest flags, traders, recipes, hidden achievements, codex entries, contained anomalies) behind a CLASSIFIED stamp. Tap any sealed item to override clearance and reveal it - revealed items stay visible from then on.</value>
+    <value>Hides things you haven't reached yet (future story events, traders, recipes, hidden achievements, codex entries and contained creatures) behind a CLASSIFIED stamp. Tap one to reveal it. It stays revealed.</value>
   </data>
   <data name="Settings_SpoilerProtection" xml:space="preserve">
     <value>Spoiler protection</value>
@@ -2822,9 +2822,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_ChapterTitle_EndGame" xml:space="preserve"><value>Finale - Facility Escape</value></data>
   <data name="WorldStory_ChapterSummary_EndGame" xml:space="preserve"><value>The Wayseeker is defeated. Epilogue conversations and main-story completion are separate flags; select this chapter to review its finale conversations.</value></data>
   <data name="WorldTraders_Lore_Warren_Name" xml:space="preserve"><value>Warren Bunning</value></data>
-  <data name="WorldTraders_Lore_Warren_Where" xml:space="preserve"><value>Office Sector plaza - security kiosk (stationary)</value></data>
-  <data name="WorldTraders_Lore_Warren_Blurb" xml:space="preserve"><value>Sydney-sider turned subterranean security specialist. Sells security keys, seeds, alloys and repair kits; stock grows with story progress.</value></data>
-  <data name="WorldTraders_Lore_Warren_Unlock" xml:space="preserve"><value>The first trader you meet - opens shop early in the Office Sector. Stock expands as the story advances.</value></data>
+  <data name="WorldTraders_Lore_Warren_Where" xml:space="preserve"><value>Office Sector plaza, at the security kiosk</value></data>
+  <data name="WorldTraders_Lore_Warren_Blurb" xml:space="preserve"><value>Sydney-sider turned underground security man. Sells security keys, seeds, alloys and repair kits.</value></data>
+  <data name="WorldTraders_Lore_Warren_Unlock" xml:space="preserve"><value>The first trader you meet, in the Office Sector. His stock grows as the story goes on.</value></data>
   <data name="WorldTraders_Lore_Grayson_Name" xml:space="preserve"><value>Grayson Isling</value></data>
   <data name="WorldTraders_Lore_Grayson_Where" xml:space="preserve"><value>Met at the Manufacturing West door; later travels near Repair &amp; Salvage stations</value></data>
   <data name="WorldTraders_Lore_Grayson_Blurb" xml:space="preserve"><value>Wounded GATE materials engineer. After you patch him up he sells ammo, hard hats, high-vis vests and repair kits.</value></data>
@@ -2842,26 +2842,24 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldTraders_Lore_Chef_Blurb" xml:space="preserve"><value>Self-proclaimed Culinarian of the Containment Division. Trades cooking gear, seeds, ingredients and beverages.</value></data>
   <data name="WorldTraders_Lore_Chef_Unlock" xml:space="preserve"><value>Becomes a trader after you meet him in the Security Sector garage.</value></data>
   <data name="WorldTraders_Lore_Jimmy_Name" xml:space="preserve"><value>Jimmy Sanders</value></data>
-  <data name="WorldTraders_Lore_Jimmy_Where" xml:space="preserve"><value>First met in the Botanical Garden / Botanical Wing</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Where" xml:space="preserve"><value>First met in the Botanical Garden</value></data>
   <data name="WorldTraders_Lore_Jimmy_Blurb" xml:space="preserve"><value>Young New Zealander who took a Taco Mine job in 1992 without asking questions. Trades tacos and fast-food cosmetics.</value></data>
-  <data name="WorldTraders_Lore_Jimmy_Unlock" xml:space="preserve"><value>You first meet him in the Botanical Garden, but he only becomes a trader AFTER you beat the game - then he opens the Taco Mine. NOT available from the start.</value></data>
+  <data name="WorldTraders_Lore_Jimmy_Unlock" xml:space="preserve"><value>You meet him in the Botanical Garden, but he only starts trading at the Taco Mine after you finish the game.</value></data>
   <data name="WorldTraders_Lore_Thule_Name" xml:space="preserve"><value>Dr. Ulrich Thule</value></data>
   <data name="WorldTraders_Lore_Thule_Where" xml:space="preserve"><value>Office cafeteria / Labs atrium / Residence E-Suites</value></data>
   <data name="WorldTraders_Lore_Thule_Blurb" xml:space="preserve"><value>Theoretical physicist, coffee aficionado, committed cynic. Trades a mug of coffee for rare materials.</value></data>
   <data name="WorldTraders_Lore_Thule_Unlock" xml:space="preserve"><value>A post-game trader: only opens shop after you complete the story.</value></data>
   <data name="WorldTraders_Lore_Larva_Name" xml:space="preserve"><value>Big Hive Larva</value></data>
-  <data name="WorldTraders_Lore_Larva_Where" xml:space="preserve"><value>The Hive, in The Encroachment (the Maggot Pit sublevel beneath Manufacturing West's Old Mines)</value></data>
+  <data name="WorldTraders_Lore_Larva_Where" xml:space="preserve"><value>The Hive, in the Maggot Pit below the Old Mines</value></data>
   <data name="WorldTraders_Lore_Larva_Blurb" xml:space="preserve"><value>Larval organism from Anteverse 299. Accepts gem crabs and bait in exchange for figurines and powdered crystal.</value></data>
-  <data name="WorldTraders_Lore_Larva_Unlock" xml:space="preserve"><value>Available once you descend into the Old Mines beneath Manufacturing West and reach The Hive in The Encroachment.</value></data>
-  <data name="WorldTraders_Card_UnlockedByMeeting" xml:space="preserve"><value>Unlocked by meeting them in the world (no save flag tracks this trader).</value></data>
-  <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>AVAILABLE in this world - gating flag(s) are set.</value></data>
-  <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>NOT YET in this world - needs: {0}</value></data>
-  <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>(barter terms vary)</value></data>
-  <data name="WorldTraders_Card_AppearsAfter" xml:space="preserve"><value>appears after: {0}</value></data>
-  <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>(no stock table)</value></data>
+  <data name="WorldTraders_Lore_Larva_Unlock" xml:space="preserve"><value>Available once you reach The Hive below the Old Mines in Manufacturing West.</value></data>
+  <data name="WorldTraders_Card_UnlockedByMeeting" xml:space="preserve"><value>Unlocks when you meet them in the game.</value></data>
+  <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>Available in this world.</value></data>
+  <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>Not available yet. Needs: {0}</value></data>
+  <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>Varies by item.</value></data>
+  <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>nothing listed</value></data>
   <data name="WorldTraders_Card_MoreItems" xml:space="preserve"><value>+{0} more</value></data>
-  <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Above clearance - tap to reveal</value></data>
-  <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Tap to open in the side panel →</value></data>
+  <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Tap to reveal</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>UNLOCK {0} SELECTED</value></data>
   <data name="Skill_LevelFormat" xml:space="preserve"><value>LEVEL {0}</value></data>
   <data name="Skill_Locked" xml:space="preserve"><value>Locked - reach level {0} ({1} / {2} XP to go).</value></data>
@@ -3642,7 +3640,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerAchievements_StatusCompared" xml:space="preserve"><value>Compared with {0}: you have {1} they don't; they have {2} you don't.</value></data>
   <data name="PlayerAchievements_StatusGatedWeb" xml:space="preserve"><value>Steam is hiding this account's achievements from the editor. Sign in with Steam, or set your profile's 'Game details' to Public and check again. Cached data is still shown.</value></data>
   <data name="PlayerAchievements_StatusLoadingComparison" xml:space="preserve"><value>Loading comparison for {0}…</value></data>
-  <data name="PlayerAchievements_StatusLocalCacheLoaded" xml:space="preserve"><value>Local Steam cache (icons via Steam CDN) · the cache only updates while Steam runs - CHECK STEAM verifies the live state online.</value></data>
+  <data name="PlayerAchievements_StatusLocalCacheLoaded" xml:space="preserve"><value>Read from Steam on this computer, which only updates while Steam is running. CHECK STEAM checks online.</value></data>
   <data name="PlayerAchievements_StatusNoLocalCache" xml:space="preserve"><value>No local Steam cache for this account on this machine - use CHECK STEAM to query the web (public profiles only).</value></data>
   <data name="PlayerAchievements_StatusNoSteamId" xml:space="preserve"><value>Could not determine the SteamID from the file name.</value></data>
   <data name="PlayerAchievements_StatusQuerying" xml:space="preserve"><value>Querying steamcommunity.com…</value></data>
@@ -3707,21 +3705,21 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldFlags_CategoryOther" xml:space="preserve"><value>OTHER</value></data>
   <data name="WorldFlags_StoryChapterFormat" xml:space="preserve"><value>STORY: {0}</value></data>
   <data name="WorldFlags_StoryTriggerForChapter" xml:space="preserve"><value>Starts the chapter "{0}".</value></data>
-  <data name="WorldFlags_DescCompleted" xml:space="preserve"><value>Records that this objective/event was completed</value></data>
-  <data name="WorldFlags_DescOpened" xml:space="preserve"><value>Records that a door, gate or route here was opened</value></data>
-  <data name="WorldFlags_DescEntered" xml:space="preserve"><value>Records that the players entered this place for the first time</value></data>
-  <data name="WorldFlags_DescMet" xml:space="preserve"><value>Records a first meeting with this character</value></data>
-  <data name="WorldFlags_DescReached" xml:space="preserve"><value>Records that this point was reached</value></data>
-  <data name="WorldFlags_DescFound" xml:space="preserve"><value>Records that this thing was found</value></data>
-  <data name="WorldFlags_DescUnlock" xml:space="preserve"><value>Unlocks content (recipes, stock or access) tied to it</value></data>
-  <data name="WorldFlags_DescRepaired" xml:space="preserve"><value>Records that this machine/system was repaired</value></data>
-  <data name="WorldFlags_DescDefeated" xml:space="preserve"><value>Records that this enemy was defeated</value></data>
-  <data name="WorldFlags_DescGeneric" xml:space="preserve"><value>A one-way world event the game checks before unlocking things</value></data>
-  <data name="WorldFlags_DescriptionFormat" xml:space="preserve"><value>{0} - {1} region. Switching it on can skip the event. Switching it off can let it happen again, where the game checks.</value></data>
+  <data name="WorldFlags_DescCompleted" xml:space="preserve"><value>Marks this objective as done</value></data>
+  <data name="WorldFlags_DescOpened" xml:space="preserve"><value>Marks a door, gate or route here as opened</value></data>
+  <data name="WorldFlags_DescEntered" xml:space="preserve"><value>Marks this place as visited</value></data>
+  <data name="WorldFlags_DescMet" xml:space="preserve"><value>Marks a first meeting with this character</value></data>
+  <data name="WorldFlags_DescReached" xml:space="preserve"><value>Marks this point as reached</value></data>
+  <data name="WorldFlags_DescFound" xml:space="preserve"><value>Marks this thing as found</value></data>
+  <data name="WorldFlags_DescUnlock" xml:space="preserve"><value>Unlocks recipes, stock or access tied to it</value></data>
+  <data name="WorldFlags_DescRepaired" xml:space="preserve"><value>Marks this machine as repaired</value></data>
+  <data name="WorldFlags_DescDefeated" xml:space="preserve"><value>Marks this enemy as defeated</value></data>
+  <data name="WorldFlags_DescGeneric" xml:space="preserve"><value>A world event the game keeps track of</value></data>
+  <data name="WorldFlags_DescriptionFormat" xml:space="preserve"><value>{0}.</value></data>
   <data name="WorldDoors_CountFormat" xml:space="preserve"><value>{0} DOORS</value></data>
-  <data name="WorldDoors_Title" xml:space="preserve"><value>DOORS</value></data>
-  <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>DOORS - {0}</value></data>
-  <data name="WorldDoors_TitleLive" xml:space="preserve"><value>DOORS - LIVE</value></data>
+  <data name="WorldDoors_Title" xml:space="preserve"><value>Doors</value></data>
+  <data name="WorldDoors_TitleWithRegionFormat" xml:space="preserve"><value>Doors - {0}</value></data>
+  <data name="WorldDoors_TitleLive" xml:space="preserve"><value>Doors - live</value></data>
   <data name="WorldEditor_DroppedSummaryFormat" xml:space="preserve"><value>{0} item(s) on the ground</value></data>
   <data name="WorldEditor_DroppedSummaryWithDeletionsFormat" xml:space="preserve"><value>{0} item(s) · {1} marked for deletion</value></data>
   <data name="WorldStory_RegionOtherAnomaliesMeta" xml:space="preserve"><value>OTHER · ANOMALIES</value></data>
@@ -3779,14 +3777,14 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_ChapterIndexFormat" xml:space="preserve"><value>chapter {0} of {1}</value></data>
   <data name="WorldStory_UnknownChapter" xml:space="preserve"><value>(unknown chapter)</value></data>
   <data name="WorldStory_LiveChapterReadOnly" xml:space="preserve"><value>You need to be hosting this game to set the story chapter here. Joined players can still watch it change; only the host can move it.</value></data>
-  <data name="WorldStory_LiveSetAppliesImmediately" xml:space="preserve"><value>The story runs in order, so a chapter cannot really begin until the earlier ones have happened. Setting a chapter here applies immediately in the running game (its flags are set or cleared to match, both directions) - there's no SAVE step live.</value></data>
+  <data name="WorldStory_LiveSetAppliesImmediately" xml:space="preserve"><value>Setting a chapter changes the running game right away, turning story events on or off to match. There is no SAVE step.</value></data>
   <data name="WorldStory_ChapterSetStatusFormat" xml:space="preserve"><value>Chapter set · {0} story event(s) added and {1} undone in the facility{2}. Press SAVE to finish.</value></data>
   <data name="WorldStory_ChapterSyncFailedFormat" xml:space="preserve"><value>The chapter could not be brought in line: {0}</value></data>
   <data name="WorldStory_SettingChapterStatus" xml:space="preserve"><value>Setting the chapter and bringing the facility's story events in line…</value></data>
   <data name="WorldTraders_SellsFormat" xml:space="preserve"><value>Sells: {0}</value></data>
-  <data name="WorldTraders_Card_UnlockedFlagSet" xml:space="preserve"><value>unlocked ({0} is set)</value></data>
-  <data name="WorldTraders_Card_AlwaysStocked" xml:space="preserve"><value>always in stock</value></data>
-  <data name="WorldTraders_Card_LockedNeedsFlag" xml:space="preserve"><value>locked - needs {0}</value></data>
+  <data name="WorldTraders_Card_UnlockedFlagSet" xml:space="preserve"><value>Unlocked after {0}</value></data>
+  <data name="WorldTraders_Card_AlwaysStocked" xml:space="preserve"><value>Always in stock</value></data>
+  <data name="WorldTraders_Card_LockedNeedsFlag" xml:space="preserve"><value>Locked until {0}</value></data>
   <data name="WorldTraders_Card_ThisTrader" xml:space="preserve"><value>This trader</value></data>
   <data name="WorldContainment_DiscoveredCountFormat" xml:space="preserve"><value>{0} discovered</value></data>
   <data name="WorldContainment_ReadCountFormat" xml:space="preserve"><value>{0} read</value></data>
@@ -3870,7 +3868,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerAchievements_HiddenAchievementHint" xml:space="preserve"><value>Hidden achievement. {0}</value></data>
   <data name="PlayerAchievements_StatusCheckFailed" xml:space="preserve"><value>Steam check failed: {0} - local cache data is still shown.</value></data>
   <data name="PlayerAchievements_StatusComparisonFailed" xml:space="preserve"><value>Comparison failed: {0}</value></data>
-  <data name="PlayerAchievements_StatusGatedAnonymous" xml:space="preserve"><value>Steam blocked the anonymous stats query for this account. Either sign in below (a logged-in session can view its own and friends' achievements), or make the profile's 'Game details' dropdown Public (Steam → Profile → Edit Profile → Privacy Settings → Game details; changes can take a few minutes to apply). Local cache data is still shown.</value></data>
+  <data name="PlayerAchievements_StatusGatedAnonymous" xml:space="preserve"><value>Steam won't share this account's achievements. Sign in below, or set the profile's 'Game details' to Public (Steam &gt; Profile &gt; Edit Profile &gt; Privacy Settings). That can take a few minutes. Achievements from this computer are still shown.</value></data>
   <data name="PlayerAchievements_StatusGatedSignedIn" xml:space="preserve"><value>Steam still blocked the stats query despite the signed-in session - the session may have expired (SIGN OUT, then sign in again), or this profile isn't visible to that account. Local cache data is still shown.</value></data>
   <data name="PlayerAchievements_StatusNoSignInWindow" xml:space="preserve"><value>Could not open the sign-in window.</value></data>
   <data name="PlayerAchievements_StatusQueryingSignedIn" xml:space="preserve"><value>Querying steamcommunity.com (signed in)…</value></data>
@@ -3941,7 +3939,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldContainment_OrphanedFormat" xml:space="preserve"><value>These creatures are recorded as caught, but their unit is nowhere in the world any more: {0}</value></data>
   <data name="WorldContainment_FreeCreaturesFormat" xml:space="preserve"><value>Roaming free right now: {0}. Pick one in any empty unit above to catch it.</value></data>
   <data name="WorldDoors_ActorNotFound" xml:space="preserve"><value>This door's actor was not found in the cooked level (renamed by a game update?).</value></data>
-  <data name="WorldDoors_MapCaptionSectorPin" xml:space="preserve"><value>The crosshair is this door, drawn on the same sector map you can find in-game. The smaller dots are the area's other doors. Positions come from the game's own level files and are lined up with the drawing as closely as we can, so treat them as "about here" rather than exact.</value></data>
+  <data name="WorldDoors_MapCaptionSectorPin" xml:space="preserve"><value>The crosshair marks this door on the sector map. The small dots are the area's other doors. Positions are approximate.</value></data>
   <data name="WorldDoors_MapEnlarge" xml:space="preserve"><value>Show this map full screen</value></data>
   <data name="WorldDoors_SubLevelNotReadable" xml:space="preserve"><value>This sub-level could not be read from the game files.</value></data>
   <data name="WorldDoors_OpensWith" xml:space="preserve"><value>OPENS WITH</value></data>
@@ -3960,9 +3958,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, {0} player codex row(s) cleared ({1} save(s))</value></data>
   <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>This quest flag</value></data>
   <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, {0} world codex unlock(s) cleared</value></data>
-  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>All of those flags are already set in this save.</value></data>
-  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: nothing to unlock.</value></data>
-  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>Staged {0} world flag(s) - press SAVE to write.</value></data>
   <data name="IniEditor_NoSectionHeader" xml:space="preserve"><value>(no section)</value></data>
   <data name="Main_MenuPlugins" xml:space="preserve"><value>Plugins</value></data>
   <data name="Palette_CategoryOther" xml:space="preserve"><value>OTHER</value></data>
@@ -4160,7 +4155,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_LiveChip" xml:space="preserve"><value>LIVE</value></data>
   <data name="Live_Disconnect" xml:space="preserve"><value>DISCONNECT</value></data>
   <data name="Live_Sections" xml:space="preserve"><value>Live editor sections</value></data>
-  <data name="LiveNpcs_Title" xml:space="preserve"><value>CREATURES</value></data>
+  <data name="LiveNpcs_Title" xml:space="preserve"><value>Creatures</value></data>
   <data name="LiveNpcs_Refresh" xml:space="preserve"><value>REFRESH</value></data>
   <data name="LiveNpcs_Intro" xml:space="preserve"><value>Every creature and hostile NPC currently loaded in the game - not just wildlife. Click one to see it. Changes apply immediately, one at a time - there is no APPLY step here.</value></data>
   <data name="LiveNpcs_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to edit creatures. Editing here as a joined client would not stick.</value></data>
@@ -4170,7 +4165,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveNpcs_Faction" xml:space="preserve"><value>Faction</value></data>
   <data name="LiveNpcs_SelectToPreview" xml:space="preserve"><value>Select a creature to see it here.</value></data>
   <data name="LiveNpcs_ClassLabel" xml:space="preserve"><value>Class</value></data>
-  <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game itself does not report this creature's position, health or appearance - only its name, life/death state, disabled/invincible flags and faction. The picture above (when there is one) comes from the community wiki, not the game.</value></data>
+  <data name="LiveNpcs_NoAppearanceDataNote" xml:space="preserve"><value>The running game doesn't share this creature's position, health or look, only its name, whether it's alive, its faction and its disabled or invincible state. The picture, if shown, comes from the community wiki.</value></data>
   <data name="Live_TabPortals" xml:space="preserve"><value>World Teleporters</value></data>
   <data name="Live_TabElevators" xml:space="preserve"><value>Elevators</value></data>
   <data name="Live_TabButtons" xml:space="preserve"><value>Buttons</value></data>
@@ -4184,7 +4179,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Live_TabGardenPlots" xml:space="preserve"><value>Garden Plots</value></data>
   <data name="Live_TabPowerChairs" xml:space="preserve"><value>Power Chairs</value></data>
   <data name="Live_TabChemistryBenches" xml:space="preserve"><value>Chemistry Benches</value></data>
-  <data name="LiveChemistryBenches_Title" xml:space="preserve"><value>CHEMISTRY BENCHES</value></data>
+  <data name="LiveChemistryBenches_Title" xml:space="preserve"><value>Chemistry benches</value></data>
   <data name="LiveChemistryBenches_Intro" xml:space="preserve"><value>Every chemistry bench loaded in the world, closest to you first. Pick a bench to see its three input flasks and the output, and set what's in each input directly.</value></data>
   <data name="LiveChemistryBenches_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change what's in a chemistry bench. Editing here as a joined client would not stick.</value></data>
   <data name="LiveChemistryBenches_NoneFound" xml:space="preserve"><value>No chemistry benches are loaded in this area right now.</value></data>
@@ -4211,7 +4206,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveChemistryBenches_SendToChestNeedsHost" xml:space="preserve"><value>Sending to a chest needs you to be hosting this game.</value></data>
   <data name="LiveChemistryBenches_ChestFull" xml:space="preserve"><value>That chest has no free slot. Pick another one.</value></data>
   <data name="LiveChemistryBenches_ChestGone" xml:space="preserve"><value>That chest is no longer loaded. Refresh the containers and pick again.</value></data>
-  <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to unlock traders. Editing here as a joined client would not stick.</value></data>
+  <data name="LiveTraders_NotHostWarning" xml:space="preserve"><value>Only the host of this game can unlock traders.</value></data>
   <data name="LiveContainment_OfflineWorldUnlocksNote" xml:space="preserve"><value>World-wide discovery counts (items seen, emails read, journal pages, compendium entries) live only in the save file, not in the running game - open this world's save to edit those.</value></data>
   <data name="LiveInventory_Title" xml:space="preserve"><value>INVENTORY</value></data>
   <data name="LiveInventory_Intro" xml:space="preserve"><value>The backpack, equipment and hotbar for the selected player. Type an item row id (or pick one from the list), set the count and durability, then APPLY - each slot applies on its own.</value></data>
@@ -4305,7 +4300,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_Section" xml:space="preserve"><value>Section</value></data>
   <data name="Editing_SkillDetails" xml:space="preserve"><value>XP and perks</value></data>
   <data name="Editing_AdvancedGameData" xml:space="preserve"><value>Advanced game data</value></data>
-  <data name="WorldBases_LiveUpgradeCaveat" xml:space="preserve"><value>Bench upgrades can be installed or removed live, but only on a bench the connected game build can safely confirm - see each bench's own note below if its upgrades are missing.</value></data>
+  <data name="WorldBases_LiveUpgradeCaveat" xml:space="preserve"><value>Bench upgrades can be changed while connected, but not on every bench. A bench that can't shows a note below.</value></data>
   <data name="WorldBases_UpgradesUnavailableLive" xml:space="preserve"><value>This bench supports upgrades, but the connected game build can't confirm or edit them safely right now.</value></data>
   <data name="LiveBases_NotHostWarning" xml:space="preserve"><value>You need to be hosting this game to change bases and bench upgrades. Changing them here as a joined client would not stick.</value></data>
   <data name="Live_Ue4ssTitle" xml:space="preserve"><value>Install UE4SS first</value></data>

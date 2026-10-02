@@ -2288,11 +2288,9 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>DISPONIBLE en este mundo - las bandera(s) de desbloqueo están activadas.</value></data>
   <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>AÚN NO disponible en este mundo - necesita: {0}</value></data>
   <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>(las condiciones de trueque varían)</value></data>
-  <data name="WorldTraders_Card_AppearsAfter" xml:space="preserve"><value>aparece después de: {0}</value></data>
   <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>(sin tabla de inventario)</value></data>
   <data name="WorldTraders_Card_MoreItems" xml:space="preserve"><value>+{0} más</value></data>
   <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Por encima de tu autorización - toca para revelar</value></data>
-  <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Toca para abrir en el panel lateral →</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>DESBLOQUEAR {0} SELECCIONADOS</value></data>
 
   <!-- Skill (passives + milestones) -->
@@ -3354,9 +3352,6 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, {0} fila(s) de códice de jugador borradas ({1} guardado(s))</value></data>
   <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>Este indicador de misión</value></data>
   <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, {0} desbloqueo(s) de códice del mundo borrados</value></data>
-  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>Todos esos indicadores ya están establecidos en este guardado.</value></data>
-  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: nada que desbloquear.</value></data>
-  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>{0} indicador(es) de mundo preparados - pulsa GUARDAR para escribir.</value></data>
   <data name="Compare_Containers" xml:space="preserve"><value>Contenedores</value></data>
   <data name="Compare_Doors" xml:space="preserve"><value>Puertas</value></data>
   <data name="Compare_ErrorTag" xml:space="preserve"><value>error</value></data>

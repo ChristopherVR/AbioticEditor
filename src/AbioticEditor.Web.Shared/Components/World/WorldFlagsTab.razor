@@ -258,7 +258,8 @@
             n.Contains("Fixed", StringComparison.OrdinalIgnoreCase) || n.Contains("Repaired", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescRepaired") :
             n.Contains("Defeated", StringComparison.OrdinalIgnoreCase) || n.Contains("Killed", StringComparison.OrdinalIgnoreCase) ? L.Resource("WorldFlags_DescDefeated") :
             L.Resource("WorldFlags_DescGeneric");
-        return L.Resource("WorldFlags_DescriptionFormat", what, model.Info.Area);
+        return L.Resource("WorldFlags_DescriptionFormat", what,
+            AbioticEditor.Core.WorldSaves.WorldAreaCatalog.FriendlyName(model.Info.Area) ?? model.Info.Area);
     }
 
     private string RegionTextFor(string rawName)

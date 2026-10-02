@@ -2287,11 +2287,9 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldTraders_Card_AvailableHere" xml:space="preserve"><value>VERFÜGBAR in dieser Welt - Freischalt-Flag(s) gesetzt.</value></data>
   <data name="WorldTraders_Card_NotYetHere" xml:space="preserve"><value>NOCH NICHT in dieser Welt - benötigt: {0}</value></data>
   <data name="WorldTraders_Card_AcceptsVaries" xml:space="preserve"><value>(Tauschbedingungen variieren)</value></data>
-  <data name="WorldTraders_Card_AppearsAfter" xml:space="preserve"><value>erscheint nach: {0}</value></data>
   <data name="WorldTraders_Card_NoStockTable" xml:space="preserve"><value>(keine Warentabelle)</value></data>
   <data name="WorldTraders_Card_MoreItems" xml:space="preserve"><value>+{0} weitere</value></data>
   <data name="WorldTraders_Card_TapToReveal" xml:space="preserve"><value>Über deiner Freigabestufe - tippen zum Aufdecken</value></data>
-  <data name="WorldTraders_Card_TapToOpen" xml:space="preserve"><value>Tippen, um im Seitenpanel zu öffnen →</value></data>
   <data name="WorldTraders_Card_UnlockSelected" xml:space="preserve"><value>{0} AUSGEWÄHLTE FREISCHALTEN</value></data>
 
   <!-- Skill (passives + milestones) -->
@@ -3353,9 +3351,6 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldStory_PlayerCodexClearedFormat" xml:space="preserve"><value>, {0} Spieler-Codex-Zeile(n) entfernt ({1} Spielstände)</value></data>
   <data name="WorldStory_SpoilerSubjectQuestFlag" xml:space="preserve"><value>Dieses Quest-Flag</value></data>
   <data name="WorldStory_WorldCodexClearedFormat" xml:space="preserve"><value>, {0} Welt-Codex-Freischaltung(en) entfernt</value></data>
-  <data name="WorldTraders_FlagsAlreadySet" xml:space="preserve"><value>Alle diese Flags sind in diesem Spielstand bereits gesetzt.</value></data>
-  <data name="WorldTraders_NothingToUnlockFormat" xml:space="preserve"><value>{0}: nichts freizuschalten.</value></data>
-  <data name="WorldTraders_StagedFlagsFormat" xml:space="preserve"><value>{0} Welt-Flag(s) vorgemerkt - drücken Sie SPEICHERN zum Schreiben.</value></data>
   <data name="Compare_Containers" xml:space="preserve"><value>Behälter</value></data>
   <data name="Compare_Doors" xml:space="preserve"><value>Türen</value></data>
   <data name="Compare_ErrorTag" xml:space="preserve"><value>Fehler</value></data>

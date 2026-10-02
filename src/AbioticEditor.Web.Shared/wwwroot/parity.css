@@ -1425,7 +1425,7 @@ select.wd-state-picker{width:180px;color:var(--terminal)!important;font:16px var
 /* Native master-detail chrome shared by the PETS / VEHICLES / BASES / NPC SPAWNS tabs
    (WorldPetsTab.xaml, WorldVehiclesTab.xaml, WorldBasesTab.xaml, WorldFeatureTab.xaml). */
 .world-native-tab{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
-.world-native-tab .wt-h2{margin:0;font-size:18px;font-weight:700;letter-spacing:.05em;color:var(--section);text-transform:uppercase}
+.world-native-tab .wt-h2{margin:0;font-size:18px;font-weight:600;letter-spacing:.05em;color:var(--section);text-transform:uppercase}
 .world-native-tab .wt-intro{margin:0;font-size:11px;color:var(--muted)}
 .wt-md{display:grid;grid-template-columns:2fr 3fr;gap:16px;height:620px;min-height:0}
 .wt-md.bases-top{height:360px}
@@ -1447,7 +1447,7 @@ select.wd-state-picker{width:180px;color:var(--terminal)!important;font:16px var
 .wt-group-header{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--elevated);padding:6px 12px}
 .wt-group-title{font-size:11px;font-weight:600;color:var(--terminal)}
 .wt-group-count{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
-.wt-h3{margin:0;font-size:18px;font-weight:700;color:var(--ink)}
+.wt-h3{margin:0;font-size:18px;font-weight:600;color:var(--ink)}
 .wt-status-text{margin:0;font-size:10px;color:var(--faint);letter-spacing:.06em}
 .wt-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
 .accent-hazard-text{color:var(--hazard)}
@@ -1571,7 +1571,7 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .world-meta-panel{display:grid;gap:14px;box-sizing:border-box;padding:16px 20px;border:1px solid var(--line);background:var(--shell);container-type:inline-size}
 .wm-h2{margin:0;color:var(--section);font:600 18px var(--font-ui);letter-spacing:.09em}
 .wm-intro{margin:0;color:var(--muted);font-size:11px}
-.wm-note{margin:0;color:var(--muted);font-size:10px}
+.wm-note{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
 .wm-divider{height:1px;background:var(--divider)}
 .wm-label{color:var(--muted);font:600 10px var(--font-ui);letter-spacing:.12em}
 .wm-readout{color:var(--terminal);font:18px var(--font-num);letter-spacing:.05em;white-space:nowrap}
@@ -1650,11 +1650,10 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .wt-unlock-preview ul{display:grid;gap:4px;margin:0;padding-left:18px}
 .wt-unlock-preview li{color:var(--ink);font-size:12px}
 .wt-unlock-preview li b{font-weight:600}
-.wt-unlock-preview li small{display:block;color:var(--faint);font-size:9px;letter-spacing:.04em}
 .wt-unlock-preview .wt-unlock-noothers{color:var(--faint)}
 .wt-snapshot-note{display:grid;gap:8px;box-sizing:border-box;padding:14px 16px;border:1px solid var(--line);background:var(--panel)}
 .wt-snapshot-title{color:var(--orange);font:600 10px var(--font-ui);letter-spacing:.16em}
-.wt-snapshot-note p{margin:0;color:var(--muted);font-size:11px}
+.wt-snapshot-note p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
 .wt-cards{display:flex;flex-wrap:wrap;gap:10px}
 .wt-card{display:grid;grid-template-columns:86px minmax(0,1fr);flex:1 1 400px;gap:12px;box-sizing:border-box;min-width:0;padding:10px 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
 .wt-card:hover{border-color:var(--orange)}
@@ -1663,29 +1662,30 @@ button.base-slot.selected{border-color:var(--orange);box-shadow:inset 0 0 0 1px 
 .wt-portrait img{max-width:100%;max-height:100%;object-fit:contain}
 .wt-card-text{display:grid;gap:3px;align-content:start;min-width:0}
 .wt-name{color:var(--section);font:600 14px var(--font-ui);letter-spacing:.08em}
-.wt-where{color:var(--faint);font-size:10px;letter-spacing:.05em}
-.wt-blurb{color:var(--muted);font-size:10px}
-.wt-sells{color:var(--ink);font-size:10px}
-.wt-availability{color:var(--orange);font-size:9px;letter-spacing:.05em}
-.wt-hint{color:var(--section);font-size:8px;letter-spacing:.05em}
+.wt-where{color:var(--faint);font-size:11px}
+.wt-blurb{color:var(--muted);font-size:12px;line-height:1.5}
+.wt-sells{color:var(--ink);font-size:12px;line-height:1.5}
+.wt-availability{color:var(--orange);font-size:11px;font-weight:600}
+.wt-hint{color:var(--section);font-size:11px}
 .wt-trader-detail{display:grid;gap:8px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--section);background:var(--shell)}
 .wt-detail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}
 .wt-detail-portrait{display:grid;place-items:center;box-sizing:border-box;width:52px;height:52px;padding:2px;background:var(--elevated)}
 .wt-detail-portrait img{max-width:100%;max-height:100%;object-fit:contain}
 .wt-detail-title{display:grid;gap:1px;align-self:center}
 .wt-detail-title strong{color:var(--section);font:600 14px var(--font-ui);letter-spacing:.08em}
-.wt-detail-title small{color:var(--faint);font-size:9px}
-.wt-detail-blurb{margin:0;color:var(--muted);font-size:10px}
-.wt-accepts{margin:0;font-size:11px}
-.wt-offer-list{display:grid;gap:4px;overflow:hidden auto;max-height:300px}
-.wt-offer-row{display:grid;grid-template-columns:28px 44px minmax(0,1fr);gap:12px;align-items:center;padding:6px 4px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.wt-offer-row:hover{background:var(--hover)}
+.wt-detail-title small{color:var(--faint);font-size:11px}
+.wt-detail-blurb{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.wt-accepts{margin:0;font-size:12px;line-height:1.5}
+.wt-offer-list{display:grid;grid-auto-rows:max-content;align-content:start;gap:4px;overflow:hidden auto;max-height:300px}
+.wt-offer-row{display:grid;grid-template-columns:28px 44px minmax(0,1fr);gap:12px;align-items:center;min-height:0;padding:6px 4px;border:0;background:none;color:inherit;font:inherit;letter-spacing:normal;text-align:left;text-transform:none;cursor:pointer}
+/* A calm row: no grow on hover, no shrink or orange flash on press (the global button rules do both). */
+.wt-offer-row:hover,.wt-offer-row:active{transform:none;opacity:1;background:var(--hover)}
 .wt-offer-row input[type=checkbox]{accent-color:var(--hazard)}
 .wt-offer-icon{display:grid;place-items:center;box-sizing:border-box;width:40px;height:40px;padding:2px;border:1px solid var(--line);background:var(--elevated)}
 .wt-offer-icon img{max-width:100%;max-height:100%;object-fit:contain}
-.wt-offer-text{display:grid;gap:2px;min-width:0}
-.wt-offer-text strong{font-size:12px;font-weight:400}
-.wt-offer-text small{color:var(--faint);font-size:8px;letter-spacing:.04em}
+.wt-offer-text{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.wt-offer-text strong{font-size:13px;font-weight:400;line-height:1.35}
+.wt-offer-text small{color:var(--faint);font-size:11px;line-height:1.35}
 .wt-detail-actions{display:flex;flex-wrap:wrap;gap:8px}
 .wt-offer-detail{display:grid;gap:6px;box-sizing:border-box;margin-top:4px;padding:8px 10px;border:1px solid var(--line);background:var(--panel)}
 /* CONTAINMENT: one row per deployed unit (CONTAINED / EMPTY badge, the HOLDS picker and,
@@ -2025,7 +2025,7 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .editor-tabs .editor-tab,.world-tabs button{font-size:12px!important;letter-spacing:.015em!important;text-transform:none;min-height:40px!important;padding:9px 13px!important;border-radius:4px!important}
 .editor-card h3,.settings-sheet .settings-card h2,.settings-sheet .settings-card h3,.wm-h2{letter-spacing:.02em!important;font-size:16px!important;text-transform:none!important}
 .general-tab .general-help{font-size:12px;line-height:1.5;letter-spacing:0}
-.general-tab .general-field-label,.vital-slider label,.skill-lv-label{letter-spacing:.025em!important;font-size:12px!important}
+.general-field-label,.vital-slider label,.skill-lv-label{letter-spacing:.025em!important;font-size:12px!important}
 .skill-grid{gap:12px!important}
 .skills-card .skill-card{padding:14px!important}
 .skill-details{margin:8px 0 0}
@@ -2099,7 +2099,7 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 /* Editing surfaces: quieter headings, readable controls, and room for the selected task. */
 .player-editor .player-tab-viewport, .world-tab-viewport { min-width:0; outline-offset:-2px; }
 .player-editor .player-tab-viewport h3, .world-tab-viewport h2,
-.world-tab-viewport h3, .ini-section h3 { font-size:17px!important; letter-spacing:0!important; text-transform:none!important; line-height:1.4; }
+.world-tab-viewport h3, .ini-section h3 { font-size:17px!important; font-weight:600!important; letter-spacing:0!important; text-transform:none!important; line-height:1.4; }
 .player-tab-viewport .general-help, .player-tab-viewport .transmog-help,
 .player-tab-viewport .skills-milestone-help, .world-tab-viewport p,
 .world-tab-viewport .wt-intro, .world-tab-viewport .wm-intro { font-size:13px; line-height:1.6; letter-spacing:0; }
@@ -2107,6 +2107,8 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .player-tab-viewport .tab-hazard-stripe, .player-tab-viewport .hazard-divider { height:1px; opacity:.35; margin:8px 0; }
 .player-tab-viewport .editor-card, .world-tab-viewport > .world-editor { border-radius:5px!important; padding:20px!important; }
 .player-tab-viewport label, .world-tab-viewport label { font-size:12px!important; letter-spacing:.01em!important; }
+/* One size for every caps field label, player or world, inline or in the side panel. */
+.world-tab-viewport .wm-label, .world-tab-viewport .wt-label, .wt-trader-detail .wm-label { font-size:12px!important; letter-spacing:.025em!important; }
 .player-tab-viewport button:not(.inventory-slot):not(.transmog-slot),
 .world-tab-viewport button:not(.inventory-slot) { letter-spacing:.015em; }
 .player-tab-viewport input:not([type=checkbox]):not([type=range]),
