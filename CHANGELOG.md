@@ -2,14 +2,57 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.0] - 2026-10-02
+
+### Features
+- See the 3D view getting ready from any page, and use the 3D view while it does
+- Get the 3D view ready up front, add objects by dragging pictures, and a tidier 3D panel
+- Pictures for teleporter pads, sconce lamps, power outlets and more trams and crates
+- Edit things right in the 3D view, faster drawing, whole characters and a map that shows the level
+- The 3D view fits your window, loads its surroundings by itself, and opens in seconds
+- Show in 3D is much quicker, and world lists show pictures of each door, tram and more
+- Drag pieces to move them, full screen 3D, and clearer clicking
+- The 3D view comes with the editor, and the editor uses far less memory
+- Show anything in 3D from any tab, a tidier 3D view, and the two Dr. Cahns
+- Placement warnings, the 3D view in the browser, and a much faster 3D view
+
+
+### Bug Fixes
+- Garden plots, bench upgrades and power in the 3D view's side panel
+- Bodies lying around the facility are drawn lying down in the 3D view
+- Sharper pictures of doors, trams, elevators and other things in the world lists
+- The plugin list shows each plugin's real version number again
+- Clearer wording about the 3D models and live editing
+- Picking a container on the Containers tab always works first time and feels snappier
+- The Hydroplant floor shows again in the 3D view
+- Clearer wording and tidier text on the Traders tab and other editor pages
+
+
+### Performance
+- A smaller Windows download, with file pickers that open from the editor window itself
+- A 10 MB smaller download by shipping only the icons the editor uses
+- The 3D view opens much faster, stays loaded between tabs, and more can be clicked
+- Much faster saving, smoother walking and a quicker 3D view
+
+
+### Documentation
+- Fresh screenshots of the editor, including the 3D view
+- A fresh player guide for the 3D view and how the editor works today
+
+
+### Testing
+- Point the screenshot check at the transmog picture the guide uses
+- The test suite uses far less memory and cleans up after itself
+
+
+### Miscellaneous Tasks
+- Tidy a code comment on the Containers tab
+
+
 ## [2.24.0] - 2026-10-01
 
 ### Features
 - Wire up new batteries straight away and lay cable routes with reroutes
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.23.1 [skip ci]
 
 
 ## [2.23.1] - 2026-10-01
@@ -24,36 +67,11 @@ All notable changes to this project are documented here.
 - Open doors swing the right way in the 3D view
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.22.0 [skip ci]
-
-
 ### Testing
 - The live connection tests stop cleanly on Linux
 
 
 ## [2.22.0] - 2026-10-01
-
-### Bug Fixes
-- Door states use the game's own names, and "Locked" is gone
-- The 3D view finds an area's level from any kind of file path
-- Moss, stone paths and other fifth-layer ground now show in the 3D view
-- The start page no longer goes blank in a mid-sized window
-- The 3D view shows your things after you open another area
-- The editor reads the latest game update's data correctly
-- Shorter base names in the 3D view's base picker
-- The 3D view shows the surroundings in portal worlds too
-- The 3D view shows the base you pick and no longer hides it behind light beams
-- Trams are listed by route with real stop names, and save comparisons see tram moves
-- Trams can now only be moved to stops on their own line
-- The containers list no longer slows down in big regions
-- Keep the virus scan links in release notes when one upload is refused
-- Make long lists and game data loading faster
-
-
-### Documentation
-- Power changes made in the editor hold up in the real game
-
 
 ### Features
 - Lamps light the 3D view, open doors look open, and characters stand naturally
@@ -77,15 +95,28 @@ All notable changes to this project are documented here.
 - Clearer screen for moving items between worlds
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.21.0 [skip ci]
+### Bug Fixes
+- Door states use the game's own names, and "Locked" is gone
+- The 3D view finds an area's level from any kind of file path
+- Moss, stone paths and other fifth-layer ground now show in the 3D view
+- The start page no longer goes blank in a mid-sized window
+- The 3D view shows your things after you open another area
+- The editor reads the latest game update's data correctly
+- Shorter base names in the 3D view's base picker
+- The 3D view shows the surroundings in portal worlds too
+- The 3D view shows the base you pick and no longer hides it behind light beams
+- Trams are listed by route with real stop names, and save comparisons see tram moves
+- Trams can now only be moved to stops on their own line
+- The containers list no longer slows down in big regions
+- Keep the virus scan links in release notes when one upload is refused
+- Make long lists and game data loading faster
+
+
+### Documentation
+- Power changes made in the editor hold up in the real game
 
 
 ## [2.21.0] - 2026-09-29
-
-### Bug Fixes
-- Bring back upgrade and downgrade buttons and tidy world screens
-
 
 ### Features
 - Remove active effects, friendlier spawner names, and fix the missing upgrade buttons
@@ -93,36 +124,35 @@ All notable changes to this project are documented here.
 - New Distilled app in the GATEPal tab
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.20.0 [skip ci]
+### Bug Fixes
+- Bring back upgrade and downgrade buttons and tidy world screens
 
 
 ## [2.20.0] - 2026-09-29
+
+### Features
+- Hide the experimental 3D base view unless you turn it on
+
 
 ### Bug Fixes
 - Tidy up transmog and character screens
 - Show the mod warning once per world instead of on every save you click
 
 
-### Features
-- Hide the experimental 3D base view unless you turn it on
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.19.1 [skip ci]
-
-
 ## [2.19.1] - 2026-09-29
-
-### Miscellaneous Tasks
-- Point bucket at v2.19.0 [skip ci]
-
 
 ### Testing
 - Stop two Game Pass conversion checks from tripping over each other
 
 
 ## [2.19.0] - 2026-09-29
+
+### Features
+- Delete, copy and arrange base objects in the 3D view
+- Command line tools to move, turn, copy and delete base objects
+- Safer delete, copy and group moves for base objects
+- Add an experimental 3D view of the objects in a world region
+
 
 ### Bug Fixes
 - REVERT ALL in the 3D view now undoes every staged edit
@@ -134,29 +164,34 @@ All notable changes to this project are documented here.
 - Record the 3D view and the new base editing tools
 
 
-### Features
-- Delete, copy and arrange base objects in the 3D view
-- Command line tools to move, turn, copy and delete base objects
-- Safer delete, copy and group moves for base objects
-- Add an experimental 3D view of the objects in a world region
-
-
-### Miscellaneous Tasks
-- Bring in the 3D view and base editing work
-- Point bucket at v2.18.1 [skip ci]
-
-
 ### Testing
 - Spell the dash checks without the dash itself
 
 
-## [2.18.1] - 2026-09-28
-
 ### Miscellaneous Tasks
-- Point bucket at v2.18.0 [skip ci]
+- Bring in the 3D view and base editing work
 
 
 ## [2.18.0] - 2026-09-28
+
+### Features
+- Read-only view of what a saved pet remembers
+- Plant or clear the spot on an empty small garden plot
+- Count which save fields the editor does not read yet
+- Read every saved detail of story characters
+- Preview what a story rewind would leave behind
+- Show recipe-style entitlements per player, read-only
+- Show power connections for each socket
+- Trace how power devices connect across save files
+- Check what a copied group of objects would lose
+- Prepare safe moving and turning of placed objects
+- Add a read-only census of placed base objects
+- Show saved character extras in the Advanced data tab
+- Read favorites, distillery history, effects and hotbar choice from character saves
+- Warn when a save is older than any the editor was tested with
+- Read your account unlocks, stats and settings files
+- Add a shared location index behind future show-on-map
+
 
 ### Bug Fixes
 - Show saved character extras on the tabs they belong to
@@ -178,29 +213,6 @@ All notable changes to this project are documented here.
 - Clarify editor gaps and refresh game data
 
 
-### Features
-- Read-only view of what a saved pet remembers
-- Plant or clear the spot on an empty small garden plot
-- Count which save fields the editor does not read yet
-- Read every saved detail of story characters
-- Preview what a story rewind would leave behind
-- Show recipe-style entitlements per player, read-only
-- Show power connections for each socket
-- Trace how power devices connect across save files
-- Check what a copied group of objects would lose
-- Prepare safe moving and turning of placed objects
-- Add a read-only census of placed base objects
-- Show saved character extras in the Advanced data tab
-- Read favorites, distillery history, effects and hotbar choice from character saves
-- Warn when a save is older than any the editor was tested with
-- Read your account unlocks, stats and settings files
-- Add a shared location index behind future show-on-map
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.17.2 [skip ci]
-
-
 ### Refactor
 - Use the standalone Game Pass storage library
 - Move Xbox save folder handling into its own reusable library
@@ -216,7 +228,6 @@ All notable changes to this project are documented here.
 
 ### Miscellaneous Tasks
 - Bump taiki-e/install-action in the actions-all group (#39)
-- Point bucket at v2.17.1 [skip ci]
 
 
 ## [2.17.1] - 2026-09-26
@@ -225,18 +236,10 @@ All notable changes to this project are documented here.
 - Make Game Pass offline editing risks clear before every open
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.17.0 [skip ci]
-
-
 ## [2.17.0] - 2026-09-21
 
 ### Features
 - Add digital gardens and sconce controls
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.16.2 [skip ci]
 
 
 ## [2.16.2] - 2026-09-21
@@ -245,18 +248,10 @@ All notable changes to this project are documented here.
 - Improve world transfers, chemistry benches and character details
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.16.1 [skip ci]
-
-
 ## [2.16.1] - 2026-09-21
 
 ### Bug Fixes
 - Tidy finale controls and restore missing companion pictures
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.16.0 [skip ci]
 
 
 ## [2.16.0] - 2026-09-21
@@ -265,19 +260,32 @@ All notable changes to this project are documented here.
 - Make offline companions and world details easier to edit
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.15.1 [skip ci]
-
-
 ## [2.15.1] - 2026-09-21
 
 ### Miscellaneous Tasks
 - Update editor dependencies
 - Update the release packaging helper
-- Point bucket at v2.15.0 [skip ci]
 
 
 ## [2.15.0] - 2026-09-18
+
+### Features
+- A fresh install asks for your language first, then what you want to do
+- More live editing parity - pressed-once buttons, exact spawner cooldowns, placed drops, clearer bench notes
+- Change a tamed pet's species while the game is running
+- Browse and edit the world's "seen" lists on the Story tab
+- Breakables, corpses, resource nodes, spawners, triggers, power sockets and trams in live editing
+- Unlock kill-tracked compendium entries while the game is running
+- Tamed Peccaries and Lamogi now show up in live editing
+- Edit a vehicle's on-board storage while the game is running
+- One NPCs tab with real names for story characters and creatures
+- Live editing on Linux when the game runs through Steam Play
+- The web version now tells you live editing exists in the desktop app
+- Edit buttons and elevators while the game is running
+- One Dead switch for characters and creatures instead of a separate Revive button
+- The live Traders tab now looks and works like the offline one
+- Warn about modded saves in the web version and remove moving items between worlds there
+
 
 ### Bug Fixes
 - Holograms and trader stands can no longer be marked dead, and say what they are
@@ -299,28 +307,6 @@ All notable changes to this project are documented here.
 - The live editing guide now lists exactly what works, what needs the host, and what cannot change
 
 
-### Features
-- A fresh install asks for your language first, then what you want to do
-- More live editing parity - pressed-once buttons, exact spawner cooldowns, placed drops, clearer bench notes
-- Change a tamed pet's species while the game is running
-- Browse and edit the world's "seen" lists on the Story tab
-- Breakables, corpses, resource nodes, spawners, triggers, power sockets and trams in live editing
-- Unlock kill-tracked compendium entries while the game is running
-- Tamed Peccaries and Lamogi now show up in live editing
-- Edit a vehicle's on-board storage while the game is running
-- One NPCs tab with real names for story characters and creatures
-- Live editing on Linux when the game runs through Steam Play
-- The web version now tells you live editing exists in the desktop app
-- Edit buttons and elevators while the game is running
-- One Dead switch for characters and creatures instead of a separate Revive button
-- The live Traders tab now looks and works like the offline one
-- Warn about modded saves in the web version and remove moving items between worlds there
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.14.1 [skip ci]
-
-
 ## [2.14.1] - 2026-09-17
 
 ### Bug Fixes
@@ -328,6 +314,32 @@ All notable changes to this project are documented here.
 
 
 ## [2.14.0] - 2026-09-17
+
+### Features
+- Choose which copy of the game to live-edit, with Game Pass now supported
+- A START MIXING button for chemistry benches
+- List chemistry benches closest to you first, and clean up the intro text
+- Show a picture of each container next to its name
+- Chemistry bench output updates live, and can send straight to a player
+- A real recipe browser and pictures for chemistry benches and garden plots
+- Write live-editing connection activity into the app's own log
+- Show what's new the first time you open an updated app
+- Let you back out of the mode-switch screen if you already had something open
+- Rename containers, both in a save file and live in the running game
+- Bundle a lot more creature pictures for offline use
+- Change a garden plot's crop live, and see what's planted
+- Give chemistry benches their own live editing screen
+- Scan the live-editing helper for viruses before every release
+- A "nearby only" filter for live containers and dropped items
+- Show every region a co-op player is in, not just your own
+- Show a picture of each creature on the live CREATURES screen
+- Choose what a garden plot grows and which mutation a pet is working toward
+- Carry your unlocks, stats, settings and looks between Game Pass and Steam
+- Keep NEW badges in step with edits and expose the research queue
+- Explain why world-wide recipe edits are unavailable and add wall-art choices
+- Show what an item does in its details
+- Repair broken walls and clear corpses in a saved world
+
 
 ### Bug Fixes
 - No console window behind the editor, and a dropped tab switch no longer breaks the live connection
@@ -369,64 +381,47 @@ All notable changes to this project are documented here.
 - Record the limitation sweep
 
 
-### Features
-- Choose which copy of the game to live-edit, with Game Pass now supported
-- A START MIXING button for chemistry benches
-- List chemistry benches closest to you first, and clean up the intro text
-- Show a picture of each container next to its name
-- Chemistry bench output updates live, and can send straight to a player
-- A real recipe browser and pictures for chemistry benches and garden plots
-- Write live-editing connection activity into the app's own log
-- Show what's new the first time you open an updated app
-- Let you back out of the mode-switch screen if you already had something open
-- Rename containers, both in a save file and live in the running game
-- Bundle a lot more creature pictures for offline use
-- Change a garden plot's crop live, and see what's planted
-- Give chemistry benches their own live editing screen
-- Scan the live-editing helper for viruses before every release
-- A "nearby only" filter for live containers and dropped items
-- Show every region a co-op player is in, not just your own
-- Show a picture of each creature on the live CREATURES screen
-- Choose what a garden plot grows and which mutation a pet is working toward
-- Carry your unlocks, stats, settings and looks between Game Pass and Steam
-- Keep NEW badges in step with edits and expose the research queue
-- Explain why world-wide recipe edits are unavailable and add wall-art choices
-- Show what an item does in its details
-- Repair broken walls and clear corpses in a saved world
-
-
 ### Miscellaneous Tasks
 - Temporary diagnostic logging for the still-missing Void Chest report
-- Point bucket at v2.13.0 [skip ci]
 
 
 ## [2.13.0] - 2026-09-16
-
-### Documentation
-- Record the release fix and the new colour, coating and pet tools
-
 
 ### Features
 - Repaint placed objects in a saved world or a running game
 - Edit a carried pet's mutation progress and tidy pet limits
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.12.0 [skip ci]
+### Documentation
+- Record the release fix and the new colour, coating and pet tools
 
 
 ## [2.12.0] - 2026-09-16
-
-### Bug Fixes
-- Ship the bundled UE4SS files beside the Windows editor
-
 
 ### Features
 - Offer colour and artwork choices for many more items
 - Change weapon coatings while connected to a running game
 
 
+### Bug Fixes
+- Ship the bundled UE4SS files beside the Windows editor
+
+
 ## [2.11.0] - 2026-09-16
+
+### Features
+- Include UE4SS in the Windows release and install it for you
+- Edit traits, appearance and bench upgrades in a live game
+- Expand live progression and inventory editing
+- Add weapon coatings and world care tools
+- Edit live weapon ammo and speed up bulk unlocks
+- Add a game-inspired GATE Teal theme
+- Make world controls and settings files easier to edit
+- Make world and player tabs clearer and easier to use
+- Simplify finding worlds and navigating settings
+- Simplify editing screens and handle live setup automatically
+- Add visual variant choices for items
+
 
 ### Bug Fixes
 - Keep live item details from looking unsaved and describe the new live tools
@@ -445,48 +440,23 @@ All notable changes to this project are documented here.
 - Give the player guides a Facility field-manual feel
 
 
-### Features
-- Include UE4SS in the Windows release and install it for you
-- Edit traits, appearance and bench upgrades in a live game
-- Expand live progression and inventory editing
-- Add weapon coatings and world care tools
-- Edit live weapon ammo and speed up bulk unlocks
-- Add a game-inspired GATE Teal theme
-- Make world controls and settings files easier to edit
-- Make world and player tabs clearer and easier to use
-- Simplify finding worlds and navigating settings
-- Simplify editing screens and handle live setup automatically
-- Add visual variant choices for items
-
-
-### Miscellaneous Tasks
-- Keep local test output out of the project
-- Point bucket at v2.10.0 [skip ci]
-
-
 ### Testing
 - Run the live-agent checks without a separate Lua install
 
 
+### Miscellaneous Tasks
+- Keep local test output out of the project
+
+
 ## [2.10.0] - 2026-09-14
-
-### Documentation
-- Refresh the guides and documentation website
-- Identify items with visual variants
-
 
 ### Features
 - Make offline and experimental live editing clearer
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.9.1 [skip ci]
-
-
-## [2.9.1] - 2026-09-13
-
-### Miscellaneous Tasks
-- Point bucket at v2.9.0 [skip ci]
+### Documentation
+- Refresh the guides and documentation website
+- Identify items with visual variants
 
 
 ## [2.9.0] - 2026-09-10
@@ -495,32 +465,7 @@ All notable changes to this project are documented here.
 - Fix a game-crashing bug in live editing, speed up bulk edits, and clean up the creatures tab
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.8.0 [skip ci]
-
-
 ## [2.8.0] - 2026-09-06
-
-### Bug Fixes
-- The live TELEPORT button now moves you the way the game itself does
-- Live teleport and vehicle moves use positions the game script understands
-- Live vehicle and pet lists no longer time out, and live teleport works
-- Bring back the manual refresh button on the live flags and story screens
-- Items the game placed in a slot keep the item table the game chose
-- Saving a character no longer leaves them exhausted or quietly rewrites their empty slots
-- The live-editing companion now actually finds you in game
-- Rebuild the live-editing companion on a real working mod's code
-- Prevent the live-editing companion from freezing the game
-- Strengthen the live-agent's connection secret to real randomness
-
-
-### Documentation
-- Record what became editable live this round and what is still file-only
-- Tidy a leftover comment about the story chapter being read-only live
-- Record that the live teleport and vehicle move were checked in a real game
-- Be upfront that one journal read is unverified against the real game
-- Log that the live-editing screens were tested for real, not just the pipe
-
 
 ### Features
 - Give the mode picker its own popup, and rework how you connect for live editing
@@ -547,11 +492,25 @@ All notable changes to this project are documented here.
 - Lay the groundwork for editing a running game in real time
 
 
-### Miscellaneous Tasks
-- Hold this push back from an automatic release [skip release]
-- Hold this push back from an automatic release [skip release]
-- Hold this push back from an automatic release [skip release]
-- Point bucket at v2.7.6 [skip ci]
+### Bug Fixes
+- The live TELEPORT button now moves you the way the game itself does
+- Live teleport and vehicle moves use positions the game script understands
+- Live vehicle and pet lists no longer time out, and live teleport works
+- Bring back the manual refresh button on the live flags and story screens
+- Items the game placed in a slot keep the item table the game chose
+- Saving a character no longer leaves them exhausted or quietly rewrites their empty slots
+- The live-editing companion now actually finds you in game
+- Rebuild the live-editing companion on a real working mod's code
+- Prevent the live-editing companion from freezing the game
+- Strengthen the live-agent's connection secret to real randomness
+
+
+### Documentation
+- Record what became editable live this round and what is still file-only
+- Tidy a leftover comment about the story chapter being read-only live
+- Record that the live teleport and vehicle move were checked in a real game
+- Be upfront that one journal read is unverified against the real game
+- Log that the live-editing screens were tested for real, not just the pipe
 
 
 ### Refactor
@@ -567,29 +526,30 @@ All notable changes to this project are documented here.
 - Research probes build again after the game-file library update, plus a live-editing class-layout probe
 
 
+### Miscellaneous Tasks
+- Hold this push back from an automatic release [skip release]
+- Hold this push back from an automatic release [skip release]
+- Hold this push back from an automatic release [skip release]
+
+
 ## [2.7.6] - 2026-09-06
-
-### Build
-- Bump taiki-e/install-action in the actions-all group
-
 
 ### Documentation
 - Log the game-file library update and scope upcoming update support
 
 
+### Build
+- Bump taiki-e/install-action in the actions-all group
+
+
 ### Miscellaneous Tasks
 - Update the bundled game-file reading library to its latest version
-- Point bucket at v2.7.5 [skip ci]
 
 
 ## [2.7.5] - 2026-08-26
 
 ### Bug Fixes
 - Story-event search now finds events that have not happened yet
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.7.4 [skip ci]
 
 
 ### Testing
@@ -602,24 +562,16 @@ All notable changes to this project are documented here.
 - Bump taiki-e/install-action in the actions-all group
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.7.3 [skip ci]
-
-
 ## [2.7.3] - 2026-08-19
-
-### Bug Fixes
-- Compare logic
-- Side panels now slide over the screen on small windows
-- The editor no longer falls apart on narrow windows and phones
-
 
 ### Features
 - Block Game Pass saves in the browser version
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.7.2 [skip ci]
+### Bug Fixes
+- Compare logic
+- Side panels now slide over the screen on small windows
+- The editor no longer falls apart on narrow windows and phones
 
 
 ## [2.7.2] - 2026-08-19
@@ -628,11 +580,11 @@ All notable changes to this project are documented here.
 - Bump taiki-e/install-action in the actions-all group
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.7.1 [skip ci]
-
-
 ## [2.7.1] - 2026-08-14
+
+### Features
+- Let every player in a shared world keep their own character when converting
+
 
 ### Bug Fixes
 - Stop Game Pass to Steam conversions writing inside the Xbox package folder
@@ -642,31 +594,19 @@ All notable changes to this project are documented here.
 - Correct the Convert screen's description of where a copy is written
 
 
-### Features
-- Let every player in a shared world keep their own character when converting
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.7.0 [skip ci]
-
-
 ### Styling
 - Put Back and Start over side by side on the Convert screen
 
 
 ## [2.7.0] - 2026-08-14
 
-### Bug Fixes
-- Stop Convert from quietly giving up your character
-- Make converting a save simpler and fix a couple of Convert bugs
-
-
 ### Features
 - Walk you through converting a Game Pass save step by step
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.6.2 [skip ci]
+### Bug Fixes
+- Stop Convert from quietly giving up your character
+- Make converting a save simpler and fix a couple of Convert bugs
 
 
 ## [2.6.2] - 2026-08-13
@@ -675,18 +615,10 @@ All notable changes to this project are documented here.
 - A save Xbox left marked as disputed can be unstuck
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.6.1 [skip ci]
-
-
 ## [2.6.1] - 2026-08-13
 
 ### Bug Fixes
 - Say a Game Pass save cannot be saved yet when you open it, not when you try
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.6.0 [skip ci]
 
 
 ## [2.6.0] - 2026-08-13
@@ -695,18 +627,10 @@ All notable changes to this project are documented here.
 - Make converting a save between Steam and Game Pass easier to get right
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.5.2 [skip ci]
-
-
 ## [2.5.2] - 2026-08-13
 
 ### Bug Fixes
 - Buttons that could be pressed twice, and an export that was on the wrong platform
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.5.1 [skip ci]
 
 
 ## [2.5.1] - 2026-08-13
@@ -717,15 +641,18 @@ All notable changes to this project are documented here.
 - Your beds come with you when a character changes account
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.5.0 [skip ci]
-
-
 ### Testing
 - Stop two test groups fighting over the log settings
 
 
 ## [2.5.0] - 2026-08-13
+
+### Features
+- Bring the Game Pass safety net into the app
+- Stop risky Game Pass saves before they happen, and rescue broken ones
+- Re-home a packed Game Pass character from the command line
+- Warn about Xbox cloud sync before editing a Game Pass save
+
 
 ### Bug Fixes
 - Converted Game Pass worlds are no longer rejected as incompatible
@@ -744,22 +671,17 @@ All notable changes to this project are documented here.
 - Explain the offline routine for editing Game Pass saves
 
 
-### Features
-- Bring the Game Pass safety net into the app
-- Stop risky Game Pass saves before they happen, and rescue broken ones
-- Re-home a packed Game Pass character from the command line
-- Warn about Xbox cloud sync before editing a Game Pass save
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.4.0 [skip ci]
-
-
 ### Testing
 - Cover the Game Pass paths that touch real Xbox saves
 
 
 ## [2.4.0] - 2026-08-09
+
+### Features
+- A world opened from a zip is kept, edits and all
+- A warning before unsaved changes are thrown away
+- Open a zip of saves, and pick up where you left off
+
 
 ### Bug Fixes
 - The item pictures really are renamed this time
@@ -774,24 +696,6 @@ All notable changes to this project are documented here.
 - Missing item pictures in the browser editor
 
 
-### Build
-- Bump taiki-e/install-action in the actions-all group
-
-
-### Documentation
-- Make the browser editor easy to find
-
-
-### Features
-- A world opened from a zip is kept, edits and all
-- A warning before unsaved changes are thrown away
-- Open a zip of saves, and pick up where you left off
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.3.1 [skip ci]
-
-
 ### Performance
 - The editor only reads your world the slow way once
 - Opening a world tab no longer copies the whole world first
@@ -799,36 +703,15 @@ All notable changes to this project are documented here.
 - Clicking an item in your inventory is about five times faster
 
 
-## [2.3.1] - 2026-08-08
-
-### Bug Fixes
-- The browser-editor link no longer 404s the first time you click it
-- Sending a pet to another world now works in the browser [skip release]
-- The home and new-world links no longer throw you out of the browser editor [skip release]
-- Picking a file in the browser works again
-- The settings editor no longer looks broken in a browser
-- Making a new world no longer opens a dead page in the browser
-- The world day and time of day can be saved again
-- Item names, recipes and pictures now actually load in the browser
-- The browser editor can open saves again, and takes dropped folders
-
-
-### CI
-- Look for the editor's styling where it now lives [skip release]
-- Allow a push to skip cutting a release [skip release]
-
-
 ### Documentation
-- Record what the live browser editor actually downloads [skip release]
-- Point people at the browser editor from the front page
-- Record why the browser download cannot be trimmed the easy way
-- Record what is still unfinished in the browser build
-- Record the bundled icons and the browser-only failure modes
-- Record the browser host switching to the shared screens
-- Record the browser file system and shared asset move
-- Record the save file-access seam
-- Record how the shared screens are laid out
+- Make the browser editor easy to find
 
+
+### Build
+- Bump taiki-e/install-action in the actions-all group
+
+
+## [2.3.1] - 2026-08-08
 
 ### Features
 - Get single saves out of the browser, and fix raw JSON export
@@ -845,12 +728,32 @@ All notable changes to this project are documented here.
 - Add a browser version of the editor, no download required
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.3.0 [skip ci]
+### Bug Fixes
+- The browser-editor link no longer 404s the first time you click it
+- Sending a pet to another world now works in the browser [skip release]
+- The home and new-world links no longer throw you out of the browser editor [skip release]
+- Picking a file in the browser works again
+- The settings editor no longer looks broken in a browser
+- Making a new world no longer opens a dead page in the browser
+- The world day and time of day can be saved again
+- Item names, recipes and pictures now actually load in the browser
+- The browser editor can open saves again, and takes dropped folders
 
 
 ### Performance
 - The browser editor now downloads about half as much
+
+
+### Documentation
+- Record what the live browser editor actually downloads [skip release]
+- Point people at the browser editor from the front page
+- Record why the browser download cannot be trimmed the easy way
+- Record what is still unfinished in the browser build
+- Record the bundled icons and the browser-only failure modes
+- Record the browser host switching to the shared screens
+- Record the browser file system and shared asset move
+- Record the save file-access seam
+- Record how the shared screens are laid out
 
 
 ### Refactor
@@ -859,29 +762,26 @@ All notable changes to this project are documented here.
 - Put the editor's screens in one place both versions can use
 
 
+### CI
+- Look for the editor's styling where it now lives [skip release]
+- Allow a push to skip cutting a release [skip release]
+
+
 ## [2.3.0] - 2026-08-05
-
-### Bug Fixes
-- Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
-
 
 ### Features
 - Add a true one-click launcher for Linux and Steam Deck downloads
 - Add an advanced option to skip equipment/transmog slot checks
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.2.2 [skip ci]
+### Bug Fixes
+- Linux/Steam Deck download now runs even if the "allow execute" flag gets lost
 
 
 ## [2.2.2] - 2026-08-05
 
 ### Build
 - Bump the actions-all group with 2 updates
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.2.1 [skip ci]
 
 
 ## [2.2.1] - 2026-07-26
@@ -892,26 +792,18 @@ All notable changes to this project are documented here.
 
 ## [2.2.0] - 2026-07-26
 
-### Bug Fixes
-- The editor now keeps a record when something goes wrong
-
-
 ### Features
 - Change a player's account id from any save, and see pets before you save
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.1.6 [skip ci]
+### Bug Fixes
+- The editor now keeps a record when something goes wrong
 
 
 ## [2.1.6] - 2026-07-26
 
 ### Bug Fixes
 - No console flash, a proper window icon, and a tidier download
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.1.5 [skip ci]
 
 
 ## [2.1.5] - 2026-07-26
@@ -921,18 +813,10 @@ All notable changes to this project are documented here.
 - The recipe book no longer names traders you have not met
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.1.4 [skip ci]
-
-
 ## [2.1.4] - 2026-07-26
 
 ### Bug Fixes
 - The Linux download can now be published to Nexus Mods
-
-
-### Miscellaneous Tasks
-- Point bucket at v2.1.3 [skip ci]
 
 
 ## [2.1.3] - 2026-07-25
@@ -947,35 +831,27 @@ All notable changes to this project are documented here.
 - The Nexus Mods download no longer contains any update checking
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.1.1 [skip ci]
-
-
 ## [2.1.1] - 2026-07-25
 
 ### Build
 - Bump the actions-all group with 2 updates
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.1.0 [skip ci]
-
-
 ## [2.1.0] - 2026-07-25
-
-### Bug Fixes
-- Saving no longer fails on a world that has never unlocked anything
-
 
 ### Features
 - Ship the editor as one executable, with no server console
 
 
-### Miscellaneous Tasks
-- Point bucket at v2.0.0 [skip ci]
+### Bug Fixes
+- Saving no longer fails on a world that has never unlocked anything
 
 
 ## [2.0.0] - 2026-07-25
+
+### Features
+- Version 2, with Linux and macOS support
+
 
 ### Bug Fixes
 - Say why Game Pass saves cannot be converted on Linux or macOS
@@ -987,22 +863,10 @@ All notable changes to this project are documented here.
 - Bump postcss
 
 
-### Features
-- Version 2, with Linux and macOS support
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.23.6 [skip ci]
-
-
 ## [1.23.6] - 2026-07-22
 
 ### Bug Fixes
 - Keep the boosted max durability showing when you reselect an item
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.23.5 [skip ci]
 
 
 ## [1.23.5] - 2026-07-19
@@ -1015,18 +879,10 @@ All notable changes to this project are documented here.
 - Bump the actions-all group with 3 updates
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.23.4 [skip ci]
-
-
 ## [1.23.4] - 2026-07-17
 
 ### Bug Fixes
 - Translate the rest of the editor into German, Spanish, French and Russian
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.23.3 [skip ci]
 
 
 ## [1.23.3] - 2026-07-17
@@ -1035,37 +891,12 @@ All notable changes to this project are documented here.
 - Detect the anniversary update companions (Speedogi, Sir Ogi, Verdant Skink)
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.23.2 [skip ci]
-
-
-## [1.23.2] - 2026-07-15
-
-### Miscellaneous Tasks
-- Point bucket at v1.23.1 [skip ci]
-
-
-## [1.23.1] - 2026-07-12
-
-### Miscellaneous Tasks
-- Point bucket at v1.23.0 [skip ci]
-
-
 ## [1.23.0] - 2026-07-11
-
-### CI
-- Stop publishing the Linux CLI to Nexus Mods
-- Ship a Linux / Steam Deck build to Nexus Mods
-
 
 ### Features
 - Translate skills, traits, equipment slots, and world NPC labels
 - The editor now works on Linux and Steam Deck
 - Translate door names, lock explanations, and save-discovery badges
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.22.0 [skip ci]
 
 
 ### Refactor
@@ -1075,28 +906,25 @@ All notable changes to this project are documented here.
 - Organize the engine into clear layers
 
 
+### CI
+- Stop publishing the Linux CLI to Nexus Mods
+- Ship a Linux / Steam Deck build to Nexus Mods
+
+
 ## [1.22.0] - 2026-07-10
-
-### Bug Fixes
-- Big Hive Larva's unlock condition now actually triggers, trader list scrolls properly
-
 
 ### Features
 - Add Russian, fix several language bugs, and translate trader/story text that always stayed in English
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.21.2 [skip ci]
+### Bug Fixes
+- Big Hive Larva's unlock condition now actually triggers, trader list scrolls properly
 
 
 ## [1.21.2] - 2026-07-10
 
 ### Bug Fixes
 - Rewinding past a region now clears its flags even if you reached it early
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.21.1 [skip ci]
 
 
 ## [1.21.1] - 2026-07-10
@@ -1111,18 +939,10 @@ All notable changes to this project are documented here.
 - Let you set a per-skill XP rate
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.20.4 [skip ci]
-
-
 ## [1.20.4] - 2026-07-08
 
 ### Bug Fixes
 - Fix new traits not saving for characters who started with none
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.20.3 [skip ci]
 
 
 ## [1.20.3] - 2026-07-02
@@ -1133,18 +953,10 @@ All notable changes to this project are documented here.
 - Stop needing internet every time you open a Game Pass save
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.20.2 [skip ci]
-
-
 ## [1.20.2] - 2026-07-02
 
 ### Build
 - Bump actions/cache from 5 to 6 in the actions-all group
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.20.1 [skip ci]
 
 
 ## [1.20.1] - 2026-07-02
@@ -1153,31 +965,17 @@ All notable changes to this project are documented here.
 - Clear old codex spoilers and offer to move players back on a story rewind
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.20.0 [skip ci]
-
-
 ## [1.20.0] - 2026-07-01
-
-### Bug Fixes
-- Rewinding the story past the Reactors now actually rewinds it
-
 
 ### Features
 - Add a Load More button to the item catalog
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.19.0 [skip ci]
+### Bug Fixes
+- Rewinding the story past the Reactors now actually rewinds it
 
 
 ## [1.19.0] - 2026-06-27
-
-### Bug Fixes
-- Show friendly state labels and a clearer Game Pass save warning
-- Stamp the save index like the game does so edits sync
-- Mark added items as discovered so the game recognises them
-
 
 ### Features
 - Full wiki-verified quest dependency tree for the main story
@@ -1187,8 +985,10 @@ All notable changes to this project are documented here.
 - Repair a save stuck pointing at a missing data file
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.18.0 [skip ci]
+### Bug Fixes
+- Show friendly state labels and a clearer Game Pass save warning
+- Stamp the save index like the game does so edits sync
+- Mark added items as discovered so the game recognises them
 
 
 ### Testing
@@ -1196,6 +996,12 @@ All notable changes to this project are documented here.
 
 
 ## [1.18.0] - 2026-06-27
+
+### Features
+- Send a container item straight to a player
+- Keep contained creature names hidden until you reveal them
+- Warn about Xbox cloud sync before editing a save
+
 
 ### Bug Fixes
 - Warn before editing a save that hasn't finished syncing
@@ -1209,34 +1015,16 @@ All notable changes to this project are documented here.
 - Recover gracefully when a save blob is missing from disk
 
 
-### Features
-- Send a container item straight to a player
-- Keep contained creature names hidden until you reveal them
-- Warn about Xbox cloud sync before editing a save
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.17.3 [skip ci]
-
-
 ## [1.17.3] - 2026-06-25
 
 ### Bug Fixes
 - Let Game Pass players edit their character's look
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.17.2 [skip ci]
-
-
 ## [1.17.2] - 2026-06-22
 
 ### Bug Fixes
 - Show each skill's real level instead of a mislabeled one
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.17.1 [skip ci]
 
 
 ### Testing
@@ -1257,11 +1045,12 @@ All notable changes to this project are documented here.
 - Restructure Pages - exclude research notes, add new guide pages
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.17.0 [skip ci]
-
-
 ## [1.17.0] - 2026-06-21
+
+### Features
+- Added assets
+- Strip auto-updater from Nexus Mods distribution build
+
 
 ### Bug Fixes
 - Write correct Field1 (TotalRaw) in bundle serialization
@@ -1273,37 +1062,20 @@ All notable changes to this project are documented here.
 - Surface bundle-load errors instead of showing empty sidebar
 
 
-### Features
-- Added assets
-- Strip auto-updater from Nexus Mods distribution build
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.16.1 [skip ci]
-
-
 ## [1.16.1] - 2026-06-21
 
 ### Build
 - Bump the actions-all group with 3 updates
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.16.0 [skip ci]
-
-
 ## [1.16.0] - 2026-06-21
-
-### Bug Fixes
-- Correct Game Pass session UX (folder display, reveal, reload, save indicator)
-
 
 ### Features
 - Platform badge colors + game-data loading indicator
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.15.0 [skip ci]
+### Bug Fixes
+- Correct Game Pass session UX (folder display, reveal, reload, save indicator)
 
 
 ## [1.15.0] - 2026-06-20
@@ -1313,22 +1085,14 @@ All notable changes to this project are documented here.
 - Inline plugins into settings tab, centre tab content
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.14.5 [skip ci]
-
-
 ## [1.14.5] - 2026-06-20
-
-### Bug Fixes
-- Refresh world discovery after creating a new world
-
 
 ### Features
 - Vertical settings tabs, compare rework, modal dialog fixes
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.14.4 [skip ci]
+### Bug Fixes
+- Refresh world discovery after creating a new world
 
 
 ## [1.14.4] - 2026-06-20
@@ -1357,32 +1121,24 @@ All notable changes to this project are documented here.
 
 ## [1.14.0] - 2026-06-19
 
-### Documentation
-- Record the UserEntitlements coverage gap and round-38 progress
-
-
 ### Features
 - Per-mod enable/disable in Settings
 - Craft minimal region saves for unvisited regions
 
 
-## [1.13.0] - 2026-06-19
-
-### Build
-- Silence vendored submodule warnings (CUE4Parse/UeSaveGame)
-
-
 ### Documentation
-- Give the Nexus mod page the same flair as the docs site
+- Record the UserEntitlements coverage gap and round-38 progress
 
+
+## [1.13.0] - 2026-06-19
 
 ### Features
 - Support Abiotic Factor mods (mount mod paks + discover mod data tables)
 - Offline fallback bundle for wiki images
 
 
-### Miscellaneous Tasks
-- Log save-switch breadcrumbs and world-editor dirty reasons
+### Documentation
+- Give the Nexus mod page the same flair as the docs site
 
 
 ### Refactor
@@ -1393,7 +1149,27 @@ All notable changes to this project are documented here.
 - Point fixture locators at the platform-grouped layout
 
 
+### Build
+- Silence vendored submodule warnings (CUE4Parse/UeSaveGame)
+
+
+### Miscellaneous Tasks
+- Log save-switch breadcrumbs and world-editor dirty reasons
+
+
 ## [1.12.0] - 2026-06-19
+
+### Features
+- Added registry catalog fallback if no game is found
+- Added additional localization
+- Auto-detect Game Pass install + saves; show locations; docs
+- Platform choice, account dropdown, open MetaData
+- SAVE writes straight to the container; drop the banner; add save-type badge
+- Convert saves Steam <-> Game Pass, and create for both
+- Platform tags + open Game Pass worlds in the app
+- Read+write Game Pass / Xbox container saves
+- Support non-Steam saves (Game Pass / Epic) via opaque player ids
+
 
 ### Bug Fixes
 - Incorrect data registry test analysis isuse
@@ -1408,23 +1184,17 @@ All notable changes to this project are documented here.
 - Log the non-Steam + Game Pass round in PROGRESS.md
 
 
-### Features
-- Added registry catalog fallback if no game is found
-- Added additional localization
-- Auto-detect Game Pass install + saves; show locations; docs
-- Platform choice, account dropdown, open MetaData
-- SAVE writes straight to the container; drop the banner; add save-type badge
-- Convert saves Steam <-> Game Pass, and create for both
-- Platform tags + open Game Pass worlds in the app
-- Read+write Game Pass / Xbox container saves
-- Support non-Steam saves (Game Pass / Epic) via opaque player ids
-
-
 ### Testing
 - Add a sanitized real Game Pass container fixture
 
 
 ## [1.11.1] - 2026-06-18
+
+### Features
+- Fall back to built-in trader data and flag missing game data
+- Tabbed Settings, clearer Game Data section, drop About
+- Let users set the game folder when auto-detection fails
+
 
 ### Bug Fixes
 - Make the game-data banner action match the failure
@@ -1436,12 +1206,6 @@ All notable changes to this project are documented here.
 - Point an added item's row handle at ItemTable_Global so it renders
 
 
-### Features
-- Fall back to built-in trader data and flag missing game data
-- Tabbed Settings, clearer Game Data section, drop About
-- Let users set the game folder when auto-detection fails
-
-
 ## [1.11.0] - 2026-06-18
 
 ### Features
@@ -1449,11 +1213,6 @@ All notable changes to this project are documented here.
 
 
 ## [1.10.0] - 2026-06-18
-
-### CI
-- Make release push rebase-safe and cancel pre-publish runs on new push
-- Cache NuGet packages and the MAUI workload to speed up the release pipeline
-
 
 ### Features
 - Add JavaScriptPlugin based capability for localization
@@ -1463,11 +1222,16 @@ All notable changes to this project are documented here.
 - Make diagnostic logging opt-in, but always log critical errors
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.9.0 [skip ci]
+### CI
+- Make release push rebase-safe and cancel pre-publish runs on new push
+- Cache NuGet packages and the MAUI workload to speed up the release pipeline
 
 
 ## [1.9.0] - 2026-06-18
+
+### Features
+- Add RELOAD-from-disk with unsaved-changes confirm
+
 
 ### Bug Fixes
 - Assign and persist per-instance AssetID for added inventory items
@@ -1478,20 +1242,6 @@ All notable changes to this project are documented here.
 - Scan release zips with VirusTotal and publish to NexusMods
 
 
-### Features
-- Add RELOAD-from-disk with unsaved-changes confirm
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.8.1 [skip ci]
-
-
-## [1.8.1] - 2026-06-18
-
-### Miscellaneous Tasks
-- Point bucket at v1.8.0 [skip ci]
-
-
 ## [1.8.0] - 2026-06-18
 
 ### Features
@@ -1499,23 +1249,15 @@ All notable changes to this project are documented here.
 - Added virus scanning to the release packages
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.7.1 [skip ci]
-
-
 ## [1.7.1] - 2026-06-17
-
-### Bug Fixes
-- DOWNLOAD & INSTALL now works from the Settings modal
-- Config discovery no longer leaks sibling-world sandbox settings
-
 
 ### Features
 - Add Create New World wizard for starting fresh save games
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.7.0 [skip ci]
+### Bug Fixes
+- DOWNLOAD & INSTALL now works from the Settings modal
+- Config discovery no longer leaks sibling-world sandbox settings
 
 
 ## [1.7.0] - 2026-06-17
@@ -1524,11 +1266,12 @@ All notable changes to this project are documented here.
 - Auto-discover all ItemTable_* files for DLC resilience
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.6.0 [skip ci]
-
-
 ## [1.6.0] - 2026-06-16
+
+### Features
+- Grant future/unknown server entitlements via a free-text add field
+- Server entitlements as per-grant toggles with player names
+
 
 ### Bug Fixes
 - Pet placement respects Main slot kind, not just companion/hotbar
@@ -1538,35 +1281,17 @@ All notable changes to this project are documented here.
 - Wrap the player editor tab bar instead of horizontal scroll
 
 
-### Features
-- Grant future/unknown server entitlements via a free-text add field
-- Server entitlements as per-grant toggles with player names
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.5.0 [skip ci]
-
-
 ## [1.5.0] - 2026-06-15
-
-### Bug Fixes
-- Robust cross-world power-socket device resolution + diagnostics
-
 
 ### Features
 - Friendly resource-node names, search filter, location per row
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.4.0 [skip ci]
+### Bug Fixes
+- Robust cross-world power-socket device resolution + diagnostics
 
 
 ## [1.4.0] - 2026-06-15
-
-### Bug Fixes
-- Resolve teleporter sync name; clarify tram station picker
-- Pet-to-bed picker, drop duplicate Vehicles tab, door/elevator clarity
-
 
 ### Features
 - Show friendly names for cross-world power-socket devices
@@ -1574,15 +1299,12 @@ All notable changes to this project are documented here.
 - Identify and navigate to a power socket's plugged-in device
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.3.0 [skip ci]
+### Bug Fixes
+- Resolve teleporter sync name; clarify tram station picker
+- Pet-to-bed picker, drop duplicate Vehicles tab, door/elevator clarity
 
 
 ## [1.3.0] - 2026-06-15
-
-### Bug Fixes
-- INI file switching, appearance guidance, and richer edit logging
-
 
 ### Features
 - Editable crafting-bench upgrades in the Bases tab
@@ -1591,8 +1313,8 @@ All notable changes to this project are documented here.
 - Shared area-name catalog, soft-path setter, bench-upgrade tags
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.2.1 [skip ci]
+### Bug Fixes
+- INI file switching, appearance guidance, and richer edit logging
 
 
 ## [1.2.1] - 2026-06-15
@@ -1601,18 +1323,10 @@ All notable changes to this project are documented here.
 - Disable macOS app builds
 
 
-### Miscellaneous Tasks
-- Point bucket at v1.2.0 [skip ci]
-
-
 ## [1.2.0] - 2026-06-15
 
 ### Features
 - Version-stamped zips and a self-contained single-file Windows app
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.1.3 [skip ci]
 
 
 ## [1.1.3] - 2026-06-14
@@ -1621,10 +1335,6 @@ All notable changes to this project are documented here.
 - Stop dialog-host theme leak, dead-click reselect, stacked leave-gates
 - Verify download size, block asset-name traversal, fix prerelease order
 - Close save-write corruption, pet-XP loss, and icon-cache races
-
-
-### Miscellaneous Tasks
-- Point bucket at v1.1.2 [skip ci]
 
 
 ## [1.1.2] - 2026-06-14
@@ -1645,6 +1355,13 @@ All notable changes to this project are documented here.
 
 ## [1.1.0] - 2026-06-14
 
+### Features
+- Name, picture, link and remove world-state map entries
+- Show pet portrait; fix vehicle open-container jump
+- Move world-state map editing into world-editor tabs
+- Correct containment/vehicle art and group vehicles by world
+
+
 ### Bug Fixes
 - Use the real Teleporter Pad image; show nothing when no image exists
 - Only show a feature image when the wiki really pictures it
@@ -1653,21 +1370,14 @@ All notable changes to this project are documented here.
 - Wrap the editor tab bar so every tab stays visible
 
 
-### Features
-- Name, picture, link and remove world-state map entries
-- Show pet portrait; fix vehicle open-container jump
-- Move world-state map editing into world-editor tabs
-- Correct containment/vehicle art and group vehicles by world
-
-
 ## [1.0.1] - 2026-06-14
-
-### Bug Fixes
-- Disable the optional CUE4Parse-Natives CMake build
-
 
 ### Features
 - First-class pet & vehicle systems + cross-save pet movement
+
+
+### Bug Fixes
+- Disable the optional CUE4Parse-Natives CMake build
 
 
 ### Miscellaneous Tasks
@@ -1677,10 +1387,29 @@ All notable changes to this project are documented here.
 
 ## [1.0.0] - 2026-06-14
 
+### Features
+- Publish Core + Plugins.Abstractions to NuGet on release
+- Add VitePress docs site, release CI, and Dependabot
+
+
 ### Bug Fixes
 - Set git-cliff initial_tag so the first release computes v1.0.0
 - Supply Linux Skia native and realign SkiaSharp to CUE4Parse's pin
 - Resolved issues with github page styling and some wording
+
+
+### Documentation
+- Open content images in a lightbox on click
+- Document the plugin system (folder READMEs, site pages, wiki)
+- Flesh out README and docs site for newcomers, add screenshots
+
+
+### Styling
+- Remove em dashes across source, docs, and config
+
+
+### Testing
+- Add reader/writer reversibility + isolation validation tests
 
 
 ### Build
@@ -1694,27 +1423,8 @@ All notable changes to this project are documented here.
 - Gate releases on the test suite passing
 
 
-### Documentation
-- Open content images in a lightbox on click
-- Document the plugin system (folder READMEs, site pages, wiki)
-- Flesh out README and docs site for newcomers, add screenshots
-
-
-### Features
-- Publish Core + Plugins.Abstractions to NuGet on release
-- Add VitePress docs site, release CI, and Dependabot
-
-
 ### Miscellaneous Tasks
 - Gitignore transient .playwright-mcp/ snapshot output
-
-
-### Styling
-- Remove em dashes across source, docs, and config
-
-
-### Testing
-- Add reader/writer reversibility + isolation validation tests
 
 
 
