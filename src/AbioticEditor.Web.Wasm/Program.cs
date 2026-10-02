@@ -35,6 +35,7 @@ builder.Services.AddScoped<AbioticEditor.Ui.IExternalNavigationService, BrowserN
 builder.Services.AddScoped<SaveLibraryService>();
 builder.Services.AddScoped<RecipeVocabularyService>();
 builder.Services.AddScoped<ItemUpgradeVocabularyService>();
+builder.Services.AddScoped<GameClassFactsService>();
 builder.Services.AddScoped<BuffVocabularyService>();
 builder.Services.AddScoped<InventoryDismantleService>();
 builder.Services.AddScoped<ProgressionVocabularyService>();

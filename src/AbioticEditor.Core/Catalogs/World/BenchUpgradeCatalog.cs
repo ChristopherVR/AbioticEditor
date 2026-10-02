@@ -6,10 +6,18 @@ using UeSaveGame.StructData;
 namespace AbioticEditor.Core.WorldSaves;
 
 /// <summary>One installable bench upgrade module (a row of the game's <c>DT_BenchUpgrades</c>).</summary>
-public sealed record BenchUpgrade(string Row, string DisplayName)
+/// <param name="Row">The table row.</param>
+/// <param name="DisplayName">The name the game shows.</param>
+/// <param name="TagRow">
+/// The row part of the gameplay tag the row installs, when it differs from the row itself: the
+/// game's three Item Transporter rows (the crafting bench's, the Chef Station's and the Upgrade
+/// Bench's) all install the one <c>BenchUpgrade.ItemTransporter</c> tag (each row's
+/// <c>GameplayTag</c> in <c>DT_BenchUpgrades</c>).
+/// </param>
+public sealed record BenchUpgrade(string Row, string DisplayName, string? TagRow = null)
 {
     /// <summary>The full gameplay tag the game stores on a bench, e.g. <c>BenchUpgrade.TougherBench</c>.</summary>
-    public string Tag => BenchUpgradeCatalog.TagPrefix + Row;
+    public string Tag => BenchUpgradeCatalog.TagPrefix + (TagRow ?? Row);
 }
 
 /// <summary>
@@ -47,8 +55,8 @@ public static class BenchUpgradeCatalog
         new BenchUpgrade("MetabolicField", "Metabolic Field"),
         new BenchUpgrade("BenchTurret", "Bench Turret"),
         new BenchUpgrade("Cheffigy", "Cheffigy"),
-        new BenchUpgrade("ItemTransporter_ChefStation", "Item Transporter (Chef Station)"),
-        new BenchUpgrade("ItemTransporter_UpgradeBench", "Item Transporter (Upgrade Bench)"),
+        new BenchUpgrade("ItemTransporter_ChefStation", "Item Transporter (Chef Station)", "ItemTransporter"),
+        new BenchUpgrade("ItemTransporter_UpgradeBench", "Item Transporter (Upgrade Bench)", "ItemTransporter"),
     };
 
     /// <summary>The display name for an upgrade row, or the prettified row when unknown.</summary>
@@ -69,6 +77,29 @@ public static class BenchUpgradeCatalog
         => tag.StartsWith(TagPrefix, StringComparison.OrdinalIgnoreCase)
             ? tag[TagPrefix.Length..]
             : tag;
+
+    /// <summary>The row part of the tag <paramref name="row"/> installs (see <see cref="BenchUpgrade.TagRow"/>).</summary>
+    public static string TagRowOf(string row)
+    {
+        foreach (var u in All)
+        {
+            if (string.Equals(u.Row, row, StringComparison.OrdinalIgnoreCase)) return u.TagRow ?? u.Row;
+        }
+        return row;
+    }
+
+    /// <summary>
+    /// True when <paramref name="row"/> is installed according to <paramref name="installedRows"/>
+    /// (as <see cref="ReadInstalledRows"/> returns them). Rows that share one tag count as
+    /// installed together, because the bench only stores the tag.
+    /// </summary>
+    public static bool IsInstalled(IEnumerable<string> installedRows, string row)
+    {
+        ArgumentNullException.ThrowIfNull(installedRows);
+        var tagRow = TagRowOf(row);
+        return installedRows.Any(r => string.Equals(r, row, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(r, tagRow, StringComparison.OrdinalIgnoreCase));
+    }
 
     /// <summary>
     /// The rows of every upgrade currently installed on this deployable (empty when the bench
@@ -110,9 +141,10 @@ public static class BenchUpgradeCatalog
             return false;
         }
 
-        var present = container.Tags.Any(t =>
-            t?.Value is { Length: > 0 } v
-            && string.Equals(RowFromTag(v), row, StringComparison.OrdinalIgnoreCase));
+        var tagRow = TagRowOf(row);
+        bool Matches(string v) => string.Equals(RowFromTag(v), row, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(RowFromTag(v), tagRow, StringComparison.OrdinalIgnoreCase);
+        var present = container.Tags.Any(t => t?.Value is { Length: > 0 } v && Matches(v));
 
         if (installed == present)
         {
@@ -121,15 +153,14 @@ public static class BenchUpgradeCatalog
 
         if (installed)
         {
-            container.Tags.Add(new FString(TagPrefix + row));
+            container.Tags.Add(new FString(TagPrefix + tagRow));
             return true;
         }
 
         var changed = false;
         for (var i = container.Tags.Count - 1; i >= 0; i--)
         {
-            if (container.Tags[i]?.Value is { Length: > 0 } v
-                && string.Equals(RowFromTag(v), row, StringComparison.OrdinalIgnoreCase))
+            if (container.Tags[i]?.Value is { Length: > 0 } v && Matches(v))
             {
                 container.Tags.RemoveAt(i);
                 changed = true;

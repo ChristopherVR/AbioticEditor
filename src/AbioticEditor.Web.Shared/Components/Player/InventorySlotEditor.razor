@@ -285,6 +285,14 @@
     {
         <section class="item-catalog" aria-label="@L.Inventory("itemCatalogAria")">
             <header><h4>@L.Inventory("itemCatalog")</h4><span>@L.Resource("Palette_ShowingOf", PaletteItems.Count, PaletteMatchCount)</span></header>
+            @if (Selection.Current is { Role: null, AcceptedItems: { } })
+            {
+                @* A container that only takes some items (a fridge takes food, a fish tank fish): the
+                   catalog lists only those, the same rule the game enforces. *@
+                <label class="catalog-fits-filter" title="@L.Resource("Palette_FitsStorageHint")" data-palette="fits-storage">
+                    <input type="checkbox" @bind="_paletteFitsRole" /> @L.Resource("Palette_FitsStorage")
+                </label>
+            }
             @if (Selection.Current?.Role is { } paletteRole)
             {
                 <label class="catalog-fits-filter" title="@L.Resource("Slot_OnlyItemsTheSelectedEquipmentSlotAcceptsAreListedSameRuleTheGameEnforcesUntickToBrowseEverything")">
@@ -379,6 +387,8 @@
         // FITS SLOT filter (native ItemPaletteViewModel.RoleFilter): when the selected
         // slot has an equipment/transmog role, only offer items that slot accepts.
         (!_paletteFitsRole || Selection.Current?.Role is not { } role || SlotDropRules.ValidateForRole(L, role, item) is null)
+        // Same filter for a container that only accepts some items (its game-data tag rule).
+        && (!_paletteFitsRole || Selection.Current?.AcceptedItems is not { } accepts || accepts.Matches(item.Tags))
         && (_paletteCategory == "all" || ItemCatalogService.CategoryOf(item) == _paletteCategory)
         && (string.IsNullOrWhiteSpace(_paletteFilter)
             || item.DisplayName.Contains(_paletteFilter.Trim(), StringComparison.OrdinalIgnoreCase)
@@ -399,7 +409,7 @@
     {
         get
         {
-            var key = (_paletteFitsRole, Selection.Current?.Role, _paletteCategory, _paletteFilter, Catalog.Entries.Count);
+            var key = (_paletteFitsRole, Selection.Current?.Role, Selection.Current?.AcceptedItems, _paletteCategory, _paletteFilter, Catalog.Entries.Count);
             if (_matches is null || key != _matchesFor)
             {
                 _matchesFor = key;
@@ -410,7 +420,7 @@
     }
 
     private List<ItemCatalogEntry>? _matches;
-    private (bool FitsRole, string? Role, string Category, string Filter, int CatalogCount) _matchesFor;
+    private (bool FitsRole, string? Role, AbioticEditor.Core.Items.ItemTagQuery? Accepts, string Category, string Filter, int CatalogCount) _matchesFor;
 
     private List<ItemCatalogEntry> PaletteItems => Matches.Take(_paletteWindow).ToList();
     private int PaletteMatchCount => Matches.Count;
@@ -642,6 +652,11 @@
         if (SlotDropRules.ValidateForSlot(L, target.Area, target.Role, item, Advanced.SkipEquipSlotValidation) is { } problem)
         {
             _paletteStatus = L.Resource("Slot_MsgBlocked", problem);
+            return;
+        }
+        if (current?.AcceptedItems is { } accepted && !accepted.Matches(item.Tags))
+        {
+            _paletteStatus = L.Resource("Slot_MsgBlocked", L.Resource("Slot_StorageRefusesItem"));
             return;
         }
         SlotDropRules.FillFromCatalog(target.Slot, item);

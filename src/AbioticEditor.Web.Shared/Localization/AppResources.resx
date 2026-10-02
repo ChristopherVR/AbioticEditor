@@ -4426,6 +4426,12 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_PowerFedElsewhereFormat" xml:space="preserve"><value>Takes power from {0} in {1}. Unplug it there (open that save's Power Sockets tab).</value></data>
   <data name="World3D_PowerNotPlugged" xml:space="preserve"><value>Not plugged in.</value></data>
   <data name="World3D_PowerPlugInto" xml:space="preserve"><value>Plug into</value></data>
+  <data name="World3D_GardenEmpty" xml:space="preserve"><value>Nothing is growing here.</value></data>
+  <data name="World3D_GardenCrops" xml:space="preserve"><value>Growing here</value></data>
+  <data name="World3D_GardenSpotFormat" xml:space="preserve"><value>Spot {0}</value></data>
+  <data name="Palette_FitsStorage" xml:space="preserve"><value>Fits this storage</value></data>
+  <data name="Palette_FitsStorageHint" xml:space="preserve"><value>Only items this storage accepts are listed, the same rule the game uses. Untick to browse everything.</value></data>
+  <data name="Slot_StorageRefusesItem" xml:space="preserve"><value>this storage does not take that item</value></data>
   <data name="World3D_PowerChooseSocket" xml:space="preserve"><value>Choose an outlet (nearest first)</value></data>
   <data name="World3D_PowerSocketBusyFormat" xml:space="preserve"><value>(now powers {0})</value></data>
   <data name="World3D_Labels" xml:space="preserve"><value>Show labels</value></data>

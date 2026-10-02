@@ -60,6 +60,10 @@ public sealed class RenderKeySafetyContractTests
         // time constant catalog data, not read from paks/saves/the live agent at runtime).
         ("WorldBasesTab.razor", "upgrade.Row"),
 
+        // The 3D view's bench card lists a filtered subset of that same constant catalog (the
+        // upgrades the game offers on the bench), so its rows are just as distinct.
+        ("DeployableCard3D.razor", "upgrade.Row"),
+
         // StoryProgressionCatalog.Chapters is a hardcoded C# array of story chapters, each with a
         // distinct literal Row string - compile-time constant catalog data.
         ("WorldStoryTab.razor", "chapter.Row"),

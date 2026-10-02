@@ -175,6 +175,14 @@ public sealed record InventorySelection(
     /// <summary>Whether this surface can persist applied weapon coatings.</summary>
     public bool SupportsCoatingEdits { get; init; }
 
+    /// <summary>
+    /// Which items the container this slot belongs to accepts, from the game's own data (its
+    /// storage's tag rule: a fridge takes food, a fish tank fish). Null when anything goes or it is
+    /// not known. The item catalog lists only these while its "fits" filter is on, and quick-give
+    /// refuses anything else.
+    /// </summary>
+    public AbioticEditor.Core.Items.ItemTagQuery? AcceptedItems { get; init; }
+
     /// <summary>The player inventory area the slot lives in; null for non-player surfaces
     /// (world container groups), which validate like Main/storage slots.</summary>
     public bool SupportsLiquidTypeEdits { get; init; }

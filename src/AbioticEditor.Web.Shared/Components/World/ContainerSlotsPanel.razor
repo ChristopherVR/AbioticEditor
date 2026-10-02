@@ -7,6 +7,7 @@
 @inject InventorySelectionService Selection
 @inject SlotDragDropService Dnd
 @inject SaveWorkspaceSessionService Workspace
+@inject GameClassFactsService ClassFacts
 
 @* A crate's slots, edited where it is shown (the 3D view's inspector) instead of sending the player
    to the Containers tab. Same staged path as that tab: tapping a slot opens it in the right-hand
@@ -54,11 +55,22 @@
     /// <summary>The placed object's key: its crate is the deployed container with this id.</summary>
     [Parameter, EditorRequired] public string ContainerId { get; set; } = string.Empty;
 
+    /// <summary>The placed object's class path (or class name): the game data that says which
+    /// items its storage accepts is looked up by it. Falls back to the container's own class.</summary>
+    [Parameter] public string? ClassPath { get; set; }
+
     private List<PlayerInventorySlotEdit> _slotEdits = [];
     private PlayerInventorySlotEdit? _dragEdit;
     private string? _loadedFor;
 
     private WorldContainer? Container => Session.Containers.FirstOrDefault(c => c.Source == WorldContainerSource.Deployed && c.Id == ContainerId);
+
+    /// <summary>
+    /// The items this storage accepts, from the game's own data (a fridge takes food, a fish tank
+    /// fish, an ordinary crate anything but a pet). Null when the game data is not there.
+    /// </summary>
+    private ItemTagQuery? Accepted
+        => ClassFacts.ContainerRequirement(ClassPath ?? Container?.ClassName) is { IsEmpty: false } query ? query : null;
 
     private ItemUpgradeCatalog UpgradeCatalog => Upgrades.TryGet(out var catalog) ? catalog : ItemUpgradeCatalog.Empty;
 
@@ -111,6 +123,7 @@
         {
             Dnd.End();
             if (SlotDropRules.ValidateForSlot(L, null, null, palette) is not null) return;
+            if (Accepted is { } accepted && !accepted.Matches(palette.Tags)) return;
             SlotDropRules.FillFromCatalog(target, palette);
             await ApplyAsync();
             SelectSlot(target);
@@ -134,6 +147,7 @@
             slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
             slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
         {
+            AcceptedItems = Accepted,
             QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
             SelectSlot = sibling => { if (_slotEdits.Contains(sibling)) SelectSlot(sibling); },
         });

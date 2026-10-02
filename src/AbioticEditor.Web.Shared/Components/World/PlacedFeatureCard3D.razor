@@ -1,0 +1,131 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves.Features
+@using AbioticEditor.Web.Models
+@using AbioticEditor.Web.Components.Player
+@implements IDisposable
+@inject SaveWorkspaceSessionService Workspace
+@inject ItemCatalogService Items
+
+@* A placed object that one of the world lists looks after (a garden plot's crops, water and
+   fertilizer; a power chair's charge; a lamp's switch...), edited right here with the same
+   fields and the same staging as that list's tab: nothing is written until SAVE. *@
+@foreach (var (card, cardKey) in RenderKeys.With(_cards, c => c.Feature.Id))
+{
+    var (feature, entry) = card;
+    var growing = IsCropFeature(feature);
+    <div class="b3d-feature-card" data-b3d="placed-feature" data-feature="@feature.Id" @key="cardKey">
+        <span class="wt-label">@feature.DisplayName</span>
+        @if (growing)
+        {
+            var spots = Spots(entry);
+            var planted = spots.Where(spot => CropOf(entry, spot) is not null).ToList();
+            @if (planted.Count == 0)
+            {
+                <p class="wt-muted" data-b3d="garden-empty">@L.Resource("World3D_GardenEmpty")</p>
+            }
+            else
+            {
+                <div class="b3d-crops" role="group" aria-label="@L.Resource("World3D_GardenCrops")" data-b3d="garden-crops">
+                    @foreach (var spot in planted)
+                    {
+                        var row = CropOf(entry, spot)!;
+                        var itemId = GardenCropItems.PicturedItemFor(row);
+                        var name = Items.Find(itemId)?.DisplayName is { Length: > 0 } shown ? shown : PlainNames.Words(row);
+                        var active = spot == ActiveSpot(entry);
+                        <button type="button" class="b3d-crop @(active ? "selected" : null)" aria-pressed="@active" @key="spot"
+                                data-b3d="garden-crop" title="@name" @onclick="() => _spot = spot">
+                            <ItemIcon ItemId="@itemId" Alt="@name" Class="b3d-crop-icon" />
+                            <span class="b3d-crop-text">
+                                <strong>@name</strong>
+                                <small>@L.Resource("World3D_GardenSpotFormat", SpotNumber(spot))@(StageOf(entry, spot) is { } stage ? " · " + stage : null)</small>
+                            </span>
+                        </button>
+                    }
+                </div>
+            }
+        }
+        <FeatureEntryEditor Session="Session" FeatureId="@feature.Id" EntryKey="@entry.Key" OnChanged="ChangedAsync"
+                            FieldFilter="@(growing ? field => ShowsField(entry, field) : null)" />
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public string PieceKey { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private List<(IWorldMapFeature Feature, WorldMapEntry Entry)> _cards = [];
+    private string? _loadedFor;
+    private string? _spot;
+
+    /// <summary>
+    /// The world lists that look after the placed object <paramref name="key"/>, with its entry in
+    /// each. A list whose entry sends the player to the object's own contents (a chemistry bench's
+    /// flasks are its storage slots) is left out: the storage panel already covers it.
+    /// </summary>
+    public static List<(IWorldMapFeature Feature, WorldMapEntry Entry)> FeaturesFor(WorldSaveSession session, string key)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        var result = new List<(IWorldMapFeature, WorldMapEntry)>();
+        if (string.IsNullOrEmpty(key)) return result;
+        foreach (var feature in WorldMapFeatures.All.Where(f => f.MapName == "DeployedObjectMap"))
+        {
+            if (session.MapFeature(feature.Id)?.Entries.FirstOrDefault(e => string.Equals(e.Key, key, StringComparison.Ordinal)) is not { } entry)
+                continue;
+            if (string.Equals(entry.LinkTargetId, key, StringComparison.Ordinal)) continue;
+            result.Add((feature, entry));
+        }
+        return result;
+    }
+
+    /// <summary>The garden lists: their entries are planting spots with a crop in each.</summary>
+    private static bool IsCropFeature(IWorldMapFeature feature) => feature is GardenPlotsFeature or DigitalGardenPlotsFeature;
+
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    protected override void OnParametersSet()
+    {
+        if (_loadedFor == PieceKey) return;
+        _loadedFor = PieceKey;
+        _spot = null;
+        Load();
+    }
+
+    private void Load() => _cards = FeaturesFor(Session, PieceKey);
+
+    private void Refresh() => _ = InvokeAsync(() => { Load(); StateHasChanged(); });
+
+    private async Task ChangedAsync()
+    {
+        Load();
+        await OnChanged.InvokeAsync();
+    }
+
+    private static List<string> Spots(WorldMapEntry entry)
+        => entry.Fields.Where(f => f.Id.Contains(':')).Select(f => f.Id.Split(':')[1]).Distinct().ToList();
+
+    private static string? CropOf(WorldMapEntry entry, string spot)
+        => entry.Fields.FirstOrDefault(f => f.Id == $"crop:{spot}" || f.Id == $"cartridge:{spot}") is { Value: { Length: > 0 } value }
+           && value != GardenPlotsFeature.EmptyOption ? value : null;
+
+    private static string? StageOf(WorldMapEntry entry, string spot)
+        => entry.Fields.FirstOrDefault(f => f.Id == $"stage:{spot}") is { Value: { Length: > 0 } value } ? PlainNames.Words(value) : null;
+
+    private static string SpotNumber(string spot)
+        => int.TryParse(spot, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var n)
+            ? (n + 1).ToString(System.Globalization.CultureInfo.CurrentCulture) : spot;
+
+    /// <summary>The spot whose fields are shown: the one picked, else the first planted (or first) spot.</summary>
+    private string? ActiveSpot(WorldMapEntry entry)
+    {
+        var spots = Spots(entry);
+        if (_spot is not null && spots.Contains(_spot)) return _spot;
+        return spots.FirstOrDefault(s => CropOf(entry, s) is not null) ?? spots.FirstOrDefault();
+    }
+
+    /// <summary>Plot-wide fields (water) always; per-spot fields only for the spot being looked at.</summary>
+    private bool ShowsField(WorldMapEntry entry, WorldMapField field)
+        => !field.Id.Contains(':') || field.Id.EndsWith(":" + ActiveSpot(entry), StringComparison.Ordinal);
+
+    public void Dispose() => Workspace.Changed -= Refresh;
+}

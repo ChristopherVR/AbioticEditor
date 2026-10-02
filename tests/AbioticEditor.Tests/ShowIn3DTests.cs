@@ -79,7 +79,9 @@ public sealed class ShowIn3DTests
         Assert.DoesNotContain("role=\"tablist\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"staged-toggle\"", tab, StringComparison.Ordinal); // changes listed only when asked
         // A crate's contents are edited in the inspector, not by jumping to the Containers tab.
-        Assert.Contains("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\" />", tab, StringComparison.Ordinal);
+        Assert.Contains("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\"", tab, StringComparison.Ordinal);
+        // A garden plot shows what is growing in it (its own card), not an empty storage grid.
+        Assert.Contains("<PlacedFeatureCard3D Session=\"Session\" PieceKey=\"@obj.Key\"", tab, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -332,7 +334,7 @@ public sealed class ShowIn3DTests
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
         Assert.Contains("data-b3d=\"level-copy\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"details\"", tab, StringComparison.Ordinal); // file paths and numbers folded away
-        Assert.True(tab.IndexOf("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\" />", StringComparison.Ordinal)
+        Assert.True(tab.IndexOf("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\"", StringComparison.Ordinal)
                     < tab.IndexOf("data-b3d=\"details\"", StringComparison.Ordinal));
         Assert.DoesNotContain("World3D_EditNeedsOptIn", tab, StringComparison.Ordinal); // remove and copy turn Edit mode on themselves
         var place = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Place.razor.cs");

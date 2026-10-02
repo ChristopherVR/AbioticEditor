@@ -252,6 +252,22 @@ public sealed partial class WorldSaveSession
         return null;
     }
 
+    /// <summary>
+    /// True when the object takes or gives power: it is plugged in, or it has outlets of its own
+    /// (recorded, or ones its kind uses in this save), or <paramref name="classRequiresPower"/>
+    /// (the game's own answer for its kind, when known) says it runs on power. With no game answer,
+    /// another object of the same kind plugged in somewhere in this save counts.
+    /// </summary>
+    public bool IsPowerDevice(string deviceKey, bool? classRequiresPower)
+    {
+        if (PowerFeedOf(deviceKey) is not null || FirstOutletOf(deviceKey) is not null) return true;
+        if (classRequiresPower is { } known) return known;
+        var snapshot = Power();
+        if (snapshot.Classes.GetValueOrDefault(deviceKey) is not { } cls) return false;
+        return snapshot.Plugged.Values.Any(device => device is not null
+            && string.Equals(snapshot.Classes.GetValueOrDefault(device), cls, StringComparison.Ordinal));
+    }
+
     /// <summary>The first outlet id of a device that has outlets (recorded, or a number its kind uses), or null.</summary>
     public string? FirstOutletOf(string deviceKey)
     {

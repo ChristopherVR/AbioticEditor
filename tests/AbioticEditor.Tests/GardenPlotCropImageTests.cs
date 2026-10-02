@@ -11,7 +11,8 @@ namespace AbioticEditor.Tests;
 /// seed/produce item a player would recognise. The bundled registry's own <c>Plant_Corn</c> entry
 /// has a blank <c>DisplayName</c> and an <c>icon_missingitem</c> placeholder icon, so it was never
 /// going to show a real picture no matter which spot was selected. <see
-/// cref="WorldFeaturesTab"/>'s private <c>CropToPicturedItemId</c> table maps each of
+/// cref="GardenCropItems"/>'s private <c>PicturedItems</c> table (shared by the garden list and
+/// the 3D view's garden card) maps each of
 /// <c>DeployedCareFeatures.cs</c>'s own <c>CropRows</c> to the real, pictured item id - reached
 /// here by reflection (not duplicated as a second copy of the table in this test) so a future edit
 /// to that table is checked against the real bundled registry automatically, the same guarantee
@@ -21,8 +22,8 @@ public sealed class GardenPlotCropImageTests
 {
     private static System.Collections.Generic.IReadOnlyDictionary<string, string> CropToPicturedItemId()
     {
-        var field = typeof(WorldFeaturesTab).GetField("CropToPicturedItemId", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("WorldFeaturesTab.CropToPicturedItemId was not found - has it been renamed?");
+        var field = typeof(GardenCropItems).GetField("PicturedItems", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("GardenCropItems.PicturedItems was not found - has it been renamed?");
         return (System.Collections.Generic.IReadOnlyDictionary<string, string>)field.GetValue(null)!;
     }
 

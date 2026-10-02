@@ -2,6 +2,7 @@
 @using AbioticEditor.Core.WorldSaves.Features
 @using AbioticEditor.Web.Models
 @inject SaveWorkspaceSessionService Workspace
+@inject ItemCatalogService Items
 
 @* One world-list entry's settings (a resource node, a button, an elevator, a breakable wall...),
    edited where it is shown: the 3D view's card. The same fields, words and staging as the list's
@@ -9,7 +10,7 @@
 @if (Entry is { } entry)
 {
     <div class="feature-entry-editor" data-b3d="thing-fields">
-        @foreach (var (field, fieldKey) in RenderKeys.With(entry.Fields, f => f.Id))
+        @foreach (var (field, fieldKey) in RenderKeys.With(entry.Fields.Where(f => FieldFilter?.Invoke(f) ?? true).ToList(), f => f.Id))
         {
             var label = FeatureFieldText.Label(L, FeatureId, entry, field);
             <div class="feature-entry-field" @key="fieldKey">
@@ -17,7 +18,7 @@
                     <span>@label</span>
                     @if (!field.Editable)
                     {
-                        <span class="wt-muted">@(string.IsNullOrEmpty(field.Value) ? L.Inventory("empty") : PlainNames.Words(field.Value))</span>
+                        <span class="wt-muted">@(string.IsNullOrEmpty(field.Value) ? L.Inventory("empty") : OptionText(field, field.Value))</span>
                     }
                     else if (field.Kind == WorldFieldKind.Bool)
                     {
@@ -30,8 +31,8 @@
                     else if (field.Kind == WorldFieldKind.Enum && field.Options is not null)
                     {
                         <select class="wt-input" value="@field.Value" aria-label="@label" @onchange="e => SetAsync(entry.Key, field.Id, e.Value?.ToString())">
-                            @if (!field.Options.Contains(field.Value)) { <option value="@field.Value">@field.Value</option> }
-                            @foreach (var option in field.Options) { <option value="@option">@PlainNames.Words(option)</option> }
+                            @if (!field.Options.Contains(field.Value)) { <option value="@field.Value">@OptionText(field, field.Value)</option> }
+                            @foreach (var option in field.Options) { <option value="@option">@OptionText(field, option)</option> }
                         </select>
                     }
                     else
@@ -52,8 +53,26 @@
     [Parameter, EditorRequired] public string FeatureId { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string EntryKey { get; set; } = string.Empty;
 
+    /// <summary>Which of the entry's fields to show (all when null), e.g. one garden spot's.</summary>
+    [Parameter] public Func<WorldMapField, bool>? FieldFilter { get; set; }
+
     /// <summary>After a change was staged (the 3D view refreshes what it shows).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>
+    /// A choice in words. A garden crop or cartridge is stored as its planting row, so it is named
+    /// after the item a player knows (the seed, or the cartridge) rather than the raw row.
+    /// </summary>
+    private string OptionText(WorldMapField field, string? option)
+    {
+        if (string.IsNullOrEmpty(option)) return L.Inventory("empty");
+        if (field.Id.StartsWith("crop:", StringComparison.Ordinal) || field.Id.StartsWith("cartridge:", StringComparison.Ordinal))
+        {
+            var item = Items.Find(GardenCropItems.PicturedItemFor(option)) ?? Items.Find(option);
+            if (item is { DisplayName.Length: > 0 }) return item.DisplayName;
+        }
+        return PlainNames.Words(option);
+    }
 
     private static string BoolText(object? value) => value is true ? "true" : "false";
 

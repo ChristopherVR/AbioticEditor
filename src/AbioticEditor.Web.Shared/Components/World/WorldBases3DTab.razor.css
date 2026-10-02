@@ -169,10 +169,21 @@
 .b3d-selection-bar .b3d-selection-list { max-height: 110px; }
 
 /* One look for the controls in the side panel: dropdowns, inputs and buttons the same height and type. */
-.b3d-side ::deep select.wt-input, .b3d-side ::deep input.wt-input, .b3d-side ::deep .wt-btn {
+.b3d-side ::deep select.wt-input, .b3d-side ::deep input.wt-input:not([type=checkbox]):not([type=range]), .b3d-side ::deep .wt-btn {
     min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; line-height: 28px; box-sizing: border-box; border-radius: 2px;
 }
 .b3d-side ::deep select.wt-input { padding-right: 24px; }
+/* The app-wide field style pads every input and dropdown by 8px top and bottom (marked important),
+   which inside these 30px controls left a line of text with no room: "Choose an outlet" was cut in
+   half. The side panel's controls keep only their side padding. The power rerouting panel's own
+   dropdowns and buttons take the same look. */
+.b3d-side ::deep select.wt-input, .b3d-side ::deep input.wt-input, .b3d-side ::deep .power-rewire select {
+    padding-top: 0 !important; padding-bottom: 0 !important;
+}
+.b3d-side ::deep .power-rewire select { min-height: 30px; height: 30px; padding-left: 10px !important; padding-right: 24px !important; font-size: 12px; line-height: 28px; flex: 1 1 140px; min-width: 0; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
+.b3d-side ::deep .power-rewire button { min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; line-height: 28px; box-sizing: border-box; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.b3d-side ::deep .power-rewire-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.b3d-side ::deep .power-rewire-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; overflow-wrap: anywhere; }
 .b3d-side ::deep .wt-btn { display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
 .b3d-side ::deep .b3d-links { align-items: center; }
 .b3d-side ::deep .b3d-links > select { flex: 1 1 140px; min-width: 0; }
@@ -198,3 +209,55 @@
 
 /* Inside the Show menu every option reads the same: plain sentence-case labels. */
 .b3d-show-popover ::deep label, .b3d-show-popover ::deep .wt-check { text-transform: none; letter-spacing: normal; font-weight: 400; font-size: 12px; }
+
+/* A placed object's own settings (a garden plot: what grows in each spot, then its fields). */
+.b3d-panel ::deep .b3d-feature-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.b3d-panel ::deep .b3d-crops { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px; }
+.b3d-panel ::deep .b3d-crop { display: flex; align-items: center; gap: 6px; min-width: 0; height: auto; padding: 4px 6px; text-align: left; color: #eaf3f8;
+    background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line, #224158); cursor: pointer; transform: none !important;
+    justify-content: flex-start; min-height: 44px; text-transform: none; letter-spacing: normal; font-weight: 400; }
+.b3d-panel ::deep .b3d-crop:hover, .b3d-panel ::deep .b3d-crop.selected { border-color: var(--accent, #f08418); }
+.b3d-panel ::deep .b3d-crop.selected { background: rgba(240, 132, 24, 0.12); }
+.b3d-panel ::deep .b3d-crop-icon { width: 32px; height: 32px; flex: none; object-fit: contain; }
+.b3d-panel ::deep .b3d-crop-text { display: flex; flex-direction: column; min-width: 0; }
+.b3d-panel ::deep .b3d-crop-text strong { font-size: 12px; line-height: 1.25; text-transform: none; letter-spacing: normal; overflow-wrap: anywhere; }
+.b3d-panel ::deep .b3d-crop-text small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: normal; }
+
+/* A world list entry's fields (a garden plot's water and crops, a lamp's switch...): each label over
+   its control at the panel's full width, its note underneath. */
+.b3d-panel ::deep .feature-entry-editor { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.b3d-panel ::deep .feature-entry-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b3d-panel ::deep .feature-entry-row { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px; }
+.b3d-panel ::deep .feature-entry-row > .wt-input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
+.b3d-panel ::deep .feature-entry-toggle { display: flex; align-items: center; gap: 6px; }
+.b3d-panel ::deep .feature-entry-field > small { font-size: 11px; line-height: 1.35; }
+.b3d-panel ::deep .b3d-crop-text small { color: var(--muted, #a9cbe0); font-size: 11px; }
+
+/* The POWER card: the outlet picker under its label at the panel's full width, long outlet names
+   cut with an ellipsis instead of pushing the card wider, the plug button on its own line. */
+.b3d-power { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
+.b3d-power > .wt-btn { align-self: flex-start; }
+.b3d-power-plug { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px; }
+.b3d-power-plug > select { width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.b3d-power .wt-check { align-items: flex-start; gap: 6px; overflow-wrap: anywhere; }
+
+/* Group tools and the selection list: fields share the row without overflowing it, long names in
+   the pivot picker and the selection list end with an ellipsis, and the arrange row wraps. */
+.b3d-numbers > label, .b3d-numbers3 > label { min-width: 0; }
+.b3d-numbers select, .b3d-numbers input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
+[data-b3d="group-tools"] .b3d-links { flex-wrap: wrap; }
+[data-b3d="group-tools"] .b3d-links > .b3d-axis { flex: 0 0 64px; width: 64px; }
+[data-b3d="group-tools"] > .wt-btn { align-self: flex-start; }
+.b3d-selection-row { min-width: 0; }
+.b3d-selection-row > .b3d-selection-name { justify-content: flex-start; text-transform: none; letter-spacing: normal; font-weight: 500; }
+.b3d-selection-row > .wt-btn:last-child { flex: 0 0 30px; width: 30px; padding: 0; }
+
+/* Window 1100px wide or narrower: the panel sits under the view and is as tall as what it holds.
+   The pane split above (each pane takes a share of a fixed height) gave the picked object's card
+   no height at all there, so its whole contents were cut off; each pane now keeps its own height,
+   scrolling on its own when it is very tall. */
+@media (max-width: 1100px) {
+    .b3d-side { height: auto; max-height: none; }
+    .b3d-side .b3d-inspect, .b3d-side.picked .b3d-inspect { flex: none; max-height: 75vh; }
+    .b3d-side .b3d-tab-body, .b3d-side.picked .b3d-tab-body { flex: none; min-height: 0; max-height: 50vh; }
+}

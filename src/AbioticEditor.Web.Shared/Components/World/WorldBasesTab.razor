@@ -10,6 +10,7 @@
 @inject SlotDragDropService Dnd
 @inject SaveWorkspaceSessionService Workspace
 @inject ToastService Toasts
+@inject GameClassFactsService ClassFacts
 @implements IDisposable
 
 @* Faithful port of the native WorldBasesTab.xaml: base list + top-down deployable map
@@ -221,11 +222,12 @@
                             <small>@SubLevelText(bench)@(DistanceText(bench) is { } benchDistance ? " · " + benchDistance : null)</small>
                         </button>
                         <ShowIn3DButton Target="@WorldLocateTarget.Placed(bench.Id, bench.DisplayName)" Compact="true" />
-                        @if (Session.BenchSupportsUpgrades(bench.Id))
+                        @if (Session.BenchSupportsUpgrades(bench.Id) && ClassFacts.TakesBenchUpgrades(bench))
                         {
                             <span class="wt-label bench-upgrades-label">@L.Resource("WorldBases_Upgrades")</span>
                             <div class="bench-upgrades">
-                                @foreach (var upgrade in BenchUpgradeCatalog.All)
+                                @* Only the upgrades the game offers on this kind of bench. *@
+                                @foreach (var upgrade in ClassFacts.BenchUpgradesFor(bench))
                                 {
                                     <label class="wt-check orange" @key="upgrade.Row">
                                         <input type="checkbox" checked="@IsUpgradeInstalled(bench.Id, upgrade.Row)"
@@ -235,7 +237,7 @@
                                 }
                             </div>
                         }
-                        else if (Session.BenchHasUpgradeSlot(bench.Id))
+                        else if (Session.BenchHasUpgradeSlot(bench.Id) && ClassFacts.TakesBenchUpgrades(bench))
                         {
                             @* This bench genuinely has upgrade slots (BenchHasUpgradeSlot), but
                                BenchSupportsUpgrades came back false - live only, since the file
@@ -568,6 +570,8 @@
             slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
             slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
         {
+            // The items this storage takes, from the game's own data (a fridge takes food).
+            AcceptedItems = ClassFacts.ContainerRequirement(container.ClassName) is { IsEmpty: false } accepts ? accepts : null,
             QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
             SelectSlot = sibling => { if (_slotEdits.Contains(sibling)) SelectSlot(sibling); },
         });
@@ -710,7 +714,7 @@
     }
 
     private bool IsUpgradeInstalled(string benchId, string row)
-        => Session.BenchInstalledUpgrades(benchId).Contains(row, StringComparer.OrdinalIgnoreCase);
+        => BenchUpgradeCatalog.IsInstalled(Session.BenchInstalledUpgrades(benchId), row);
 
     /// <summary>A failure here (most often, live, the upgrade-install refusal - see
     /// areas/bases.lua's header comment) is a one-off action on a single bench, not something

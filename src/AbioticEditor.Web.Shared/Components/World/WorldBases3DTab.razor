@@ -8,6 +8,7 @@
 @inject GameArtService Art
 @inject ItemCatalogService Catalog
 @inject IServiceProvider Services
+@inject GameClassFactsService ClassFacts
 @implements IAsyncDisposable
 
 @* Base-building roadmap phases 3 and 4 (UI half): a 3D view of one region's placed objects, and
@@ -769,7 +770,7 @@
                                 @PlacementWarnings(copy.NewKey)
                                 <button type="button" class="wt-btn wt-plain" data-b3d="revert-copy" @onclick="() => RevertDuplicationAsync(copy.DuplicationId)">@L.Resource("World3D_RevertCopy")</button>
                                 @* A new object can be wired up before SAVE: it and its outlets are written first. *@
-                                @PowerCard(copy.NewKey)
+                                @if (UsesPower(copy.NewKey, copy.ClassName)) { @PowerCard(copy.NewKey) }
                             }
                             else
                             {
@@ -794,14 +795,17 @@
                             }
 
                             @* What can be done with it comes first: its contents, then remove and copy. *@
-                            @if (HasContainer(obj.Key))
+                            @* A garden plot shows what is growing in it (and its water and fertilizer); a
+                               lamp, a power chair and the like their own settings. Same fields as their lists. *@
+                            <PlacedFeatureCard3D Session="Session" PieceKey="@obj.Key" OnChanged="StateHasChanged" />
+                            @if (ShowsStorage(obj.Key))
                             {
-                                <ContainerSlotsPanel Session="@Session" ContainerId="@obj.Key" />
+                                <ContainerSlotsPanel Session="@Session" ContainerId="@obj.Key" ClassPath="@(obj.ClassPath ?? obj.ClassName)" />
                             }
                             @* A containment cell: the creature it holds, changed or released right here. *@
                             <ContainmentCard3D Session="Session" UnitKey="@obj.Key" />
                             @* A bench's upgrades and a piece's paint colour. *@
-                            <DeployableCard3D Session="Session" PieceKey="@obj.Key" OnChanged="StateHasChanged" />
+                            <DeployableCard3D Session="Session" PieceKey="@obj.Key" ClassPath="@obj.ClassPath" OnChanged="StateHasChanged" />
 
                             @* EXTENSION POINT (delete and duplicate): wired. The buttons act on the whole selection,
                                open a confirmation panel with a preview (Core's StagedBaseEdits.Preview), and stage
@@ -835,7 +839,7 @@
 
                             @* Power for the selected object: where it takes power from, plugging it in elsewhere
                                (nearest outlets first), and its own outlets. Stages with the other base edits. *@
-                            @if (built && obj.Key.Length == 32)
+                            @if (built && obj.Key.Length == 32 && UsesPower(obj.Key, obj.ClassPath ?? obj.ClassName))
                             {
                                 @PowerCard(obj.Key)
                             }
@@ -2108,6 +2112,35 @@
 
     // ---- display helpers ----------------------------------------------------------------------
     private bool HasContainer(string key) => Session.Containers.Any(c => string.Equals(c.Id, key, StringComparison.Ordinal));
+
+    /// <summary>
+    /// True when the object's storage slots are worth showing. A garden plot keeps a storage the
+    /// player never opens (its crops are saved apart from it, and shown in its own card), so an
+    /// empty one under a garden card is left out; anything actually stored is always shown.
+    /// </summary>
+    private bool ShowsStorage(string key)
+    {
+        if (Session.Containers.FirstOrDefault(c => string.Equals(c.Id, key, StringComparison.Ordinal)) is not { } container) return false;
+        if (container.Inventories.SelectMany(i => i.Slots).Any(slot => !slot.IsEmpty)) return true;
+        if (_growingCoverFor != key)
+        {
+            _growingCoverFor = key;
+            _growingCover = PlacedFeatureCard3D.FeaturesFor(Session, key)
+                .Any(c => c.Feature is AbioticEditor.Core.WorldSaves.Features.GardenPlotsFeature or AbioticEditor.Core.WorldSaves.Features.DigitalGardenPlotsFeature);
+        }
+        return !_growingCover;
+    }
+
+    private string? _growingCoverFor;
+    private bool _growingCover;
+
+    /// <summary>
+    /// True when the object takes or gives power, so the POWER card (plug into an outlet) belongs on
+    /// it: it is plugged in or has outlets, or the game data says it runs on power, or (with no game
+    /// data) another of its kind in this save is plugged in.
+    /// </summary>
+    private bool UsesPower(string key, string? classPathOrName)
+        => Session.IsPowerDevice(key, ClassFacts.RequiresPower(classPathOrName));
 
     private static string CategoryColor(PlacedObjectCategory c) => c switch
     {

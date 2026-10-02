@@ -3,19 +3,23 @@
 @using AbioticEditor.Web.Models
 @inject SaveWorkspaceSessionService Workspace
 @inject ToastService Toasts
+@inject GameClassFactsService ClassFacts
 
 @* A built piece picked in the 3D view: a bench's upgrades and a piece's paint colour, changed right
    here the same way the Bases tab changes them (staged until SAVE). *@
 @if (Deployable is { } piece)
 {
-    @if (Bases.BenchSupportsUpgrades(piece.Id))
+    @* Only a piece the game itself lets take bench upgrades, and only the upgrades the game
+       offers on that kind of bench (the Chef Station has its own). *@
+    @if (ClassFacts.TakesBenchUpgrades(piece, ClassPath) && Bases.BenchSupportsUpgrades(piece.Id))
     {
+        var installed = Bases.BenchInstalledUpgrades(piece.Id);
         <span class="wt-label">@L.Resource("WorldBases_Upgrades")</span>
         <div class="b3d-upgrades" data-b3d="bench-upgrades">
-            @foreach (var upgrade in BenchUpgradeCatalog.All)
+            @foreach (var upgrade in ClassFacts.BenchUpgradesFor(piece, ClassPath))
             {
-                <label class="wt-check">
-                    <input type="checkbox" checked="@Bases.BenchInstalledUpgrades(piece.Id).Contains(upgrade.Row, StringComparer.OrdinalIgnoreCase)"
+                <label class="wt-check" @key="upgrade.Row">
+                    <input type="checkbox" checked="@BenchUpgradeCatalog.IsInstalled(installed, upgrade.Row)"
                            @onchange="e => SetUpgradeAsync(piece.Id, upgrade.Row, e.Value is true)" />
                     @upgrade.DisplayName
                 </label>
@@ -41,6 +45,9 @@
     [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
     [Parameter, EditorRequired] public string PieceKey { get; set; } = string.Empty;
     [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>The piece's full class path when known (the game data is looked up by it).</summary>
+    [Parameter] public string? ClassPath { get; set; }
 
     private IWorldBasesSession Bases => Session;
 
