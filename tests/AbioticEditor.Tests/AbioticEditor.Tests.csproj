@@ -50,4 +50,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Caps how many test classes run at once. Many classes parse the ~16 MB region saves or
+         mount the game's paks, and with one class per core running together a full run peaked
+         at about 11 GB in a single test process. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

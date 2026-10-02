@@ -1,4 +1,4 @@
-using AbioticEditor.Core.PlayerSaves;
+﻿using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 using UeSaveGame;
 
@@ -13,15 +13,30 @@ namespace AbioticEditor.Tests;
 internal static class AllFixtureSaves
 {
     private static readonly Lazy<IReadOnlyList<string>> WorldDirsLazy = new(FindWorldDirs);
-    private static readonly Lazy<IReadOnlyList<(string Path, WorldSaveData Data)>> WorldLazy = new(() =>
-        WorldDirs.SelectMany(d => Directory.EnumerateFiles(d, "WorldSave_*.sav").Order(StringComparer.Ordinal))
-            .Select(p => (p, WorldSaveReader.ReadFromFile(p))).ToList());
+    // Held weakly: every fixture world parsed is roughly 190 MB of save files and several GB once
+    // parsed, and a plain static kept all of it alive for the rest of the run after the first
+    // census test touched it. Tests that are using the list keep it alive; once none is, the
+    // memory can be reclaimed and the next caller parses again.
+    private static readonly WeakReference<IReadOnlyList<(string Path, WorldSaveData Data)>?> WorldCache = new(null);
+    private static readonly Lock WorldCacheLock = new();
+
+    private static IReadOnlyList<(string Path, WorldSaveData Data)> LoadWorldSaves()
+    {
+        lock (WorldCacheLock)
+        {
+            if (WorldCache.TryGetTarget(out var cached) && cached is not null) return cached;
+            var loaded = WorldDirs.SelectMany(d => Directory.EnumerateFiles(d, "WorldSave_*.sav").Order(StringComparer.Ordinal))
+                .Select(p => (p, WorldSaveReader.ReadFromFile(p))).ToList();
+            WorldCache.SetTarget(loaded);
+            return loaded;
+        }
+    }
 
     /// <summary>World folders that hold <c>WorldSave_*.sav</c> files, in a fixed order.</summary>
     public static IReadOnlyList<string> WorldDirs => WorldDirsLazy.Value;
 
     /// <summary>Every parsed <c>WorldSave_*.sav</c> (regions and metadata) across all world folders.</summary>
-    public static IReadOnlyList<(string Path, WorldSaveData Data)> WorldSaves => WorldLazy.Value;
+    public static IReadOnlyList<(string Path, WorldSaveData Data)> WorldSaves => LoadWorldSaves();
 
     /// <summary>Just the region saves (everything except <c>WorldSave_MetaData.sav</c>).</summary>
     public static IEnumerable<(string Path, WorldSaveData Data)> RegionSaves
