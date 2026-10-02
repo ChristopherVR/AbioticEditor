@@ -138,8 +138,10 @@ public sealed class RazorVisualParityTests
         Assert.Contains("Common_Working", modal, StringComparison.Ordinal);
         Assert.Contains("Common_Notifications", toast, StringComparison.Ordinal);
 
-        Assert.Contains("transform:scale(1.02);opacity:.92", css, StringComparison.Ordinal);
-        Assert.Contains("transform:scale(.97);background-color:var(--orange-dim)", css, StringComparison.Ordinal);
+        // Buttons don't grow or shrink on hover/press (that read as a jumpy animation); they dim instead.
+        Assert.Contains("button:hover,.primary:hover,.button-link:hover{opacity:.92}", css, StringComparison.Ordinal);
+        Assert.Contains("{background-color:var(--orange-dim)}", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("transform:scale(1.02)", css, StringComparison.Ordinal);
         Assert.Contains(".modal-backdrop{position:fixed;inset:0;z-index:100", css, StringComparison.Ordinal);
         Assert.Contains("width:min(520px,100%)", css, StringComparison.Ordinal);
         Assert.Contains(".modal-accent{height:3px;background:var(--orange)}", css, StringComparison.Ordinal);

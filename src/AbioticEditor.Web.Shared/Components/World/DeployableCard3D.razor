@@ -14,7 +14,7 @@
         <div class="b3d-upgrades" data-b3d="bench-upgrades">
             @foreach (var upgrade in BenchUpgradeCatalog.All)
             {
-                <label class="wt-check" @key="upgrade.Row">
+                <label class="wt-check">
                     <input type="checkbox" checked="@Bases.BenchInstalledUpgrades(piece.Id).Contains(upgrade.Row, StringComparer.OrdinalIgnoreCase)"
                            @onchange="e => SetUpgradeAsync(piece.Id, upgrade.Row, e.Value is true)" />
                     @upgrade.DisplayName

@@ -359,7 +359,7 @@ public sealed class BaseEditing3DSessionTests
         // The staged-edits card and the delete panel keep the experimental warning visible.
         var value = XDocument.Load(UiSource.Resolve("Localization", "AppResources.resx")).Root!.Elements("data")
             .First(e => (string)e.Attribute("name")! == "World3D_EditUnverified").Element("value")!.Value;
-        Assert.Contains("does not check that a piece fits", value, StringComparison.Ordinal);
+        Assert.Contains("doesn't check where pieces end up", value, StringComparison.Ordinal);
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
         Assert.Contains("data-b3d=\"delete-unverified\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"duplicate-unverified\"", tab, StringComparison.Ordinal);
