@@ -4277,7 +4277,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_OfflineFeatures" xml:space="preserve"><value>Full editing tools.</value></data>
   <data name="Editing_ChooseOffline" xml:space="preserve"><value>Open offline editor</value></data>
   <data name="Editing_LiveTitle" xml:space="preserve"><value>Live editing</value></data>
-  <data name="Editing_LiveDescription" xml:space="preserve"><value>Edit while you play. Requires a separate UE4SS installation.</value></data>
+  <data name="Editing_LiveDescription" xml:space="preserve"><value>Edit while you play. The editor can install the mod loader it needs (UE4SS) into your game folder for you.</value></data>
   <data name="Editing_LiveTiming" xml:space="preserve"><value>Changes apply immediately.</value></data>
   <data name="Editing_LiveBackup" xml:space="preserve"><value>No automatic backups or undo.</value></data>
   <data name="Editing_LiveFeatures" xml:space="preserve"><value>Some tools are unavailable.</value></data>
@@ -4430,7 +4430,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_PowerSocketBusyFormat" xml:space="preserve"><value>(now powers {0})</value></data>
   <data name="World3D_Labels" xml:space="preserve"><value>Show labels</value></data>
   <data name="World3D_ModelsTitle" xml:space="preserve"><value>GAME MODELS</value></data>
-  <data name="World3D_ModelsNoGame" xml:space="preserve"><value>The Game Models plugin is installed, but it could not read your game files. Check the game folder in Settings.</value></data>
+  <data name="World3D_ModelsNoGame" xml:space="preserve"><value>The editor could not read your game files, so pieces are drawn as boxes. Check the game folder in Settings.</value></data>
   <data name="World3D_ModelsShow" xml:space="preserve"><value>Show game models</value></data>
   <data name="World3D_ModelsFromFormat" xml:space="preserve"><value>From {0}.</value></data>
   <data name="World3D_ModelsProgressFormat" xml:space="preserve"><value>Loading models: {0} of {1} kinds of object.</value></data>
@@ -4711,7 +4711,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_TabEdit" xml:space="preserve"><value>Edit</value></data>
   <data name="World3D_TexturesProgressFormat" xml:space="preserve"><value>Loading textures: {0} of {1}</value></data>
   <data name="World3D_LevelTextures" xml:space="preserve"><value>Loading the level's textures...</value></data>
-  <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box: the game's own models, the surrounding level, doors and characters need the desktop app with the Game Models plugin, which reads your installed game.</value></data>
+  <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box. The game's own models, the level around them, doors and characters need the desktop app, which reads them from your installed game.</value></data>
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>appears when: {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>leaves when: {0}</value></data>
