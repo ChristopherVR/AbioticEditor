@@ -204,6 +204,24 @@ public sealed class ShowIn3DTests
     }
 
     [Fact]
+    public void Copied_level_materials_follow_the_live_ceiling_cut()
+    {
+        // three.js copies a material's clipping planes by value, so a clone kept the cut height of the
+        // moment it was made: the Hydroplant's big floor (a world-projected copy made while the cut
+        // still sat at another view's floor) was cut away for good. Every material copy must be
+        // handed a live plane again straight after cloning.
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        var clones = System.Text.RegularExpressions.Regex.Matches(js, @"(\w+) = (?:base|material)\.clone\(\);");
+        Assert.NotEmpty(clones);
+        foreach (System.Text.RegularExpressions.Match clone in clones)
+        {
+            var following = js.Substring(clone.Index, Math.Min(600, js.Length - clone.Index));
+            Assert.Contains($"{clone.Groups[1].Value}.clippingPlanes = ", following, StringComparison.Ordinal);
+        }
+        Assert.Contains("material.clippingPlanes = base.clippingPlanes;", js, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Moving_around_is_smooth_and_the_view_controls_are_compact()
     {
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");

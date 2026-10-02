@@ -1070,6 +1070,10 @@ function buildView(host, dotnet) {
         if (material) return material;
         const base = materialFor(m, true);
         material = base.clone();
+        // Cloning copies the cut plane, frozen at whatever height the cut had at that moment (often
+        // a previous view's floor, far below): a floor made this way vanished for good. It shares
+        // the live plane instead, so it follows the cut like every other level piece.
+        material.clippingPlanes = base.clippingPlanes;
         material.onBeforeCompile = shader => {
             shader.uniforms.abioticTile = { value: tileMetres };
             shader.vertexShader = shader.vertexShader
