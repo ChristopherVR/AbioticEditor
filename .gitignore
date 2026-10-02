@@ -60,3 +60,6 @@ __pycache__/
 # The pinned UE4SS runtime package the Windows release bundles. Fetched by
 # tools/fetch-ue4ss.ps1 (CI does this before publishing); only its manifest is committed.
 /live-agent/ue4ss/*.zip
+
+# Thumbnail renderer dependencies (tools/thumbnails, maintainer only)
+tools/thumbnails/node_modules/

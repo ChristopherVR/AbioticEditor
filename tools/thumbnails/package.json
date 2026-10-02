@@ -1,0 +1,12 @@
+{
+  "name": "abiotic-editor-thumbnails",
+  "private": true,
+  "description": "Renders the pictures the editor's world lists show, from the game's own models.",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

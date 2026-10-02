@@ -299,6 +299,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var centre = (min + max) / 2;
         var excluded = new HashSet<string>(
             (query.ExcludeActors ?? []).Select(ActorName).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase);
+        var only = query.OnlyActors is { Count: > 0 }
+            ? new HashSet<string>(query.OnlyActors.Select(ActorName).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase)
+            : null;
 
         // "Map:Actor" (open: leaf left out), with "|in" or "|out" for a swinging door open that way
         // (its swung leaf is drawn instead).
@@ -347,6 +350,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
                 // merged stand-ins for far away; up close they cover the real level.
                 if (index.HlodMeshes[e.Mesh]) continue;
                 if (excluded.Contains(index.Actors[e.Actor])) continue;
+                if (only is not null && !only.Contains(index.Actors[e.Actor])) continue;
                 inBox.Add((index, e, MathF.Max(0, Vector3.Distance(e.Centre, centre) - e.Radius)));
             }
         }

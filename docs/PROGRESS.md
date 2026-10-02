@@ -1,5 +1,35 @@
 # Abiotic Editor - Session history
 
+## Round-150: background warm-up of the whole region's level; pictures of doors, buttons, trams and more (2026-10-02)
+
+- **Show in 3D on a blast door** (Cascade Facility, headless): was models 1.3 s, door framed 3.2 s,
+  level 17.8 s. The level query for a part of the region not looked at yet indexed that part's streamed
+  sub-levels (~9 s), then all its pieces were added at once.
+  - `SceneModelHostService.Prewarm(keys, region, levelCentres)`: after the model classes, a
+    whole-region level query starts indexing every sub-level and is polled until `PendingMaps` is 0
+    (max 5 min), then the level around each base (`BaseDetector`, largest first, up to 12, 40 m) is
+    queried and its meshes and textures are baked into the disk cache. `SaveEditorSurface` also warms
+    `GetWorldDoorPositionsForMapAsync` for each door map.
+  - The viewer adds level pieces in batches of 24 as they arrive (the old level stays until the first
+    batch), instead of after the last one.
+  - After the warm-up: door framed 0.7 s, level shown 3.8 s, complete 4.3 s (and 1,224 level instances
+    instead of 394, since all sub-levels are indexed).
+- **Pictures for world lists** (shipped, not rendered at runtime). `SceneLevelQuery.OnlyActors` (SDK,
+  init-only) draws one actor; `GET /scene-models/actor?path=` gives its viewer-space position;
+  `view.thumbnail({region, actor, center, size})` renders it alone to a transparent 256 px WebP.
+  `tests/AbioticEditor.Probes/ThumbnailTargetsProbe` lists one actor per kind from a world folder
+  (doors, ButtonMap, DestructibleMap, ElevatorMap, TramMap, PortalMap, ResourceNodeMap; plain
+  `StaticMeshActor_*` skipped, they have no kind); `tools/thumbnails/render.mjs` (Playwright) renders
+  them into `wwwroot/thumbs/<kind>/<class>.webp` and writes `WorldThumbnails.Index.g.cs`. From Cascade:
+  181 of 200 kinds (19 doors, 6 buttons, 9 breakables, 2 elevators, 2 trams, 143 resource nodes;
+  1.1 MB). Kinds with no level pieces (ice wall, teleporters, some hatches) have none.
+  `WorldThumbnails.For(kind, actorPath)` (one picture per class, `..._C_<n>` -> `..._C`) is used in
+  the door rows and door card (before the wiki image) and the detail pane of the buttons,
+  destructibles, elevators, trams, portals and resource-nodes lists. README notes the game's art
+  belongs to its developers.
+- Tests: `World_lists_show_the_pictures_shipped_with_the_editor`,
+  `A_save_opening_prepares_the_whole_region_level_in_the_background`.
+
 ## Round-149: full screen, drag to move, hover outline, tighter framing, level piece card (2026-10-02)
 
 - Reported: the 3D view is still hard to use; a full-screen mode; "can't just click on the model

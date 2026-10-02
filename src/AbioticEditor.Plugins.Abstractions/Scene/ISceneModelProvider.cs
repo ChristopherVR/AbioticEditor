@@ -151,6 +151,12 @@ public sealed record SceneLevelQuery(
     /// closed; for these the closed leaf is left out, and a swinging door's leaf is drawn swung that way.
     /// </summary>
     public IReadOnlyCollection<string>? OpenDoors { get; init; }
+
+    /// <summary>
+    /// When set, only these level actors (by actor name, e.g. <c>BlastDoor_C_11</c>) are returned:
+    /// used to draw one door, button or tram on its own, for its picture in the editor's lists.
+    /// </summary>
+    public IReadOnlyCollection<string>? OnlyActors { get; init; }
 }
 
 /// <summary>The level geometry inside a query box, batched by mesh for instanced drawing.</summary>

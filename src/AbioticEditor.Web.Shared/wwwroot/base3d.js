@@ -1089,8 +1089,23 @@ function buildView(host, dotnet) {
             return;
         }
         const batches = slice.batches ?? [];
-        const built = [];
-        let loaded = 0;
+        // Pieces are shown in batches as they arrive (the old level stays until the first batch is
+        // ready), instead of all at once after the last one: on a first look the whole slice could
+        // take ten seconds or more, with nothing to see meanwhile.
+        let loaded = 0, cleared = false, pending = [];
+        const flush = async () => {
+            if (!pending.length) return;
+            const chunk = pending;
+            pending = [];
+            await texturesReady(chunk.flatMap(mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material])));
+            if (token !== levelToken || disposed) { for (const mesh of chunk) mesh.dispose(); return; }
+            if (!cleared) { clearLevel(); cleared = true; }
+            for (const mesh of chunk) levelInstances += mesh.count;
+            addWhenCompiled(chunk, levelGroup, () => token === levelToken);
+            if (grid) grid.visible = false;
+            updateLevelCut();
+        };
+        let flushing = Promise.resolve();
         await Promise.all(batches.map(async batch => {
             const geometry = await loadGeometry(batch.mesh);
             loaded++;
@@ -1109,23 +1124,15 @@ function buildView(host, dotnet) {
             mesh.instanceMatrix.needsUpdate = true;
             mesh.computeBoundingSphere();
             mesh.name = batch.name ?? "";
-            built.push(mesh);
+            pending.push(mesh);
+            if (pending.length >= 24) flushing = flushing.then(flush);
         }));
-        if (token !== levelToken || disposed) {
-            for (const mesh of built) mesh.dispose();
-            return;
-        }
-        report("level", 0, 0, "textures");
-        await texturesReady(built.flatMap(mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material])));
-        if (token !== levelToken || disposed) {
-            for (const mesh of built) mesh.dispose();
-            return;
-        }
-        clearLevel();
-        for (const mesh of built) levelInstances += mesh.count;
-        addWhenCompiled(built, levelGroup, () => token === levelToken);
+        flushing = flushing.then(flush);
+        await flushing;
+        if (token !== levelToken || disposed) return;
+        if (!cleared) { clearLevel(); cleared = true; if (grid) grid.visible = true; }
         setLamps(slice.lights);
-        if (grid) grid.visible = built.length === 0;
+        if (grid) grid.visible = levelGroup.children.length === 0;
         updateLevelCut();
         report("level", slice.totalInBox ?? levelInstances, slice.pendingMaps ?? 0, slice.note ?? null);
         // Level files still being read in the background: ask again shortly.
@@ -2101,6 +2108,87 @@ function buildView(host, dotnet) {
         markerList(kind) { return (markerLayers[kind]?.items ?? []).map(d => ({ id: d.id, p: d.p })); },
         /** Screen position of a marker of any kind, or null. Used by UI tests. */
         markerScreenPosition(kind, id) { const layer = markerLayers[kind]; const d = layer?.items.find(x => x.id === id); return d ? layer.screen(d) : null; },
+        /**
+         * Draws one level actor (a door, button, tram...) on its own and returns its picture: a
+         * transparent square image, lit and framed from a three-quarter view. Used by the maintainer
+         * tool that renders the pictures the editor's 2D lists ship with (tools/thumbnails).
+         * Returns null when the level has no pieces for the actor.
+         */
+        async thumbnail(options) {
+            const { region, actor, center, size = 256, radius = 25 } = options ?? {};
+            const slice = await postJson(`${MODEL_BASE}/level`, {
+                region,
+                min: [center[0] - radius, center[1] - radius, center[2] - radius],
+                max: [center[0] + radius, center[1] + radius, center[2] + radius],
+                maxInstances: 5000,
+                onlyActors: [actor],
+            });
+            const batches = slice?.batches ?? [];
+            if (!batches.length) return null;
+            const group = new THREE.Group();
+            const box = new THREE.Box3();
+            const instance = new THREE.Matrix4();
+            const materials = [];
+            for (const batch of batches) {
+                const geometry = await loadGeometry(batch.mesh);
+                if (!geometry) continue;
+                if (!geometry.boundingBox) geometry.computeBoundingBox();
+                const mats = batch.materials.length ? batch.materials.map(m => materialFor(m, false)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
+                materials.push(...mats);
+                const count = batch.matrices.length / 16;
+                const mesh = new THREE.InstancedMesh(geometry, mats, count);
+                for (let i = 0; i < count; i++) {
+                    instance.fromArray(batch.matrices, i * 16);
+                    mesh.setMatrixAt(i, instance);
+                    box.union(geometry.boundingBox.clone().applyMatrix4(instance));
+                }
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.computeBoundingSphere();
+                group.add(mesh);
+            }
+            if (!group.children.length || box.isEmpty()) return null;
+            await texturesReady(materials);
+
+            const stage = new THREE.Scene();
+            stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.7));
+            const key = new THREE.DirectionalLight(0xffffff, 1.6);
+            key.position.set(0.6, 1, 0.8);
+            stage.add(key);
+            stage.add(group);
+            const centre = box.getCenter(new THREE.Vector3());
+            const extent = box.getSize(new THREE.Vector3());
+            const fitRadius = Math.max(extent.length() / 2, 0.2);
+            const shot = new THREE.PerspectiveCamera(30, 1, 0.01, 1000);
+            const dir = new THREE.Vector3(1, 0.65, 1.2).normalize();
+            shot.position.copy(centre).addScaledVector(dir, fitRadius / Math.sin((shot.fov * Math.PI) / 360) * 1.05);
+            shot.lookAt(centre);
+            shot.updateProjectionMatrix();
+
+            const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+            target.texture.colorSpace = THREE.SRGBColorSpace;
+            const oldTarget = renderer.getRenderTarget();
+            const oldClear = renderer.getClearColor(new THREE.Color());
+            const oldAlpha = renderer.getClearAlpha();
+            renderer.setRenderTarget(target);
+            renderer.setClearColor(0x000000, 0);
+            renderer.clear();
+            renderer.render(stage, shot);
+            const pixels = new Uint8Array(size * size * 4);
+            renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
+            renderer.setRenderTarget(oldTarget);
+            renderer.setClearColor(oldClear, oldAlpha);
+            target.dispose();
+            for (const mesh of group.children) mesh.dispose();
+
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = size;
+            const g = canvas.getContext("2d");
+            const image = g.createImageData(size, size);
+            for (let y = 0; y < size; y++) image.data.set(pixels.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+            g.putImageData(image, 0, 0);
+            requestRender();
+            return { image: canvas.toDataURL("image/webp", 0.9), pieces: group.children.length };
+        },
         /** Removes the pin left by focusPoint. */
         clearPin() { setPin(null); },
         /** Scrolls the page so the whole view is in sight. */

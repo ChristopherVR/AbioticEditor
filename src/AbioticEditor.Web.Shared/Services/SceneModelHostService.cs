@@ -103,7 +103,7 @@ public sealed class SceneModelHostService
     /// the game files takes tens of seconds, and most of it can happen before the 3D view is opened.
     /// Keys already asked for are skipped; nothing is returned or awaited.
     /// </summary>
-    public void Prewarm(Func<IEnumerable<string>> keys)
+    public void Prewarm(Func<IEnumerable<string>> keys, string? region = null, Func<IEnumerable<float[]>>? levelCentres = null)
     {
         ArgumentNullException.ThrowIfNull(keys);
         if (Provider is null || OperatingSystem.IsBrowser()) return;
@@ -114,6 +114,7 @@ public sealed class SceneModelHostService
                 List<string> todo;
                 lock (_prewarmed) todo = keys().Where(k => !string.IsNullOrWhiteSpace(k) && _prewarmed.Add(k)).ToList();
                 Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, key => DescribeOne(key));
+                if (region is not null && levelCentres is not null) PrewarmLevel(region, levelCentres());
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -122,6 +123,45 @@ public sealed class SceneModelHostService
         })
         { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "3D model warm-up" };
         thread.Start();
+    }
+
+    /// <summary>Metres around each centre the level is prepared for (the view's default radius).</summary>
+    public const float PrewarmLevelRadiusM = 40f;
+
+    /// <summary>
+    /// Prepares the level around the given viewer-space points (the save's bases): reads the level's
+    /// own data for the area once, then bakes each level piece's mesh and textures into the disk cache.
+    /// Turning the level on in the 3D view, or "Show in 3D" on something nearby, then finds it ready
+    /// instead of spending ten seconds or more reading it.
+    /// </summary>
+    private void PrewarmLevel(string region, IEnumerable<float[]> centres)
+    {
+        // First every sub-level of the region is indexed (a query over the whole region starts that,
+        // then later queries report how many are still being read): a first look anywhere in the area,
+        // such as "Show in 3D" on a door far from any base, otherwise waited seconds for its part.
+        const float Everywhere = 1_000_000f;
+        var whole = new SceneLevelQuery(region, [-Everywhere, -Everywhere, -Everywhere], [Everywhere, Everywhere, Everywhere], 1);
+        var waitedUntil = DateTime.UtcNow.AddMinutes(5);
+        while (DescribeLevel(whole) is { PendingMaps: > 0 } && DateTime.UtcNow < waitedUntil) Thread.Sleep(2000);
+
+        var assets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var c in centres.Where(c => c is { Length: 3 }).Take(12))
+        {
+            var r = PrewarmLevelRadiusM;
+            var slice = DescribeLevel(new SceneLevelQuery(region, [c[0] - r, c[1] - r / 2, c[2] - r], [c[0] + r, c[1] + r / 2, c[2] + r], 25000));
+            if (slice is null) continue;
+            foreach (var batch in slice.Batches)
+            {
+                assets.Add(batch.Mesh);
+                foreach (var m in batch.Materials)
+                {
+                    if (m.Texture is { } t) assets.Add(t);
+                    foreach (var layer in m.Layers ?? []) if (layer.Texture is { } lt) assets.Add(lt);
+                }
+            }
+        }
+        Parallel.ForEach(assets, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, id => OpenAsset(id));
+        EditorLog.Info("Scene", $"Prepared {assets.Count} level pieces and textures for {region} in the background.");
     }
 
     /// <summary>

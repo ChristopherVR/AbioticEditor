@@ -83,6 +83,11 @@ else
                 else
                 {
                     <h3>@selected.Label</h3>
+                    @* What this kind of thing looks like, drawn from the game's own models (tools/thumbnails). *@
+                    @if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
+                    {
+                        <div class="world-thumb-art"><img src="@picture" alt="@selected.Label" loading="lazy" /></div>
+                    }
                     <ShowIn3DButton Target="@WorldLocateTarget.ForMapKey(selected.Key, selected.Label)" />
                     @if (FeatureId is "buttons" or "decals")
                     {

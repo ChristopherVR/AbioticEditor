@@ -137,6 +137,49 @@ public sealed class ShowIn3DTests
     }
 
     [Fact]
+    public void World_lists_show_the_pictures_shipped_with_the_editor()
+    {
+        // One picture per kind: every blast door shows the BlastDoor_C picture.
+        Assert.Equal("BlastDoor_C", WorldThumbnails.ClassOf("/Game/Maps/Facility.Facility:PersistentLevel.BlastDoor_C_11"));
+        Assert.Equal("Resource_Micronode_LeyakEssence_TWO_C", WorldThumbnails.ClassOf("/Game/Maps/Facility.Facility:PersistentLevel.Resource_Micronode_LeyakEssence_TWO_C_2147459596"));
+        Assert.Null(WorldThumbnails.For("doors", "/Game/Maps/Facility.Facility:PersistentLevel.NoSuchDoor_C_1"));
+        Assert.Null(WorldThumbnails.KindOfFeature("triggers"));
+
+        // Every picture the generated index lists is really shipped, so a list never shows a broken image.
+        var root = UiSource.Resolve("wwwroot", "thumbs");
+        Assert.True(Directory.Exists(root), "the rendered pictures are checked in under wwwroot/thumbs");
+        foreach (var kind in new[] { "doors", "buttons", "destructibles", "elevators", "trams", "portals", "resource-nodes" })
+        {
+            var dir = Path.Combine(root, kind);
+            if (!Directory.Exists(dir)) continue;
+            foreach (var file in Directory.GetFiles(dir, "*.webp"))
+            {
+                var cls = Path.GetFileNameWithoutExtension(file);
+                Assert.NotNull(WorldThumbnails.For(kind, $"/Game/Maps/X.X:PersistentLevel.{cls}_1"));
+            }
+        }
+        Assert.NotNull(WorldThumbnails.For("doors", "/Game/Maps/Facility.Facility:PersistentLevel.BlastDoor_C_11"));
+        Assert.NotNull(WorldThumbnails.For("trams", "/Game/Maps/Facility.Facility:PersistentLevel.Tram_Default_C_1"));
+
+        var doors = UiSource.ReadAllText("Components", "World", "WorldDoorsTab.razor");
+        Assert.Contains("WorldThumbnails.For(\"doors\", door.Id)", doors, StringComparison.Ordinal);
+        Assert.Contains("WorldThumbnails.KindOfFeature(FeatureId)", UiSource.ReadAllText("Components", "World", "WorldFeaturesTab.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_save_opening_prepares_the_whole_region_level_in_the_background()
+    {
+        var service = UiSource.ReadAllText("Services", "SceneModelHostService.cs");
+        Assert.Contains("PrewarmLevel(region, levelCentres())", service, StringComparison.Ordinal);
+        Assert.Contains("is { PendingMaps: > 0 }", service, StringComparison.Ordinal); // every sub-level indexed first
+        var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
+        Assert.Contains("BaseDetector.Detect(world.Deployables)", surface, StringComparison.Ordinal);
+        Assert.Contains("GetWorldDoorPositionsForMapAsync(map)", surface, StringComparison.Ordinal);
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("if (pending.length >= 24) flushing = flushing.then(flush);", js, StringComparison.Ordinal); // level shown in batches
+    }
+
+    [Fact]
     public void The_two_Dr_Cahn_placements_are_told_apart_by_area()
     {
         var registry = GameDataRegistry.LoadBundled();

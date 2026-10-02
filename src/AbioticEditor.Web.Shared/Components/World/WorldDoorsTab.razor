@@ -56,6 +56,7 @@
                 <article class="wd-row @(isSelected ? "selected" : null)" role="listitem" @key="doorRenderKey"
                          @onclick="() => ToggleSelectAsync(door, map, actor)">
                     <div class="wd-row-top">
+                        @if (WorldThumbnails.For("doors", door.Id) is { } rowPicture) { <img class="world-row-thumb" src="@rowPicture" alt="" loading="lazy" /> }
                         <span class="wd-kind-chip">@KindLabel(door)</span>
                         <button class="world-row-name" type="button" @onclick:stopPropagation @onclick="() => ToggleSelectAsync(door, map, actor)">@friendlyClass</button>
                         <span class="wd-lock-chip">@L.Resource("WorldDoors_LockChip_" + lockKind)</span>
@@ -394,7 +395,14 @@
                     <button class="detail-close" type="button" @onclick="CloseOwnDetail">✕</button>
                 </div>
                 @{ var wikiFile = DoorWikiImageCatalog.WikiFileFor(className); }
-                @if (wikiFile is not null)
+                @* The door drawn from the game's own models (shipped with the editor, see tools/thumbnails). *@
+                @if (WorldThumbnails.For("doors", door.Id) is { } doorPicture)
+                {
+                    <div class="detail-card-art world-thumb-art">
+                        <img src="@doorPicture" alt="@friendlyClass" loading="lazy" />
+                    </div>
+                }
+                else if (wikiFile is not null)
                 {
                     <div class="detail-card-art">
                         <WikiImage FileName="@wikiFile" Alt="@friendlyClass">

@@ -2296,3 +2296,6 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 .wg-send-chooser{padding:8px 14px;background:var(--elevated)}
 .show-in-3d{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:12px;white-space:nowrap}
 .show-in-3d .material-symbol{font-size:16px}
+.world-thumb-art{display:flex;justify-content:center;align-items:center;padding:6px;margin:6px 0;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.08),transparent 70%);border:1px solid var(--line,#224158)}
+.world-thumb-art img{width:100%;max-width:240px;max-height:200px;object-fit:contain}
+.world-row-thumb{width:34px;height:34px;object-fit:contain;flex:0 0 auto}

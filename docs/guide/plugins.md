@@ -33,6 +33,13 @@ The editor must be able to read your game files (the same setting that shows ite
 editor starts reading an area's models as soon as you open its save, so by the time you open the 3D
 view they are usually ready; after the first time they are kept on disk and it is quick.
 
+Opening a save also prepares the level around your bases and the rest of the area in the
+background, so **Show in 3D** on a door or button elsewhere is quick too. The level appears in parts
+as it arrives.
+
+The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters and Resource Nodes lists
+show a picture of each kind of thing, drawn from the game's own models and included with the editor.
+
 If you installed the separate Game Models plugin with an earlier version, you can delete its
 `GameModels3D` folder from **Settings ▸ Plugins ▸ OPEN PLUGINS FOLDER**; the editor uses the newer
 copy it comes with either way.

@@ -155,8 +155,24 @@
             // The first read of an area's 3D models from the game files takes tens of seconds, so it
             // starts in the background as soon as the save opens, long before the 3D view is.
             if (!IsBrowserHost && GameModelsAvailable && Services.GetService(typeof(SceneModelHostService)) is SceneModelHostService scene)
-                scene.Prewarm(() => world.PlacedObjects.Where(o => o.Transform?.Translation is not null && o.ClassPath is not null)
-                    .Select(o => o.ClassPath + Base3DScene.VariantOf(o)));
+                scene.Prewarm(
+                    () => world.PlacedObjects.Where(o => o.Transform?.Translation is not null && o.ClassPath is not null)
+                        .Select(o => o.ClassPath + Base3DScene.VariantOf(o)),
+                    // ...and the level around each base, which is the slow part of a first look.
+                    Base3DScene.RegionOf(world.Path),
+                    () => AbioticEditor.Core.WorldSaves.BaseDetector.Detect(world.Deployables)
+                        .OrderByDescending(b => b.Deployables.Count)
+                        .Select(b =>
+                        {
+                            var v = PlacedSceneSpace.ToViewer(new PlacedVector(b.CenterX, b.CenterY, b.Deployables.Average(d => d.Z)));
+                            return new[] { (float)v.X, (float)v.Y, (float)v.Z };
+                        }));
+            // Door positions come from the level files too; every door's "Show in 3D" needs them.
+            if (!IsBrowserHost && GameModelsAvailable && Services.GetService(typeof(GameArtService)) is GameArtService art)
+            {
+                foreach (var map in world.Doors.Select(d => DoorIdParser.Parse(d.Id).Map).Where(m => m.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
+                    _ = art.GetWorldDoorPositionsForMapAsync(map);
+            }
         }
         if (_worldTabItems.Count > 0 && !_worldTabItems.Any(tab => string.Equals(tab.Id, _worldTab, StringComparison.Ordinal)))
             _worldTab = _worldTabItems[0].Id;

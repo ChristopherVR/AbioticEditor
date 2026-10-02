@@ -210,6 +210,15 @@ public static class Program
             var slice = await Task.Run(() => scene.DescribeLevel(query), cancellationToken);
             return slice is null ? Results.NoContent() : Results.Json(slice);
         });
+        // Where a level actor stands (a door, button, tram), in the 3D view's space. Used to draw one on
+        // its own for its picture in the editor's lists (tools/thumbnails). Read-only.
+        app.MapGet("/scene-models/actor", async (string path, AbioticEditor.Web.Services.GameArtService art) =>
+        {
+            if (string.IsNullOrWhiteSpace(path) || path.Length > 512) return Results.BadRequest();
+            if (await art.TryGetActorWorldTransformAsync(path) is not { } at) return Results.NotFound();
+            var v = AbioticEditor.Core.WorldSaves.PlacedSceneSpace.ToViewer(new AbioticEditor.Core.WorldSaves.PlacedVector(at.X, at.Y, at.Z));
+            return Results.Json(new[] { v.X, v.Y, v.Z });
+        });
         app.MapGet("/scene-models/asset/{**id}", async (string id, SceneModelHostService scene, HttpResponse response, CancellationToken cancellationToken) =>
         {
             var asset = await Task.Run(() => scene.OpenAsset(Uri.UnescapeDataString(id)), cancellationToken);
