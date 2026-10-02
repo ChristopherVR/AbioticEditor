@@ -315,7 +315,7 @@
 
     /// <summary>
     /// Runs a browser event's handler without the automatic redraw that normally follows it
-    /// (Blazor redraws the component that receives an event; this receiver is not a component).
+    /// (the framework redraws the component that receives an event; this receiver is not one).
     /// </summary>
     private sealed record QuietHandler(Action<ChangeEventArgs> Callback) : IHandleEvent
     {
