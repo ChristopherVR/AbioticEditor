@@ -2310,8 +2310,13 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 /* Container rows: the select button covers the whole row (it sat in the first grid column only, so
    clicks on the rest of the row missed), and pressing it no longer flashes the global orange
    pressed-button colour or shrinks. */
+/* The padding has to come off the row itself, not just the button: the broader
+   ".world-tab-viewport .wc-row" padding outranked a plain ".wc-row" rule, which left a dead band
+   about 12px wide all round every highlighted row where a click selected nothing (the "it takes
+   a few tries to open a container" report). */
 .wc-row{padding:0}
-.wc-row-select{grid-column:1/-1;width:100%;padding:8px 12px;text-align:left;background:transparent;border:0;cursor:pointer}
+.wc-tab .wc-row.wc-row-pick{padding:0}
+.wc-row-select{grid-column:1/-1;width:100%;padding:10px 14px;text-align:left;background:transparent;border:0;cursor:pointer}
 .wc-row-select:hover,.wc-row-select:active{transform:none!important;opacity:1;background:transparent!important}
 /* Bases tab: the Map / 3D switch and, in 3D, the base picker on one line above the view. */
 .bases-view-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 8px}

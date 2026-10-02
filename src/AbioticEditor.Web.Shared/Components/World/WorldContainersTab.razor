@@ -23,7 +23,10 @@
    6-across slot grid on the right), then the drag and right-click-send help lines.
    Tapping a slot opens it in the right-hand sidebar slot editor, exactly like native. *@
 <section class="world-editor wc-tab @(_showTransfer ? "wc-transfer-mode" : null)" aria-label="@L.Resource("WorldContainers_SelectAContainer")">
-    @if (!IsBrowserHost && Session is WorldSaveSession fileSession)
+    @* Built the first time MOVE TO ANOTHER WORLD is opened, then kept (hidden) so its own
+       choices survive closing it. Built up front it was a second, hidden copy of the whole
+       container list that redrew on every click in this tab. *@
+    @if (_transferMounted && !IsBrowserHost && Session is WorldSaveSession fileSession)
     {
         <div class="wc-transfer-host transfer-embedded" hidden="@(!_showTransfer)">
             <TransferItems @key="fileSession" Embedded EmbeddedSourceSession="@fileSession" OnBack="CloseTransfer" />
@@ -40,7 +43,7 @@
             <p class="error-text" role="alert">@L.Resource("LiveContainers_NotHostWarning")</p>
         }
         <div class="wc-filter-row">
-            <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" @bind="_filter" @bind:event="oninput" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
+            <input aria-label="@L.Resource("WorldContainers_FilterPlaceholder")" value="@_filterBoxValue" @oninput="_filterInputHandler" @onchange="OnFilterCommitted" placeholder="@L.Resource("WorldContainers_FilterPlaceholder")" />
             @if (!Session.AppliesImmediately && !IsBrowserHost)
             {
                 <button class="secondary" type="button" @onclick="OpenTransfer">@L.Resource("WorldContainers_TransferItemsButton")</button>
@@ -61,38 +64,14 @@
                 @if (visible.Count == 0) { <p class="wc-empty">@L.Resource("WorldContainers_NoContainersMatch")</p> }
                 @foreach (var (container, containerRenderKey) in RenderKeys.With(visible.Take(ShownContainers), ContainerKey))
                 {
-                    var key = (container.Source, container.Id);
                     @* A crate is named for what it is and what is in it. The long reference
                        the game files it under is not shown anywhere: it is not something a
-                       player can act on. *@
-                    <div class="wc-row @(_selectedKey == key ? "selected" : null)" role="listitem" @key="containerRenderKey"
-                         @ondragover:preventDefault
-                         @ondrop="() => DropOnContainer(container)">
-                        <button class="wc-row-select" type="button" @onclick="() => TapContainer(container)">
-                        @* Same "name" grid-area the row's own named-area layout already reserves
-                           for the label alone - the icon and the name share it as a small flex
-                           row instead of the area gaining a second track, so the row's own
-                           grid-template-areas/grid-template-columns (fixed this round to stop the
-                           position line clipping under the name) is untouched. *@
-                        <span class="wc-row-name">
-                            @* A picture of the container itself, drawn from its model; the placeable item's icon when there is none. *@
-                            @if (WorldThumbnails.For("containers", container.ClassName) is { } containerPicture)
-                            {
-                                <img class="wc-row-icon" src="@containerPicture" alt="" loading="lazy" />
-                            }
-                            else if (ContainerItemId(container) is { Length: > 0 } previewId)
-                            {
-                                <ItemIcon ItemId="@previewId" Alt="" Class="wc-row-icon" />
-                            }
-                            <strong>@DisplayName(container)</strong>
-                        </span>
-                        <span class="wc-count">@CountText(container)</span>
-                        @if (HealthText(container) is { Length: > 0 } rowHealth) { <span class="wc-health">@rowHealth</span> }
-                        <small>@WhereText(container)</small>
-                        </button>
-                    </div>
-
-
+                       player can act on. Each row is its own small component (WorldContainerRow)
+                       so picking a crate redraws two rows, not the whole list. *@
+                    <WorldContainerRow @key="containerRenderKey" View="@RowFor(container)"
+                                       Selected="@IsSelected(container)"
+                                       OnSelect="() => TapContainer(container)"
+                                       OnDrop="() => DropOnContainer(container)" />
                 }
                 @if (visible.Count > ShownContainers)
                 {
@@ -221,6 +200,7 @@
     // complete synchronously so this never has anything to wait on there.
     private bool _busy;
     private bool _showTransfer;
+    private bool _transferMounted;
     private IWorldContainersSession? _loadedContainerSession;
     private PlayerInventorySlotEdit? _sendChooserEdit;
     private string? _sendTargetPath;
@@ -260,7 +240,7 @@
         }
         finally { _loadingSendTarget = false; }
     }
-    private void OpenTransfer() => _showTransfer = true;
+    private void OpenTransfer() { _transferMounted = true; _showTransfer = true; }
     private void CloseTransfer() => _showTransfer = false;
     /// <summary>True on the browser (WebAssembly) deployment - see IBrowserHostMarker.</summary>
     private bool IsBrowserHost => Services.GetService<IBrowserHostMarker>() is not null;
@@ -278,6 +258,70 @@
     [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private string? _appliedInitialFilter;
     private string _filter = string.Empty;
+    /// <summary>What is typed in the search box right now; <see cref="_filter"/> catches up with
+    /// it a moment after typing pauses (see <see cref="OnFilterInput"/>).</summary>
+    private string _filterInput = string.Empty;
+    /// <summary>The text this tab itself puts in the search box (a jump from another tab). It
+    /// only changes when the tab means to replace what is there, so a redraw that happens while
+    /// someone is typing never writes an older text back over letters still on their way.</summary>
+    private string _filterBoxValue = string.Empty;
+    private CancellationTokenSource? _filterDelay;
+    /// <summary><see cref="OnFilterInput"/> wrapped so a keystroke does not redraw the tab (see
+    /// <see cref="QuietHandler"/>).</summary>
+    private Action<ChangeEventArgs>? _filterInputHandlerCache;
+    private Action<ChangeEventArgs> _filterInputHandler => _filterInputHandlerCache ??= new QuietHandler(OnFilterInput).Invoke;
+    private const int FilterDelayMs = 180;
+
+    /// <summary>
+    /// Typing in the search box. Every letter used to redraw the whole list straight away, so a
+    /// quick typist queued a redraw per key and the box lagged behind. The list now updates once
+    /// typing pauses for a moment; the letters themselves are already in the box, so nothing is
+    /// redrawn for the keystroke itself.
+    /// </summary>
+    private void OnFilterInput(ChangeEventArgs args)
+    {
+        _filterInput = args.Value?.ToString() ?? string.Empty;
+        CancelPendingFilter();
+        var delay = _filterDelay = new CancellationTokenSource();
+        _ = ApplyFilterLaterAsync(delay.Token);
+    }
+
+    private async Task ApplyFilterLaterAsync(CancellationToken cancellationToken)
+    {
+        try { await Task.Delay(FilterDelayMs, cancellationToken); }
+        catch (OperationCanceledException) { return; }
+        await InvokeAsync(() =>
+        {
+            if (cancellationToken.IsCancellationRequested) return;
+            _filter = _filterInput;
+            StateHasChanged();
+        });
+    }
+
+    /// <summary>Enter or leaving the box applies the search at once.</summary>
+    private void OnFilterCommitted(ChangeEventArgs args)
+    {
+        CancelPendingFilter();
+        _filterInput = args.Value?.ToString() ?? string.Empty;
+        _filter = _filterInput;
+    }
+
+    private void CancelPendingFilter()
+    {
+        _filterDelay?.Cancel();
+        _filterDelay?.Dispose();
+        _filterDelay = null;
+    }
+
+    /// <summary>
+    /// Runs a browser event's handler without the automatic redraw that normally follows it
+    /// (Blazor redraws the component that receives an event; this receiver is not a component).
+    /// </summary>
+    private sealed record QuietHandler(Action<ChangeEventArgs> Callback) : IHandleEvent
+    {
+        public void Invoke(ChangeEventArgs args) => Callback(args);
+        public Task HandleEventAsync(EventCallbackWorkItem item, object? arg) => item.InvokeAsync(arg);
+    }
     // Off by default (round 83): the native app hid empty containers until unticked, but a live
     // report showed this defeating the same "jump straight to one specific container" links the
     // nearby-only filter's own round-81 fix already protects (see that field's remarks right
@@ -314,12 +358,16 @@
             _selectedKey = null;
             _slotEdits = null;
             _showTransfer = false;
+            _transferMounted = false;
             CloseSendChooser();
         }
         if (!string.IsNullOrEmpty(InitialFilter) && !string.Equals(InitialFilter, _appliedInitialFilter, StringComparison.Ordinal))
         {
             _appliedInitialFilter = InitialFilter;
             _filter = InitialFilter;
+            _filterInput = InitialFilter;
+            _filterBoxValue = InitialFilter;
+            CancelPendingFilter();
             // Native OpenVehicleInventory: the jump target is usually empty, so HIDE EMPTY
             // would drop it before the keyword filter even runs.
             _hideEmpty = false;
@@ -544,6 +592,9 @@
     {
         _summaries.Clear();
         _searchTexts.Clear();
+        // The rows are only re-read, not thrown away: a row whose text comes out the same keeps
+        // its record (see RowFor) and so is not redrawn.
+        foreach (var key in _rowViews.Keys.ToArray()) _rowViews[key] = (null!, _rowViews[key].View);
     }
 
     /// <summary>
@@ -594,6 +645,36 @@
     }
 
     private static string ContainerKey(WorldContainer container) => $"{container.Source}:{container.Id}";
+
+    private bool IsSelected(WorldContainer container)
+        => _selectedKey is { } key && key.Source == container.Source && string.Equals(key.Id, container.Id, StringComparison.Ordinal);
+
+    /// <summary>
+    /// What one row of the list shows, worked out once and kept for as long as the crate itself
+    /// is unchanged. Every edit replaces the crate's record, so a changed crate is simply a
+    /// different record and gets a fresh row; anything else that redraws the tab (picking a crate,
+    /// a slot, the sidebar) reuses the row as it is, and the row skips its own redraw.
+    /// </summary>
+    private WorldContainerRowView RowFor(WorldContainer container)
+    {
+        DropSummariesIfLanguageChanged();
+        var cacheKey = ContainerKey(container);
+        if (_rowViews.TryGetValue(cacheKey, out var kept) && ReferenceEquals(kept.Source, container)) return kept.View;
+        var picture = WorldThumbnails.For("containers", container.ClassName);
+        var view = new WorldContainerRowView(
+            DisplayName(container),
+            CountText(container),
+            HealthText(container),
+            WhereText(container),
+            picture,
+            picture is null ? ContainerItemId(container) : null);
+        // Equal content keeps the earlier record, so the row still sees "nothing changed".
+        if (kept.View is not null && kept.View == view) view = kept.View;
+        _rowViews[cacheKey] = (container, view);
+        return view;
+    }
+
+    private readonly Dictionary<string, (WorldContainer Source, WorldContainerRowView View)> _rowViews = new(StringComparer.Ordinal);
 
     private string SlotName(PlayerInventorySlotEdit edit)
         => edit.IsEmpty ? string.Empty : Items.Find(edit.ItemId)?.DisplayName ?? PlainNames.Words(edit.ItemId);
@@ -1109,6 +1190,7 @@
     {
         Selection.Changed -= Refresh;
         Dnd.Changed -= Refresh;
+        CancelPendingFilter();
         ClearWatchedContainer();
         // Leaving the tab retires the sidebar editor for these slots.
         if (_slotEdits is not null && Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();

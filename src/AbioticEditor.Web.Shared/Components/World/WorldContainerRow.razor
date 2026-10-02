@@ -1,0 +1,61 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Web.Components.Player
+
+@* One crate in the Containers tab's list. It is its own component so that picking a crate, or
+   anything else that redraws the tab, only redraws the two rows whose highlight changed instead of
+   every row in a list that can hold hundreds of crates. What a row shows is worked out once by the
+   tab (see WorldContainersTab.RowFor) and handed over as one ready-made View. *@
+<div class="wc-row wc-row-pick @(Selected ? "selected" : null)" role="listitem"
+     @ondragover:preventDefault
+     @ondrop="() => OnDrop.InvokeAsync()">
+    <button class="wc-row-select" type="button" aria-pressed="@(Selected ? "true" : "false")" @onclick="() => OnSelect.InvokeAsync()">
+        @* The icon and the name share the row's "name" area as a small flex row, so the row's own
+           named-area layout keeps a single track for it. *@
+        <span class="wc-row-name">
+            @* A picture of the container itself, drawn from its model; the placeable item's icon when there is none. *@
+            @if (View.Picture is { } picture)
+            {
+                <img class="wc-row-icon" src="@picture" alt="" loading="lazy" decoding="async" />
+            }
+            else if (View.IconId is { Length: > 0 } iconId)
+            {
+                <ItemIcon ItemId="@iconId" Alt="" Class="wc-row-icon" />
+            }
+            <strong>@View.Name</strong>
+        </span>
+        <span class="wc-count">@View.Count</span>
+        @if (View.Health is { Length: > 0 } health) { <span class="wc-health">@health</span> }
+        <small>@View.Where</small>
+    </button>
+</div>
+
+@code {
+    /// <summary>Everything the row shows, prepared by the tab.</summary>
+    [Parameter, EditorRequired] public WorldContainerRowView View { get; set; } = null!;
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public EventCallback OnSelect { get; set; }
+    [Parameter] public EventCallback OnDrop { get; set; }
+
+    private WorldContainerRowView? _shownView;
+    private bool _shownSelected;
+
+    // The first draw always happens; remember what it showed.
+    protected override void OnInitialized()
+    {
+        _shownView = View;
+        _shownSelected = Selected;
+    }
+
+    /// <summary>
+    /// The tab hands every row fresh click handlers on each redraw, which on its own would make
+    /// every row redraw too. The handlers are read when a click happens, so only a change in what
+    /// the row shows is worth a redraw.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (ReferenceEquals(_shownView, View) && _shownSelected == Selected) return false;
+        _shownView = View;
+        _shownSelected = Selected;
+        return true;
+    }
+}
