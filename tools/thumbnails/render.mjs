@@ -35,18 +35,26 @@ const done = [];
 for (const t of targets) {
     const result = await page.evaluate(async t => {
         // A placed object (a container) is drawn from its class's own model.
-        if (t.classPath) {
+        const fromClass = async () => {
             try { return await window.__thumbView.classThumbnail({ cls: t.classPath, size: t.size }); }
             catch (e) { return { error: String(e) }; }
-        }
+        };
+        if (!t.actor) return await fromClass();
+        let drawn;
         const at = await fetch(`/scene-models/actor?path=${encodeURIComponent(t.actor)}`);
-        if (!at.ok) return { error: `no position (${at.status})` };
-        const { p: center, front } = await at.json();
-        try {
-            return await window.__thumbView.thumbnail({ region: t.region, actor: t.actor, center, front, size: t.size });
-        } catch (e) {
-            return { error: String(e) };
+        if (!at.ok) drawn = { error: `no position (${at.status})` };
+        else {
+            const { p: center, front } = await at.json();
+            try { drawn = await window.__thumbView.thumbnail({ region: t.region, actor: t.actor, center, front, size: t.size }); }
+            catch (e) { drawn = { error: String(e) }; }
         }
+        // A level actor that is not in the map (spawned at run time) or draws nothing there is drawn
+        // from its kind's own model instead, when the target list knows its blueprint.
+        if ((!drawn || drawn.error || !drawn.image) && t.classPath) {
+            const own = await fromClass();
+            if (own?.image) return own;
+        }
+        return drawn;
     }, { ...t, size });
     if (!result || result.error || !result.image) {
         console.log(`skip ${t.kind}/${t.cls}: ${result?.error ?? "no pieces"}`);

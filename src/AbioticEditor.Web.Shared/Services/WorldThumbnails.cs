@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 namespace AbioticEditor.Web.Services;
 
 /// <summary>
-/// Pictures of the game's doors, buttons, breakable walls, elevators, trams, teleporters and resource
-/// nodes, rendered from the game's own models by tools/thumbnails and shipped with the editor
+/// Pictures of the game's doors, buttons, breakable walls, elevators, trams, teleporters, resource
+/// nodes, power sockets and player-placed objects, rendered from the game's own models by tools/thumbnails and shipped with the editor
 /// (wwwroot/thumbs/&lt;kind&gt;/&lt;class&gt;.webp). One picture per kind: every <c>BlastDoor_C_*</c> shows
 /// the <c>BlastDoor_C</c> picture. <see cref="Available"/> (generated next to the pictures) says which
 /// exist, so a list never asks for one that is not there.
@@ -31,9 +31,38 @@ public static partial class WorldThumbnails
     /// </summary>
     public static string? For(string kind, string? actorPath)
     {
-        if (string.IsNullOrEmpty(actorPath) || !Available.TryGetValue(kind, out var classes)) return null;
+        if (string.IsNullOrEmpty(actorPath)) return null;
+        // A level actor drawn on its own (the trams, each painted its own colour) wins over its kind's
+        // picture: those live in "<kind>-each", named after the actor.
+        var name = actorPath[(Math.Max(actorPath.LastIndexOf('.'), actorPath.LastIndexOf(':')) + 1)..];
+        if (Available.TryGetValue(kind + "-each", out var each) && each.Contains(name)) return $"{Root}/{kind}-each/{name}.webp";
+        if (!Available.TryGetValue(kind, out var classes)) return null;
         var cls = ClassOf(actorPath);
         return classes.Contains(cls) ? $"{Root}/{kind}/{cls}.webp" : null;
+    }
+
+    /// <summary>
+    /// The picture of a player-placed object's class (a teleporter pad, a sconce lamp, a plug strip, a
+    /// battery, a locker), from its own model, or null when none was rendered. Accepts the class name
+    /// (<c>Deployed_PlugStrip_C</c>) or its full path.
+    /// </summary>
+    public static string? ForPlaced(string? className)
+    {
+        if (string.IsNullOrEmpty(className)) return null;
+        var cls = className[(className.LastIndexOf('.') + 1)..];
+        return For("deployables", cls) ?? For("containers", cls);
+    }
+
+    /// <summary>
+    /// The placed device a power outlet belongs to: an outlet on a player-built device (a plug strip,
+    /// a battery) is keyed by the device's 32-digit id plus one outlet digit. Null for anything else
+    /// (a wall socket in the level is keyed by its actor path).
+    /// </summary>
+    public static string? PowerOutletOwner(string? key)
+    {
+        if (key is not { Length: 33 } || !char.IsAsciiDigit(key[32])) return null;
+        foreach (var c in key.AsSpan(0, 32)) if (!char.IsAsciiHexDigit(c)) return null;
+        return key[..32];
     }
 
     /// <summary>

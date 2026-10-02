@@ -1,7 +1,7 @@
 # World list pictures
 
-The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes and
-Containers lists show a picture of each kind of thing, drawn on its own with the game's own models. The pictures are
+The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes, Power
+Sockets, Teleporter Pads, Sconce lamps and Containers lists show a picture of each kind of thing, drawn on its own with the game's own models. The pictures are
 rendered once by a maintainer, checked in under `src/AbioticEditor.Web.Shared/wwwroot/thumbs`, and
 ship with the editor; nothing is rendered or downloaded while the editor runs. Re-render after a game
 update that changes these models, or to cover kinds from a world the list did not include.
@@ -30,6 +30,15 @@ update that changes these models, or to cover kinds from a world the list did no
 
    Containers are drawn from their own model instead: set `THUMBNAIL_CLASSES_OUT` too in step 1
    and render that file the same way (`node render.mjs http://127.0.0.1:37361 %TEMP%\container-classes.json 256`).
+   The same file lists the player-placed things other lists show (teleporter pads, sconce lamps) and
+   the player-built devices power outlets belong to (plug strips, batteries); those go to
+   `thumbs/deployables`.
+
+   When the installed game can be read, step 1 also gives each kind its blueprint (`classPath`). A
+   kind whose level actor is not in the map (resource nodes the game spawns at run time, like the
+   reactor wood crates) or draws nothing there is then drawn from its own model instead. Trams are
+   drawn one by one (`thumbs/trams-each/<actor>.webp`), since each is painted differently; the
+   `trams` picture is the unpainted model, used for any tram without its own.
 
    It writes `wwwroot/thumbs/<kind>/<class>.webp` and regenerates
    `src/AbioticEditor.Web.Shared/Services/WorldThumbnails.Index.g.cs`, which tells the editor which

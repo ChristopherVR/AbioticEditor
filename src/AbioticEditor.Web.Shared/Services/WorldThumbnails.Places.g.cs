@@ -5396,6 +5396,7 @@ public static partial class WorldThumbnails
         "V_TheWall:BlastDoor_C_0",
         "V_TheWall:BlastDoor_C_1",
         "V_TheWall:Destructible_ContainmentShield_C_3",
+        "V_Train:SimpleDoor_ParentBP_C_12",
         "V_Train:SimpleDoor_ParentBP_C_18",
         "V_Winter:PowerSocket_VWinter_C_0",
     };

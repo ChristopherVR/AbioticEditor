@@ -85,7 +85,9 @@ else
                     <h3>@selected.Label</h3>
                     @* What this kind of thing looks like (drawn from the game's own models, tools/thumbnails) with
                        its current state on it, and a small shot of where it stands. Both kept at the size they
-                       were drawn, so they stay sharp. An NPC spawn point shows the creature it makes. *@
+                       were drawn, so they stay sharp. An NPC spawn point shows the creature it makes. A player-placed
+                       thing (a teleporter pad, a sconce lamp) and an outlet on a player-built device (a plug strip, a
+                       battery) show that object's own picture. *@
                     <div class="world-feature-pictures">
                         @if (FeatureId == "npc-spawns" && Items.SpawnedCreature(selected.Key) is { } creature)
                         {
@@ -96,10 +98,12 @@ else
                                 <figcaption data-spawn="creature">@L.Resource("WorldFeature_SpawnsFormat", creature.Name)</figcaption>
                             </figure>
                         }
-                        else if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
+                        else if (((WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind ? WorldThumbnails.For(pictureKind, selected.Key) : null)
+                                  ?? (DeployablesById.TryGetValue(WorldThumbnails.PowerOutletOwner(selected.Key) ?? selected.Key, out var placedThing)
+                                      ? WorldThumbnails.ForPlaced(placedThing.ClassName) : null)) is { } picture)
                         {
                             <figure class="world-thumb-art">
-                                <img src="@picture" alt="@selected.Label" loading="lazy" />
+                                <img src="@picture" alt="@selected.Label" loading="lazy" data-zoom />
                                 @if (StateBadge(selected) is { } badge)
                                 {
                                     <figcaption class="world-state-badge @(badge.On ? "on" : "off")" data-feature="state-badge">@badge.Text</figcaption>
@@ -109,7 +113,7 @@ else
                         @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place)
                         {
                             <figure class="world-place-art">
-                                <img src="@place" alt="@selected.Label" loading="lazy" />
+                                <img src="@place" alt="@selected.Label" loading="lazy" data-zoom />
                                 <figcaption>@L.Resource("WorldFeature_WhereItIs")</figcaption>
                             </figure>
                         }
