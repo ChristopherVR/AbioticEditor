@@ -846,6 +846,52 @@ public sealed class GameModels3DTests
         Assert.True(moved > 0.1f, $"pose barely differs from the rest pose ({moved})");
     }
 
+    /// <summary>
+    /// The corpses in Facility_DF_War name their own death poses, most of them compressed with ACL.
+    /// Every body part must bake out of its rest pose (no T-poses): with the native decoder in its
+    /// own death pose, without it in the pose the corpse blueprint gives that variable by default.
+    /// </summary>
+    [Fact]
+    public void Corpses_lie_in_a_death_pose_and_never_stand_in_their_rest_pose()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_DF_War.umap"));
+        var posed = index.Meshes.Where(PoseBaker.IsKey).ToList();
+        var (checkedParts, restPosed, standIns, why) = assets.UseFileProvider(p =>
+        {
+            int parts = 0, rest = 0, fallbacks = 0;
+            var notes = new List<string>();
+            foreach (var key in posed)
+            {
+                if (PoseBaker.Load(p, key) is not { } component || component.Outer?.Load()?.ExportType.Contains("Corpse", StringComparison.Ordinal) != true) continue;
+                var meshIndex = Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(component, "SkeletalMesh", null)
+                                ?? Props.Get<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>(component, "SkinnedAsset", null);
+                if (meshIndex?.Load() is not CUE4Parse.UE4.Assets.Exports.SkeletalMesh.USkeletalMesh mesh) continue;
+                parts++;
+                System.Numerics.Matrix4x4[]? skin = null;
+                foreach (var pose in PoseBaker.PoseCandidates(component))
+                {
+                    try { skin = PoseBaker.SkinMatrices(mesh, pose.Anim, pose.Time); }
+                    catch (DllNotFoundException) { skin = null; }
+                    if (skin is not null) break;
+                }
+                var shift = skin?.Max(m => Math.Abs(m.M11 - 1) + Math.Abs(m.M22 - 1) + Math.Abs(m.M33 - 1) + m.Translation.Length()) ?? 0f;
+                if (shift < 1f) { rest++; notes.Add($"{component.Outer?.Name}.{component.Name}: {PoseBaker.PoseOf(component)?.Anim.Name} shift {shift}"); }
+                var baked = PoseBaker.Bake(component, 1, out var exact);
+                Assert.NotNull(baked);
+                if (!exact) fallbacks++;
+            }
+            return (parts, rest, fallbacks, string.Join("; ", notes.Take(5)));
+        });
+        Assert.True(checkedParts > 40, $"only {checkedParts} corpse parts found");
+        Assert.True(restPosed == 0, $"{restPosed} corpse parts stand in their rest pose: {why}");
+        // Without the native decoder some parts use the blueprint's default pose; with it, none do.
+        if (NativeDecoder.Loaded) Assert.Equal(0, standIns);
+        else Assert.True(standIns > 0, "no part needed a stand-in pose without the native decoder");
+    }
+
     private sealed class TestHost(string dir) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);

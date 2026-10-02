@@ -1,5 +1,25 @@
 # Abiotic Editor - Session history
 
+## Round-156: corpses no longer stand in a T-pose (2026-10-02)
+
+- **Cause.** `CharacterCorpse_ParentBP`'s construction script copies the actor variable `DeathPose`
+  into `Mesh.AnimationData` (`AnimToPlay`, `SavedPosition` 100 s, so the last frame); the body parts
+  follow `Mesh` through `SetLeaderPoseComponent`. The cooked levels keep that result, so 1,368 of
+  1,369 level corpse parts already had a pose. Many instances name ACL-compressed death poses
+  (`Anim_Scientist_Pose_Death_*`, `Anim_LabRat_*`, `Anim_Skink_Death`); without CUE4Parse's native
+  decoder (any build from source) those threw and `PoseBaker` fell back to the rest pose, and that
+  T-pose was written to the `meshes` cache, so it stayed even after the decoder was loaded.
+- **Fix.** `PoseBaker.PoseCandidates`: after the component's own animation, the value the owning
+  actor's blueprint class (and its parents) give the same variable by default (the variable is found
+  as the actor property naming that animation; no class or variable names). The corpse classes'
+  defaults (`Pose_Scientist_Dead_FlatBackrt`, `Anim_Exor_Death_01`) are uncompressed. A bake that
+  used a stand-in or the rest pose is not kept on disk. Posed meshes moved to `meshes-posed-v2`, so
+  stale T-pose bakes are rebuilt.
+- Verified: with the decoder every corpse pose decodes (Dam, Labs, DF_War, RadWaste); without it
+  every DF_War corpse part is out of its rest pose. Headless (no decoder): Labs Control's
+  `CharacterCorpse_Human_BP_C_15` stood in a T-pose, now lies on its back.
+- Test `Corpses_lie_in_a_death_pose_and_never_stand_in_their_rest_pose`.
+
 ## Round-155: Prepare 3D, side panel rework, Add-object palette, containment and bench cards, power tools, zoomable pictures, Traders wording (2026-10-02)
 
 - **Why the 3D view was slow**: each cache format bump (level index v14, classes-v4, materials-v5)

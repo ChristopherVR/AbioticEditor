@@ -890,7 +890,12 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var isMesh = kind == "mesh";
         // Terrain meshes carry layer weights since v2 (and texture coordinates in quads), so they
         // are cached apart from the ordinary meshes baked before.
-        var folder = !isMesh ? "textures" : LandscapeBaker.IsKey(path) ? "meshes-terrain-v3" : "meshes"; // terrain v3: the fifth paint layer
+        // Posed meshes live apart too: before v2 a pose that could not be decoded was kept in its rest
+        // pose (a T-pose), which stayed after the decoder became available.
+        var folder = !isMesh ? "textures"
+            : LandscapeBaker.IsKey(path) ? "meshes-terrain-v3" // terrain v3: the fifth paint layer
+            : PoseBaker.IsKey(path) ? PosedMeshesFolder
+            : "meshes";
         var file = CachePath(folder, assetId, isMesh ? ".abm" : ".png");
         var contentType = isMesh ? SceneMeshFormat.ContentType : "image/png";
         if (File.Exists(file))
@@ -900,15 +905,32 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             return new FileInfo(file).Length == 0 ? null : SceneAsset.FromFile(contentType, file);
         }
 
+        var keep = true;
         var data = isMesh
             ? LandscapeBaker.IsKey(path)
                 ? Read(p => LandscapeBaker.Load(p, path) is { } land ? LandscapeBaker.Bake(land, size) : null)
                 : SplineBaker.IsKey(path) ? Read(p => BakeSpline(p, path, size))
-                : PoseBaker.IsKey(path) ? Read(p => PoseBaker.Load(p, path) is { } posed ? PoseBaker.Bake(posed, size) : null)
+                : PoseBaker.IsKey(path) ? BakePosed(path, size, out keep)
                 : Read(p => p.TryLoadPackageObject(path, out var obj) ? MeshBaker.Bake(obj, size) : null)
             : BakeTexture(path, Math.Clamp(size, 16, 2048));
-        WriteBytes(file, data ?? []);
+        // A stand-in pose (its own animation needs the native decoder) is baked again next run.
+        if (keep) WriteBytes(file, data ?? []);
         return data is null ? null : new SceneAsset(contentType, data);
+    }
+
+    /// <summary>Cache folder for posed skeletal meshes (v2: a stand-in or rest pose is no longer kept).</summary>
+    private const string PosedMeshesFolder = "meshes-posed-v2";
+
+    private static byte[]? BakePosed(string key, int lod, out bool exact)
+    {
+        var (data, ok) = Read(p =>
+        {
+            if (PoseBaker.Load(p, key) is not { } posed) return ((byte[]?)null, true);
+            var baked = PoseBaker.Bake(posed, lod, out var e);
+            return (baked, e);
+        });
+        exact = ok;
+        return data;
     }
 
     private static byte[]? BakeTexture(string path, int maxSize)
