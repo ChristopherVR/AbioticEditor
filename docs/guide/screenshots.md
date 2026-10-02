@@ -2,7 +2,7 @@
 
 Find the screen you need, then follow the linked guide for the steps. Select an image to enlarge it.
 
-These were taken in the desktop app with copied saves. Panels are framed to leave out account IDs and save paths. The tabs and lists you see depend on your save and your game version.
+These were taken in the desktop app with copied saves. Pictures are framed to leave out local save paths. The tabs and lists you see depend on your save and your game version.
 
 ## Getting started
 
@@ -123,6 +123,10 @@ See the [desktop app tour](./desktop-app#edit-a-world) and [More world tools](./
 ### Add object
 
 ![The Add object palette in Abiotic Editor](/screenshots/52-3d-add-object.png)
+
+### Containment cell
+
+![A containment cell in the 3D view of Abiotic Editor](/screenshots/57-3d-containment.png)
 
 See [Bases and the 3D view](./3d-view).
 
