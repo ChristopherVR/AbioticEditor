@@ -512,6 +512,26 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void A_placed_story_character_is_drawn_with_its_head_and_its_own_colours()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        // Jimmy, the Botanical trader: head, chest, hair, glasses, trousers and so on, each posed.
+        var index = assets.UseFileProvider(p => LevelIndex.Build(p, "AbioticFactor/Content/Maps/Facility_Botanical.umap"));
+        var parts = index.Entries.Where(e => index.Actors[e.Actor] == "NarrativeNPC_Human_ParentBP_C_2").Select(e => index.Meshes[e.Mesh]).ToList();
+        var names = assets.UseFileProvider(p => parts.Select(key => PoseBaker.Load(p, key) is { } c ? c.Name : key).ToList());
+        var why = assets.UseFileProvider(p =>
+        {
+            p.TryLoadPackage("/Game/Maps/Facility_Botanical", out var pkg);
+            var head = pkg!.GetExports().First(x => x.Name == "CharacterMesh0" && x.Outer?.Name == "NarrativeNPC_Human_ParentBP_C_2");
+            var parent = head.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("AttachParent")?.Load();
+            return $"visible={Props.Get(head, "bVisible", true)} hidden={Props.Get(head, "bHiddenInGame", false)} parent={parent?.Name} parentVisible={(parent is null ? "-" : Props.Get(parent, "bVisible", true))} parentHidden={(parent is null ? "-" : Props.Get(parent, "bHiddenInGame", false))} pose={PoseBaker.PoseOf(head)?.Anim.Name} mesh={ClassModelResolver.TryMesh([head], out var m)}:{m}";
+        });
+        Assert.True(names.Contains("CharacterMesh0"), why); // the head is the leader the rest is posed by
+        Assert.Contains("Hair", names);
+    }
+
+    [Fact]
     public void The_levels_lamps_and_door_leaves_are_indexed_and_open_doors_leave_their_doorway_clear()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();

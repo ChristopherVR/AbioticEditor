@@ -285,6 +285,46 @@ public sealed class GameArtService : IDisposable
         return _actorWorldTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => service.ReadActorAsync(path)), this).Value;
     }
 
+    /// <summary>
+    /// Several level actors' world transforms at once, read grouped by level file so each file is
+    /// opened once (one at a time, they were read in mixed order and kept re-opening the same big
+    /// files). Answers already known come straight back. Null for one that cannot be placed.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, ActorTransform?>> TryGetActorWorldTransformsAsync(IEnumerable<string> actorObjectPaths)
+    {
+        ArgumentNullException.ThrowIfNull(actorObjectPaths);
+        var result = new Dictionary<string, ActorTransform?>(StringComparer.Ordinal);
+        var todo = new List<string>();
+        foreach (var path in actorObjectPaths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal))
+        {
+            if (_actorWorldTransforms.TryGetValue(path, out var known) && known.IsValueCreated && known.Value.IsCompletedSuccessfully) result[path] = known.Value.Result;
+            else todo.Add(path);
+        }
+        if (todo.Count == 0) return result;
+        await _actorReads.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var read = await Task.Run(() =>
+            {
+                var found = new Dictionary<string, ActorTransform?>(StringComparer.Ordinal);
+                var provider = _provider.Value;
+                foreach (var path in todo.OrderBy(p => p[..Math.Max(0, p.IndexOf(':', StringComparison.Ordinal))], StringComparer.OrdinalIgnoreCase))
+                {
+                    try { found[path] = provider is { HasMappings: true } ? provider.TryGetActorWorldTransform(path) : null; }
+                    catch { found[path] = null; }
+                }
+                return found;
+            }).ConfigureAwait(false);
+            foreach (var (path, at) in read)
+            {
+                result[path] = at;
+                _actorWorldTransforms.TryAdd(path, new Lazy<Task<ActorTransform?>>(Task.FromResult(at)));
+            }
+        }
+        finally { _actorReads.Release(); }
+        return result;
+    }
+
     // One position read at a time, waited for without holding a worker thread: each read takes the
     // shared game-files lock anyway, and hundreds queued at once (the 3D view's markers) used to block
     // every worker, so the view's own requests (the level around it) could not even start.

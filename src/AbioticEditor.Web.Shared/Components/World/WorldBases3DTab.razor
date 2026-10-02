@@ -6,6 +6,7 @@
 @inject IJSRuntime Js
 @inject SaveWorkspaceSessionService Workspace
 @inject GameArtService Art
+@inject ItemCatalogService Catalog
 @inject IServiceProvider Services
 @implements IAsyncDisposable
 
@@ -66,28 +67,33 @@
                             </div>
                         }
                     </div>
-                    <button type="button" class="b3d-hud-btn @(_help ? "on" : null)" aria-expanded="@(_help ? "true" : "false")" data-b3d="help"
-                            title="@L.Resource("World3D_HelpTitle")" @onclick="() => _help = !_help">?</button>
-                </div>
-                @if (_help)
-                {
-                    <div class="b3d-hud b3d-hud-help" data-b3d="help-card">
-                        <strong>@L.Resource("World3D_HelpTitle")</strong>
-                        <dl>
-                            <dt>@L.Resource("World3D_HelpDragKey")</dt><dd>@L.Resource("World3D_HelpDrag")</dd>
-                            <dt>@L.Resource("World3D_HelpRightDragKey")</dt><dd>@L.Resource("World3D_HelpRightDrag")</dd>
-                            <dt>@L.Resource("World3D_HelpScrollKey")</dt><dd>@L.Resource("World3D_HelpScroll")</dd>
-                            <dt>@L.Resource("World3D_HelpDoubleKey")</dt><dd>@L.Resource("World3D_HelpDouble")</dd>
-                            <dt>W A S D</dt><dd>@L.Resource("World3D_HelpMove")</dd>
-                            <dt>Q / E</dt><dd>@L.Resource("World3D_HelpUpDown")</dd>
-                            <dt>Shift</dt><dd>@L.Resource("World3D_HelpFaster")</dd>
-                            <dt>@L.Resource("World3D_Walk")</dt><dd>@L.Resource("World3D_HelpWalk")</dd>
-                            <dt>@L.Resource("World3D_MoveOptIn")</dt><dd>@L.Resource("World3D_DragHint")</dd>
-                            <dt>Esc</dt><dd>@L.Resource("World3D_HelpEscape")</dd>
-                        </dl>
+                    <div class="b3d-hud-menu b3d-hud-menu-end">
+                        <button type="button" class="b3d-hud-btn @(_help ? "on" : null)" aria-expanded="@(_help ? "true" : "false")" data-b3d="help"
+                                title="@L.Resource("World3D_HelpTitle")" @onclick="() => _help = !_help">?</button>
+                        @if (_help)
+                        {
+                            <div class="b3d-hud-popover b3d-hud-help" data-b3d="help-card">
+                                <strong>@L.Resource("World3D_HelpTitle")</strong>
+                                <dl>
+                                    <dt>@L.Resource("World3D_HelpDragKey")</dt><dd>@L.Resource("World3D_HelpDrag")</dd>
+                                    <dt>@L.Resource("World3D_HelpRightDragKey")</dt><dd>@L.Resource("World3D_HelpRightDrag")</dd>
+                                    <dt>@L.Resource("World3D_HelpScrollKey")</dt><dd>@L.Resource("World3D_HelpScroll")</dd>
+                                    <dt>@L.Resource("World3D_HelpDoubleKey")</dt><dd>@L.Resource("World3D_HelpDouble")</dd>
+                                    <dt>W A S D</dt><dd>@L.Resource("World3D_HelpMove")</dd>
+                                    <dt>Q / E</dt><dd>@L.Resource("World3D_HelpUpDown")</dd>
+                                    <dt>Shift</dt><dd>@L.Resource("World3D_HelpFaster")</dd>
+                                    <dt>@L.Resource("World3D_Walk")</dt><dd>@L.Resource("World3D_HelpWalk")</dd>
+                                    <dt>@L.Resource("World3D_MoveOptIn")</dt><dd>@L.Resource("World3D_DragHint")</dd>
+                                    <dt>R / Shift+R</dt><dd>@L.Resource("World3D_HelpRotateKey")</dd>
+                                    <dt>Delete</dt><dd>@L.Resource("World3D_HelpDeleteKey")</dd>
+                                    <dt>Ctrl+D</dt><dd>@L.Resource("World3D_HelpCopyKey")</dd>
+                                    <dt>Esc</dt><dd>@L.Resource("World3D_HelpEscape")</dd>
+                                </dl>
+                            </div>
+                        }
                     </div>
-                }
-                <span class="b3d-hud b3d-hud-count" data-b3d="count">@L.Resource("World3D_ShowingFormat", _visible.Length, _scene.Objects.Count)</span>
+                    <span class="b3d-hud-count" data-b3d="count">@L.Resource("World3D_ShowingFormat", _visible.Length, _scene.Objects.Count)</span>
+                </div>
 
                 @* What the view is still loading, shown on the view itself: models and textures swap in as they arrive. *@
                 @if (LoadingLines() is { Count: > 0 } loading)
@@ -370,19 +376,41 @@
                 {
                     <div class="wt-card b3d-panel" data-b3d="thing-card">
                         <span class="wt-label accent-orange-text">@thing.FeatureName</span>
-                        <strong class="b3d-title" data-b3d="thing-title" title="@thing.Key">@thing.Label</strong>
-                        <dl class="b3d-fields">
-                            <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(thing.At.X), @Num(thing.At.Y), @Num(thing.At.Z)</dd>
-                        </dl>
-                        @* A wall socket built into the level: plug a device into it right here. *@
-                        @if (thing.FeatureId == "power-sockets")
+                        <div class="b3d-title-row">
+                            @if (ThingPicture(thing) is { } thingPicture) { <img class="b3d-title-art" src="@thingPicture" alt="" /> }
+                            else if (thing.FeatureId == "npc-spawns" && Catalog.SpawnedCreature(thing.Key) is { } creature)
+                            {
+                                <span class="b3d-title-art">
+                                    <GameArtImage GameRefs="@AbioticEditor.Core.WorldSaves.PetCatalog.CompendiumTextureRefs(creature.Class)"
+                                                  WikiFiles="@AbioticEditor.Core.Codex.CreatureWikiImages.CandidatesFor(creature.Name)"
+                                                  Alt="@creature.Name" />
+                                </span>
+                            }
+                            <strong class="b3d-title" data-b3d="thing-title" title="@thing.Key">@thing.Label</strong>
+                        </div>
+                        @* Its settings, changed right here (the same as in its list's tab). *@
+                        <FeatureEntryEditor Session="Session" FeatureId="@thing.FeatureId" EntryKey="@thing.Key" OnChanged="ThingChangedAsync" />
+                        <details class="b3d-details">
+                            <summary>@L.Resource("World3D_Details")</summary>
+                            <dl class="b3d-fields">
+                                <dt>@L.Resource("World3D_Position")</dt><dd class="b3d-mono">@Num(thing.At.X), @Num(thing.At.Y), @Num(thing.At.Z)</dd>
+                                <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@thing.Key</dd>
+                            </dl>
+                        </details>
+                        @* A wall socket built into the level: plug a device into it right here (in its own area's save). *@
+                        @if (thing.FeatureId == "power-sockets" && OtherAreaOf(thing) is { } otherArea)
+                        {
+                            <p class="wt-muted" data-b3d="other-area">@L.Resource("World3D_OtherAreaFormat", otherArea.Replace('_', ' '))</p>
+                            <ShowIn3DButton Target="@(new WorldLocateTarget(WorldLocateKind.LevelActor, thing.Key, thing.Label) { SaveFileName = $"WorldSave_{otherArea}.sav", LevelName = otherArea })" />
+                        }
+                        else if (thing.FeatureId == "power-sockets")
                         {
                             <PowerRewirePanel Session="Session" SocketKey="@thing.Key" OnChanged="PowerChangedAsync" />
                         }
                         <div class="b3d-links">
                             @if (OnOpenTab.HasDelegate)
                             {
-                                <button type="button" class="wt-btn" data-b3d="thing-open-tab" @onclick="@(() => OnOpenTab.InvokeAsync("feature:" + thing.FeatureId))">@L.Resource("World3D_OpenListFormat", thing.FeatureName)</button>
+                                <button type="button" class="wt-btn wt-plain" data-b3d="thing-open-tab" @onclick="@(() => OnOpenTab.InvokeAsync("feature:" + thing.FeatureId))">@L.Resource("World3D_OpenListFormat", thing.FeatureName)</button>
                             }
                             <button type="button" class="wt-btn wt-plain" @onclick="CloseMarkerCardAsync">@L.Resource("World3D_DoorCardClose")</button>
                         </div>
@@ -431,7 +459,16 @@
                 {
                     <div class="wt-card b3d-panel" data-b3d="npc-card">
                         <span class="wt-label accent-orange-text">@L.Resource(npc.IsPet ? "World3D_PetCard" : "World3D_NpcCard")</span>
-                        <strong class="b3d-title" data-b3d="npc-title" title="@npc.Id">@NpcName(npc)</strong>
+                        @if (!npc.IsPet)
+                        {
+                            <CharacterCard3D Npc="@npc" Name="@NpcName(npc)" />
+                        }
+                        else
+                        {
+                            <strong class="b3d-title" data-b3d="npc-title" title="@npc.Id">@NpcName(npc)</strong>
+                        }
+                        <details class="b3d-details">
+                        <summary>@L.Resource("World3D_Details")</summary>
                         <dl class="b3d-fields">
                             <dt>@L.Resource("World3D_Key")</dt><dd class="b3d-mono">@npc.ActorName</dd>
                             @if (npc.X != 0 || npc.Y != 0 || npc.Z != 0)
@@ -442,8 +479,9 @@
                             {
                                 <dt>@L.Resource("World3D_Position")</dt><dd>@L.Resource("World3D_NpcAtLevelSpot")</dd>
                             }
-                            @if (npc.IsDead) { <dt>@L.Resource("World3D_NpcStatus")</dt><dd data-b3d="npc-status">@L.Resource(npc.IsPet ? "WorldPets_StatusDead" : "World3D_NpcRemoved")</dd> }
+                            @if (npc.IsDead && npc.IsPet) { <dt>@L.Resource("World3D_NpcStatus")</dt><dd data-b3d="npc-status">@L.Resource("WorldPets_StatusDead")</dd> }
                         </dl>
+                        </details>
                         <div class="b3d-links">
                             @if (OnOpenTab.HasDelegate)
                             {
@@ -1345,7 +1383,7 @@
             await _view.InvokeVoidAsync("setLabels", _labels);
             await _view.InvokeVoidAsync("setSelection", _selected, _selectedKey);
             await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
-            await _view.InvokeVoidAsync("setDraggable", SelectedIsMovable);
+            await _view.InvokeVoidAsync("setDraggable", _moveOptIn);
             _ = RunPlacementChecksAsync();
             if (!_framedOnce)
             {
@@ -1496,13 +1534,15 @@
 
     /// <summary>A click on level geometry (reference only) names the piece; a click elsewhere clears it.</summary>
     [JSInvokable]
-    public Task OnLevelPicked(string? name)
+    public async Task OnLevelPicked(string? name, string? actor = null)
     {
-        if (_levelPicked == name) return Task.CompletedTask;
+        // A piece of something the lists know (a wall socket's plug, a button, a door's frame) opens
+        // that thing's card, where it can be changed, instead of the plain "part of the level" card.
+        if (actor is not null && await PickLevelActorAsync(actor)) return;
+        if (_levelPicked == name) return;
         _levelPicked = name;
         if (name is not null) ShowInspector();
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
     private bool _fullscreen;
@@ -1751,6 +1791,48 @@
         await AfterEditAsync(result);
     }
 
+    /// <summary>A selection of several pieces was dragged: staged as one group move (viewer metres to save centimetres).</summary>
+    [JSInvokable]
+    public async Task OnGroupDragged(double[] from, double[] to)
+    {
+        var a = PlacedSceneSpace.FromViewer(new PlacedVector(from[0], from[1], from[2]));
+        var b = PlacedSceneSpace.FromViewer(new PlacedVector(to[0], to[1], to[2]));
+        await RunGroupAsync(keys => Session.StageGroupMove(keys, b.X - a.X, b.Y - a.Y, b.Z - a.Z));
+        StateHasChanged();
+    }
+
+    /// <summary>R (or Shift+R) in Edit mode: turns the selection about its centre.</summary>
+    [JSInvokable]
+    public async Task OnRotateKey(double degrees)
+    {
+        if (!_moveOptIn || _selected.Count == 0) return;
+        await RunGroupAsync(keys => Session.StageGroupRotate(keys, degrees, PivotFor(PivotCentroid, keys)));
+        StateHasChanged();
+    }
+
+    /// <summary>Delete in Edit mode: opens the removal check for the selection.</summary>
+    [JSInvokable]
+    public async Task OnDeleteKey()
+    {
+        if (!_moveOptIn || _selected.Count == 0) return;
+        await StartDeleteAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Ctrl+D in Edit mode: copies the selection beside itself straight away when nothing needs a
+    /// decision; otherwise the copy panel opens with the choices to make.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnDuplicateKey()
+    {
+        if (!_moveOptIn || _selected.Count == 0) return;
+        await StartDuplicateAsync();
+        if (_dupPreview is { CanApply: true } preview && !preview.Issues.Any(i => i.Severity == BaseEditSeverity.Blocking) && _dupError is null)
+            await ConfirmDuplicateAsync();
+        StateHasChanged();
+    }
+
     // ---- toolbar and filters ------------------------------------------------------------------
     private async Task OnSearchInput(ChangeEventArgs e) => await SetFilterAsync(_filter with { Search = e.Value?.ToString() });
 
@@ -1820,7 +1902,8 @@
     {
         if (_view is null) return;
         await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
-        await _view.InvokeVoidAsync("setDraggable", SelectedIsMovable);
+        // In Edit mode any built piece can be pressed and dragged (the viewer selects it first).
+        await _view.InvokeVoidAsync("setDraggable", _moveOptIn);
     }
 
     private async Task SetMoveOptInAsync(bool on)

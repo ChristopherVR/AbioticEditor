@@ -40,8 +40,8 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     // Answers that depend on how materials are read carry their own version, so a reader fix does not
     // throw away the slow level indexes and baked meshes. v2: blend modes read as enum names.
-    private const string MaterialsFolder = "materials-v4"; // v3: world tiling (Scale); v4: decal domain
-    private const string ClassesFolder = "classes-v3"; // v3: decals on objects
+    private const string MaterialsFolder = "materials-v5"; // v3: world tiling (Scale); v4: decal domain; v5: material copies kept in a level (characters)
+    private const string ClassesFolder = "classes-v4"; // v3: decals on objects; v4: see-through leaves
 
     private const int ObjectTextureSize = 512; // props are small on screen; 1024 px cost four times the decode and video memory for no visible gain
     private const int LevelTextureSize = 512;
@@ -356,6 +356,14 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         }
 
         var batches = new List<SceneLevelBatch>();
+        var actorNames = new List<string>();
+        var actorIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        int ActorId(LevelIndexData map, LevelEntry entry)
+        {
+            var key = Path.GetFileNameWithoutExtension(map.Map) + ":" + map.Actors[entry.Actor];
+            if (!actorIds.TryGetValue(key, out var id)) { id = actorNames.Count; actorNames.Add(key); actorIds[key] = id; }
+            return id;
+        }
         var kept = inBox.OrderBy(x => x.Distance).Take(query.MaxInstances);
         foreach (var group in kept.GroupBy(x => (x.Map.Meshes[x.Entry.Mesh], string.Join('|', x.Map.OverrideSets[x.Entry.Overrides]))))
         {
@@ -364,19 +372,21 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             if (MeshInfoOf(mesh) is not { } info || IsEffectOnly(info, first.OverrideSets[firstEntry.Overrides])) continue;
             var materials = LandscapeBaker.IsKey(mesh) && first.OverrideSets[firstEntry.Overrides] is [{ } terrainMaterial, ..]
                 ? TerrainMaterialOf(terrainMaterial)
-                : MaterialsFor(info, first.OverrideSets[firstEntry.Overrides], LevelTextureSize);
+                : MaterialsFor(info, first.OverrideSets[firstEntry.Overrides], LevelTextureSize, PoseBaker.IsKey(mesh));
             // A decal whose texture has no transparency would be a solid square (some are many
             // metres across); those are left out.
             if (materials.Any(m => m.Decal && (m.Texture is null || !TextureHasAlpha(m.Texture)))) continue;
             var matrices = new float[group.Count() * 16];
+            var actors = new int[group.Count()];
             var i = 0;
             foreach (var x in group)
             {
                 SceneMath.ToViewer(x.Entry.World).CopyTo(matrices, i * 16);
+                actors[i] = ActorId(x.Map, x.Entry);
                 i++;
             }
             batches.Add(new SceneLevelBatch(
-                $"mesh/{LevelLod}{mesh}", materials, matrices, $"{ShortName(mesh)} ({Path.GetFileNameWithoutExtension(first.Map)})"));
+                $"mesh/{LevelLod}{mesh}", materials, matrices, $"{ShortName(mesh)} ({Path.GetFileNameWithoutExtension(first.Map)})") { Actors = actors });
         }
         // The level's lights in the box (the view lights only the nearest few).
         var lights = new List<(SceneLevelLight Light, float Distance)>();
@@ -404,6 +414,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             : $"{maps.Count} level files";
         return new SceneLevelSlice(batches, inBox.Count, note, pending)
         {
+            Actors = actorNames,
             Lights = lights.OrderBy(l => l.Distance).Take(MaxLevelLights).Select(l => l.Light).ToList(),
         };
     }
@@ -742,16 +753,23 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     private sealed record CachedMeshInfo(string?[]? Materials, float[]? Min, float[]? Max);
 
-    private List<SceneMaterial> MaterialsFor(MeshInfo info, IReadOnlyList<string?> overrides, int textureSize)
+    private List<SceneMaterial> MaterialsFor(MeshInfo info, IReadOnlyList<string?> overrides, int textureSize, bool character = false)
     {
         var result = new List<SceneMaterial>(info.Materials.Count);
         for (var slot = 0; slot < Math.Max(1, info.Materials.Count); slot++)
         {
             var path = slot < overrides.Count && overrides[slot] is { } o ? o : slot < info.Materials.Count ? info.Materials[slot] : null;
             var m = path is null ? ResolvedMaterial.Fallback : MaterialOf(path);
-            result.Add(new SceneMaterial(
-                m.BaseColorTexture is { } t ? $"tex/{textureSize}{t}" : null,
-                m.Color, m.Opacity, m.TwoSided, m.Masked, m.Emissive) { WorldTileMetres = m.TileCm / 100f, Decal = m.Decal });
+            var texture = m.BaseColorTexture is { } t ? $"tex/{textureSize}{t}" : null;
+            // Leaves and grass: two-sided cards whose see-through parts are the texture's alpha. Their
+            // masked setting is not always where the material is read from, and without it every leaf
+            // card was a solid grey sheet (a bush hid a beehive). A two-sided opaque material whose
+            // texture has see-through parts is taken as masked. Only these few are checked.
+            var masked = m.Masked || (m.TwoSided && !m.Decal && m.Opacity >= 1f && texture is not null && TextureHasAlpha(texture));
+            // A character's skin and clothes keep other data in their texture's alpha, not see-through
+            // parts: cutting by it removed most of a face. Only their two-sided cards (hair) cut out.
+            if (character && !m.TwoSided) masked = false;
+            result.Add(new SceneMaterial(texture, m.Color, m.Opacity, m.TwoSided, masked, m.Emissive) { WorldTileMetres = m.TileCm / 100f, Decal = m.Decal });
         }
         return result;
     }
@@ -789,10 +807,37 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     {
         var file = CachePath(MaterialsFolder, path, ".json");
         if (TryReadJson<ResolvedMaterial>(file) is { } cached) return cached;
-        var resolved = Read(p => p.TryLoadPackageObject(path, out var obj) ? MaterialResolver.Resolve(obj as UMaterialInterface) : ResolvedMaterial.Fallback);
+        var resolved = Read(p => (p.TryLoadPackageObject(path, out var obj) ? obj : LoadNested(p, path)) is UMaterialInterface material
+            ? MaterialResolver.Resolve(material)
+            : ResolvedMaterial.Fallback);
         WriteJson(file, resolved);
         return resolved;
     });
+
+    /// <summary>
+    /// An object nested inside another in a level file, such as the material copy a placed character
+    /// keeps on its mesh (<c>...:PersistentLevel.NarrativeNPC_C_2.CharacterMesh0.MID_Head_1</c>) with
+    /// its own hair or shirt colour. Loading by path does not reach these, which left every character's
+    /// skin and hair a plain grey. Found by walking the file's object table by name and full path,
+    /// loading only the match.
+    /// </summary>
+    private static UObject? LoadNested(IFileProvider provider, string path)
+    {
+        var colon = path.IndexOf(':', StringComparison.Ordinal);
+        if (colon <= 0) return null;
+        var packagePath = path[..colon];
+        var dot = packagePath.LastIndexOf('.');
+        if (dot > 0) packagePath = packagePath[..dot];
+        if (!provider.TryLoadPackage(packagePath, out var package)) return null;
+        var name = path[(path.LastIndexOf('.') + 1)..];
+        for (var i = 0; i < package.ExportMapLength; i++)
+        {
+            var resolved = package.ResolvePackageIndex(new FPackageIndex(package, i + 1));
+            if (resolved is null || !string.Equals(resolved.Name.Text, name, StringComparison.Ordinal)) continue;
+            if (string.Equals(resolved.GetPathName(), path, StringComparison.OrdinalIgnoreCase)) return resolved.Load();
+        }
+        return null;
+    }
 
     // ---- assets -----------------------------------------------------------------------------
 

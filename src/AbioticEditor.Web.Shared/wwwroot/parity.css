@@ -2315,3 +2315,20 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 .bases-view-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 8px}
 .bases-view-bar .bases-3d-focus{flex-direction:row;align-items:center;gap:8px;flex:1 1 280px;max-width:560px;margin:0}
 .bases-view-bar .bases-3d-focus select{flex:1 1 auto;min-width:0}
+/* The container card's header lines (name, contents, Show in 3D, rename, sort) keep their height;
+   only the slot grid gives way and scrolls when the card is short. They used to shrink and overlap. */
+.wc-tab .wc-detail > * { flex-shrink:0; }
+.wc-tab .wc-detail > .wc-slot-grid { flex-shrink:1; min-height:120px; overflow-y:auto; }
+.wc-tab .wc-detail > .show-in-3d { align-self:flex-start; }
+/* World lists: the kind picture (with its state) and where it stands, side by side at the size they
+   were drawn, so neither is blown up and blurry. */
+.world-feature-pictures{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin:6px 0}
+.world-feature-pictures figure{margin:0;position:relative}
+.world-feature-pictures .world-thumb-art{flex:0 0 auto;width:132px;height:132px;margin:0;padding:4px;box-sizing:border-box}
+.world-feature-pictures .world-thumb-art img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+.world-feature-pictures .world-place-art{flex:0 1 240px;max-width:240px;margin:0}
+.world-feature-pictures .world-place-art img{width:100%;aspect-ratio:384/240}
+.world-feature-pictures figcaption{line-height:1.3;font-size:11px;color:var(--muted,#a9cbe0);padding:3px 4px 0}
+.world-feature-pictures .world-thumb-art figcaption{position:absolute;left:4px;right:4px;bottom:4px;padding:2px 4px;text-align:center;background:rgba(8,17,25,.85)}
+.world-state-badge.on{color:#9fe39f;border:1px solid rgba(159,227,159,.5)}
+.world-state-badge.off{color:#c9d3da;border:1px solid rgba(255,255,255,.18)}

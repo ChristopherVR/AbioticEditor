@@ -105,7 +105,7 @@ internal static class LevelIndex
         0, -2 * size.Y / PlaneSizeCm, 0, 0,
         1, 0, 0, 0,
         0, 0, 0, 1);
-    public const int FormatVersion = 13; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves; 13: door swing previews
+    public const int FormatVersion = 14; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves; 13: door swing previews; 14: components the actor only names (a character's head)
 
     public static LevelIndexData Build(IFileProvider provider, string mapPackage)
     {
@@ -306,9 +306,18 @@ internal static class LevelIndex
         var indices = new List<FPackageIndex?> { actor.GetOrDefault<FPackageIndex?>("RootComponent") };
         indices.AddRange(actor.GetOrDefault<FPackageIndex?[]>("InstanceComponents", []));
         indices.AddRange(actor.GetOrDefault<FPackageIndex?[]>("BlueprintCreatedComponents", []));
+        // Components the engine class makes in code (a character's Mesh, which is its head and the
+        // leader every other body part is posed by) are in neither list: the actor only points at them
+        // through its own fields. Any field naming one of the actor's own subobjects counts.
+        foreach (var property in actor.Properties)
+        {
+            if (property.Tag?.GenericValue is FPackageIndex { IsNull: false, IsExport: true } own && own.ResolvedObject?.Outer?.Name.Text == actor.Name)
+                indices.Add(own);
+        }
+        var yielded = new HashSet<int>();
         foreach (var index in indices)
         {
-            if (index is { IsNull: false } && index.TryLoad(out UObject? component) && component is not null)
+            if (index is { IsNull: false } && yielded.Add(index.Index) && index.TryLoad(out UObject? component) && component is not null)
                 yield return (index, component);
         }
     }

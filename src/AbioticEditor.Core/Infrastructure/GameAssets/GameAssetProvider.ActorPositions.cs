@@ -14,7 +14,7 @@ namespace AbioticEditor.Core.Assets;
 /// </summary>
 public sealed partial class GameAssetProvider
 {
-    private const int RecentPackageCount = 2;
+    private const int RecentPackageCount = 3;
     private readonly List<(string Path, IPackage Package)> _recentPackages = [];
     private Timer? _recentPackagesTimer;
 

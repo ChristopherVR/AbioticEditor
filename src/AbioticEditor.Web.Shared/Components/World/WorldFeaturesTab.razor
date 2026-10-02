@@ -83,24 +83,37 @@ else
                 else
                 {
                     <h3>@selected.Label</h3>
-                    @* What this kind of thing looks like, drawn from the game's own models (tools/thumbnails). *@
-                    @* An NPC spawn point shows the creature it spawns (the game's bestiary picture, else the wiki's). *@
-                    @if (FeatureId == "npc-spawns" && SpawnedCreature(selected.Key) is { Length: > 0 } creature)
-                    {
-                        <div class="world-thumb-art">
-                            <GameArtImage GameRefs="@AbioticEditor.Core.WorldSaves.PetCatalog.CompendiumTextureRefs(creature)"
-                                          WikiFiles="@AbioticEditor.Core.Codex.CreatureWikiImages.CandidatesFor(AbioticEditor.Core.WorldSaves.PetCatalog.FriendlyName(creature) ?? creature)"
-                                          Alt="@creature" />
-                        </div>
-                    }
-                    else if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place)
-                    {
-                        <div class="world-place-art"><img src="@place" alt="@selected.Label" loading="lazy" /></div>
-                    }
-                    else if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
-                    {
-                        <div class="world-thumb-art"><img src="@picture" alt="@selected.Label" loading="lazy" /></div>
-                    }
+                    @* What this kind of thing looks like (drawn from the game's own models, tools/thumbnails) with
+                       its current state on it, and a small shot of where it stands. Both kept at the size they
+                       were drawn, so they stay sharp. An NPC spawn point shows the creature it makes. *@
+                    <div class="world-feature-pictures">
+                        @if (FeatureId == "npc-spawns" && Items.SpawnedCreature(selected.Key) is { } creature)
+                        {
+                            <figure class="world-thumb-art">
+                                <GameArtImage GameRefs="@AbioticEditor.Core.WorldSaves.PetCatalog.CompendiumTextureRefs(creature.Class)"
+                                              WikiFiles="@AbioticEditor.Core.Codex.CreatureWikiImages.CandidatesFor(creature.Name)"
+                                              Alt="@creature.Name" />
+                                <figcaption data-spawn="creature">@L.Resource("WorldFeature_SpawnsFormat", creature.Name)</figcaption>
+                            </figure>
+                        }
+                        else if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
+                        {
+                            <figure class="world-thumb-art">
+                                <img src="@picture" alt="@selected.Label" loading="lazy" />
+                                @if (StateBadge(selected) is { } badge)
+                                {
+                                    <figcaption class="world-state-badge @(badge.On ? "on" : "off")" data-feature="state-badge">@badge.Text</figcaption>
+                                }
+                            </figure>
+                        }
+                        @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place)
+                        {
+                            <figure class="world-place-art">
+                                <img src="@place" alt="@selected.Label" loading="lazy" />
+                                <figcaption>@L.Resource("WorldFeature_WhereItIs")</figcaption>
+                            </figure>
+                        }
+                    </div>
                     <ShowIn3DButton Target="@WorldLocateTarget.ForMapKey(selected.Key, selected.Label)" />
                     @if (FeatureId is "buttons" or "decals")
                     {
@@ -721,48 +734,19 @@ else
             : $"{label}: {PlainNames.Words(field.Value)}";
     }
 
-    private bool IsGlassPane(WorldMapEntry entry)
-        => IsResourceNodes && string.Equals(ResourceNodeNaming.TypeToken(entry.Key), "GlassPane", StringComparison.OrdinalIgnoreCase);
+    // Labels, hints and states are shared with the 3D view's card (FeatureFieldText).
+    private string FieldLabel(WorldMapEntry entry, WorldMapField field) => FeatureFieldText.Label(L, FeatureId, entry, field);
 
-    private string FieldLabel(WorldMapEntry entry, WorldMapField field) => IsResourceNodes
-        ? field.Id switch
-        {
-            "position" => L.Resource("WorldResourceNodes_Position"),
-            "harvested" => L.Resource(IsGlassPane(entry) ? "WorldResourceNodes_WindowState" : "WorldResourceNodes_State"),
-            "dayPickedUp" => L.Resource("WorldResourceNodes_RespawnTiming"),
-            _ => field.Label,
-        }
-        : field.Label;
-
-    private string? FieldHint(WorldMapEntry entry, WorldMapField field) => IsResourceNodes
-        ? field.Id switch
-        {
-            "position" => L.Resource("WorldResourceNodes_PositionHint"),
-            "harvested" => L.Resource(IsGlassPane(entry) ? "WorldResourceNodes_WindowStateHint" : "WorldResourceNodes_StateHint"),
-            "dayPickedUp" => L.Resource("WorldResourceNodes_RespawnTimingHint"),
-            _ => field.Hint,
-        }
-        : field.Hint;
+    private string? FieldHint(WorldMapEntry entry, WorldMapField field) => FeatureFieldText.Hint(L, FeatureId, entry, field);
 
     /// <summary>Plain-language state beside resource-node toggles (Available/Depleted, Intact/Broken).</summary>
-    private string? StateText(WorldMapEntry entry, WorldMapField field)
-    {
-        if (!IsResourceNodes || field.Id != "harvested") return null;
-        return L.Resource(IsGlassPane(entry)
-            ? (IsTrue(field.Value) ? "WorldResourceNodes_Broken" : "WorldResourceNodes_Intact")
-            : (IsTrue(field.Value) ? "WorldResourceNodes_Depleted" : "WorldResourceNodes_Available"));
-    }
+    private string? StateText(WorldMapEntry entry, WorldMapField field) => FeatureFieldText.State(L, FeatureId, entry, field);
 
-    private static bool IsTrue(string? value) => bool.TryParse(value, out var result) && result;
+    private static bool IsTrue(string? value) => FeatureFieldText.IsTrue(value);
 
-    private static string InputType(WorldMapField field) => field.Kind switch
-    {
-        WorldFieldKind.Integer => "number",
-        WorldFieldKind.Number => "number",
-        _ => "text",
-    };
+    private static string InputType(WorldMapField field) => FeatureFieldText.InputType(field);
 
-    private static string? StepFor(WorldMapField field) => field.Kind == WorldFieldKind.Number ? "any" : null;
+    private static string? StepFor(WorldMapField field) => FeatureFieldText.Step(field);
 
     private Task SetBooleanFieldAsync(string featureId, string entryKey, string fieldId, bool value)
         => SetFieldAsync(featureId, entryKey, fieldId, value ? "true" : "false");
@@ -879,12 +863,13 @@ else
     }
 
 
-    /// <summary>The creature an NPC spawn point makes, from its name: <c>NPCSpawn_Peccary_C_12</c> spawns a Peccary.</summary>
-    private static string? SpawnedCreature(string key)
-    {
-        var name = WorldThumbnails.ClassOf(key);
-        if (name.StartsWith("NPCSpawn_", StringComparison.OrdinalIgnoreCase)) name = name["NPCSpawn_".Length..];
-        if (name.EndsWith("_C", StringComparison.Ordinal)) name = name[..^2];
-        return name.Length == 0 || name.Equals("Generic", StringComparison.OrdinalIgnoreCase) ? null : name;
-    }
+
+    /// <summary>
+    /// The entry's main on/off setting written on its picture ("Activated: Yes", "At top stop: No"),
+    /// so the picture tells its state and changes with it. Null when it has no on/off setting.
+    /// </summary>
+    private (string Text, bool On)? StateBadge(WorldMapEntry entry)
+        => entry.Fields.FirstOrDefault(f => f.Editable && f.Kind == WorldFieldKind.Bool) is { } field
+            ? (StateText(entry, field) ?? FieldSummary(entry, field), IsTrue(field.Value))
+            : null;
 }

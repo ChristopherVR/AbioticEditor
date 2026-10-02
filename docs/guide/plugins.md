@@ -37,9 +37,13 @@ Opening a save also prepares the level around your bases and the rest of the are
 background, so **Show in 3D** on a door or button elsewhere is quick too. The level appears in parts
 as it arrives.
 
-The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes and
-Containers lists show a picture of each kind of thing, drawn from the game's own models and included
-with the editor.
+The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes, Power
+Sockets and Containers lists show a picture of each kind of thing, drawn from the game's own models
+and included with the editor, with its current state on it and a small picture of where it stands.
+NPC spawn points show the creature they spawn.
+
+On the **Map**, the bases sit on a picture of the level seen from straight above, drawn from your game
+files. Pick a base and the map zooms to it.
 
 If you installed the separate Game Models plugin with an earlier version, you can delete its
 `GameModels3D` folder from **Settings ▸ Plugins ▸ OPEN PLUGINS FOLDER**; the editor uses the newer
@@ -57,20 +61,24 @@ tabs underneath.
 Scroll to zoom towards whatever is under the pointer, and double-click a spot to swing the view
 round it and move in close. **Full screen** gives the view the whole window; press Escape or the
 button again to leave. Whatever the pointer is over gets a thin blue outline, so you can see what a
-click will pick. With **Edit mode** ticked on the view, drag a piece you built to
-move it across the floor; hold Alt while dragging to raise or lower it. Furniture and walls that
+click will pick. With **Edit mode** ticked on the view, press and drag any piece you built to
+move it across the floor; a selected group moves together. It moves in 10 cm steps (hold Shift to move
+freely, Alt to raise or lower it). R turns the selection 45 degrees (Shift+R 15), Delete removes it and
+Ctrl+D copies it beside itself. Furniture and walls that
 belong to the level itself show a card saying so: the game rebuilds those from its own files, so
 they cannot be moved. Leaving the 3D view and coming back keeps it exactly as you left it.
-Triangles mark items lying on the ground and squares mark buttons, breakable walls, resource nodes
-and the like; click one to see what it is and jump to the tab that edits it.
+Triangles mark items lying on the ground and squares mark buttons, breakable walls, resource nodes,
+spawn points and the like; click one to change its settings right there. Clicking a wall socket's plug
+opens it, so you can plug a device in.
 
 Round markers show the area's doors, coloured by state: green is open, grey is closed, blue is a
 closed security door and orange is destroyed or smashed. Click one to open or close it (either
 way round for a swinging door); the change waits for **SAVE** like any other edit. Press **Walk** to look around at eye
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
-You bump into walls while walking; turn off **Stay on the floor** to fly through them.
-Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
-that edits it. Turn on **Edit mode** on the view, then **Add object** puts a fresh copy of
+You bump into walls while walking; turn off **Stay on the floor** to fly through them. E and Q take
+you up and down: let go and you land on the floor below, so you can reach another storey.
+Diamonds mark story characters, traders and pets; click one to see who it is: their portrait, their
+story and, for a trader, what they take and sell. Turn on **Edit mode** on the view, then **Add object** puts a fresh copy of
 something you have already built where the view is looking. **Also list things built in my other
 worlds** adds everything you have built in your other worlds on this computer, so you can place a
 kind this world has never had.

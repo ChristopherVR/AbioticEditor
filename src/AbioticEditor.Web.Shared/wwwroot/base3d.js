@@ -161,6 +161,47 @@ export function fitToWindow(root) {
     };
 }
 
+/**
+ * The Bases map's picture of the level under it, drawn by a hidden view kept for these shots (the
+ * desktop editor, with the game's files). Null when the game's models are not available here.
+ */
+let shotView = null;
+export async function mapBackdrop(options) {
+    try {
+        const status = await (await fetch(`${MODEL_BASE}/status`)).json();
+        if (!status?.available) return null;
+    } catch {
+        return null;
+    }
+    if (!shotView) {
+        const host = document.createElement("div");
+        host.style.cssText = "position:fixed;left:-10000px;top:0;width:64px;height:64px;pointer-events:none;";
+        document.body.appendChild(host);
+        shotView = buildView(host, { invokeMethodAsync: async () => { } });
+    }
+    return shotView.topDownShot(options);
+}
+
+/**
+ * Puts the Bases map's level picture into its image element straight from the browser (the picture
+ * never travels to the editor and back). Pictures are kept for the session by key. True when the
+ * map got a picture.
+ */
+const backdrops = new Map();
+export async function fillMapBackdrop(element, key, options) {
+    if (!element) return false;
+    element.dataset.shot = JSON.stringify(options); // what was asked for (diagnostics and UI tests)
+    let picture = backdrops.get(key);
+    if (picture === undefined) {
+        element.removeAttribute("href"); // the old framing's picture would sit misaligned meanwhile
+        picture = await mapBackdrop(options).catch(() => null);
+        backdrops.set(key, picture);
+    }
+    if (!picture) return false;
+    element.setAttribute("href", picture);
+    return true;
+}
+
 export function createView(host, dotnet, parkKey) {
     const waiting = parkKey ? parked.get(parkKey) : null;
     if (waiting) {
@@ -174,23 +215,41 @@ export function createView(host, dotnet, parkKey) {
 }
 
 function buildView(host, dotnet) {
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Smoothing the edges (multisampling) costs most on a high-resolution screen, where the edges are
+    // already fine: it is only used on ordinary screens. "high-performance" asks a laptop for its
+    // faster graphics chip.
+    const DPR = window.devicePixelRatio || 1;
+    const renderer = new THREE.WebGLRenderer({ antialias: DPR < 1.5, powerPreference: "high-performance" });
     // Full sharpness when the view is still; while it moves (orbit, pan, walk) it is drawn at a lower
     // resolution, which on a high-DPI screen is most of the cost of a frame. Sharp again 200 ms after
-    // the last movement.
-    const SHARP_RATIO = Math.min(window.devicePixelRatio || 1, 2);
-    const MOVING_RATIO = Math.min(SHARP_RATIO, 1) * 0.75;
-    let movingUntil = 0, sharpTimer = 0;
+    // the last movement. How low it goes while moving follows how fast frames actually are: a fast
+    // machine keeps near full sharpness, a slow one drops further until moving is smooth again.
+    const SHARP_RATIO = Math.min(DPR, 2);
+    let movingRatio = Math.min(SHARP_RATIO, 1) * 0.75;
+    let movingUntil = 0, sharpTimer = 0, lastFrameAt = 0, slowFrames = 0, fastFrames = 0;
     renderer.setPixelRatio(SHARP_RATIO);
     function markMoving() {
         movingUntil = performance.now() + 200;
-        if (renderer.getPixelRatio() !== MOVING_RATIO) { renderer.setPixelRatio(MOVING_RATIO); resize(); }
+        if (renderer.getPixelRatio() !== movingRatio) { renderer.setPixelRatio(movingRatio); resize(); }
         clearTimeout(sharpTimer);
         sharpTimer = setTimeout(() => {
             if (disposed || performance.now() < movingUntil) return;
+            lastFrameAt = 0;
             renderer.setPixelRatio(SHARP_RATIO);
             resize();
         }, 220);
+    }
+    /** Called each frame while moving: frames slower than 30 a second lower the moving resolution, fast ones raise it. */
+    function tuneMovingRatio(now) {
+        if (performance.now() >= movingUntil) { lastFrameAt = 0; return; }
+        if (lastFrameAt) {
+            const ms = now - lastFrameAt;
+            if (ms > 34) { slowFrames++; fastFrames = 0; } else if (ms < 18) { fastFrames++; slowFrames = 0; }
+            const top = Math.min(SHARP_RATIO, 1.25);
+            if (slowFrames >= 6 && movingRatio > 0.45) { movingRatio = Math.max(0.45, movingRatio * 0.85); slowFrames = 0; renderer.setPixelRatio(movingRatio); resize(); }
+            else if (fastFrames >= 30 && movingRatio < top) { movingRatio = Math.min(top, movingRatio * 1.1); fastFrames = 0; renderer.setPixelRatio(movingRatio); resize(); }
+        }
+        lastFrameAt = now;
     }
     renderer.localClippingEnabled = true; // the level's ceiling cut
     // Reading every shader's compile log (three's error check) makes the browser finish each compile on
@@ -393,7 +452,6 @@ function buildView(host, dotnet) {
     // every one gets a soft glow. Their count changes the shaders, so it only changes on a level load.
     const lampGroup = new THREE.Group();
     scene.add(lampGroup);
-    const MAX_LIVE_LAMPS = 12;
     const LAMP_CANDELA = 3; // a default engine lamp, in the view's physical light units
     let lampsOn = true;
     const glowTexture = (() => {
@@ -411,18 +469,30 @@ function buildView(host, dotnet) {
         return t;
     })();
 
+    // A fixed set of real lights, made once and pointed at the nearest lamps on each level load.
+    // Three.js builds its shaders for a number of lights: when that number changed with every load,
+    // every material (hundreds) was compiled again, which froze the view for seconds each time.
+    // Lights without a lamp are turned down to nothing (still counted, so nothing recompiles).
+    const POINT_POOL = 4, SPOT_POOL = 2;
+    const pointPool = Array.from({ length: POINT_POOL }, () => new THREE.PointLight(0xffffff, 0, 10, 2));
+    const spotPool = Array.from({ length: SPOT_POOL }, () => new THREE.SpotLight(0xffffff, 0, 10, Math.PI / 4, 0.5, 2));
+    for (const light of pointPool) lampGroup.add(light);
+    for (const light of spotPool) { lampGroup.add(light); lampGroup.add(light.target); }
+
     function clearLamps() {
         for (const child of [...lampGroup.children]) {
+            if (!child.isSprite) continue;
             lampGroup.remove(child);
-            if (child.isSprite) child.material.dispose();
-            if (child.isLight) child.dispose();
+            child.material.dispose();
         }
+        for (const light of [...pointPool, ...spotPool]) { light.intensity = 0; light.userData.intensity = 0; }
     }
 
     function setLamps(list) {
         clearLamps();
         const lamps = list ?? [];
-        lamps.forEach((l, i) => {
+        let points = 0, spots = 0;
+        lamps.forEach(l => {
             const colour = new THREE.Color(l.color[0], l.color[1], l.color[2]);
             const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture, color: colour, blending: THREE.AdditiveBlending,
                 depthWrite: false, transparent: true, opacity: Math.min(0.9, 0.35 + 0.15 * l.brightness) }));
@@ -431,31 +501,63 @@ function buildView(host, dotnet) {
             glow.scale.set(size, size, 1);
             glow.userData.lamp = true;
             lampGroup.add(glow);
-            if (i >= MAX_LIVE_LAMPS) return;
             const intensity = Math.min(20, LAMP_CANDELA * Math.max(0, l.brightness));
             const range = Math.max(2, l.rangeMetres || 10);
-            let light;
-            if (l.direction) {
-                const cone = l.coneDegrees ?? 75;
-                light = new THREE.SpotLight(colour, intensity, range, THREE.MathUtils.degToRad(Math.min(85, Math.max(5, cone))), 0.5, 2);
-                light.target.position.set(l.position[0] + l.direction[0], l.position[1] + l.direction[1], l.position[2] + l.direction[2]);
-                lampGroup.add(light.target);
-            } else {
-                light = new THREE.PointLight(colour, intensity, range, 2);
-            }
+            // Lamps come nearest first; each takes a free light of its kind (a spot without a free spot
+            // light lights as a point, which is close enough for context).
+            const light = l.direction && spots < SPOT_POOL ? spotPool[spots++] : points < POINT_POOL ? pointPool[points++] : null;
+            if (!light) return;
+            light.color.copy(colour);
+            light.userData.intensity = intensity;
+            light.distance = range;
             light.position.set(l.position[0], l.position[1], l.position[2]);
-            lampGroup.add(light);
+            if (light.isSpotLight) {
+                const cone = l.coneDegrees ?? 75;
+                light.angle = THREE.MathUtils.degToRad(Math.min(85, Math.max(5, cone)));
+                light.target.position.set(l.position[0] + l.direction[0], l.position[1] + l.direction[1], l.position[2] + l.direction[2]);
+                light.target.updateMatrixWorld();
+            }
         });
-        lampGroup.visible = lampsOn;
-        // Lit by its own lamps, the level needs less of the flat fill light.
-        ambient.intensity = lampsOn && lamps.length ? 1.35 : 1.6;
+        applyLampsOn();
         updateLevelCut();
+    }
+
+    /** Lamps on or off: lights dimmed to nothing and glows hidden (the light count never changes). */
+    function applyLampsOn() {
+        let any = false;
+        for (const light of [...pointPool, ...spotPool]) {
+            light.intensity = lampsOn ? (light.userData.intensity ?? 0) : 0;
+            if (light.intensity > 0) any = true;
+        }
+        for (const child of lampGroup.children) if (child.isSprite) child.visible = lampsOn && child.position.y <= levelClip.constant;
+        // Lit by its own lamps, the level needs less of the flat fill light.
+        ambient.intensity = any ? 1.35 : 1.6;
     }
 
     // Level geometry around the camera target (context only: never picked or edited).
     const levelGroup = new THREE.Group();
     scene.add(levelGroup);
+    // The level drawn in few calls: once a load has finished, its pieces are merged into one batched
+    // mesh per material (three's BatchedMesh), which draws hundreds of different pieces in one call
+    // and skips the ones out of view one by one. The pieces themselves stay in levelGroup, hidden,
+    // for clicking, walking into walls and the camera's line of sight (rays ignore visibility).
+    const mergedGroup = new THREE.Group();
+    scene.add(mergedGroup);
     const levelClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+    // Stairs are cut a storey higher than the rest, so a staircase shows whole up to the next floor
+    // instead of sawn off half way up (the floor above is still cut away).
+    const STAIR_EXTRA_M = 2.6;
+    const stairClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+    const stairMaterials = new Map();
+    function stairMaterial(material) {
+        let copy = stairMaterials.get(material.uuid);
+        if (!copy) {
+            copy = material.clone();
+            copy.clippingPlanes = [stairClip];
+            stairMaterials.set(material.uuid, copy);
+        }
+        return copy;
+    }
     let levelOptions = { enabled: false, region: null, radius: 40, cutAbove: 3, excludeActors: [] };
     let levelToken = 0;
     let levelRetry = 0;
@@ -543,6 +645,7 @@ function buildView(host, dotnet) {
         else flyLast = 0;
         updateClipping();
         renderer.render(scene, camera);
+        tuneMovingRatio(now);
         renderLabels();
     }
 
@@ -550,7 +653,7 @@ function buildView(host, dotnet) {
     // W A S D (or the arrows) slide the view across the area, Q / E lower and raise it, Shift is
     // faster: getting around without switching to Walk. Speed follows how far out the camera is.
     const flyKeys = new Set();
-    let flyLast = 0;
+    let flyLast = 0, flyRamp = 0;
     function flyStep(now) {
         const dt = flyLast ? Math.min(0.1, (now - flyLast) / 1000) : 0;
         flyLast = now;
@@ -568,7 +671,9 @@ function buildView(host, dotnet) {
         if (flyKeys.has("q")) move.y -= 1;
         if (move.lengthSq() === 0) return true;
         const distance = camera.position.distanceTo(controls.target);
-        const speed = Math.min(60, Math.max(2, distance * 0.5)) * (flyKeys.has("shift") ? 3 : 1) * dt;
+        // Speeds up over a quarter of a second (like walking) instead of jumping to full speed.
+        flyRamp = Math.min(1, flyRamp + dt * 4);
+        const speed = Math.min(60, Math.max(2, distance * 0.5)) * (flyKeys.has("shift") ? 3 : 1) * dt * (0.3 + 0.7 * flyRamp);
         move.normalize().multiplyScalar(speed);
         camera.position.add(move);
         controls.target.add(move);
@@ -583,7 +688,7 @@ function buildView(host, dotnet) {
         flyKeys.add(k);
         requestRender();
     }
-    function onFlyKeyUp(e) { flyKeys.delete(e.key.toLowerCase()); }
+    function onFlyKeyUp(e) { flyKeys.delete(e.key.toLowerCase()); if (flyKeys.size === 0) flyRamp = 0; }
     // Keys only steer the view after it was clicked (or hovered), so typing elsewhere never moves it.
     let pointerInside = false;
     function hostHasFocus() { return pointerInside || document.activeElement === renderer.domElement; }
@@ -1168,12 +1273,142 @@ function buildView(host, dotnet) {
             levelGroup.remove(child);
             child.dispose();
         }
+        clearMergedLevel();
         levelInstances = 0;
         clearLamps();
         ambient.intensity = 1.6;
     }
 
+    // ---- merged level ---------------------------------------------------------------------------
+    let mergeToken = 0;
+    function clearMergedLevel() {
+        mergeToken++;
+        for (const child of [...mergedGroup.children]) {
+            mergedGroup.remove(child);
+            child.dispose();
+        }
+        for (const mesh of levelGroup.children) mesh.visible = true;
+    }
+
+    /** True for a material three.js can batch as it is (no custom shader code, opaque). */
+    function batchable(material) {
+        return !!material && !material.transparent
+            && material.onBeforeCompile === THREE.Material.prototype.onBeforeCompile;
+    }
+
+    const sectionCache = new WeakMap(); // geometry -> Map(start -> section geometry)
+    /** One section of a multi-material mesh as its own geometry, with only the vertices it uses. */
+    function sectionGeometry(geometry, start, count) {
+        if (start === 0 && count >= geometry.index.count) return geometry;
+        let byStart = sectionCache.get(geometry);
+        if (!byStart) sectionCache.set(geometry, byStart = new Map());
+        const known = byStart.get(start);
+        if (known) return known;
+        const index = geometry.index.array;
+        const remap = new Int32Array(geometry.attributes.position.count).fill(-1);
+        const order = [];
+        const newIndex = new Uint32Array(count);
+        for (let i = 0; i < count; i++) {
+            const v = index[start + i];
+            if (remap[v] < 0) { remap[v] = order.length; order.push(v); }
+            newIndex[i] = remap[v];
+        }
+        const part = new THREE.BufferGeometry();
+        for (const name of ["position", "normal", "uv"]) {
+            const source = geometry.attributes[name];
+            if (!source) continue;
+            const size = source.itemSize;
+            const out = new source.array.constructor(order.length * size);
+            for (let i = 0; i < order.length; i++) for (let c = 0; c < size; c++) out[i * size + c] = source.array[order[i] * size + c];
+            part.setAttribute(name, new THREE.BufferAttribute(out, size, source.normalized));
+        }
+        part.setIndex(new THREE.BufferAttribute(newIndex, 1));
+        byStart.set(start, part);
+        return part;
+    }
+
+    /**
+     * Merges the loaded level into batched meshes, a few milliseconds at a time between frames so it
+     * never stalls the view, then swaps them in once their shaders are ready.
+     */
+    async function mergeLevel(levelLoad) {
+        if (typeof THREE.BatchedMesh !== "function") return;
+        clearMergedLevel();
+        const token = ++mergeToken;
+        const plans = new Map(); // material -> { parts, instances }
+        const merged = [];
+        const matrix = new THREE.Matrix4();
+        for (const mesh of levelGroup.children) {
+            if (!mesh.isInstancedMesh || mesh.geometry.attributes.color || !mesh.geometry.index) continue;
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            const g = mesh.geometry;
+            const sections = g.groups.length ? g.groups : [{ start: 0, count: g.index.count, materialIndex: 0 }];
+            if (!sections.every(sec => batchable(materials[sec.materialIndex] ?? materials[0]))) continue;
+            const matrices = [];
+            for (let i = 0; i < mesh.count; i++) { mesh.getMatrixAt(i, matrix); matrices.push(matrix.clone()); }
+            for (const sec of sections) {
+                const material = materials[sec.materialIndex] ?? materials[0];
+                let plan = plans.get(material);
+                if (!plan) plans.set(material, plan = { parts: [], instances: 0 });
+                plan.parts.push({ source: g, start: sec.start, count: sec.count, matrices });
+                plan.instances += matrices.length;
+            }
+            merged.push(mesh);
+        }
+        if (merged.length < 8) return; // a handful of pieces: nothing to gain
+        const batches = [];
+        const abandon = () => { for (const b of batches) b.dispose(); };
+        let budget = performance.now() + 8;
+        for (const [material, plan] of plans) {
+            const geometries = plan.parts.map(part => sectionGeometry(part.source, part.start, part.count));
+            const unique = [...new Set(geometries)];
+            const vertices = unique.reduce((n, geo) => n + geo.attributes.position.count, 0);
+            const indices = unique.reduce((n, geo) => n + geo.index.count, 0);
+            const batched = new THREE.BatchedMesh(plan.instances, vertices, indices, material);
+            batched.sortObjects = false;
+            batches.push(batched);
+            const ids = new Map();
+            for (let i = 0; i < plan.parts.length; i++) {
+                const geo = geometries[i];
+                let id = ids.get(geo);
+                if (id === undefined) { id = batched.addGeometry(geo); ids.set(geo, id); }
+                for (const m of plan.parts[i].matrices) batched.setMatrixAt(batched.addInstance(id), m);
+                if (performance.now() > budget) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    if (token !== mergeToken || levelLoad !== levelToken || disposed) { abandon(); return; }
+                    budget = performance.now() + 8;
+                }
+            }
+        }
+        const staging = new THREE.Group();
+        for (const b of batches) staging.add(b);
+        if (typeof renderer.compileAsync === "function") {
+            pendingCompile.add(staging);
+            try { await renderer.compileAsync(staging, camera, scene); } catch { /* drawn when ready */ }
+            pendingCompile.remove(staging);
+        }
+        if (token !== mergeToken || levelLoad !== levelToken || disposed) { abandon(); return; }
+        for (const b of batches) mergedGroup.add(b);
+        for (const mesh of merged) mesh.visible = false;
+        mergedStats = { calls: batches.length, pieces: merged.length };
+        requestRender();
+    }
+    let mergedStats = { calls: 0, pieces: 0 };
+
     let levelFloorY = null; // the level's own floor under the view centre (null until the level is in)
+
+    let levelCeilingY = null; // the level's ceiling over the view centre (null until loaded, or none)
+
+    /** The lowest level surface straight above a point, up to 6 m (ignoring the cut), or null. */
+    function levelCeilingAbove(at, floorY) {
+        // From a little above the floor, so a table or shelf the point stands on is not taken for the ceiling.
+        const from = new THREE.Vector3(at.x, Math.max(at.y, (floorY ?? at.y) + 1.2), at.z);
+        raycaster.set(from, new THREE.Vector3(0, 1, 0));
+        raycaster.far = 6;
+        const hits = raycaster.intersectObjects(nearSolids(at, 3), false);
+        raycaster.far = Infinity;
+        return hits.length ? hits[0].point.y : null;
+    }
 
     /** The highest level surface straight below a point (ignoring the cut), or null. */
     function levelFloorUnder(at) {
@@ -1188,6 +1423,7 @@ function buildView(host, dotnet) {
     function updateLevelCut() {
         if (levelOptions.cutAbove === null || levelOptions.cutAbove === undefined || levelOptions.cutAbove <= 0) {
             levelClip.constant = 1e6;
+            stairClip.constant = 1e6;
         } else {
             const c = levelCentre ?? controls.target;
             // The floor the level itself has under the view centre, once it has loaded; until then
@@ -1196,10 +1432,14 @@ function buildView(host, dotnet) {
             // floor above stayed in, hiding the room (a fridge shown from "Show in 3D").
             const objects = baseFloor(c);
             const floor = levelFloorY === null ? objects : (objects < levelFloorY && levelFloorY - objects < 1.5 ? objects : levelFloorY);
-            levelClip.constant = floor + levelOptions.cutAbove;
+            // A ceiling lower than the cut (many rooms are under 3 m) would stay and hide the room:
+            // the cut then sits just under the ceiling found above the view centre.
+            const cut = floor + levelOptions.cutAbove;
+            levelClip.constant = levelCeilingY !== null && levelCeilingY < cut && levelCeilingY > floor + 1.2 ? levelCeilingY - 0.05 : cut;
+            stairClip.constant = Math.max(levelClip.constant, floor + levelOptions.cutAbove) + STAIR_EXTRA_M;
         }
         // A lamp's glow above the cut would float where its (cut away) fixture was; its light still falls below.
-        for (const child of lampGroup.children) if (child.isSprite) child.visible = child.position.y <= levelClip.constant;
+        for (const child of lampGroup.children) if (child.isSprite) child.visible = lampsOn && child.position.y <= levelClip.constant;
         requestRender();
     }
 
@@ -1235,6 +1475,7 @@ function buildView(host, dotnet) {
         const c = controls.target.clone();
         levelCentre = c;
         levelFloorY = null;
+        levelCeilingY = null;
         let slice;
         report("level", 0, 0, "query");
         try {
@@ -1286,12 +1527,16 @@ function buildView(host, dotnet) {
                     ? worldProjectedMaterialFor(m, m.worldTileMetres > 0 ? m.worldTileMetres : DEFAULT_WORLD_TILE_M)
                     : materialFor(m, true))
                 : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
-            const mesh = new THREE.InstancedMesh(geometry, materials, count);
+            const isStair = /stair/i.test(batch.name ?? "");
+            const mesh = new THREE.InstancedMesh(geometry, isStair ? materials.map(stairMaterial) : materials, count);
             const m = new THREE.Matrix4();
             for (let i = 0; i < count; i++) mesh.setMatrixAt(i, m.fromArray(batch.matrices, i * 16));
             mesh.instanceMatrix.needsUpdate = true;
             mesh.computeBoundingSphere();
             mesh.name = batch.name ?? "";
+            // Which level actor each instance belongs to, so a click on a piece (a wall plug) can
+            // open the thing it is part of.
+            if (batch.actors && slice.actors) { mesh.userData.actors = batch.actors; mesh.userData.actorNames = slice.actors; }
             pending.push(mesh);
             if (pending.length >= 24) flushing = flushing.then(flush);
         }));
@@ -1302,7 +1547,10 @@ function buildView(host, dotnet) {
         setLamps(slice.lights);
         if (grid) grid.visible = levelGroup.children.length === 0;
         levelFloorY = levelGroup.children.length ? levelFloorUnder(levelCentre) : null;
+        levelCeilingY = levelGroup.children.length ? levelCeilingAbove(levelCentre, levelFloorY) : null;
         updateLevelCut();
+        unblockView();
+        mergeLevel(token);
         report("level", slice.totalInBox ?? levelInstances, slice.pendingMaps ?? 0, slice.note ?? null);
         // Level files still being read in the background: ask again shortly.
         if ((slice.pendingMaps ?? 0) > 0) levelRetry = setTimeout(() => { if (token === levelToken) loadLevel(); }, LEVEL_RETRY_MS);
@@ -1346,7 +1594,60 @@ function buildView(host, dotnet) {
         controls.target.copy(center);
         camera.position.copy(center).addScaledVector(dir, dist);
         controls.update();
+        // A few things picked: make sure no wall stands between the camera and them (again once
+        // the level around them has loaded).
+        if (list.length <= 6) { aimedAt = { at: center.clone(), until: performance.now() + 20000 }; unblockView(); }
         requestRender();
+    }
+
+    // ---- a clear view ------------------------------------------------------------------------
+    // After a jump to something, the camera could end up behind a wall or inside a pillar, which
+    // filled the view with one grey surface. The line from the camera to the target is tested
+    // against the level (below the cut); when blocked, other angles around the target are tried
+    // (looking down first, as the ceiling is cut away), and failing those the camera moves in
+    // front of whatever blocks it.
+    let aimedAt = null;
+    const sightRay = new THREE.Raycaster();
+    function blockedAt(from, to) {
+        const dir = to.clone().sub(from);
+        const length = dir.length();
+        if (length < 0.05) return null;
+        sightRay.set(from, dir.normalize());
+        sightRay.far = Math.max(0, length - 0.3);
+        for (const hit of sightRay.intersectObjects(nearSolids(to, length + 1), false)) {
+            if (levelClip.distanceToPoint(hit.point) < 0) continue; // cut away: not drawn
+            return hit.distance;
+        }
+        return null;
+    }
+    function unblockView() {
+        if (!aimedAt || performance.now() > aimedAt.until || walkOn || levelGroup.children.length === 0) return;
+        const target = aimedAt.at;
+        if (controls.target.distanceTo(target) > 0.05) { aimedAt = null; return; } // moved on since
+        const offset = camera.position.clone().sub(target);
+        const dist = offset.length();
+        if (blockedAt(camera.position, target) === null) return;
+        const yaw0 = Math.atan2(offset.x, offset.z);
+        for (const lift of [1.0, 0.75, 0.45, 0.2]) {
+            for (let i = 0; i < 8; i++) {
+                const yaw = yaw0 + (i % 2 ? -1 : 1) * Math.ceil(i / 2) * (Math.PI / 4);
+                const flat = Math.cos(lift);
+                const candidate = target.clone().add(new THREE.Vector3(Math.sin(yaw) * flat, Math.sin(lift), Math.cos(yaw) * flat).multiplyScalar(dist));
+                if (blockedAt(candidate, target) === null) {
+                    camera.position.copy(candidate);
+                    controls.update();
+                    requestRender();
+                    return;
+                }
+            }
+        }
+        // Nothing clear at that distance: come in front of the nearest blocker on the original line.
+        const along = blockedAt(camera.position, target);
+        if (along !== null) {
+            camera.position.copy(target).addScaledVector(offset.normalize(), Math.max(0.5, dist - along - 0.4));
+            controls.update();
+            requestRender();
+        }
     }
 
     // ---- labels ------------------------------------------------------------------------------
@@ -1447,7 +1748,9 @@ function buildView(host, dotnet) {
         controls.target.copy(target);
         camera.position.copy(target).addScaledVector(direction, d);
         controls.update();
+        aimedAt = { at: target.clone(), until: performance.now() + 20000 };
         if (levelOptions.enabled) loadLevel();
+        unblockView();
         requestRender();
     }
 
@@ -1750,16 +2053,22 @@ function buildView(host, dotnet) {
         if (walkKeys.has("s") || walkKeys.has("arrowdown")) move.sub(walkFloor ? flat : walkForward());
         if (walkKeys.has("d") || walkKeys.has("arrowright")) move.add(right);
         if (walkKeys.has("a") || walkKeys.has("arrowleft")) move.sub(right);
-        if (!walkFloor && (walkKeys.has("e") || walkKeys.has(" "))) move.y += 1;
-        if (!walkFloor && (walkKeys.has("q") || walkKeys.has("c"))) move.y -= 1;
+        // E / Space go up and Q / C down, on the floor too: while held the floor is not followed, and
+        // on letting go the walker lands on whatever is below (so another storey can be reached).
+        const rising = walkKeys.has("e") || walkKeys.has(" ");
+        const sinking = walkKeys.has("q") || walkKeys.has("c");
+        if (rising) move.y += 1;
+        if (sinking) move.y -= 1;
+        const vertical = rising || sinking;
+        if (vertical) walkEyeY = null;
         if (move.lengthSq() > 0) {
             move.normalize().multiplyScalar(speed);
             // On the floor the walker is solid: walls, level pieces and placed objects stop it, and
             // it slides along them. Flying passes through everything.
-            if (walkFloor) collide(move);
+            if (walkFloor && !vertical) collide(move);
             camera.position.add(move);
         }
-        if (walkFloor && now - walkFloorCheck > 90) {
+        if (walkFloor && !vertical && now - walkFloorCheck > 90) {
             walkFloorCheck = now;
             // Steps and ramps are climbed (up to knee height); a drop is followed down.
             const ground = floorBelow(new THREE.Vector3(camera.position.x, camera.position.y - EYE_M + 0.6, camera.position.z));
@@ -1807,6 +2116,17 @@ function buildView(host, dotnet) {
     // Walking looks around like a game: click the view to capture the mouse (Escape lets it go), or
     // drag when it is not captured.
     const locked = () => document.pointerLockElement === renderer.domElement;
+    // The browser takes the first Escape to let the mouse go and never passes the key on, so walking
+    // used to carry on: losing the captured mouse while walking now ends walking too.
+    let wasLocked = false;
+    document.addEventListener("pointerlockchange", () => {
+        const now = locked();
+        if (wasLocked && !now && walkOn && !disposed) {
+            setWalk(false);
+            dotnet.invokeMethodAsync("OnWalkEnded").catch(() => { });
+        }
+        wasLocked = now;
+    });
     renderer.domElement.addEventListener("pointermove", e => {
         if (!walkOn) return;
         let dx, dy;
@@ -1827,17 +2147,21 @@ function buildView(host, dotnet) {
     });
     window.addEventListener("pointerup", () => { walkLookFrom = null; });
 
-    /** The name of the level piece under a screen point (visible side of the ceiling cut), or null. */
-    function levelNameAt(clientX, clientY) {
+    /** The level piece under a screen point (visible side of the ceiling cut): its name and its actor ("Map:Actor"), or null. */
+    function levelPieceAt(clientX, clientY) {
         if (levelGroup.children.length === 0) return null;
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
         raycaster.setFromCamera(pointer, camera);
         for (const hit of raycaster.intersectObjects(levelGroup.children, false)) {
-            if (levelClip.distanceToPoint(hit.point) >= 0) return hit.object.name || null;
+            if (levelClip.distanceToPoint(hit.point) < 0) continue;
+            const { actors, actorNames } = hit.object.userData;
+            const actor = actors && hit.instanceId !== undefined ? actorNames[actors[hit.instanceId]] ?? null : null;
+            return { name: hit.object.name || null, actor };
         }
         return null;
     }
+    function levelNameAt(clientX, clientY) { return levelPieceAt(clientX, clientY)?.name ?? null; }
 
     renderer.domElement.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
     renderer.domElement.addEventListener("pointerup", e => {
@@ -1859,7 +2183,8 @@ function buildView(host, dotnet) {
         const hit = pick(e.clientX, e.clientY);
         const additive = e.ctrlKey || e.shiftKey || e.metaKey;
         // Level pieces are reference only: a click on one names it, and never selects anything.
-        dotnet.invokeMethodAsync("OnLevelPicked", hit ? null : levelNameAt(e.clientX, e.clientY)).catch(() => { });
+        const piece = hit ? null : levelPieceAt(e.clientX, e.clientY);
+        dotnet.invokeMethodAsync("OnLevelPicked", piece?.name ?? null, piece?.actor ?? null).catch(() => { });
         if (additive && !hit) return; // a modified click on nothing keeps the selection
         // C# owns the selection (it also drives the list and the inspector) and pushes it back.
         dotnet.invokeMethodAsync("OnPicked", hit ? hit.key : null, additive);
@@ -1889,9 +2214,13 @@ function buildView(host, dotnet) {
         requestRender();
     }
 
-    let draggable = false; // set by the editor: Edit mode is on and the selected piece may move
+    // Edit mode (set by the editor): any piece a player built can be pressed and dragged in one go,
+    // whether it was selected first or not; a piece that is part of a selection moves the whole
+    // selection. Moves snap to 10 cm (hold Shift to move freely).
+    let draggable = false;
+    const SNAP_M = 0.1;
     function canDrag(o) {
-        return draggable && o && o.key === selectedKey && selectedKeys.size === 1 && !walkOn;
+        return draggable && o && o.built && !o.mark && !walkOn; // not a piece staged for removal, nor a copy not yet saved
     }
 
     renderer.domElement.addEventListener("pointermove", e => {
@@ -1913,6 +2242,13 @@ function buildView(host, dotnet) {
         const o = pick(e.clientX, e.clientY);
         if (!canDrag(o)) return;
         const idx = keyToIndex.get(o.key);
+        // Pressing an unselected piece selects it (and tells the editor) and drags it at once.
+        if (!selectedKeys.has(o.key)) {
+            setSelection([o.key], o.key);
+            dotnet.invokeMethodAsync("OnPicked", o.key, false).catch(() => { });
+        }
+        const group = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined && objects[i].built && !objects[i].mark);
+        const starts = new Map(group.map(i => [i, objects[i].p.slice()]));
         const at = new THREE.Vector3(o.p[0], o.p[1], o.p[2]);
         const vertical = e.altKey;
         const normal = vertical ? camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize().negate() : new THREE.Vector3(0, 1, 0);
@@ -1920,7 +2256,7 @@ function buildView(host, dotnet) {
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, at);
         const hit = planeHit(e, plane);
         if (!hit) return;
-        drag = { idx, plane, offset: at.clone().sub(hit), vertical, moved: false };
+        drag = { idx, plane, offset: at.clone().sub(hit), vertical, moved: false, group, starts, origin: at.clone() };
         controls.enabled = false;
         downAt = null; // not a click
         renderer.domElement.setPointerCapture(e.pointerId);
@@ -1938,29 +2274,62 @@ function buildView(host, dotnet) {
     function dragTo(e) {
         const hit = planeHit(e, drag.plane);
         if (!hit) return;
-        const o = objects[drag.idx];
         const next = hit.add(drag.offset);
-        if (drag.vertical) next.set(o.p[0], next.y, o.p[2]);
-        else next.y = o.p[1];
-        o.p = [next.x, next.y, next.z];
-        drag.moved = true;
+        const delta = next.sub(drag.origin);
+        if (drag.vertical) { delta.x = 0; delta.z = 0; } else delta.y = 0;
+        if (!e.shiftKey) {
+            delta.x = Math.round(delta.x / SNAP_M) * SNAP_M;
+            delta.y = Math.round(delta.y / SNAP_M) * SNAP_M;
+            delta.z = Math.round(delta.z / SNAP_M) * SNAP_M;
+        }
+        drag.delta = delta.clone();
+        for (const i of drag.group) {
+            const start = drag.starts.get(i);
+            objects[i].p = [start[0] + delta.x, start[1] + delta.y, start[2] + delta.z];
+            updateOneInstance(i);
+        }
+        drag.moved = delta.lengthSq() > 0;
+        const o = objects[drag.idx];
         proxy.position.set(o.p[0], o.p[1], o.p[2]);
         proxy.quaternion.set(o.q[0], o.q[1], o.q[2], o.q[3]);
-        updateOneInstance(drag.idx);
+        updateSelectionBox();
         if (hoverLine.visible) { boxMatrix(hoverLine.matrix, o); hoverLine.matrixWorldNeedsUpdate = true; }
+        requestRender();
     }
 
     window.addEventListener("pointerup", () => {
         if (!drag) return;
         const moved = drag.moved;
+        const finished = drag;
         drag = null;
         controls.enabled = !walkOn;
         renderer.domElement.style.cursor = "grab";
-        if (moved && selectedKey !== null) {
+        if (moved && finished.group.length > 1) {
+            // A whole selection moved: staged as one group move (the editor converts the step).
+            const from = finished.origin, to = finished.origin.clone().add(finished.delta);
+            dotnet.invokeMethodAsync("OnGroupDragged", [from.x, from.y, from.z], [to.x, to.y, to.z]).catch(() => { });
+        } else if (moved && selectedKey !== null) {
             const prev = gizmoMode;
             gizmoMode = "translate";
             commitGizmo();
             gizmoMode = prev;
+        }
+    });
+
+    // Editing keys, while the view is being used: R turns the selection 45 degrees (Shift+R 15),
+    // Delete removes it, Ctrl+D copies it beside itself.
+    window.addEventListener("keydown", e => {
+        if (!draggable || walkOn || isTyping(e) || !hostHasFocus() || selectedKeys.size === 0) return;
+        const k = e.key.toLowerCase();
+        if (k === "r" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            dotnet.invokeMethodAsync("OnRotateKey", e.shiftKey ? 15 : 45).catch(() => { });
+        } else if (k === "delete" || (k === "backspace" && !e.ctrlKey)) {
+            e.preventDefault();
+            dotnet.invokeMethodAsync("OnDeleteKey").catch(() => { });
+        } else if (k === "d" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            dotnet.invokeMethodAsync("OnDuplicateKey").catch(() => { });
         }
     });
 
@@ -2080,6 +2449,7 @@ function buildView(host, dotnet) {
     const observer = new ResizeObserver(resize);
     observer.observe(host);
     controls.addEventListener("change", () => { markMoving(); requestRender(); followLevelSoon(); });
+    controls.addEventListener("start", () => { aimedAt = null; }); // the player moves the view themselves
 
     // The level follows the view: once it settles (after a pan, a fly or a jump to something picked
     // in a list) far enough from where the level was loaded, the level around the new spot loads.
@@ -2149,8 +2519,7 @@ function buildView(host, dotnet) {
         /** Shows or hides the level's lamps (their light and glow). */
         setLampsVisible(on) {
             lampsOn = !!on;
-            lampGroup.visible = lampsOn;
-            ambient.intensity = lampsOn && lampGroup.children.some(c => c.isLight) ? 1.35 : 1.6;
+            applyLampsOn();
             requestRender();
         },
         /** Reloads the level geometry around the current view centre. */
@@ -2405,6 +2774,90 @@ function buildView(host, dotnet) {
             return shootSquare(group, box, size, [1, 0, 0]);
         },
         /**
+         * The level straight from above, for the Bases map: an orthographic picture of a rectangle of
+         * the world with everything more than cutAbove metres over the floor cut away. right and down
+         * are the viewer-space directions the picture's x and y follow (the map's own axes), so the
+         * picture lies exactly under the map's markers. Returns a data URL, or null when the level has
+         * nothing there.
+         */
+        async topDownShot(options) {
+            const { region, center, focus, right, down, metresWide, metresHigh, floorY, cutAbove = 3, width = 1280, height = 712 } = options ?? {};
+            const c = new THREE.Vector3(...center);
+            // Kept quick on a big area: the pieces nearest the base looked at first (the box is centred
+            // on it and capped). The same meshes and textures as the 3D view, which are usually already
+            // on disk (other sizes had to be read from the game files again, a minute and more).
+            const f = focus ? new THREE.Vector3(...focus) : c;
+            const r = Math.max(Math.abs(c.x - f.x) + metresWide / 2, Math.abs(c.z - f.z) + metresHigh / 2) + 2;
+            const slice = await postJson(`${MODEL_BASE}/level`, {
+                region, min: [f.x - r, floorY - 4, f.z - r], max: [f.x + r, floorY + cutAbove + 1, f.z + r], maxInstances: 12000,
+            });
+            const small = m => ({ ...m, layers: null });
+            const group = new THREE.Group(), materials = [];
+            const instance = new THREE.Matrix4();
+            for (const batch of slice?.batches ?? []) {
+                const geometry = await loadGeometry(batch.mesh);
+                if (!geometry) continue;
+                const mats = batch.materials.length ? batch.materials.map(m => materialFor(small(m), true)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
+                materials.push(...mats);
+                const count = batch.matrices.length / 16;
+                const mesh = new THREE.InstancedMesh(geometry, mats, count);
+                for (let i = 0; i < count; i++) mesh.setMatrixAt(i, instance.fromArray(batch.matrices, i * 16));
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.computeBoundingSphere();
+                group.add(mesh);
+            }
+            if (!group.children.length) return null;
+            await texturesReady(materials);
+
+            const stage = new THREE.Scene();
+            stage.background = new THREE.Color(0x101418);
+            stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.9));
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            sunLight.position.set(0.3, 1, 0.2);
+            stage.add(sunLight);
+            stage.add(group);
+
+            // A camera high above, looking straight down, its picture's x along "right" and y along "down".
+            const xAxis = new THREE.Vector3(...right).normalize();
+            const yAxis = new THREE.Vector3(...down).normalize().negate(); // the picture's up
+            const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis); // towards the camera
+            const mirrored = zAxis.y < 0;
+            if (mirrored) zAxis.negate();
+            const shot = new THREE.OrthographicCamera(
+                mirrored ? metresWide / 2 : -metresWide / 2, mirrored ? -metresWide / 2 : metresWide / 2,
+                metresHigh / 2, -metresHigh / 2, 0.1, 500);
+            const eye = new THREE.Vector3(c.x, floorY + 200, c.z);
+            shot.matrixAutoUpdate = false;
+            shot.matrix.makeBasis(mirrored ? xAxis.clone().negate() : xAxis, yAxis, zAxis).setPosition(eye);
+            shot.matrixWorld.copy(shot.matrix);
+            shot.matrixWorldInverse.copy(shot.matrixWorld).invert();
+            shot.updateProjectionMatrix();
+
+            const savedCut = levelClip.constant;
+            levelClip.constant = floorY + cutAbove;
+            const target = new THREE.WebGLRenderTarget(width, height, { samples: 4 });
+            target.texture.colorSpace = THREE.SRGBColorSpace;
+            const oldTarget = renderer.getRenderTarget();
+            renderer.setRenderTarget(target);
+            renderer.render(stage, shot);
+            const pixels = new Uint8Array(width * height * 4);
+            renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+            renderer.setRenderTarget(oldTarget);
+            levelClip.constant = savedCut;
+            target.dispose();
+            for (const mesh of group.children) mesh.dispose();
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const g = canvas.getContext("2d");
+            const image = g.createImageData(width, height);
+            for (let y = 0; y < height; y++) image.data.set(pixels.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4);
+            g.putImageData(image, 0, 0);
+            requestRender();
+            return canvas.toDataURL("image/webp", 0.7);
+        },
+        /**
          * A picture of where one level actor (a door, button, elevator...) is: the level around it seen
          * from above at an angle, with the ceiling cut away a little above it, and the actor outlined
          * and pinned in orange. Used by tools/thumbnails for the places shown in the editor's lists.
@@ -2547,6 +3000,8 @@ function buildView(host, dotnet) {
         },
         /** Name of the level piece under a page point, or null (diagnostics and tests). */
         levelNameAt(clientX, clientY) { return levelNameAt(clientX, clientY); },
+        /** The level piece under a screen point: its name and actor ("Map:Actor"). Used by UI tests. */
+        levelPieceAt(clientX, clientY) { return levelPieceAt(clientX, clientY); },
         /** The largest level pieces drawn (name, instances, radius in metres, texture), for diagnostics. */
         levelSummary(limit = 20) {
             return levelGroup.children
@@ -2578,7 +3033,9 @@ function buildView(host, dotnet) {
                 cables: cableGroup.children.reduce((n, c) => n + c.geometry.attributes.position.count / 2, 0),
                 levelInstances,
                 lamps: lampGroup.children.filter(c => c.isSprite).length,
-                liveLamps: lampGroup.children.filter(c => c.isLight).length,
+                liveLamps: lampGroup.children.filter(c => c.isLight && c.intensity > 0).length,
+                mergedCalls: mergedStats.calls,
+                mergedPieces: mergedStats.pieces,
                 doors: doorLayer.items.length,
                 selectedDoor: doorLayer.selected,
                 npcs: npcLayer.items.length,

@@ -1,0 +1,81 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves.Features
+@using AbioticEditor.Web.Models
+@inject SaveWorkspaceSessionService Workspace
+
+@* One world-list entry's settings (a resource node, a button, an elevator, a breakable wall...),
+   edited where it is shown: the 3D view's card. The same fields, words and staging as the list's
+   own tab, so a change waits for SAVE like any other. *@
+@if (Entry is { } entry)
+{
+    <div class="feature-entry-editor" data-b3d="thing-fields">
+        @foreach (var (field, fieldKey) in RenderKeys.With(entry.Fields, f => f.Id))
+        {
+            var label = FeatureFieldText.Label(L, FeatureId, entry, field);
+            <div class="feature-entry-field" @key="fieldKey">
+                <label class="feature-entry-row">
+                    <span>@label</span>
+                    @if (!field.Editable)
+                    {
+                        <span class="wt-muted">@(string.IsNullOrEmpty(field.Value) ? L.Inventory("empty") : PlainNames.Words(field.Value))</span>
+                    }
+                    else if (field.Kind == WorldFieldKind.Bool)
+                    {
+                        <span class="feature-entry-toggle">
+                            @if (FeatureFieldText.State(L, FeatureId, entry, field) is { } state) { <small>@state</small> }
+                            <input type="checkbox" checked="@FeatureFieldText.IsTrue(field.Value)" aria-label="@label"
+                                   @onchange="e => SetAsync(entry.Key, field.Id, BoolText(e.Value))" />
+                        </span>
+                    }
+                    else if (field.Kind == WorldFieldKind.Enum && field.Options is not null)
+                    {
+                        <select class="wt-input" value="@field.Value" aria-label="@label" @onchange="e => SetAsync(entry.Key, field.Id, e.Value?.ToString())">
+                            @if (!field.Options.Contains(field.Value)) { <option value="@field.Value">@field.Value</option> }
+                            @foreach (var option in field.Options) { <option value="@option">@PlainNames.Words(option)</option> }
+                        </select>
+                    }
+                    else
+                    {
+                        <input class="wt-input" type="@FeatureFieldText.InputType(field)" step="@FeatureFieldText.Step(field)" value="@field.Value" aria-label="@label"
+                               @onchange="e => SetAsync(entry.Key, field.Id, e.Value?.ToString())" />
+                    }
+                </label>
+                @if (FeatureFieldText.Hint(L, FeatureId, entry, field) is { Length: > 0 } hint) { <small class="wt-muted">@hint</small> }
+                @if (_errors.TryGetValue(field.Id, out var error)) { <small class="error-text" role="alert">@error</small> }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IWorldFeaturesSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public string FeatureId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string EntryKey { get; set; } = string.Empty;
+
+    /// <summary>After a change was staged (the 3D view refreshes what it shows).</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private static string BoolText(object? value) => value is true ? "true" : "false";
+
+    private readonly Dictionary<string, string> _errors = new(StringComparer.Ordinal);
+
+    private WorldMapEntry? Entry => Session.MapFeature(FeatureId)?.Entries.FirstOrDefault(e => string.Equals(e.Key, EntryKey, StringComparison.Ordinal));
+
+    private async Task SetAsync(string entryKey, string fieldId, string? value)
+    {
+        WorldEditResult result;
+        try { result = await Session.SetMapFeatureField(FeatureId, entryKey, fieldId, value); }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or FormatException)
+        {
+            result = WorldEditResult.Failure(L.Resource("WorldFeature_ChangeRefused"));
+        }
+        if (result.IsError)
+        {
+            _errors[fieldId] = result.Error is { Length: > 0 } reason ? reason : L.Resource("WorldFeature_ChangeRefused");
+            return;
+        }
+        _errors.Remove(fieldId);
+        Workspace.NotifyEdited();
+        await OnChanged.InvokeAsync();
+    }
+}

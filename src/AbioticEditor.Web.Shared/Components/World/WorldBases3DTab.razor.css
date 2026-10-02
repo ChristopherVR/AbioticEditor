@@ -4,7 +4,7 @@
 .b3d-viewport { position: relative; scroll-margin-top: 12px; }
 .b3d-canvas { position: relative; width: 100%; height: var(--b3d-fit, clamp(420px, calc(100vh - 210px), 980px)); border: 1px solid var(--line, #224158); background: #101418; overflow: hidden; touch-action: none; }
 .b3d-hud { position: absolute; z-index: 3; }
-.b3d-hud-top { top: 8px; left: 8px; right: 150px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; pointer-events: none; }
+.b3d-hud-top { top: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; pointer-events: none; }
 .b3d-hud-top > * { pointer-events: auto; }
 .b3d-hud-btn { padding: 4px 10px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.82); border: 1px solid rgba(255, 255, 255, 0.22); cursor: pointer; }
 .b3d-hud-btn:hover:not(:disabled) { border-color: var(--accent, #f08418); }
@@ -12,7 +12,7 @@
 .b3d-hud-btn.on { background: rgba(240, 132, 24, 0.85); border-color: #fff; color: #fff; }
 .b3d-hud-check { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.82); border: 1px solid rgba(255, 255, 255, 0.14); cursor: pointer; }
 .b3d-hud-sep { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.25); }
-.b3d-hud-count { top: 10px; right: 10px; padding: 3px 8px; font-size: 12px; color: #9fe39f; background: rgba(8, 17, 25, 0.82); }
+.b3d-hud-count { margin-left: auto; padding: 3px 8px; font-size: 12px; white-space: nowrap; color: #9fe39f; background: rgba(8, 17, 25, 0.82); }
 .b3d-hud-status { left: 10px; bottom: 10px; display: flex; align-items: flex-start; gap: 10px; min-width: 240px; max-width: 60%; padding: 8px 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.9); border: 1px solid rgba(240, 132, 24, 0.6); font-size: 12px; }
 .b3d-status-lines { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
 .b3d-progress { display: block; height: 4px; background: rgba(255, 255, 255, 0.12); }
@@ -88,7 +88,14 @@
 @media (max-width: 1100px) {
     .b3d-layout { grid-template-columns: minmax(0, 1fr); }
     .b3d-side { height: auto; max-height: 80vh; }
-    .b3d-hud-top { right: 10px; top: 40px; }
+}
+/* Narrow windows: smaller buttons, the count drops (it is in the Objects tab too), long notes wrap. */
+@media (max-width: 760px) {
+    .b3d-hud-btn, .b3d-hud-check { padding: 3px 6px; font-size: 11px; }
+    .b3d-hud-count, .b3d-hud-sep { display: none; }
+    .b3d-hud-status { max-width: calc(100% - 20px); min-width: 0; }
+    .b3d-hud-locate { max-width: calc(100% - 20px); left: 10px; right: auto; bottom: 56px; }
+    .b3d-canvas { min-height: 320px; }
 }
 
 /* The editor's buttons grow slightly on hover; in the tab strip, the panel and over the view that
@@ -106,7 +113,7 @@
 .b3d-hud-popover { position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px; background: rgba(8, 17, 25, 0.95); border: 1px solid rgba(255, 255, 255, 0.22); }
 .b3d-menu-check { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12px; color: #eaf3f8; cursor: pointer; }
 .b3d-menu-check:hover { background: rgba(255, 255, 255, 0.08); }
-.b3d-hud-help { top: 48px; right: 10px; width: 300px; padding: 10px 12px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.93); border: 1px solid rgba(255, 255, 255, 0.22); }
+.b3d-hud-help { width: min(300px, calc(100vw - 48px)); padding: 10px 12px; font-size: 12px; color: #eaf3f8; }
 .b3d-hud-help dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 6px 0 0; }
 .b3d-hud-help dt { color: var(--accent, #f08418); font-weight: 600; }
 .b3d-hud-help dd { margin: 0; }
@@ -126,3 +133,16 @@
 /* With something picked, its card gets most of the panel; the lists shrink below it. */
 .b3d-side.picked .b3d-inspect { flex: 3 1 0; }
 .b3d-side.picked .b3d-tab-body { flex: 1 1 0; min-height: 120px; }
+/* A story character's card: portrait, where they are, their story and (traders) what they trade. */
+.b3d-panel ::deep .b3d-character { display: flex; flex-direction: column; gap: 6px; }
+.b3d-panel ::deep .b3d-character-head { display: flex; gap: 10px; align-items: center; }
+.b3d-panel ::deep .b3d-character-portrait { width: 72px; height: 72px; flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(255, 255, 255, 0.04); }
+.b3d-panel ::deep .b3d-character-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.b3d-panel ::deep .b3d-character-blurb, .b3d-panel ::deep .b3d-character-text { margin: 0; font-size: 12px; line-height: 1.4; }
+.b3d-panel ::deep .b3d-character-sells { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; }
+.b3d-panel ::deep .b3d-character-offer { position: relative; display: flex; align-items: center; justify-content: center; height: 40px; background: rgba(255, 255, 255, 0.04); }
+.b3d-panel ::deep .b3d-character-offer img { max-width: 34px; max-height: 34px; }
+.b3d-panel ::deep .b3d-character-offer small { position: absolute; right: 2px; bottom: 0; font-size: 10px; }
+.b3d-panel ::deep .b3d-character-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b3d-panel ::deep .b3d-character-offer.named { grid-column: span 2; padding: 2px 4px; }
+.b3d-panel ::deep .b3d-character-offer-name { font-size: 11px; line-height: 1.2; text-align: center; }

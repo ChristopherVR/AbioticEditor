@@ -1,5 +1,58 @@
 # Abiotic Editor - Session history
 
+## Round-154: review list: clipping, small windows, walking, cards, spawn pictures, plugs, characters, speed, base editing, map picture (2026-10-02)
+
+- **Containers tab**: the card's header lines shrank and overlapped ("Rotten Food" under Show in 3D)
+  because `.wc-detail` is a fixed-height flex column; header children no longer shrink, only the slot
+  grid scrolls.
+- **3D toolbar on small windows**: the object count and help card were pinned to corners; both live in
+  the toolbar now (help is a popover under "?"), with a narrow-window layout.
+- **Walking**: the browser eats the first Escape to release pointer lock, so walking went on; losing
+  the lock now ends walking (`pointerlockchange`). E/Q (Space/C) rise and sink while walking too, and
+  the floor below is taken when let go (reaching another storey). Fly keys ramp up like walking.
+- **Grey view / "texture breaks"**: two causes. Foliage materials (`SM_Foliage_*`) come through
+  two-sided but not masked, so every leaf card was a solid sheet (a bush hid the beehives): a
+  two-sided opaque material whose texture has see-through pixels is now masked (classes cache v4).
+  And ceilings lower than the 3 m cut stayed: the cut now sits just under the ceiling found by a ray
+  up from the view centre (`levelCeilingAbove`). After a jump the camera checks its line of sight
+  against the level and tries other angles (`unblockView`). Stairs get their own cut a storey higher.
+- **Character card** (`CharacterCard3D`): portrait (trader portrait, else the wiki candidates), name,
+  where they are, the trader's story, what they accept and sell (names for cosmetics with no icon).
+- **Jimmy's textures**: three faults. Per-character material copies (`MaterialInstanceDynamic` saved
+  inside the level, with hair and shirt colours) were not reachable by path, so skin and hair fell back
+  to grey: `LoadNested` walks the package's export table by name and full path (materials cache v5).
+  Character materials were "masked" by a texture alpha that is not opacity, cutting the face away:
+  characters only cut out on two-sided cards. And the head (a character's native `Mesh`, referenced
+  only by an actor field) was never indexed: `ComponentsOf` now includes the actor's own subobjects it
+  names (level index v14, so maps re-index once). Test: Jimmy's `CharacterMesh0` and `Hair` are indexed.
+- **3D card for level things**: `FeatureEntryEditor` edits a resource node, button, elevator... in the
+  card (same fields and wording as the list tab, via the shared `FeatureFieldText`).
+- **Spawn pictures**: each spawn blueprint's `NPCsToSpawn` names a `DT_NPCList` row whose
+  `NPCSpawnClass` is the creature (`NpcSpawnCatalog`, 83 kinds, bundled as `NpcSpawnCreatures`); the
+  Gatekeeper and Dark Lens spawns now resolve. Spawn markers in 3D were cut off by the 600-marker cap
+  (spawns came fifth): kinds now take turns, markers arrive in batches, positions read grouped by
+  level file (`TryGetActorWorldTransformsAsync`).
+- **Button/elevator pictures**: a row of the kind picture (132 px, with its main on/off setting as a
+  badge that follows the setting) and a 240 px location shot, both at their drawn size.
+- **Power sockets**: kind pictures (4) and location shots (45) rendered; `power-sockets` added to the
+  probe's lists and `places.mjs`. Clicking a level piece now reports its actor (`SceneLevelSlice.Actors`
+  / `SceneLevelBatch.Actors`): a wall plug (`SM_Plug01` of `PowerSocket_ParentBP_C_n`) opens that
+  socket's card with the plug-in panel, also for a socket with no save entry yet; a socket belonging to
+  another area's save says so and offers Show in 3D there.
+- **Speed**: the level's lamps changed the light count on every load, recompiling every material:
+  a fixed pool of 4 point and 2 spot lights is re-aimed instead (lamps off dims them). After a load the
+  level is merged into one `BatchedMesh` per material (pieces kept hidden for rays): MFWest fridge view
+  680 -> 286 draw calls. No multisampling on high-DPI screens; the moving resolution adapts to frame
+  time.
+- **Base editing**: in Edit mode any built piece is pressed and dragged in one go (selected first),
+  a selected group drags together (`OnGroupDragged` -> group move), 10 cm snapping (Shift free),
+  R / Shift+R turn 45 / 15 degrees, Delete opens the removal check, Ctrl+D copies beside itself when
+  nothing needs deciding. Headless: press-drag on an unselected beehive staged a move.
+- **Bases map picture**: the map frames the chosen base (or the main 85% cluster; portal-world pieces
+  kilometres away had made the map 13 km wide). A hidden view draws the level from straight above
+  (`topDownShot`, orthographic, cut 3 m over the base's floor, 12,000 pieces nearest the base) and the
+  browser puts it into the SVG's `<image>` directly (`fillMapBackdrop`, cached per framing).
+
 ## Round-153: 3D view fits the window, level on by default, fresh-start loading, container pictures, level-piece copy (2026-10-02)
 
 - **Fresh-start stall (measured, headless, MFWest).** The first level request after starting the host

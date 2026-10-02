@@ -4629,7 +4629,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_Walk" xml:space="preserve"><value>Walk</value></data>
   <data name="World3D_WalkStop" xml:space="preserve"><value>Stop walking</value></data>
   <data name="World3D_WalkFloor" xml:space="preserve"><value>Stay on the floor</value></data>
-  <data name="World3D_WalkHint" xml:space="preserve"><value>Walking: drag to look around, W A S D or the arrow keys to move, Shift to go faster. With "Stay on the floor" off, E and Q go up and down. Escape stops walking.</value></data>
+  <data name="World3D_WalkHint" xml:space="preserve"><value>Walking: drag to look around, W A S D or the arrow keys to move, Shift to go faster. E and Q go up and down; let go to land on the floor below, such as another storey. Escape stops walking.</value></data>
   <data name="World3D_PlaceOpen" xml:space="preserve"><value>Place a new object</value></data>
   <data name="World3D_PlaceTitle" xml:space="preserve"><value>PLACE A NEW OBJECT</value></data>
   <data name="World3D_PlaceIntro" xml:space="preserve"><value>Pick a kind of object you have built, here or in another of your worlds. A fresh copy goes where the view is looking (or at the numbers you type). It starts empty and unplugged.</value></data>
@@ -4687,15 +4687,15 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_HelpDoubleKey" xml:space="preserve"><value>Double-click</value></data>
   <data name="World3D_HelpDouble" xml:space="preserve"><value>move in on that spot</value></data>
   <data name="World3D_HelpMove" xml:space="preserve"><value>move across the area (the pointer must be over the view)</value></data>
-  <data name="World3D_HelpUpDown" xml:space="preserve"><value>go down / up</value></data>
+  <data name="World3D_HelpUpDown" xml:space="preserve"><value>go down / up (walking too: let go to land on the floor below)</value></data>
   <data name="World3D_HelpFaster" xml:space="preserve"><value>hold to move faster</value></data>
   <data name="World3D_HelpWalk" xml:space="preserve"><value>walk at eye height: click the view to look with the mouse, W A S D to walk</value></data>
-  <data name="World3D_HelpEscape" xml:space="preserve"><value>let go of the mouse, stop walking, or leave full screen</value></data>
+  <data name="World3D_HelpEscape" xml:space="preserve"><value>stop walking, or leave full screen</value></data>
   <data name="World3D_Fullscreen" xml:space="preserve"><value>Full screen</value></data>
   <data name="World3D_FullscreenExit" xml:space="preserve"><value>Exit full screen</value></data>
   <data name="World3D_LevelCard" xml:space="preserve"><value>Part of the level</value></data>
   <data name="World3D_LevelCardHelp" xml:space="preserve"><value>This piece comes from the game's own level files, not from your save: the game builds it the same way every time the area loads, so it cannot be moved or removed here.</value></data>
-  <data name="World3D_DragHint" xml:space="preserve"><value>Drag the selected piece in the view to move it across the floor; hold Alt while dragging to raise or lower it.</value></data>
+  <data name="World3D_DragHint" xml:space="preserve"><value>Drag any piece you built to move it (a selected group moves together). It moves in 10 cm steps; hold Shift to move freely, or Alt to raise or lower it.</value></data>
   <data name="World3D_GroundItemsToggle" xml:space="preserve"><value>Ground items</value></data>
   <data name="World3D_ThingsToggle" xml:space="preserve"><value>Buttons and more</value></data>
   <data name="World3D_ItemCard" xml:space="preserve"><value>Item on the ground</value></data>
@@ -4727,4 +4727,13 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_LevelCopyNoDonor" xml:space="preserve"><value>There's nothing to copy this from yet. Build one of these in any of your worlds first, then copy it here.</value></data>
   <data name="World3D_LevelCopyRefused" xml:space="preserve"><value>This one couldn't be copied.</value></data>
   <data name="World3D_Details" xml:space="preserve"><value>Details</value></data>
+  <data name="World3D_CharacterTrader" xml:space="preserve"><value>Trader</value></data>
+  <data name="World3D_CharacterSells" xml:space="preserve"><value>What they sell</value></data>
+  <data name="WorldFeature_SpawnsFormat" xml:space="preserve"><value>Spawns: {0}</value></data>
+  <data name="WorldFeature_WhereItIs" xml:space="preserve"><value>Where it is</value></data>
+  <data name="World3D_WallSocket" xml:space="preserve"><value>Wall socket</value></data>
+  <data name="World3D_OtherAreaFormat" xml:space="preserve"><value>This one belongs to the {0} area: its plugs are kept in that area's save. Open it there to plug a device in.</value></data>
+  <data name="World3D_HelpRotateKey" xml:space="preserve"><value>Edit mode: turn the selection 45 degrees (15 with Shift)</value></data>
+  <data name="World3D_HelpDeleteKey" xml:space="preserve"><value>Edit mode: remove the selection (you see what goes first)</value></data>
+  <data name="World3D_HelpCopyKey" xml:space="preserve"><value>Edit mode: copy the selection beside itself</value></data>
 </root>

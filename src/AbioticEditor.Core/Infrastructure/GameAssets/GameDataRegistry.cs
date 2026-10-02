@@ -185,6 +185,12 @@ public sealed class GameDataRegistry
     public IReadOnlyList<DistillationRecipe>? Distillations { get; init; }
 
     /// <summary>
+    /// What each kind of NPC spawn point makes: spawn blueprint class to the short class of the
+    /// creature (<see cref="NpcSpawnCatalog"/>), so its list and the 3D view show that creature.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? NpcSpawnCreatures { get; init; }
+
+    /// <summary>
     /// Builds a registry from a mounted game install. Requires usmap mappings (each catalog's
     /// own loader throws without them). Adding a catalog: load it here and assign the payload.
     /// </summary>
@@ -224,6 +230,7 @@ public sealed class GameDataRegistry
             // never called by the running app (see NarrativeNpcNameCatalog's own remarks).
             NarrativeNpcNames = Optional("narrative NPC names", () => NarrativeNpcNameCatalog.BuildFrom(provider) is { Count: > 0 } names ? names : null),
             Distillations = Optional("distillations", () => DistillationCatalog.LoadFrom(provider) is { Count: > 0 } d ? d : null),
+            NpcSpawnCreatures = Optional("NPC spawn creatures", () => NpcSpawnCatalog.LoadFrom(provider) is { Count: > 0 } spawns ? spawns : null),
             NarrativeNpcPlacements = Optional("narrative NPC placements", () => NarrativeNpcNameCatalog.BuildPlacementsFrom(provider) is { Count: > 0 } placements ? placements : null),
         };
     }

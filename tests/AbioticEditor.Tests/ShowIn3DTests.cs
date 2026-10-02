@@ -341,4 +341,48 @@ public sealed class ShowIn3DTests
         Assert.Contains("GameMaps.WorldOf(package)", File.ReadAllText(Path.Combine(root, "plugins", "GameModels3D", "LevelIndex.cs")), StringComparison.Ordinal);
         Assert.Contains("LoadWorld(r) ?? SaveWorld(r, BuildWorld(r))", File.ReadAllText(Path.Combine(root, "plugins", "GameModels3D", "PakSceneModelProvider.cs")), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Spawn_points_show_the_creature_the_game_says_they_spawn()
+    {
+        var registry = GameDataRegistry.LoadBundled();
+        Assert.NotNull(registry?.NpcSpawnCreatures);
+        Assert.Equal("NPC_Gatekeeper_Chieftain", NpcSpawnCatalog.CreatureOf(registry!.NpcSpawnCreatures, "/Game/Maps/Facility.Facility:PersistentLevel.NPCSpawn_Gatekeeper_Chieftain_C_3"));
+        using var catalog = new ItemCatalogService();
+        Assert.Equal("NPC_Gatekeeper_Grunt", catalog.SpawnedCreature("/Game/Maps/Facility.Facility:PersistentLevel.NPCSpawn_Gatekeeper_Phyter_C_1")?.Class);
+    }
+
+    [Fact]
+    public void The_3d_card_edits_level_things_and_shows_characters_like_the_traders_tab()
+    {
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("<FeatureEntryEditor Session=\"Session\" FeatureId=\"@thing.FeatureId\"", tab, StringComparison.Ordinal);
+        Assert.Contains("<CharacterCard3D Npc=\"@npc\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"other-area\"", tab, StringComparison.Ordinal); // a socket kept in another area's save
+        var markers = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Markers.razor.cs");
+        Assert.Contains("private async Task<bool> PickLevelActorAsync(string mapActor)", markers, StringComparison.Ordinal); // a wall plug opens its socket
+        Assert.Contains("Art.TryGetActorWorldTransformsAsync(", markers, StringComparison.Ordinal); // grouped by level file
+        Assert.Contains("FeatureFieldText.Label(L, FeatureId, entry, field)", UiSource.ReadAllText("Components", "World", "WorldFeaturesTab.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_view_draws_fast_and_editing_feels_like_a_base_builder()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("async function mergeLevel(levelLoad)", js, StringComparison.Ordinal); // BatchedMesh per material
+        Assert.Contains("const POINT_POOL = 4, SPOT_POOL = 2;", js, StringComparison.Ordinal); // a fixed light count: no recompiles
+        Assert.Contains("function tuneMovingRatio(now)", js, StringComparison.Ordinal);
+        Assert.Contains("function unblockView()", js, StringComparison.Ordinal); // a clear line of sight after a jump
+        Assert.Contains("function levelCeilingAbove(at, floorY)", js, StringComparison.Ordinal);
+        Assert.Contains("const stairClip", js, StringComparison.Ordinal);
+        Assert.Contains("document.addEventListener(\"pointerlockchange\"", js, StringComparison.Ordinal); // Escape ends walking
+        Assert.Contains("const SNAP_M = 0.1;", js, StringComparison.Ordinal);
+        Assert.Contains("\"OnGroupDragged\"", js, StringComparison.Ordinal);
+        Assert.Contains("export async function fillMapBackdrop(element, key, options)", js, StringComparison.Ordinal); // the 2D map's level picture
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("public async Task OnDuplicateKey()", tab, StringComparison.Ordinal);
+        Assert.Contains("public async Task OnRotateKey(double degrees)", tab, StringComparison.Ordinal);
+        Assert.Contains("data-map=\"backdrop\"", UiSource.ReadAllText("Components", "World", "WorldBasesTab.razor"), StringComparison.Ordinal);
+        Assert.NotNull(WorldThumbnails.For("power-sockets", "/Game/Maps/Facility.Facility:PersistentLevel.PowerSocket_ParentBP_C_4"));
+    }
 }

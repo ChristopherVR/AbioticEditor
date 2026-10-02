@@ -104,8 +104,16 @@
                 <div class="base-map-frame">
                     <svg class="base-map" viewBox="0 0 @((int)MapW) @((int)MapH)" role="img" aria-label="@L.Resource("WorldBases_BaseManager")">
                         <rect x="0" y="0" width="@((int)MapW)" height="@((int)MapH)" fill="#101810" />
-                        @for (var gx = 0; gx < (int)MapW; gx += 48) { <line x1="@gx" y1="0" x2="@gx" y2="@((int)MapH)" stroke="#1C271C" stroke-width="1" /> }
-                        @for (var gy = 0; gy < (int)MapH; gy += 48) { <line x1="0" y1="@gy" x2="@((int)MapW)" y2="@gy" stroke="#1C271C" stroke-width="1" /> }
+                        @if (!_backdropShown)
+                        {
+                            @for (var gx = 0; gx < (int)MapW; gx += 48) { <line x1="@gx" y1="0" x2="@gx" y2="@((int)MapH)" stroke="#1C271C" stroke-width="1" /> }
+                            @for (var gy = 0; gy < (int)MapH; gy += 48) { <line x1="0" y1="@gy" x2="@((int)MapW)" y2="@gy" stroke="#1C271C" stroke-width="1" /> }
+                        }
+                        @if (BackdropWanted)
+                        {
+                            @* The level under the bases from above, drawn from the game's own models (filled in by the browser). *@
+                            <image @ref="_backdropImage" x="0" y="0" width="@((int)MapW)" height="@((int)MapH)" preserveAspectRatio="none" opacity="0.9" data-map="backdrop" />
+                        }
                         @if (MapLayout() is { } map)
                         {
                             @if (SelectedBase is { } selected && selected.Deployables.Count > 0)
@@ -744,14 +752,33 @@
         public float Py(double y) => (float)(18 + ((y - MinY) * Scale));
     }
 
+    /// <summary>
+    /// What the map frames: the chosen base with room around it, else the main cluster of pieces (the
+    /// 85% nearest their middle). Pieces far off (a portal world's, kilometres away) used to shrink
+    /// every base to a dot; they now sit outside the frame.
+    /// </summary>
     private MapProjection? MapLayout()
     {
-        var deployables = Session.Deployables;
-        if (deployables.Count == 0) return null;
-        var minX = deployables.Min(d => d.X);
-        var maxX = deployables.Max(d => d.X);
-        var minY = deployables.Min(d => d.Y);
-        var maxY = deployables.Max(d => d.Y);
+        var all = Session.Deployables;
+        if (all.Count == 0) return null;
+        IReadOnlyList<WorldDeployable> deployables;
+        double margin;
+        if (SelectedBase is { Deployables.Count: > 0 } chosen)
+        {
+            deployables = chosen.Deployables;
+            margin = BaseDetector.ClusterRadius * 0.6;
+        }
+        else
+        {
+            var mx = all.Select(d => d.X).OrderBy(v => v).ElementAt(all.Count / 2);
+            var my = all.Select(d => d.Y).OrderBy(v => v).ElementAt(all.Count / 2);
+            deployables = all.OrderBy(d => Math.Abs(d.X - mx) + Math.Abs(d.Y - my)).Take(Math.Max(1, (int)Math.Ceiling(all.Count * 0.85))).ToList();
+            margin = 0;
+        }
+        var minX = deployables.Min(d => d.X) - margin;
+        var maxX = deployables.Max(d => d.X) + margin;
+        var minY = deployables.Min(d => d.Y) - margin;
+        var maxY = deployables.Max(d => d.Y) + margin;
         var spanX = Math.Max(1, maxX - minX);
         var spanY = Math.Max(1, maxY - minY);
         return new MapProjection(minX, minY, Math.Min((MapW - 36) / spanX, (MapH - 36) / spanY));

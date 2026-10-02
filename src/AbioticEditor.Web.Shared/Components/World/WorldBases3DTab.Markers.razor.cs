@@ -1,4 +1,6 @@
 using AbioticEditor.Core.WorldSaves;
+using AbioticEditor.Web.Services;
+using AbioticEditor.Core.WorldSaves.Features;
 using AbioticEditor.Web.Models;
 using Microsoft.JSInterop;
 
@@ -15,7 +17,8 @@ public partial class WorldBases3DTab
     /// <summary>World lists keyed by level actors, which the view can place from the game files.</summary>
     private static readonly string[] ThingFeatures = ["buttons", "destructibles", "resource-nodes", "elevators", "npc-spawns", "portals", "trams", "power-sockets"];
 
-    private const int MaxThings = 600;
+    private const int MaxThings = 4000;
+    private const int ThingBatch = 400;
     private const int ItemColor = 0xffd23f;
 
     private sealed record ThingInfo(string FeatureId, string FeatureName, string Key, string Label, PlacedVector At);
@@ -57,38 +60,46 @@ public partial class WorldBases3DTab
 
         // Level things come from the game files, which the browser build does not have.
         if (InBrowser) return;
-        var wanted = ThingFeatures
+        // Every kind takes turns (a few buttons, a few spawn points, ...), so each kind shows up early
+        // even in an area with hundreds of one kind, and markers are sent in batches as their places
+        // are found instead of all at the end. (A cap of 600 used to leave the spawn points out.)
+        var perFeature = ThingFeatures
             .Select(id => Session.MapFeature(id))
             .Where(f => f is not null)
-            .SelectMany(f => f!.Entries
-                .Where(e => e.Key.StartsWith("/Game/", StringComparison.Ordinal))
-                .Select(e => (Feature: f!, Entry: e)))
-            .Take(MaxThings)
+            .Select(f => new Queue<(WorldMapFeatureSnapshot Feature, WorldMapEntry Entry)>(
+                f!.Entries.Where(e => e.Key.StartsWith("/Game/", StringComparison.Ordinal)).Select(e => (f!, e))))
             .ToList();
-        using var gate = new SemaphoreSlim(8);
-        var found = await Task.WhenAll(wanted.Select(async w =>
+        var wanted = new List<(WorldMapFeatureSnapshot Feature, WorldMapEntry Entry)>();
+        while (perFeature.Any(q => q.Count > 0) && wanted.Count < MaxThings)
         {
-            await gate.WaitAsync();
-            try { return (w.Feature, w.Entry, At: await Art.TryGetActorWorldTransformAsync(w.Entry.Key)); }
-            finally { gate.Release(); }
-        }));
-        if (token != _markersToken || _disposed || _view is null) return;
+            foreach (var queue in perFeature)
+            {
+                if (queue.Count > 0) wanted.Add(queue.Dequeue());
+            }
+        }
         var things = new Dictionary<string, ThingInfo>(StringComparer.Ordinal);
         var markers = new List<object>();
-        foreach (var (feature, entry, at) in found)
+        for (var start = 0; start < wanted.Count; start += ThingBatch)
         {
-            if (at is not { } t) continue;
-            things[entry.Key] = new ThingInfo(feature.Id, feature.DisplayName, entry.Key, entry.Label, new PlacedVector(t.X, t.Y, t.Z));
-            var v = PlacedSceneSpace.ToViewer(new PlacedVector(t.X, t.Y, t.Z));
-            markers.Add(new { id = entry.Key, p = new[] { v.X, v.Y, v.Z }, color = ThingColor(feature.Id) });
+            var batch = wanted.Skip(start).Take(ThingBatch).ToList();
+            var places = await Art.TryGetActorWorldTransformsAsync(batch.Select(w => w.Entry.Key));
+            var found = batch.Select(w => (w.Feature, w.Entry, At: places.GetValueOrDefault(w.Entry.Key))).ToList();
+            if (token != _markersToken || _disposed || _view is null) return;
+            foreach (var (feature, entry, at) in found)
+            {
+                if (at is not { } t) continue;
+                things[entry.Key] = new ThingInfo(feature.Id, feature.DisplayName, entry.Key, entry.Label, new PlacedVector(t.X, t.Y, t.Z));
+                var v = PlacedSceneSpace.ToViewer(new PlacedVector(t.X, t.Y, t.Z));
+                markers.Add(new { id = entry.Key, p = new[] { v.X, v.Y, v.Z }, color = ThingColor(feature.Id) });
+            }
+            _things = new Dictionary<string, ThingInfo>(things, StringComparer.Ordinal);
+            try
+            {
+                await _view.InvokeVoidAsync("setMarkers", "thing", markers);
+                if (start == 0) await _view.InvokeVoidAsync("setMarkersVisible", "thing", _thingsOn);
+            }
+            catch (JSDisconnectedException) { return; }
         }
-        _things = things;
-        try
-        {
-            await _view.InvokeVoidAsync("setMarkers", "thing", markers);
-            await _view.InvokeVoidAsync("setMarkersVisible", "thing", _thingsOn);
-        }
-        catch (JSDisconnectedException) { }
     }
 
     private static int ThingColor(string featureId) => featureId switch
@@ -98,6 +109,7 @@ public partial class WorldBases3DTab
         "destructibles" => 0xff7043,
         "resource-nodes" => 0x81c784,
         "elevators" or "trams" or "portals" => 0xba68c8,
+        "npc-spawns" => 0xe53935,
         _ => 0xb0bec5,
     };
 
@@ -131,4 +143,87 @@ public partial class WorldBases3DTab
         if (_pickedMarker is { } old && _view is not null) await _view.InvokeVoidAsync("setMarkerSelection", old.Kind, (string?)null);
         _pickedMarker = null;
     }
+
+    /// <summary>The picture of a level thing's kind (a button, an elevator...), or null.</summary>
+    private static string? ThingPicture(ThingInfo thing)
+        => WorldThumbnails.KindOfFeature(thing.FeatureId) is { } kind ? WorldThumbnails.For(kind, thing.Key) : null;
+
+
+    /// <summary>A level thing's setting changed in its card: its marker and the scene are refreshed.</summary>
+    private Task ThingChangedAsync()
+    {
+        _markersDirty = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Opens the card of the listed thing a clicked level actor ("Map:Actor") is: a door, or an entry
+    /// of one of the world lists (a wall socket, a button...). False when it is none of those.
+    /// </summary>
+    private async Task<bool> PickLevelActorAsync(string mapActor)
+    {
+        var colon = mapActor.IndexOf(':', StringComparison.Ordinal);
+        if (colon <= 0) return false;
+        var map = mapActor[..colon];
+        var actor = mapActor[(colon + 1)..];
+        bool Same(string key)
+        {
+            var (keyMap, keyActor) = DoorIdParser.Parse(key);
+            return string.Equals(keyActor[(keyActor.LastIndexOf('.') + 1)..], actor, StringComparison.OrdinalIgnoreCase)
+                   && (string.IsNullOrEmpty(keyMap) ? map.Equals("Facility", StringComparison.OrdinalIgnoreCase)
+                       : keyMap[(keyMap.LastIndexOf('/') + 1)..].Equals(map, StringComparison.OrdinalIgnoreCase));
+        }
+        if (Session.Doors.FirstOrDefault(d => Same(d.Id)) is { } door)
+        {
+            await OnDoorPicked(door.Id);
+            return true;
+        }
+        foreach (var featureId in ThingFeatures)
+        {
+            if (Session.MapFeature(featureId) is not { } feature) continue;
+            if (feature.Entries.FirstOrDefault(e => e.Key.StartsWith("/Game/", StringComparison.Ordinal) && Same(e.Key)) is not { } entry) continue;
+            if (!_things.ContainsKey(entry.Key))
+            {
+                var at = await Art.TryGetActorWorldTransformAsync(entry.Key);
+                _things = new Dictionary<string, ThingInfo>(_things, StringComparer.Ordinal)
+                {
+                    [entry.Key] = new ThingInfo(feature.Id, feature.DisplayName, entry.Key, entry.Label, at is { } t ? new PlacedVector(t.X, t.Y, t.Z) : new PlacedVector(0, 0, 0)),
+                };
+            }
+            await OnMarkerPicked("thing", entry.Key);
+            return true;
+        }
+        // A wall socket nobody has used yet has no entry in any list, but it can still be plugged
+        // into: it opens as a power socket (the save writes its entry when something is plugged in).
+        if (actor.StartsWith("PowerSocket", StringComparison.OrdinalIgnoreCase))
+        {
+            var key = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor}";
+            var at = await Art.TryGetActorWorldTransformAsync(key);
+            _things = new Dictionary<string, ThingInfo>(_things, StringComparer.Ordinal)
+            {
+                [key] = new ThingInfo("power-sockets", L.Resource("World3D_WallSocket"), key, L.Resource("World3D_WallSocket"),
+                    at is { } t ? new PlacedVector(t.X, t.Y, t.Z) : new PlacedVector(0, 0, 0)),
+            };
+            await OnMarkerPicked("thing", key);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The level a listed thing stands in, when that is not this save's own area: the game keeps the
+    /// thing's state (a socket's plugs) in that area's save, so it is changed there.
+    /// </summary>
+    private string? OtherAreaOf(ThingInfo thing)
+    {
+        var (map, _) = DoorIdParser.Parse(thing.Key);
+        map = map[(map.LastIndexOf('/') + 1)..];
+        return map.Length > 0 && LevelRegion is { } region && !string.Equals(map, region, StringComparison.OrdinalIgnoreCase)
+               && HasOwnSave(map) ? map : null;
+    }
+
+    /// <summary>True when the workspace has a region save for this level.</summary>
+    private bool HasOwnSave(string level)
+        => System.IO.Path.GetDirectoryName(Session.Path) is { } dir && System.IO.File.Exists(System.IO.Path.Combine(dir, $"WorldSave_{level}.sav"));
 }

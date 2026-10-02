@@ -55,7 +55,16 @@ public static partial class WorldThumbnails
     /// <summary>The picture folder for a world-map feature id, or null for lists without pictures.</summary>
     public static string? KindOfFeature(string featureId) => featureId switch
     {
-        "buttons" or "destructibles" or "elevators" or "trams" or "portals" or "resource-nodes" => featureId,
+        "buttons" or "destructibles" or "elevators" or "trams" or "portals" or "resource-nodes" or "power-sockets" => featureId,
         _ => null,
     };
+
+    /// <summary>The creature an NPC spawn point makes, from its name: <c>NPCSpawn_Peccary_C_12</c> spawns a Peccary.</summary>
+    public static string? SpawnedCreature(string key)
+    {
+        var name = ClassOf(key);
+        if (name.StartsWith("NPCSpawn_", StringComparison.OrdinalIgnoreCase)) name = name["NPCSpawn_".Length..];
+        if (name.EndsWith("_C", StringComparison.Ordinal)) name = name[..^2];
+        return name.Length == 0 || name.Equals("Generic", StringComparison.OrdinalIgnoreCase) ? null : name;
+    }
 }

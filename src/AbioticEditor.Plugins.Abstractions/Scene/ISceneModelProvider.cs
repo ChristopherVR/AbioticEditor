@@ -169,6 +169,13 @@ public sealed record SceneLevelQuery(
 /// </param>
 public sealed record SceneLevelSlice(IReadOnlyList<SceneLevelBatch> Batches, int TotalInBox, string? Note = null, int PendingMaps = 0)
 {
+    /// <summary>
+    /// The level actors the pieces belong to, as <c>Map:Actor</c> (<c>Facility_Office1:PowerSocket_C_3</c>);
+    /// each batch's <see cref="SceneLevelBatch.Actors"/> indexes into this. Lets a click on a piece
+    /// (a wall plug) find the thing it is part of. Empty when the provider does not say.
+    /// </summary>
+    public IReadOnlyList<string> Actors { get; init; } = [];
+
     /// <summary>The level's own lights inside the box, nearest the box centre first (empty when the provider has none).</summary>
     public IReadOnlyList<SceneLevelLight> Lights { get; init; } = [];
 }
@@ -187,7 +194,11 @@ public sealed record SceneLevelLight(float[] Position, float[] Color, float Brig
 /// <param name="Materials">Material per slot.</param>
 /// <param name="Matrices">16 floats per instance, column-major, world (viewer) space.</param>
 /// <param name="Name">The mesh's name, for tooltips.</param>
-public sealed record SceneLevelBatch(string Mesh, IReadOnlyList<SceneMaterial> Materials, float[] Matrices, string? Name = null);
+public sealed record SceneLevelBatch(string Mesh, IReadOnlyList<SceneMaterial> Materials, float[] Matrices, string? Name = null)
+{
+    /// <summary>Per instance, the index of its actor in <see cref="SceneLevelSlice.Actors"/>; null when not known.</summary>
+    public int[]? Actors { get; init; }
+}
 
 /// <summary>An asset's bytes and media type.</summary>
 /// <remarks>

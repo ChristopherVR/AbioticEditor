@@ -16,7 +16,7 @@ if (!instancesFile) {
     console.error("usage: node places.mjs <editor url> <instances.json> [limit]");
     process.exit(2);
 }
-const kinds = new Set(["doors", "buttons", "destructibles", "elevators", "trams", "portals", "resource-nodes"]);
+const kinds = new Set(["doors", "buttons", "destructibles", "elevators", "trams", "portals", "resource-nodes", "power-sockets"]);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const outRoot = join(repo, "src", "AbioticEditor.Web.Shared", "wwwroot", "thumbs", "places");
 

@@ -1,0 +1,102 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Components.Player
+@inject ItemCatalogService Items
+@inject TraderVocabularyService Traders
+
+@* A story character picked in the 3D view, shown the way the Traders and NPCs tabs show them: their
+   portrait, where they are and their story, and for a trader what they take and what they sell.
+   The trader data itself is edited in the story save's Traders tab. *@
+<div class="b3d-character" data-b3d="character">
+    <div class="b3d-character-head">
+        <span class="b3d-character-portrait">
+            <GameArtImage GameRef="@Trader?.ImageAssetPath" WikiFiles="@HologramPortraitCatalog.CandidatesFor(BareName)" Alt="@Name">
+                <span class="material-symbol" aria-hidden="true">person</span>
+            </GameArtImage>
+        </span>
+        <span class="b3d-character-title">
+            <strong class="b3d-title" data-b3d="npc-title" title="@Npc.Id">@Name</strong>
+            @if (Trader is not null) { <small class="accent-orange-text" data-b3d="npc-trader">@L.Resource("World3D_CharacterTrader")</small> }
+            @if (Lore is not null) { <small class="wt-muted">@L.Resource($"WorldTraders_Lore_{Trader!.Id}_Where")</small> }
+            else if (Area is { Length: > 0 } area) { <small class="wt-muted">@area</small> }
+            @if (Npc.IsDead) { <small class="error-text" data-b3d="npc-status">@L.Resource("World3D_NpcRemoved")</small> }
+        </span>
+    </div>
+    @if (Lore is not null)
+    {
+        <p class="b3d-character-blurb">@L.Resource($"WorldTraders_Lore_{Trader!.Id}_Blurb")</p>
+    }
+    @if (Trader is { } trader)
+    {
+        <span class="wt-label">@L.Resource("Slot_WhatTheyAcceptAsPayment")</span>
+        <p class="b3d-character-text">@AcceptsText(trader)</p>
+        @if (trader.Sells.Count > 0)
+        {
+            <span class="wt-label">@L.Resource("World3D_CharacterSells")</span>
+            <div class="b3d-character-sells" data-b3d="npc-sells">
+                @foreach (var (offer, key) in RenderKeys.With(trader.Sells.Take(24), o => o.ItemId + "|" + o.Count + "|" + o.RequiredFlag))
+                {
+                    <span class="b3d-character-offer @(Items.Find(offer.ItemId) is null ? "named" : null)" @key="key" title="@ItemName(offer.ItemId)">
+                        @* Cosmetics and other things the item list does not know have no icon: their name instead. *@
+                        @if (Items.Find(offer.ItemId) is not null) { <ItemIcon ItemId="@offer.ItemId" Alt="@ItemName(offer.ItemId)" /> }
+                        else { <span class="b3d-character-offer-name">@ItemName(offer.ItemId)</span> }
+                        @if (offer.Count > 1) { <small>@offer.Count</small> }
+                    </span>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WorldNpc Npc { get; set; } = null!;
+
+    /// <summary>The name shown (with the area when the game places the character more than once).</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+
+    private string? _matchedFor;
+    private TraderInfo? _trader;
+
+    /// <summary>The trader this character is, matched by name as the Traders tab's "Show in 3D" does; null for everyone else.</summary>
+    private TraderInfo? Trader
+    {
+        get
+        {
+            if (_matchedFor == Npc.Id) return _trader;
+            _matchedFor = Npc.Id;
+            _trader = Traders.GetTraders().FirstOrDefault(t =>
+                Items.FindNarrativeNpcs(new[] { t.Id }.Concat((TraderLore.ById.GetValueOrDefault(t.Id)?.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)))
+                    .Any(place => string.Equals(place.ActorPath, Npc.Id, StringComparison.OrdinalIgnoreCase)));
+            return _trader;
+        }
+    }
+
+    private TraderLore.Entry? Lore => Trader is { } t ? TraderLore.ById.GetValueOrDefault(t.Id) : null;
+
+    /// <summary>The character's own name, without an area added to tell two placements apart.</summary>
+    private string BareName => Items.GetNarrativeNpcName(Npc.Id) ?? Name;
+
+    /// <summary>The area the character stands in, from its level's name.</summary>
+    private string? Area
+    {
+        get
+        {
+            var colon = Npc.Id.IndexOf(':', StringComparison.Ordinal);
+            if (colon <= 0) return null;
+            var package = Npc.Id[..colon];
+            return package[(package.LastIndexOf('.') + 1)..].Replace('_', ' ');
+        }
+    }
+
+    private string ItemName(string itemId) => Items.Find(itemId)?.DisplayName ?? PlainNames.Words(itemId);
+
+    private string AcceptsText(TraderInfo trader)
+    {
+        var names = trader.Accepts
+            .Select(offer => offer.Count > 1 ? $"{offer.Count}× {ItemName(offer.ItemId)}" : ItemName(offer.ItemId))
+            .Distinct()
+            .ToList();
+        return names.Count == 0 ? L.Resource("WorldTraders_Card_AcceptsVaries") : string.Join(", ", names);
+    }
+}

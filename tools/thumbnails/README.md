@@ -38,7 +38,7 @@ update that changes these models, or to cover kinds from a world the list did no
 ## Where each one is
 
 The door card and the detail pane of those lists also show where that particular door, button,
-elevator, tram, teleporter or breakable wall is: the level around it from above, ceiling cut away,
+elevator, tram, teleporter, power socket or breakable wall is: the level around it from above, ceiling cut away,
 the thing outlined and pinned in orange. Level actors stand in the same place in every world, so
 these ship too (`thumbs/places/<map>/<actor>.webp`, about 9 KB each), resource nodes included.
 

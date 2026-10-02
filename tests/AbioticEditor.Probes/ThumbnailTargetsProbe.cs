@@ -18,7 +18,7 @@ public sealed partial class ThumbnailTargetsProbe
     private static readonly (string Map, string Kind)[] Lists =
     [
         ("ButtonMap", "buttons"), ("DestructibleMap", "destructibles"), ("ElevatorMap", "elevators"),
-        ("TramMap", "trams"), ("PortalMap", "portals"), ("ResourceNodeMap", "resource-nodes"),
+        ("TramMap", "trams"), ("PortalMap", "portals"), ("ResourceNodeMap", "resource-nodes"), ("PowerSocketMap", "power-sockets"),
     ];
 
     [GeneratedRegex(@"^(?<cls>.+_C)_\d+$")]

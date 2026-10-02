@@ -42,6 +42,7 @@ public sealed class ItemCatalogService : IDisposable
         _narrativeNpcNames = registry?.NarrativeNpcNames;
         _narrativeNpcPlacements = registry?.NarrativeNpcPlacements;
         _bundledDistillations = registry?.Distillations;
+        _npcSpawnCreatures = registry?.NpcSpawnCreatures;
         var merged = (registry?.Items ?? []).ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         // The slot editor is always present in the desktop shell. Do not make resolving it
         // mount and scan the installed game paks before a save can open. Bundled registry
@@ -210,6 +211,24 @@ public sealed class ItemCatalogService : IDisposable
     }
 
     private readonly IReadOnlyDictionary<string, string>? _bundledNpcDisplayNames;
+    private readonly IReadOnlyDictionary<string, string>? _npcSpawnCreatures;
+
+    /// <summary>
+    /// The creature an NPC spawn point makes (its short class and its in-game name), from the game's
+    /// own spawn data; the spawn point's name is the fallback for one the data does not cover.
+    /// </summary>
+    public (string Class, string Name)? SpawnedCreature(string spawnKey)
+    {
+        if (AbioticEditor.Core.WorldSaves.NpcSpawnCatalog.CreatureOf(_npcSpawnCreatures, spawnKey) is { } cls)
+        {
+            var name = AbioticEditor.Core.WorldSaves.NpcDisplayNameCatalog.Resolve(_bundledNpcDisplayNames, cls)
+                       ?? AbioticEditor.Core.WorldSaves.PetCatalog.FriendlyName(cls) ?? cls;
+            return (cls, name);
+        }
+        return WorldThumbnails.SpawnedCreature(spawnKey) is { } guess
+            ? (guess, AbioticEditor.Core.WorldSaves.PetCatalog.FriendlyName(guess) ?? guess)
+            : null;
+    }
     private IReadOnlyDictionary<string, string>? _liveNpcDisplayNames;
     private readonly ConcurrentDictionary<string, Task<string?>> _npcDisplayNames = new(StringComparer.OrdinalIgnoreCase);
 
