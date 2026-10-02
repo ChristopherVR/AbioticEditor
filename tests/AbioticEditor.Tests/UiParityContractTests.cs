@@ -76,7 +76,7 @@ public sealed class UiParityContractTests
         {
             "01-loaded.png", "10-player-vitals.png", "11-player-inventory.png",
             "12-player-skills.png", "13-player-recipes.png", "14-player-character.png",
-            "15-player-gatepal.png", "16-player-transmog.png", "20-world.png",
+            "15-player-gatepal.png", "16-transmog.png", "20-world.png",
             "21-world-questflags.png", "22-world-npcs.png", "25-config-ini.png",
             "30-settings.png", "31-compare.png",
         };
