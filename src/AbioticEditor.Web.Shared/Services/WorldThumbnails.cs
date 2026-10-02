@@ -34,8 +34,20 @@ public static partial class WorldThumbnails
         if (string.IsNullOrEmpty(actorPath)) return null;
         // A level actor drawn on its own (the trams, each painted its own colour) wins over its kind's
         // picture: those live in "<kind>-each", named after the actor.
+        // Actor names repeat across levels (every level has an Elevator_ParentBP_C_1), so a picture
+        // named after the level too (<map>__<actor>) is looked for first.
         var name = actorPath[(Math.Max(actorPath.LastIndexOf('.'), actorPath.LastIndexOf(':')) + 1)..];
-        if (Available.TryGetValue(kind + "-each", out var each) && each.Contains(name)) return $"{Root}/{kind}-each/{name}.webp";
+        if (Available.TryGetValue(kind + "-each", out var each))
+        {
+            var colon = actorPath.IndexOf(':', StringComparison.Ordinal);
+            if (colon > 0)
+            {
+                var package = actorPath[..colon];
+                var placed = $"{package[(package.LastIndexOf('.') + 1)..]}__{name}";
+                if (each.Contains(placed)) return $"{Root}/{kind}-each/{placed}.webp";
+            }
+            if (each.Contains(name)) return $"{Root}/{kind}-each/{name}.webp";
+        }
         if (!Available.TryGetValue(kind, out var classes)) return null;
         var cls = ClassOf(actorPath);
         return classes.Contains(cls) ? $"{Root}/{kind}/{cls}.webp" : null;

@@ -110,6 +110,15 @@ public sealed partial class ThumbnailTargetsProbe
                     var name = actorPath[(Math.Max(actorPath.LastIndexOf('.'), actorPath.LastIndexOf(':')) + 1)..];
                     targets.TryAdd(("trams-each", name), new { kind = "trams-each", cls = name, region, actor = actorPath });
                 }
+                // Elevators of one kind are built differently in each place (a closed car, an open
+                // platform with railings), so each gets its own picture too. Their names repeat
+                // across levels, so the picture is named after the level as well: <map>__<actor>.
+                if (kind == "elevators" && actorPath.IndexOf(':', StringComparison.Ordinal) is var colon and > 0)
+                {
+                    var package = actorPath[..colon];
+                    var name = $"{package[(package.LastIndexOf('.') + 1)..]}__{actorPath[(Math.Max(actorPath.LastIndexOf('.'), colon) + 1)..]}";
+                    targets.TryAdd(("elevators-each", name), new { kind = "elevators-each", cls = name, region, actor = actorPath });
+                }
                 instances.Add(new { kind, cls = key.Item2, region, actor = actorPath });
             }
             foreach (var door in data.Doors) Add("doors", door.Id);

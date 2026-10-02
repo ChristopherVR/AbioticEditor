@@ -1596,7 +1596,7 @@
 
     /// <summary>A picture of the clicked level actor's kind, from whichever list has one.</summary>
     private string? LevelActorPicture()
-        => _levelPickedActor is { } a ? PictureKinds.Select(k => WorldThumbnails.For(k, a[(a.IndexOf(':') + 1)..])).FirstOrDefault(p => p is not null) : null;
+        => _levelPickedActor is { } a ? PictureKinds.Select(k => WorldThumbnails.For(k, a)).FirstOrDefault(p => p is not null) : null;
 
     /// <summary>Progress from the viewer while it loads models ("models") or the level ("level").</summary>
     [JSInvokable]

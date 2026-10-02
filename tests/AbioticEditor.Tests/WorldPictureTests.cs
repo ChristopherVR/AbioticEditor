@@ -31,6 +31,50 @@ public sealed class WorldPictureTests
     }
 
     [Fact]
+    public void Each_elevator_shows_its_own_picture_even_where_names_repeat_across_levels()
+    {
+        // Facility's Elevator 4 is an open platform deep in a shaft; the kind picture is a closed car.
+        Assert.Equal($"{Root}/elevators-each/Facility__Elevator_ParentBP_C_3.webp",
+            WorldThumbnails.For("elevators", "/Game/Maps/Facility.Facility:PersistentLevel.Elevator_ParentBP_C_3"));
+        Assert.Equal($"{Root}/elevators-each/Facility_Dam__Elevator_ParentBP_C_3.webp",
+            WorldThumbnails.For("elevators", "/Game/Maps/Facility_Dam.Facility_Dam:PersistentLevel.Elevator_ParentBP_C_3"));
+        // The 3D view names a level actor <map>:<actor>.
+        Assert.Equal($"{Root}/elevators-each/Facility_Dam__Elevator_ParentBP_C_3.webp",
+            WorldThumbnails.For("elevators", "Facility_Dam:Elevator_ParentBP_C_3"));
+        // An elevator without its own picture falls back to its kind's.
+        Assert.Equal($"{Root}/elevators/Elevator_ParentBP_C.webp",
+            WorldThumbnails.For("elevators", "/Game/Maps/Facility_Nowhere.Facility_Nowhere:PersistentLevel.Elevator_ParentBP_C_42"));
+        Assert.NotNull(WorldThumbnails.PlaceOf("/Game/Maps/Facility.Facility:PersistentLevel.Elevator_ParentBP_C_3"));
+    }
+
+    [Fact]
+    public void Kind_pictures_are_sharp_enough_for_the_detail_pane()
+    {
+        // The detail pane shows a picture at up to 240 px, 480 real pixels on a 2x screen.
+        var root = UiSource.Resolve("wwwroot", "thumbs");
+        foreach (var kind in new[] { "doors", "buttons", "containers", "deployables", "destructibles", "elevators", "elevators-each", "power-sockets", "resource-nodes", "trams", "trams-each" })
+        {
+            foreach (var file in Directory.GetFiles(Path.Combine(root, kind), "*.webp"))
+            {
+                var (width, height) = WebpSize(File.ReadAllBytes(file));
+                Assert.True(width >= 512 && height >= 512, $"{kind}/{Path.GetFileName(file)} is {width}x{height}");
+            }
+        }
+    }
+
+    /// <summary>The canvas size of a WebP file (its VP8X, VP8L or VP8 header).</summary>
+    private static (int Width, int Height) WebpSize(byte[] b)
+    {
+        var chunk = System.Text.Encoding.ASCII.GetString(b, 12, 4);
+        return chunk switch
+        {
+            "VP8X" => (1 + (b[24] | b[25] << 8 | b[26] << 16), 1 + (b[27] | b[28] << 8 | b[29] << 16)),
+            "VP8L" => (1 + ((b[21] | b[22] << 8) & 0x3FFF), 1 + ((b[22] >> 6 | b[23] << 2 | b[24] << 10) & 0x3FFF)),
+            _ => (b[26] | (b[27] & 0x3F) << 8, b[28] | (b[29] & 0x3F) << 8),
+        };
+    }
+
+    [Fact]
     public void Placed_things_show_their_own_picture()
     {
         Assert.Equal($"{Root}/deployables/Deployed_TeleporterPad_C.webp", WorldThumbnails.ForPlaced("Deployed_TeleporterPad_C"));
@@ -61,16 +105,20 @@ public sealed class WorldPictureTests
     public void Every_new_picture_is_really_shipped()
     {
         var root = UiSource.Resolve("wwwroot", "thumbs");
-        foreach (var kind in new[] { "deployables", "trams-each" })
+        foreach (var kind in new[] { "deployables", "trams-each", "elevators-each" })
         {
             var dir = Path.Combine(root, kind);
             Assert.True(Directory.Exists(dir), $"{kind} pictures are checked in");
             foreach (var file in Directory.GetFiles(dir, "*.webp"))
             {
                 var name = Path.GetFileNameWithoutExtension(file);
-                var url = kind == "deployables"
-                    ? WorldThumbnails.ForPlaced(name)
-                    : WorldThumbnails.For("trams", $"/Game/Maps/Facility.Facility:PersistentLevel.{name}");
+                var url = kind switch
+                {
+                    "deployables" => WorldThumbnails.ForPlaced(name),
+                    "trams-each" => WorldThumbnails.For("trams", $"/Game/Maps/Facility.Facility:PersistentLevel.{name}"),
+                    _ => WorldThumbnails.For("elevators", name[..name.IndexOf("__", StringComparison.Ordinal)] is var map
+                        ? $"/Game/Maps/{map}.{map}:PersistentLevel.{name[(map.Length + 2)..]}" : null),
+                };
                 Assert.Equal($"{Root}/{kind}/{name}.webp", url);
             }
         }

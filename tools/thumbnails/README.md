@@ -25,11 +25,16 @@ update that changes these models, or to cover kinds from a world the list did no
 3. Render (first time: `npm install` and `npx playwright install chromium` in this folder):
 
    ```console
-   node render.mjs http://127.0.0.1:37361 %TEMP%\thumb-targets.json 256
+   node render.mjs http://127.0.0.1:37361 %TEMP%\thumb-targets.json
    ```
 
+   Pictures are 512 px (the optional last argument), drawn at twice that and scaled down, with the
+   game's most detailed meshes and its textures at full size. The detail pane shows them at up to
+   240 px, which is 480 real pixels on a sharp screen, and click-to-enlarge bigger still. The
+   graphics card draws them when there is one; set `THUMBNAIL_SOFTWARE=1` for the software renderer.
+
    Containers are drawn from their own model instead: set `THUMBNAIL_CLASSES_OUT` too in step 1
-   and render that file the same way (`node render.mjs http://127.0.0.1:37361 %TEMP%\container-classes.json 256`).
+   and render that file the same way (`node render.mjs http://127.0.0.1:37361 %TEMP%\container-classes.json`).
    The same file lists the player-placed things other lists show (teleporter pads, sconce lamps) and
    the player-built devices power outlets belong to (plug strips, batteries); those go to
    `thumbs/deployables`.
@@ -38,7 +43,9 @@ update that changes these models, or to cover kinds from a world the list did no
    kind whose level actor is not in the map (resource nodes the game spawns at run time, like the
    reactor wood crates) or draws nothing there is then drawn from its own model instead. Trams are
    drawn one by one (`thumbs/trams-each/<actor>.webp`), since each is painted differently; the
-   `trams` picture is the unpainted model, used for any tram without its own.
+   `trams` picture is the unpainted model, used for any tram without its own. Elevators are drawn one
+   by one too (`thumbs/elevators-each/<map>__<actor>.webp`, the map in the name because actor names
+   repeat across levels), since one kind is a closed car in one place and an open platform in another.
 
    It writes `wwwroot/thumbs/<kind>/<class>.webp` and regenerates
    `src/AbioticEditor.Web.Shared/Services/WorldThumbnails.Index.g.cs`, which tells the editor which

@@ -4,7 +4,7 @@
 // src/AbioticEditor.Web.Shared/wwwroot/thumbs/<kind>/<class>.webp plus a generated C# index.
 //
 // Usage (see README.md):
-//   node render.mjs <editor url> <targets.json> [size]
+//   node render.mjs <editor url> <targets.json> [size, default 512]
 import { chromium } from "playwright";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -15,12 +15,21 @@ if (!targetsFile) {
     console.error("usage: node render.mjs <editor url> <targets.json> [size]");
     process.exit(2);
 }
-const size = Number(sizeArg ?? 256);
+// 512 px: the detail pane shows a picture at up to 240 px, which is 480 real pixels on a sharp
+// (2x) screen, and click-to-enlarge shows it bigger still.
+const size = Number(sizeArg ?? 512);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const outRoot = join(repo, "src", "AbioticEditor.Web.Shared", "wwwroot", "thumbs");
 const targets = JSON.parse(await readFile(targetsFile, "utf8"));
 
-const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+// The graphics card draws the pictures when there is one (sharper texture filtering, and much
+// faster); THUMBNAIL_SOFTWARE=1 uses the software renderer instead.
+const software = process.env.THUMBNAIL_SOFTWARE === "1";
+const browser = await chromium.launch({
+    args: software
+        ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+        : ["--enable-gpu", "--ignore-gpu-blocklist", ...(process.platform === "win32" ? ["--use-angle=d3d11"] : [])],
+});
 const page = await browser.newPage({ viewport: { width: 800, height: 800 } });
 await page.goto(`${url}/healthz`);
 await page.evaluate(async () => {
@@ -30,6 +39,11 @@ await page.evaluate(async () => {
     const module = await import("/_content/AbioticEditor.Web.Shared/base3d.js");
     window.__thumbView = module.createView(host, { invokeMethodAsync: async () => { } });
 });
+console.log(`drawing with ${await page.evaluate(() => {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    const info = gl?.getExtension("WEBGL_debug_renderer_info");
+    return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "an unknown renderer";
+})}`);
 
 const done = [];
 for (const t of targets) {

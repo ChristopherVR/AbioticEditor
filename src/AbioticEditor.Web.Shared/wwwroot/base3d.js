@@ -1128,7 +1128,7 @@ function buildView(host, dotnet) {
      * does not hold the piece back for longer than the limit.
      */
     const TEXTURE_WAIT_MS = 6000;
-    function texturesReady(materials) {
+    function texturesReady(materials, patient = false) {
         const waits = [];
         for (const material of materials) {
             for (const t of [material.map, ...(material.userData.textures ?? [])]) {
@@ -1136,7 +1136,26 @@ function buildView(host, dotnet) {
             }
         }
         if (!waits.length) return Promise.resolve();
+        // A picture (tools/thumbnails) waits for every texture: full-size ones can take longer than
+        // the view's limit to read, and a picture taken early would show them missing.
+        if (patient) return Promise.all(waits);
         return Promise.race([Promise.all(waits), new Promise(resolve => setTimeout(resolve, TEXTURE_WAIT_MS))]);
+    }
+
+    // Pictures (tools/thumbnails) are taken with the finest detail the game has: its most detailed
+    // meshes and its textures at full size, sharply filtered, instead of the lighter ones the live
+    // view uses to stay quick.
+    const PICTURE_TEXTURE_SIZE = 2048;
+    const pictureMesh = id => id.replace(/^mesh\/\d+\//, "mesh/0/");
+    const pictureTexture = id => (id ? id.replace(/^tex\/\d+\//, `tex/${PICTURE_TEXTURE_SIZE}/`) : id);
+    function pictureMaterialFor(m) {
+        const material = materialFor({ ...m, texture: pictureTexture(m.texture) }, false);
+        const sharp = renderer.capabilities.getMaxAnisotropy();
+        if (material.map && material.map.anisotropy !== sharp) {
+            material.map.anisotropy = sharp;
+            if (material.map.image) material.map.needsUpdate = true;
+        }
+        return material;
     }
 
     function materialFor(m, level) {
@@ -1231,7 +1250,7 @@ function buildView(host, dotnet) {
     }
 
     /** Renders a group on its own into a transparent square picture, framed from a three-quarter front view. */
-    function shootSquare(group, box, size, front) {
+    function shootSquare(group, box, size, front, quality = 0.88) {
         const stage = new THREE.Scene();
         stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.7));
         const key = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -1247,7 +1266,9 @@ function buildView(host, dotnet) {
         shot.lookAt(centre);
         shot.updateProjectionMatrix();
 
-        const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+        // Drawn at twice the size and scaled down, so edges and fine texture detail come out smooth.
+        const big = Math.min(size * 2, renderer.capabilities.maxTextureSize);
+        const target = new THREE.WebGLRenderTarget(big, big, { samples: 4 });
         target.texture.colorSpace = THREE.SRGBColorSpace;
         const oldTarget = renderer.getRenderTarget();
         const oldClear = renderer.getClearColor(new THREE.Color());
@@ -1256,22 +1277,28 @@ function buildView(host, dotnet) {
         renderer.setClearColor(0x000000, 0);
         renderer.clear();
         renderer.render(stage, shot);
-        const pixels = new Uint8Array(size * size * 4);
-        renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
+        const pixels = new Uint8Array(big * big * 4);
+        renderer.readRenderTargetPixels(target, 0, 0, big, big, pixels);
         renderer.setRenderTarget(oldTarget);
         renderer.setClearColor(oldClear, oldAlpha);
         target.dispose();
         for (const mesh of group.children) mesh.dispose?.();
 
+        const full = document.createElement("canvas");
+        full.width = full.height = big;
+        const fullContext = full.getContext("2d");
+        const image = fullContext.createImageData(big, big);
+        for (let y = 0; y < big; y++) image.data.set(pixels.subarray((big - 1 - y) * big * 4, (big - y) * big * 4), y * big * 4);
+        fullContext.putImageData(image, 0, 0);
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = size;
         const g = canvas.getContext("2d");
-        const image = g.createImageData(size, size);
-        for (let y = 0; y < size; y++) image.data.set(pixels.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
-        g.putImageData(image, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = "high";
+        g.drawImage(full, 0, 0, size, size);
         requestRender();
         const pieces = group.children.length;
-        return { image: canvas.toDataURL("image/webp", 0.9), pieces };
+        return { image: canvas.toDataURL("image/webp", quality), pieces };
     }
 
     // ---- level geometry -------------------------------------------------------------------------
@@ -2730,7 +2757,7 @@ function buildView(host, dotnet) {
          * Returns null when the level has no pieces for the actor.
          */
         async thumbnail(options) {
-            const { region, actor, center, front, size = 256, radius = 25 } = options ?? {};
+            const { region, actor, center, front, size = 512, radius = 25 } = options ?? {};
             const slice = await postJson(`${MODEL_BASE}/level`, {
                 region,
                 min: [center[0] - radius, center[1] - radius, center[2] - radius],
@@ -2745,10 +2772,10 @@ function buildView(host, dotnet) {
             const instance = new THREE.Matrix4();
             const materials = [];
             for (const batch of batches) {
-                const geometry = await loadGeometry(batch.mesh);
+                const geometry = await loadGeometry(pictureMesh(batch.mesh)) ?? await loadGeometry(batch.mesh);
                 if (!geometry) continue;
                 if (!geometry.boundingBox) geometry.computeBoundingBox();
-                const mats = batch.materials.length ? batch.materials.map(m => materialFor(m, false)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
+                const mats = batch.materials.length ? batch.materials.map(pictureMaterialFor) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
                 materials.push(...mats);
                 const count = batch.matrices.length / 16;
                 const mesh = new THREE.InstancedMesh(geometry, mats, count);
@@ -2762,7 +2789,7 @@ function buildView(host, dotnet) {
                 group.add(mesh);
             }
             if (!group.children.length || box.isEmpty()) return null;
-            await texturesReady(materials);
+            await texturesReady(materials, true);
             return shootSquare(group, box, size, front);
         },
         /**
@@ -2771,7 +2798,7 @@ function buildView(host, dotnet) {
          * the containers list. Returns null when the game has no model for the class.
          */
         async classThumbnail(options) {
-            const { cls, size = 256 } = options ?? {};
+            const { cls, size = 512 } = options ?? {};
             const answer = await postJson(`${MODEL_BASE}/classes`, [cls]) ?? {};
             const description = answer[cls];
             if (!description?.parts?.length) return null;
@@ -2779,10 +2806,10 @@ function buildView(host, dotnet) {
             const box = new THREE.Box3();
             const materials = [];
             for (const part of description.parts) {
-                const geometry = await loadGeometry(part.mesh);
+                const geometry = await loadGeometry(pictureMesh(part.mesh)) ?? await loadGeometry(part.mesh);
                 if (!geometry) continue;
                 if (!geometry.boundingBox) geometry.computeBoundingBox();
-                const mats = part.materials.length ? part.materials.map(m => materialFor(m, false)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
+                const mats = part.materials.length ? part.materials.map(pictureMaterialFor) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
                 materials.push(...mats);
                 const mesh = new THREE.Mesh(geometry, mats);
                 mesh.matrixAutoUpdate = false;
@@ -2791,7 +2818,7 @@ function buildView(host, dotnet) {
                 group.add(mesh);
             }
             if (!group.children.length || box.isEmpty()) return null;
-            await texturesReady(materials);
+            await texturesReady(materials, true);
             // A placed object's front faces along its own +X (the save's forward axis).
             return shootSquare(group, box, size, [1, 0, 0]);
         },
@@ -2921,8 +2948,12 @@ function buildView(host, dotnet) {
             if (!group.children.length) return null;
             await texturesReady(materials);
 
+            // The floor the ceiling is cut above is the thing's own height in the level, not the bottom of
+            // its pieces: an elevator carries trims that reach metres down its shaft, and cutting from
+            // there hid the car and the room around it. Only what stands above that floor is outlined.
+            const floorY = ownBox.isEmpty() ? center[1] : Math.min(Math.max(ownBox.min.y, center[1]), ownBox.max.y);
+            if (!ownBox.isEmpty()) ownBox.min.y = Math.max(ownBox.min.y, floorY - 0.5);
             const focus = ownBox.isEmpty() ? new THREE.Vector3(...center) : ownBox.getCenter(new THREE.Vector3());
-            const floorY = ownBox.isEmpty() ? center[1] : ownBox.min.y;
             const stage = new THREE.Scene();
             stage.background = new THREE.Color(0x101418);
             stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.6));
@@ -2947,7 +2978,9 @@ function buildView(host, dotnet) {
             const dir = viewDirection(front, 1.1);
             // Aimed a little above the thing so the pin over it stays in the picture.
             const aim = focus.clone().add(new THREE.Vector3(0, 1, 0));
-            shot.position.copy(aim).addScaledVector(dir, distance);
+            // Stepped back far enough for a big thing (a wide elevator platform) to fit in the picture.
+            const span = ownBox.isEmpty() ? 0 : Math.max(ownBox.max.x - ownBox.min.x, ownBox.max.z - ownBox.min.z);
+            shot.position.copy(aim).addScaledVector(dir, Math.max(distance, span * 1.2));
             shot.lookAt(aim);
             shot.updateProjectionMatrix();
 
