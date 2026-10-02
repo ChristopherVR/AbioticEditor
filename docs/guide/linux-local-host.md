@@ -1,11 +1,12 @@
 # Linux and Steam Deck desktop app
 
-Abiotic Editor has a native Linux desktop release. It opens its own local window and keeps your saves on your computer. It can also find Abiotic Factor saves inside Proton prefixes, the folders Steam uses to run Windows games on Linux. Proton is for finding the game saves, not for running the editor.
+Abiotic Editor has a native Linux desktop release. It opens its own window and keeps your saves on your computer. It finds your saves inside Steam Play (Proton) folders, and reads your game from your Steam library for item pictures and the [3D view](./3d-view). The editor itself does not need Proton.
 
+Everything in the Windows app works here too, including [live editing](./live-editing#set-up-this-pc-linux-steam-play) for a game running through Steam Play.
 
-![Shared player vitals controls](/screenshots/10-player-vitals.png)
+![Player vitals tab](/screenshots/10-player-vitals.png)
 
-*Shared editor controls, captured on Windows. Linux installation steps are below.*
+*The Linux app looks and works the same as on Windows.*
 
 ## Start here
 

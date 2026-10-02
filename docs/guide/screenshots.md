@@ -2,33 +2,23 @@
 
 Find the screen you need, then follow the linked guide for the steps. Select an image to enlarge it.
 
-Captured on 15 September 2026 in the Windows local host using copied saves and the Hazard Orange theme. Panels are framed to leave out account IDs and local save paths. Available tabs and item counts depend on your save and installed game data.
+These were taken in the desktop app with copied saves. Panels are framed to leave out account IDs and save paths. The tabs and lists you see depend on your save and your game version.
 
-The live pictures show setup only, with no game connection or token. They do not demonstrate live feature support. Linux, Steam Deck and browser-edition installation screens are not pictured.
+## Getting started
 
-See the [desktop walkthrough](./desktop-app), [new editing tools](./review-features), and [experimental live setup](./live-editing).
-
-## Choose an editing mode
-
-### Offline or live editing
+### Choose how to edit
 
 ![Offline or live editing in Abiotic Editor](/screenshots/00-editing-modes.png)
 
+### A world, opened
 
-### Live setup location
+![A world opened in Abiotic Editor](/screenshots/01-loaded.png)
 
-![Live setup location in Abiotic Editor](/screenshots/40-live-location.png)
+### Get the 3D view ready
 
+![The start page offering to get the 3D view ready](/screenshots/53-prepare-3d.png)
 
-### Helper setup after installing UE4SS
-
-![Helper setup after installing UE4SS in Abiotic Editor](/screenshots/41-live-helper.png)
-
-
-### Remote connection
-
-![Remote connection in Abiotic Editor](/screenshots/42-live-server.png)
-
+See [Getting started](./getting-started) and the [desktop app tour](./desktop-app).
 
 ## Player saves
 
@@ -36,56 +26,45 @@ See the [desktop walkthrough](./desktop-app), [new editing tools](./review-featu
 
 ![Vitals in Abiotic Editor](/screenshots/10-player-vitals.png)
 
-
 ### Inventory and equipment
 
 ![Inventory and equipment in Abiotic Editor](/screenshots/11-player-inventory.png)
-
 
 ### Weapon coating
 
 ![Weapon coating in Abiotic Editor](/screenshots/11-weapon-coating.png)
 
-
 ### Skills
 
 ![Skills in Abiotic Editor](/screenshots/12-player-skills.png)
-
 
 ### Recipes
 
 ![Recipes in Abiotic Editor](/screenshots/13-player-recipes.png)
 
-
 ### Character
 
 ![Character in Abiotic Editor](/screenshots/14-player-character.png)
 
+### Gatepal
 
-### GatePal
-
-![GatePal in Abiotic Editor](/screenshots/15-player-gatepal.png)
-
+![Gatepal in Abiotic Editor](/screenshots/15-player-gatepal.png)
 
 ### Transmog
 
 ![Transmog in Abiotic Editor](/screenshots/16-transmog.png)
 
-
 ### Spawn
 
 ![Spawn in Abiotic Editor](/screenshots/17-player-spawn.png)
-
 
 ### Companions
 
 ![Companions in Abiotic Editor](/screenshots/18-player-companions.png)
 
-
 ### Achievements
 
 ![Achievements in Abiotic Editor](/screenshots/19-player-achievements.png)
-
 
 ## World saves
 
@@ -93,36 +72,59 @@ See the [desktop walkthrough](./desktop-app), [new editing tools](./review-featu
 
 ![Containers in Abiotic Editor](/screenshots/20-world.png)
 
+### Story events
 
-### Quest flags
-
-![Quest flags in Abiotic Editor](/screenshots/21-world-questflags.png)
-
+![Story events in Abiotic Editor](/screenshots/21-world-questflags.png)
 
 ### Story characters
 
 ![Story characters in Abiotic Editor](/screenshots/22-world-npcs.png)
 
+### Pictures in the world lists
 
-### Bases
+![A world list entry with its pictures in Abiotic Editor](/screenshots/56-world-list-pictures.png)
 
-![Bases in Abiotic Editor](/screenshots/23-world-bases.png)
+### Traders
 
+![Traders in Abiotic Editor](/screenshots/55-world-traders.png)
 
 ### Garden plots
 
 ![Garden plots in Abiotic Editor](/screenshots/26-world-garden.png)
 
-
 ### Chemistry benches
 
 ![Chemistry benches in Abiotic Editor](/screenshots/27-world-chemistry.png)
 
+### Pets
 
-### World pets
+![Pets in Abiotic Editor](/screenshots/28-world-pets.png)
 
-![World pets in Abiotic Editor](/screenshots/28-world-pets.png)
+See the [desktop app tour](./desktop-app#edit-a-world) and [More world tools](./review-features).
 
+## Bases and the 3D view
+
+### Base contents
+
+![Base contents in Abiotic Editor](/screenshots/23-world-bases.png)
+
+### Bases map
+
+![The Bases map in Abiotic Editor](/screenshots/54-world-map.png)
+
+### 3D view
+
+![The 3D view in Abiotic Editor](/screenshots/50-3d-view.png)
+
+### The Show menu
+
+![The 3D view's Show menu in Abiotic Editor](/screenshots/51-3d-show-menu.png)
+
+### Add object
+
+![The Add object palette in Abiotic Editor](/screenshots/52-3d-add-object.png)
+
+See [Bases and the 3D view](./3d-view).
 
 ## Settings and tools
 
@@ -130,27 +132,38 @@ See the [desktop walkthrough](./desktop-app), [new editing tools](./review-featu
 
 ![Sandbox settings in Abiotic Editor](/screenshots/25-config-ini.png)
 
-
 ### App settings
 
 ![App settings in Abiotic Editor](/screenshots/30-settings.png)
-
 
 ### Compare saves
 
 ![Compare saves in Abiotic Editor](/screenshots/31-compare.png)
 
+### Game data
 
-### Installed game data
-
-![Installed game data in Abiotic Editor](/screenshots/32-game-data.png)
-
+![Game data settings in Abiotic Editor](/screenshots/32-game-data.png)
 
 ### Plugins
 
 ![Plugins in Abiotic Editor](/screenshots/33-plugins.png)
 
-
 ### Game Pass conversion
 
 ![Game Pass conversion in Abiotic Editor](/screenshots/34-convert.png)
+
+## Live editing setup
+
+### Where the game is running
+
+![Live setup location in Abiotic Editor](/screenshots/40-live-location.png)
+
+### Helper setup
+
+![Helper setup in Abiotic Editor](/screenshots/41-live-helper.png)
+
+### Connecting to a server
+
+![Remote connection in Abiotic Editor](/screenshots/42-live-server.png)
+
+See [Live editing](./live-editing).

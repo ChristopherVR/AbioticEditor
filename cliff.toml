@@ -19,7 +19,7 @@ body = """
 ## [Unreleased]
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
-### {{ group | upper_first }}
+### {{ group | striptags | trim | upper_first }}
 {% for commit in commits %}\
 - {{ commit.message | upper_first }}
 {% endfor %}
@@ -42,24 +42,34 @@ split_commits = false
 
 # Regex parsers map commit subjects to changelog groups. `skip = true`
 # removes a commit entirely (release bumps, merges, CI noise).
+#
+# Each group name starts with a hidden "<!-- nn -->" sort key. git-cliff orders groups
+# alphabetically, so without it "Bug Fixes", "CI" and "Documentation" came before
+# "Features". The key puts what players care about (new features, fixes, speed) first.
+# The body template strips it (`striptags`), so the headings stay exactly "Features",
+# "Bug Fixes" and so on, which ChangelogService (the in-app "What's new" dialog) and the
+# Nexus changelog step in release.yml rely on.
 commit_parsers = [
   { message = "^chore\\(release\\)", skip = true },
   { message = "^chore\\(deps?\\)", skip = true },
+  # The release bot's Scoop bucket bump ("point bucket at vX.Y.Z [skip ci]") is
+  # bookkeeping, not a change players would notice.
+  { message = "^chore\\(scoop\\)", skip = true },
   { message = "^[Mm]erge ", skip = true },
   { body = ".*\\[skip ci\\].*", skip = true },
-  { message = "^feat", group = "Features" },
-  { message = "^fix", group = "Bug Fixes" },
-  { message = "^perf", group = "Performance" },
-  { message = "^refactor", group = "Refactor" },
-  { message = "^doc", group = "Documentation" },
-  { message = "^style", group = "Styling" },
-  { message = "^test", group = "Testing" },
-  { message = "^build", group = "Build" },
-  { message = "^ci", group = "CI" },
-  { message = "^chore", group = "Miscellaneous Tasks" },
-  { message = "^revert", group = "Revert" },
+  { message = "^feat", group = "<!-- 00 -->Features" },
+  { message = "^fix", group = "<!-- 01 -->Bug Fixes" },
+  { message = "^perf", group = "<!-- 02 -->Performance" },
+  { message = "^doc", group = "<!-- 03 -->Documentation" },
+  { message = "^revert", group = "<!-- 04 -->Revert" },
+  { message = "^refactor", group = "<!-- 05 -->Refactor" },
+  { message = "^style", group = "<!-- 06 -->Styling" },
+  { message = "^test", group = "<!-- 07 -->Testing" },
+  { message = "^build", group = "<!-- 08 -->Build" },
+  { message = "^ci", group = "<!-- 09 -->CI" },
+  { message = "^chore", group = "<!-- 10 -->Miscellaneous Tasks" },
   # Anything else conventional but unrecognised.
-  { message = ".*", group = "Other" },
+  { message = ".*", group = "<!-- 11 -->Other" },
 ]
 
 # Skip merge commits at the git level too (belt-and-suspenders with the parser).

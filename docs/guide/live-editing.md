@@ -1,6 +1,6 @@
-# Live editing (experimental)
+# Live editing
 
-Live editing lets the editor talk to an Abiotic Factor world that is already running. It is handy for a quick field adjustment, but offline editing is the safer workbench: it has more tools, lets you review changes before **SAVE**, and creates a `.bak` backup each time it writes.
+Live editing lets the editor talk to an Abiotic Factor world that is already running. It is an advanced mode, handy for a quick field adjustment. Offline editing is the safer workbench: it has more tools, lets you review changes before **SAVE**, and creates a `.bak` backup each time it writes.
 
 Live changes happen as you make them. There is no universal **SAVE**, undo button, or editor backup, so make a normal in-game backup before experimenting.
 
@@ -13,7 +13,7 @@ Live changes happen as you make them. There is no universal **SAVE**, undo butto
 | Browser edition | Yes | No |
 
 
-![Offline and experimental live editing choices](/screenshots/00-editing-modes.png)
+![Offline and live editing choices](/screenshots/00-editing-modes.png)
 
 *Choose the mode first. Offline edits wait for Save; live changes apply immediately.*
 
@@ -21,7 +21,7 @@ Live changes happen as you make them. There is no universal **SAVE**, undo butto
 
 Live setup works in the complete Windows desktop release, and in the Linux desktop release for a game running through Steam Play (Proton) - see [Set up this PC (Linux / Steam Play)](#set-up-this-pc-linux-steam-play) below. The browser edition cannot connect to a live game.
 
-Live editing needs **UE4SS**, a separate open-source mod loader (MIT licensed). The Windows release includes a pinned copy of it and installs it into your game folder with your permission; it never touches an existing UE4SS install.
+Live editing needs **UE4SS**, a separate open-source mod loader (MIT licensed). The Windows and Linux releases include a copy and install it into your game folder with your permission. An existing UE4SS install is left alone.
 
 1. Close Abiotic Factor, or stop the server.
 2. In the editor, open the editing-mode button, choose **Set up live editing**, then **This PC**.
@@ -50,7 +50,7 @@ A dev build of the editor, or a build without live-support files, has no UE4SS t
 4. Return to the editor and choose **Check again**. When it detects UE4SS, choose **Set up editor helper** while the game is still closed.
 5. Start the game, load a world, and wait for the editor to connect.
 
-The linked UE4SS channel is experimental and game updates can change compatibility. Read its [official installation guide](https://docs.ue4ss.com/dev/installation-guide.html) if your install uses a different layout.
+Game updates can change which UE4SS build works. Read its [official installation guide](https://docs.ue4ss.com/dev/installation-guide.html) if your install uses a different layout.
 
 
 ![Choose a local game or dedicated server](/screenshots/40-live-location.png)
@@ -67,12 +67,12 @@ The linked UE4SS channel is experimental and game updates can change compatibili
 The Linux desktop app can set up live editing for a Steam copy of the game running through Steam Play (Proton), including on the Steam Deck. Abiotic Factor has no native Linux build, so nothing here is different in principle from Windows: the same bundled UE4SS package and the same editor helper are installed into the same `Binaries/Win64` folder inside the game's Steam library. Two things are specific to Proton:
 
 - **The game must have been launched through Steam at least once already.** Steam only creates the per-game Proton profile (called a "prefix") the first time you actually run the game, and the editor's helper needs that profile to find the same `%LOCALAPPDATA%` the in-game mod uses. If setup reports it cannot find your Steam Play profile, start Abiotic Factor once from Steam, let it reach the main menu, quit, then retry **This PC**.
-- **UE4SS itself may need a Steam launch option to load under Proton.** UE4SS installs the same way it does on Windows - a `dwmapi.dll` next to the game's executable that the game loads automatically - but Wine ships its own built-in `dwmapi.dll` for desktop-compositing calls, and it can take priority over the one UE4SS drops in the game folder unless Proton is told to prefer the game folder's copy. If UE4SS does not appear to load (no `ue4ss/UE4SS.log` appears next to the game after you play), set this game's Steam launch option (right-click Abiotic Factor in your Steam library → **Properties** → **General** → **Launch Options**) to:
+- **UE4SS may need a Steam launch option under Proton.** If UE4SS does not seem to load (no `ue4ss/UE4SS.log` appears next to the game after you play), right-click Abiotic Factor in your Steam library, choose **Properties ▸ General ▸ Launch Options**, and enter:
   ```
   WINEDLLOVERRIDES="dwmapi=n,b" %command%
   ```
-  This is the standard override the wider UE4SS/Proton community uses for other games with the same DLL-proxy install; it is not something this editor's bundled UE4SS package or its pinned build documents itself (`live-agent/ue4ss/runtime.json` records only the version/checksum, no install notes), so treat it as community guidance to try, not a guarantee.
-- **Wine is needed to run the editor's own small helper program.** UE4SS and the Lua mod install and run exactly like on Windows (the game itself is a Windows program either way), but the tiny separate helper the editor also starts has no Linux build yet, so it runs through Wine, pointed at the same Proton prefix as the game. Most Linux setups that can already run the game through Steam Play also have Wine, or can install it from their distribution's package manager (for example `sudo apt install wine` on Debian/Ubuntu, `sudo pacman -S wine` on Arch). If you use a non-standard Wine build (a custom Proton-GE build, a Bottle, and so on) and want the helper to use that one specifically instead of a system `wine`, set the `ABIOTIC_LIVE_WINE` environment variable to its path before starting the editor.
+  This tells Proton to use the UE4SS loader in the game folder instead of its own built-in file with the same name.
+- **Wine runs the editor's small helper program.** UE4SS and the in-game part run inside the game, as on Windows. The separate helper the editor starts is a Windows program, so it runs through Wine, in the same Proton folder as the game. Most systems that run games through Steam Play have Wine, or can install it from their package manager (for example `sudo apt install wine` on Debian or Ubuntu, `sudo pacman -S wine` on Arch). To use a particular Wine build, set the `ABIOTIC_LIVE_WINE` environment variable to its path before starting the editor.
 
 Everything else follows the same steps as [Set up this PC (Windows)](#set-up-this-pc-windows) above: close the game, choose **This PC**, pick the detected copy, and let the editor install UE4SS and its own helper.
 
@@ -82,7 +82,7 @@ The desktop editor's own window needs a recent Linux (glibc 2.38 or newer, rough
 If **This PC** setup gets stuck, or the game never connects after UE4SS and the helper both report ready, please file an issue with the editor's diagnostics log attached.
 :::
 
-macOS is not supported for live editing (there is no bundled UE4SS or helper for it, and no Proton-equivalent path to run the Windows ones). Offline save editing still works there.
+Live editing is not available on macOS. Offline save editing works there as usual.
 
 ## Updating or reconnecting
 
@@ -149,14 +149,14 @@ Every world edit below needs host authority, the same requirement every world ar
 | Resource nodes | Marking a node harvested, or respawning it, through the game's own respawn/deplete functions so it reappears or vanishes with the right effects | Yes | Removing a node entry, the way the offline editor can, isn't offered live, since nothing live resets a node that completely. A node with a "keeps respawning on its own" flag always ends up depleted rather than respawned when asked to respawn, and there's no way to see that flag ahead of time |
 | Breakables (destructible objects) | Breaking an object, with the same effects a real break has | Yes | Repairing a broken object is not possible live - the game has no way to rebuild a broken object's look and collision once it's been broken, until you reload the world |
 | Corpses | Removing a corpse outright, with no undo | Yes | Whether a corpse is gibbed or already looted can't be changed live, since there's no in-game reason to flip either by hand |
-| NPC spawners | Setting the exact cooldown time remaining, resetting the cooldown immediately, forcing a spawn attempt | Yes | The offline "minutes into the day the cooldown started" field has no live match, since the game only tracks cooldowns by whole day. A forced spawn isn't confirmed to always produce a visible creature |
+| NPC spawners | Setting the exact cooldown time remaining, resetting the cooldown immediately, forcing a spawn attempt | Yes | The offline "minutes into the day the cooldown started" field has no live match, since the game only tracks cooldowns by whole day. A forced spawn may not always produce a visible creature |
 | Triggers | Setting the exact trigger count, or a full reset that also re-arms the trigger itself | Yes | A trigger's own configured limit is informational only and can't be changed |
 | Power sockets | Nothing is settable | n/a | Everything here (its id, what's plugged into it, whether it's powered, its timer) is read-only, because the game clears a socket's timer state back off every single time anything saves that socket, so nothing written here could ever stick |
 | Trams | Recalling a tram to a station that has a recall point wired to it | Yes | A tram can only be sent to a station with a real recall point placed in the level, a narrower set than the offline editor's "any station the save has ever mentioned". A recall is a real, sometimes multi-stop journey, not a teleport |
 | Garden plots, Power Chairs and chemistry benches | A plot's water level, and its fertilizer and growth stage/progress per planted spot; a Power Chair's charge | Yes | A plot's planted crop and a chemistry bench's flask contents are read-only here, but a chemistry bench's flasks are the same slots as any other container, so open it from the Containers tab to actually change them. Planting an empty garden spot, or clearing a planted one, still isn't supported at all, the same as offline |
 | World-wide seen lists (items picked up, emails read, journal entries, and the three compendium categories, tracked for the whole world rather than one player) | Adding or removing any entry, browsable and searchable from the Story tab | Yes | |
 
-The [live-editing protocol](/reference/live-editing-protocol) records the technical status of each action in full. Live editing is still experimental, so a game update can change what works.
+The [live-editing protocol](/reference/live-editing-protocol) has the technical details of each action. A game update can change what works live, so update the editor and its helper after one.
 
 ## Field fixes
 

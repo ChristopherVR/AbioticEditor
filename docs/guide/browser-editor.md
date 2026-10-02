@@ -3,9 +3,9 @@
 Need a quick repair before the next expedition? **[Open the editor](/app/)**. There is nothing to install and your saves stay on your computer. The page reads only the folder you choose. It does not upload your world to a server.
 
 
-![Shared player inventory controls](/screenshots/11-player-inventory.png)
+![Player inventory controls](/screenshots/11-player-inventory.png)
 
-*Shared inventory controls, captured in the Windows local host. Browser file opening and export work differently, as described below.*
+*The browser editor has the same tabs and controls as the desktop app. Opening and saving files works a little differently, as described below.*
 
 ## Open the right locker
 
@@ -45,10 +45,11 @@ The editor remembers recent folders as bookmarks, not copies of your saves. When
 
 ## Jobs that need the desktop app
 
-The browser edition handles ordinary player and world editing: inventory, skills, recipes, GatePal entries, containers, quest flags, pets, vehicles, story progress, character appearance, and raw data tools. Use the [desktop app](./desktop-app) for these jobs:
+The browser edition handles ordinary player and world editing: inventory, skills, recipes, GatePal entries, containers, story events, pets, vehicles, story progress, character appearance and the world lists. It has the [3D view](./3d-view) too, with every piece drawn as a box. Use the [desktop app](./desktop-app) for these jobs:
 
 | Job | Why it needs desktop |
 | --- | --- |
+| The 3D view with the game's own models and level | It reads your installed game files. |
 | Edit a running game | It needs a local game connection. |
 | Move items between worlds | It opens two save files side by side. |
 | Game Pass saves | It needs access to the Game Pass save container. |
