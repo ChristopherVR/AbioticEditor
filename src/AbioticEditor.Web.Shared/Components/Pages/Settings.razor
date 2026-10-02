@@ -143,7 +143,7 @@
                             {
                                 <div class="plugin-list">@foreach (var plugin in HostSettings.Plugins)
                                     {
-                                        <article class="plugin-row"><div><strong>@plugin.Manifest.Name</strong><small>v@plugin.Manifest.Version</small><p>@(string.IsNullOrWhiteSpace(plugin.Manifest.Description) ? plugin.CapabilitySummary() : plugin.Manifest.Description)</p></div><div class="plugin-state"><span>@PluginStateLabel(plugin.State)</span><label class="toggle-row"><input type="checkbox" checked="@plugin.Manifest.Enabled" @onchange="e => TogglePlugin(plugin, e)" />@R("Plugins_Enabled")</label></div></article>
+                                        <article class="plugin-row"><div><strong>@plugin.Manifest.Name</strong><small>v@(plugin.Manifest.Version)</small><p>@(string.IsNullOrWhiteSpace(plugin.Manifest.Description) ? plugin.CapabilitySummary() : plugin.Manifest.Description)</p></div><div class="plugin-state"><span>@PluginStateLabel(plugin.State)</span><label class="toggle-row"><input type="checkbox" checked="@plugin.Manifest.Enabled" @onchange="e => TogglePlugin(plugin, e)" />@R("Plugins_Enabled")</label></div></article>
                                     }</div>
                             }
                         </article>
