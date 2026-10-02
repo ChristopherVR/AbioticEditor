@@ -15,6 +15,9 @@ public sealed class DesktopWindowHost(ILogger<DesktopWindowHost> logger)
 
     public const string DisableEnvironmentVariable = "ABIOTIC_EDITOR_NO_DESKTOP";
 
+    /// <summary>The open desktop window, for native dialogs owned by it; null when headless.</summary>
+    public static PhotinoWindow? ActiveWindow { get; private set; }
+
     public static bool ShouldOpen(bool isLinux, bool isUserInteractive, string? disabled, string? displayServer)
         => isUserInteractive
            && !IsDisabled(disabled)
@@ -53,7 +56,9 @@ public sealed class DesktopWindowHost(ILogger<DesktopWindowHost> logger)
             .SetDevToolsEnabled(false)
             .Load(new Uri(localUrl));
 
-        window.WaitForClose();
+        ActiveWindow = window;
+        try { window.WaitForClose(); }
+        finally { ActiveWindow = null; }
     }
 
     /// <summary>

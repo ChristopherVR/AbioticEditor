@@ -30,13 +30,14 @@ public sealed class DesktopHostService : IFilePicker, IFolderPicker, IExternalNa
 
     public async Task<IReadOnlyList<PickedFile>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default)
     {
-#if WINDOWS
-        var paths = await WindowsDesktopPicker.PickFilesAsync(request.Title, allowMultiple: true, request.FileTypes);
-        return paths.Where(File.Exists)
-            .Select(path => new PickedFile(Path.GetFileName(path), path,
-                token => Task.FromResult<Stream>(File.OpenRead(path))))
-            .ToArray();
-#else
+        if (OperatingSystem.IsWindows() && DesktopWindowHost.ActiveWindow is { } window)
+        {
+            var paths = await WindowDesktopPicker.PickFilesAsync(window, request.Title, allowMultiple: true, request.FileTypes) ?? [];
+            return paths.Where(File.Exists)
+                .Select(path => new PickedFile(Path.GetFileName(path), path,
+                    token => Task.FromResult<Stream>(File.OpenRead(path))))
+                .ToArray();
+        }
         DesktopProcessResult result;
         try
         {
@@ -54,17 +55,17 @@ public sealed class DesktopHostService : IFilePicker, IFolderPicker, IExternalNa
             .Select(path => new PickedFile(Path.GetFileName(path), path,
                 token => Task.FromResult<Stream>(File.OpenRead(path))))
             .ToArray();
-#endif
     }
 
     public async Task<PickedFolder?> PickFolderAsync(FolderPickerRequest request, CancellationToken cancellationToken = default)
     {
-#if WINDOWS
-        var path = await WindowsDesktopPicker.PickFolderAsync(request.Title);
-        return path is not null && Directory.Exists(path)
-            ? new PickedFolder(Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), path)
-            : null;
-#else
+        if (OperatingSystem.IsWindows() && DesktopWindowHost.ActiveWindow is { } window)
+        {
+            var picked = await WindowDesktopPicker.PickFolderAsync(window, request.Title);
+            return picked is not null && Directory.Exists(picked)
+                ? new PickedFolder(Path.GetFileName(picked.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), picked)
+                : null;
+        }
         DesktopProcessResult result;
         try
         {
@@ -79,7 +80,6 @@ public sealed class DesktopHostService : IFilePicker, IFolderPicker, IExternalNa
 
         var pathResult = result.StandardOutput.Trim();
         return Directory.Exists(pathResult) ? new PickedFolder(Path.GetFileName(pathResult.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), pathResult) : null;
-#endif
     }
 
     public async Task OpenUrlAsync(Uri url, CancellationToken cancellationToken = default)

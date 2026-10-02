@@ -698,7 +698,7 @@ jobs:
       - name: Publish desktop app (Windows, self-contained)
         run: >-
           dotnet publish src/AbioticEditor.Web
-          -f net10.0-windows10.0.19041.0
+          -f net10.0-windows
           -c Release
           -r win-x64
           --self-contained true
@@ -788,7 +788,7 @@ jobs:
       - name: Publish desktop app (Windows, Nexus Mods build)
         run: >-
           dotnet publish src/AbioticEditor.Web
-          -f net10.0-windows10.0.19041.0
+          -f net10.0-windows
           -c Release
           -r win-x64
           --self-contained true
