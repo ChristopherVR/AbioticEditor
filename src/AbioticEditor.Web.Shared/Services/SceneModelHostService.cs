@@ -137,13 +137,22 @@ public sealed class SceneModelHostService
     }
 
     // ---- getting the 3D view ready up front --------------------------------------------------
-    /// <summary>How far preparing the 3D view has got (see <see cref="StartPreparing"/>).</summary>
-    public sealed record PreparationState(bool Running, int Done, int Total, bool Finished);
+    /// <summary>
+    /// How far preparing the 3D view has got (see <see cref="StartPreparing"/>): whether it is running
+    /// or has finished, the provider's latest progress snapshot, and when it started.
+    /// </summary>
+    public sealed record PreparationState(bool Running, bool Finished, ScenePreparationProgress Progress, DateTime? StartedUtc)
+    {
+        public static PreparationState Idle { get; } = new(false, false, ScenePreparationProgress.None, null);
 
-    private PreparationState _preparation = new(false, 0, 0, false);
+        public TimeSpan Elapsed => StartedUtc is { } started ? DateTime.UtcNow - started : TimeSpan.Zero;
+    }
+
+    private PreparationState _preparation = PreparationState.Idle;
+    private CancellationTokenSource? _preparationStop;
     private int? _remaining;
 
-    /// <summary>Raised (from a background thread) whenever <see cref="Preparation"/> changes.</summary>
+    /// <summary>Raised (from a background thread, about twice a second while running) whenever <see cref="Preparation"/> changes.</summary>
     public event Action? PreparationChanged;
 
     public PreparationState Preparation => _preparation;
@@ -154,7 +163,8 @@ public sealed class SceneModelHostService
     /// </summary>
     public async Task<int?> RemainingToPrepareAsync()
     {
-        if (_remaining is { } known) return _preparation.Running ? Math.Max(0, _preparation.Total - _preparation.Done) : known;
+        if (_preparation.Running) return Math.Max(0, _preparation.Progress.Total - _preparation.Progress.Done);
+        if (_remaining is { } known) return known;
         if (OperatingSystem.IsBrowser()) return null;
         var count = await Task.Run(() =>
         {
@@ -171,37 +181,63 @@ public sealed class SceneModelHostService
 
     /// <summary>
     /// Reads every level file's index now, in the background at low priority, so the 3D view never
-    /// waits on one later (the first time, and after each game update). Safe to call twice.
+    /// waits on one later (the first time, and after each game update). Safe to call twice. The 3D
+    /// view can be used meanwhile: a level it needs is read once for both, and its own reads go first.
     /// </summary>
     public void StartPreparing()
     {
         if (OperatingSystem.IsBrowser() || _preparation.Running || Provider?.Value is not ISceneModelPreparation prep) return;
-        _preparation = new PreparationState(true, 0, 0, false);
+        var stop = new CancellationTokenSource();
+        _preparationStop = stop;
+        _preparation = new PreparationState(true, false, ScenePreparationProgress.None, DateTime.UtcNow);
         PreparationChanged?.Invoke();
+
+        // The provider keeps a snapshot; it is read here twice a second rather than reported on every
+        // step, so a fast run never floods the page with redraws.
+        var poll = new Timer(_ =>
+        {
+            ScenePreparationProgress now;
+            try { now = prep.Progress; }
+            catch (Exception ex) when (ex is not OutOfMemoryException) { return; }
+            if (!_preparation.Running || now == _preparation.Progress) return;
+            _preparation = _preparation with { Progress = now };
+            PreparationChanged?.Invoke();
+        }, null, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+
         var thread = new Thread(() =>
         {
             try
             {
-                prep.Prepare(new SyncProgress(p => { _preparation = _preparation with { Done = p.Done, Total = p.Total }; PreparationChanged?.Invoke(); }), CancellationToken.None);
+                prep.Prepare(stop.Token);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
                 EditorLog.Warn("Scene", $"Preparing the 3D view stopped: {ex.Message}");
             }
-            _remaining = 0;
-            _preparation = _preparation with { Running = false, Finished = true };
-            EditorLog.Info("Scene", $"Prepared the 3D view: {_preparation.Done} level files read.");
+            poll.Dispose();
+            var last = prep.Progress;
+            var finished = !stop.IsCancellationRequested;
+            _remaining = finished ? 0 : null;
+            _preparation = _preparation with { Running = false, Finished = finished, Progress = last };
+            EditorLog.Info("Scene", finished
+                ? $"Prepared the 3D view: {last.Done} level files read in {ElapsedText(_preparation.Elapsed)}."
+                : $"Stopped preparing the 3D view after {last.Done} of {last.Total} level files.");
             PreparationChanged?.Invoke();
         })
         { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "3D view preparation" };
         thread.Start();
     }
 
-    /// <summary>Reports straight away on the working thread (Progress would post to a context that may not exist).</summary>
-    private sealed class SyncProgress(Action<(int Done, int Total)> report) : IProgress<(int Done, int Total)>
-    {
-        public void Report((int Done, int Total) value) => report(value);
-    }
+    /// <summary>A level file's name as a player reads it: "Facility_Dam_Hydroplant" becomes "Facility Dam Hydroplant".</summary>
+    public static string AreaName(string? map) => string.IsNullOrWhiteSpace(map) ? string.Empty : map.Replace('_', ' ').Trim();
+
+    /// <summary>A running time as minutes and seconds ("3:07"), or hours too when it runs that long.</summary>
+    public static string ElapsedText(TimeSpan elapsed) => elapsed.TotalHours >= 1
+        ? elapsed.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
+        : elapsed.ToString(@"m\:ss", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>Stops preparing after the level in hand; what was read stays read.</summary>
+    public void StopPreparing() => _preparationStop?.Cancel();
 
     private readonly HashSet<string> _prewarmed = new(StringComparer.Ordinal);
 

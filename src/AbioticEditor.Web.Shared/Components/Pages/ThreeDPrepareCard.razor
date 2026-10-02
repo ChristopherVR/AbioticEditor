@@ -4,39 +4,61 @@
 
 @* The 3D view reads each part of the game's world from the game files the first time it shows it,
    which is slow (minutes for a big area). This offers to do all of it now, once, in the background:
-   after that every area opens quickly. It comes back after a game update. *@
-@if (_scene is not null && (_remaining > 0 || _scene.Preparation.Running))
+   after that every area opens quickly. It comes back after a game update. While it runs, the footer
+   shows the same progress on every page (ThreeDPrepareStatus). *@
+@if (_scene is not null && (_remaining > 0 || _scene.Preparation.Running || _showDone))
 {
     var state = _scene.Preparation;
+    var progress = state.Progress;
     <section class="prepare-3d" data-prepare="card" aria-live="polite">
-        <span class="material-symbol prepare-3d-icon" aria-hidden="true">view_in_ar</span>
+        <span class="material-symbol prepare-3d-icon" aria-hidden="true">@(_showDone && !state.Running ? "check_circle" : "view_in_ar")</span>
         <div class="prepare-3d-text">
-            <strong>@L.Resource(state.Running ? "Prepare3D_Running" : "Prepare3D_Title")</strong>
-            @if (state.Running && state.Total > 0)
+            @if (state.Running)
             {
-                <span class="prepare-3d-progress" role="progressbar" aria-valuemin="0" aria-valuemax="@state.Total" aria-valuenow="@state.Done">
-                    <span style="width:@((state.Done * 100 / Math.Max(1, state.Total)).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                var percent = (int)Math.Round(progress.Fraction * 100);
+                <strong>@L.Resource("Prepare3D_Running")</strong>
+                <span class="prepare-3d-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@percent">
+                    <span style="width:@(percent.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
                 </span>
-                <small>@L.Resource("Prepare3D_ProgressFormat", state.Done, state.Total)</small>
+                @if (progress.Current is { } current)
+                {
+                    <span class="prepare-3d-current" data-prepare="current">
+                        @(progress.CurrentTotal > 0
+                            ? L.Resource("Prepare3D_CurrentFormat", SceneModelHostService.AreaName(current), progress.CurrentDone * 100 / progress.CurrentTotal)
+                            : L.Resource("Prepare3D_CurrentStarting", SceneModelHostService.AreaName(current)))
+                    </span>
+                }
+                <small>@L.Resource("Prepare3D_ProgressFormat", progress.Done, progress.Total, SceneModelHostService.ElapsedText(state.Elapsed))</small>
             }
-            else if (!state.Running)
+            else if (_showDone)
             {
+                <strong>@L.Resource("Prepare3D_Done")</strong>
+                <small>@L.Resource("Prepare3D_DoneBody")</small>
+            }
+            else
+            {
+                <strong>@L.Resource("Prepare3D_Title")</strong>
                 <small>@L.Resource("Prepare3D_Body", _remaining ?? 0)</small>
             }
         </div>
-        @if (!state.Running)
-        {
-            <div class="prepare-3d-actions">
+        <div class="prepare-3d-actions">
+            @if (state.Running)
+            {
+                <button type="button" class="secondary" data-prepare="stop" @onclick="Stop">@L.Resource("Prepare3D_Stop")</button>
+            }
+            else if (!_showDone)
+            {
                 <button type="button" class="primary" data-prepare="start" @onclick="Start">@L.Resource("Prepare3D_Start")</button>
                 <button type="button" class="secondary" data-prepare="later" @onclick="() => _remaining = 0">@L.Resource("Prepare3D_Later")</button>
-            </div>
-        }
+            }
+        </div>
     </section>
 }
 
 @code {
     private SceneModelHostService? _scene;
     private int? _remaining;
+    private bool _showDone;
 
     protected override async Task OnInitializedAsync()
     {
@@ -48,9 +70,15 @@
 
     private void Start() => _scene?.StartPreparing();
 
-    private void Changed() => _ = InvokeAsync(() =>
+    private void Stop() => _scene?.StopPreparing();
+
+    private void Changed() => _ = InvokeAsync(async () =>
     {
-        if (_scene?.Preparation is { Finished: true }) _remaining = 0;
+        if (_scene is { Preparation: { Running: false } state })
+        {
+            _showDone = state.Finished;
+            _remaining = state.Finished ? 0 : await _scene.RemainingToPrepareAsync();
+        }
         StateHasChanged();
     });
 

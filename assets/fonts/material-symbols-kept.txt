@@ -43,6 +43,7 @@ castle
 category
 chair
 check
+check_circle
 checklist
 chips
 circle

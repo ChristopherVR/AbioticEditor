@@ -1,0 +1,61 @@
+@namespace AbioticEditor.Web.Components.Pages
+@inject IServiceProvider Services
+@implements IDisposable
+
+@* Getting the 3D view ready, in the footer: visible on every page while it runs, so leaving the
+   start page does not hide it. Shows the whole job's progress and the area being read; says "ready"
+   for a few seconds when it finishes. *@
+@if (_scene is { } scene && (scene.Preparation.Running || _doneUntil > DateTime.UtcNow))
+{
+    var state = scene.Preparation;
+    var progress = state.Progress;
+    var percent = (int)Math.Round(progress.Fraction * 100);
+    <span class="prepare-3d-status @(state.Running ? null : "done")" data-prepare="status" role="status"
+          title="@(state.Running ? L.Resource("Prepare3D_StatusTitleFormat", progress.Done, progress.Total, SceneModelHostService.AreaName(progress.Current)) : L.Resource("Prepare3D_Done"))">
+        <span class="material-symbol" aria-hidden="true">@(state.Running ? "view_in_ar" : "check_circle")</span>
+        @if (state.Running)
+        {
+            <span class="prepare-3d-status-bar" aria-hidden="true"><span style="width:@(percent.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+            <span>@L.Resource("Prepare3D_StatusFormat", percent)</span>
+            @if (progress.Current is { } current)
+            {
+                <span class="prepare-3d-status-area">@(progress.CurrentTotal > 0
+                    ? L.Resource("Prepare3D_CurrentFormat", SceneModelHostService.AreaName(current), progress.CurrentDone * 100 / progress.CurrentTotal)
+                    : L.Resource("Prepare3D_CurrentStarting", SceneModelHostService.AreaName(current)))</span>
+            }
+        }
+        else
+        {
+            <span>@L.Resource("Prepare3D_StatusDone")</span>
+        }
+    </span>
+}
+
+@code {
+    private SceneModelHostService? _scene;
+    private DateTime _doneUntil;
+    private Timer? _hide;
+
+    protected override void OnInitialized()
+    {
+        _scene = Services.GetService(typeof(SceneModelHostService)) as SceneModelHostService;
+        if (_scene is not null) _scene.PreparationChanged += Changed;
+    }
+
+    private void Changed() => _ = InvokeAsync(() =>
+    {
+        if (_scene is { Preparation: { Running: false, Finished: true } })
+        {
+            _doneUntil = DateTime.UtcNow.AddSeconds(8);
+            _hide?.Dispose();
+            _hide = new Timer(_ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromSeconds(8.5), Timeout.InfiniteTimeSpan);
+        }
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        if (_scene is not null) _scene.PreparationChanged -= Changed;
+        _hide?.Dispose();
+    }
+}

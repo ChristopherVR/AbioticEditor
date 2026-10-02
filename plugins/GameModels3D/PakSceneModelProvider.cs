@@ -467,7 +467,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             }
             try
             {
-                _levels[map] = LoadOrBuildLevel(map);
+                LevelFor(map);
             }
             catch (Exception ex)
             {
@@ -485,15 +485,54 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         running?.Wait(timeout);
     }
 
+    // Levels being read right now, so the view's reading and getting the 3D view ready never read
+    // the same level twice at once: the second asker waits for the first read.
+    private readonly ConcurrentDictionary<string, Lazy<LevelIndexData>> _levelReads = new(StringComparer.OrdinalIgnoreCase);
+
+    // How far each level being read has got (actors done, actors in all), for progress.
+    private readonly ConcurrentDictionary<string, (int Done, int Total)> _levelSteps = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>A level's index: kept, cached on disk, or read now (once, however many ask).</summary>
+    private LevelIndexData LevelFor(string map)
+    {
+        if (_levels.TryGetValue(map, out var known)) return known;
+        var read = _levelReads.GetOrAdd(map, m => new Lazy<LevelIndexData>(() => LoadOrBuildLevel(m), LazyThreadSafetyMode.ExecutionAndPublication));
+        try
+        {
+            var index = read.Value;
+            _levels[map] = index;
+            return index;
+        }
+        finally
+        {
+            _levelReads.TryRemove(new KeyValuePair<string, Lazy<LevelIndexData>>(map, read));
+        }
+    }
+
     private LevelIndexData LoadOrBuildLevel(string map)
     {
         var file = LevelCachePath(map);
         if (LevelIndex.Load(file) is { } cached) return cached;
         var started = System.Diagnostics.Stopwatch.StartNew();
-        var built = Read(p => LevelIndex.Build(p, map));
-        // Mesh bounds are read outside the archive lock one mesh at a time (and cached across
-        // maps, which share most of their meshes), so other extraction is not held up.
-        LevelIndex.ApplyBounds(built, MeshInfoOf);
+        // A big level takes minutes to read and holds the game files the whole time; between its
+        // actors it lets any other reader (the 3D view's models and textures) go first.
+        // Progress runs in two halves: the level's actors, then the bounds of each mesh they use
+        // (a mesh's own file is read for that, which is most of the time on a big level).
+        var assets = Assets();
+        LevelIndexData built;
+        try
+        {
+            built = Read(p => LevelIndex.Build(p, map, (done, total) =>
+            {
+                _levelSteps[map] = (done, total * 2);
+                assets?.YieldToWaitingReaders();
+            }));
+            LevelIndex.ApplyBounds(built, MeshInfoOf, (done, total) => _levelSteps[map] = (total + done, total * 2));
+        }
+        finally
+        {
+            _levelSteps.TryRemove(map, out _);
+        }
         _host.Log.Info($"Indexed {built.Entries.Count} mesh instances ({built.Meshes.Count} meshes) in {Path.GetFileNameWithoutExtension(map)} ({started.ElapsedMilliseconds} ms).");
         try { LevelIndex.Save(file, built); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _host.Log.Warn($"Could not cache {map}: {ex.Message}"); }

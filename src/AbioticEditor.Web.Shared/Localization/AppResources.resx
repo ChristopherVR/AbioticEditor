@@ -4743,9 +4743,17 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Prepare3D_Start" xml:space="preserve"><value>Prepare now</value></data>
   <data name="Prepare3D_Later" xml:space="preserve"><value>Not now</value></data>
   <data name="Prepare3D_Running" xml:space="preserve"><value>Getting the 3D view ready</value></data>
-  <data name="Prepare3D_ProgressFormat" xml:space="preserve"><value>{0} of {1} level files read. You can keep working meanwhile.</value></data>
+  <data name="Prepare3D_ProgressFormat" xml:space="preserve"><value>{0} of {1} areas done, {2} so far. You can keep editing and use the 3D view meanwhile.</value></data>
   <data name="World3D_PaletteHint" xml:space="preserve"><value>Drag a piece onto the view to place it there, or click one to place it where the view is looking.</value></data>
   <data name="World3D_PaletteSearch" xml:space="preserve"><value>Search pieces</value></data>
   <data name="World3D_PaletteHereFormat" xml:space="preserve"><value>{0} in this world</value></data>
   <data name="World3D_PlaceExact" xml:space="preserve"><value>Exact position</value></data>
+  <data name="Prepare3D_CurrentFormat" xml:space="preserve"><value>Reading {0}: {1}%</value></data>
+  <data name="Prepare3D_CurrentStarting" xml:space="preserve"><value>Reading {0}</value></data>
+  <data name="Prepare3D_Stop" xml:space="preserve"><value>Stop</value></data>
+  <data name="Prepare3D_Done" xml:space="preserve"><value>The 3D view is ready</value></data>
+  <data name="Prepare3D_DoneBody" xml:space="preserve"><value>Every area now opens quickly in the 3D view.</value></data>
+  <data name="Prepare3D_StatusFormat" xml:space="preserve"><value>3D view: {0}%</value></data>
+  <data name="Prepare3D_StatusTitleFormat" xml:space="preserve"><value>Getting the 3D view ready: {0} of {1} areas done. Now reading {2}.</value></data>
+  <data name="Prepare3D_StatusDone" xml:space="preserve"><value>3D view ready</value></data>
 </root>

@@ -53,7 +53,7 @@ public sealed partial class GameAssetProvider
         _recentPackages.Insert(0, (packagePath, package));
         if (_recentPackages.Count > RecentPackageCount) _recentPackages.RemoveAt(_recentPackages.Count - 1);
         // Let the open level files go once the lookups stop (they hold what was read from them).
-        _recentPackagesTimer ??= new Timer(_ => { lock (_providerLoadLock) _recentPackages.Clear(); });
+        _recentPackagesTimer ??= new Timer(_ => { using (ProviderLock()) _recentPackages.Clear(); });
         _recentPackagesTimer.Change(20_000, Timeout.Infinite);
 
         return package.GetExportIndex(name, StringComparison.OrdinalIgnoreCase) >= 0

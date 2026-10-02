@@ -107,7 +107,9 @@ internal static class LevelIndex
         0, 0, 0, 1);
     public const int FormatVersion = 14; // 4: landscape terrain; 5: spline meshes; 6: absolute component transforms; 7-8: decals; 9: posed skeletal meshes; 10: anim-blueprint poses; 11: lights; 12: door leaves; 13: door swing previews; 14: components the actor only names (a character's head)
 
-    public static LevelIndexData Build(IFileProvider provider, string mapPackage)
+    /// <param name="step">Called before each of the level's actors with (actors done, actors in all):
+    /// for progress, and as a point where a long read can let other readers of the game files go first.</param>
+    public static LevelIndexData Build(IFileProvider provider, string mapPackage, Action<int, int>? step = null)
     {
         var data = new LevelIndexData { Map = mapPackage, Meshes = [], OverrideSets = [], Actors = [], Entries = [] };
         if (!provider.TryLoadPackage(mapPackage, out var package)) return data;
@@ -150,8 +152,10 @@ internal static class LevelIndex
         }
 
         var seen = new HashSet<UObject>(ReferenceEqualityComparer.Instance);
+        var actorNumber = 0;
         foreach (var actorIndex in level.Actors)
         {
+            step?.Invoke(actorNumber++, level.Actors.Length);
             if (actorIndex is not { IsNull: false } || !actorIndex.TryLoad(out UObject? actor) || actor is null) continue;
             if (Props.Get(actor, "bHidden", false)) continue;
             // Hierarchical LOD proxies are merged stand-ins the game draws only from far away;
@@ -284,9 +288,15 @@ internal static class LevelIndex
     /// Fills in each entry's bounding sphere from its mesh's bounds (looked up once per mesh), so a
     /// query finds big pieces (cliffs, floor slabs) whose origin is far from the base standing in them.
     /// </summary>
-    public static void ApplyBounds(LevelIndexData data, Func<string, MeshInfo?> meshInfo)
+    /// <param name="step">Called before each mesh is looked up with (meshes done, meshes in all), for progress.</param>
+    public static void ApplyBounds(LevelIndexData data, Func<string, MeshInfo?> meshInfo, Action<int, int>? step = null)
     {
-        var infos = data.Meshes.Select(meshInfo).ToArray();
+        var infos = new MeshInfo?[data.Meshes.Count];
+        for (var m = 0; m < infos.Length; m++)
+        {
+            step?.Invoke(m, infos.Length);
+            infos[m] = meshInfo(data.Meshes[m]);
+        }
         for (var i = 0; i < data.Entries.Count; i++)
         {
             var e = data.Entries[i];

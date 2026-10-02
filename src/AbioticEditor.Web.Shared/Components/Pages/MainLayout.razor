@@ -120,6 +120,7 @@
         </div>
         @* A browser tab writes no log file, so naming one would send anyone chasing a problem
            to a path that does not exist. *@
+        <ThreeDPrepareStatus />
         @if (Workspace.HasLocalPaths)
         {
             <span class="logging-path" title="@HostSettings.CurrentLogPath">@Languages.Resource("Main_LoggingTo", HostSettings.CurrentLogPath)</span>

@@ -29,6 +29,10 @@ public sealed partial class GameAssetProvider : IDisposable
     // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
     // once, so every package-load entry point serializes through this lock.
     private readonly object _providerLoadLock = new();
+    // How many threads are queued for the lock, and how deep this thread holds it: a long read can
+    // step aside for them (see YieldToWaitingReaders).
+    private int _providerWaiters;
+    [ThreadStatic] private static int t_providerDepth;
     private string? _paksDirectory;
     private bool _disposed;
 
@@ -52,9 +56,47 @@ public sealed partial class GameAssetProvider : IDisposable
     {
         ArgumentNullException.ThrowIfNull(read);
         ThrowIfDisposed();
-        lock (_providerLoadLock)
+        using (ProviderLock())
         {
             return read(_provider);
+        }
+    }
+
+    /// <summary>
+    /// For a long read inside <see cref="UseFileProvider{T}"/> (a whole level, say): when other
+    /// reads are waiting for the game files, lets them all go first and then carries on. Call it
+    /// between steps that keep no half-read state in the provider. Does nothing when nobody waits
+    /// or when the calling thread is not holding the files exactly once.
+    /// </summary>
+    public void YieldToWaitingReaders()
+    {
+        if (Volatile.Read(ref _providerWaiters) == 0 || t_providerDepth != 1 || !Monitor.IsEntered(_providerLoadLock)) return;
+        Monitor.Exit(_providerLoadLock);
+        try
+        {
+            while (Volatile.Read(ref _providerWaiters) > 0) Thread.Sleep(1);
+        }
+        finally
+        {
+            Monitor.Enter(_providerLoadLock);
+        }
+    }
+
+    private ProviderLease ProviderLock()
+    {
+        Interlocked.Increment(ref _providerWaiters);
+        try { Monitor.Enter(_providerLoadLock); }
+        finally { Interlocked.Decrement(ref _providerWaiters); }
+        t_providerDepth++;
+        return new ProviderLease(_providerLoadLock);
+    }
+
+    private readonly struct ProviderLease(object gate) : IDisposable
+    {
+        public void Dispose()
+        {
+            t_providerDepth--;
+            Monitor.Exit(gate);
         }
     }
 
@@ -399,7 +441,7 @@ public sealed partial class GameAssetProvider : IDisposable
         // Try the conventional object path first: `path/Name.Name`.
         var assetName = Path.GetFileName(assetPath);
         var objectPath = $"{assetPath}.{assetName}";
-        lock (_providerLoadLock)
+        using (ProviderLock())
         {
             if (_provider.TryLoadPackageObject<UTexture2D>(objectPath, out var direct))
             {
@@ -464,7 +506,7 @@ public sealed partial class GameAssetProvider : IDisposable
     internal CUE4Parse.UE4.Assets.IPackage LoadPackageInternal(string packagePath)
     {
         ThrowIfDisposed();
-        lock (_providerLoadLock)
+        using (ProviderLock())
         {
             return _provider.LoadPackage(packagePath);
         }
@@ -478,7 +520,7 @@ public sealed partial class GameAssetProvider : IDisposable
     internal CUE4Parse.UE4.Assets.Exports.Engine.UDataTable? TryLoadDataTable(string packagePath)
     {
         ThrowIfDisposed();
-        lock (_providerLoadLock)
+        using (ProviderLock())
         {
             if (!_provider.TryLoadPackage(packagePath, out var package)) return null;
             foreach (var export in package.GetExports())
@@ -493,7 +535,7 @@ public sealed partial class GameAssetProvider : IDisposable
     public string? TryGetNarrativeCharacterName(string actorPath)
     {
         if (_disposed) return null;
-        lock (_providerLoadLock)
+        using (ProviderLock())
         {
             if (!_provider.TryLoadPackageObject(actorPath, out var actor) || actor is null) return null;
             var properties = Newtonsoft.Json.Linq.JObject.FromObject(actor)["Properties"];
@@ -526,7 +568,7 @@ public sealed partial class GameAssetProvider : IDisposable
         try
         {
             ActorTransform? found = null;
-            lock (_providerLoadLock)
+            using (ProviderLock())
             {
                 // Read under the lock: the actor's properties load more of its level file lazily.
                 if (LoadActorKeepingLevel(actorObjectPath) is { } actor)
@@ -634,7 +676,7 @@ public sealed partial class GameAssetProvider : IDisposable
             foreach (var rootPath in candidates)
             {
                 if (result is not null) break;
-                lock (_providerLoadLock)
+                using (ProviderLock())
                 {
                     if (!_provider.TryLoadPackage(rootPath, out var package)) continue;
                     var world = GameMaps.WorldOf(package);
