@@ -75,6 +75,7 @@ public sealed class SceneModelHostService
         // these busy for seconds, and taking every core starved the editor's own window, which then
         // could not even show its loading progress.
         Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = WorkerCount }, path => result[path] = DescribeOne(path));
+        TidyWhenIdle();
         return new Dictionary<string, SceneClassModel?>(result, StringComparer.Ordinal);
     }
 
@@ -197,6 +198,7 @@ public sealed class SceneModelHostService
         if (provider is null || string.IsNullOrWhiteSpace(query.Region)) return null;
         if (query.Min is not { Length: 3 } || query.Max is not { Length: 3 }) return null;
         var capped = query with { MaxInstances = Math.Clamp(query.MaxInstances, 1, 200_000) };
+        TidyWhenIdle();
         try { return provider.DescribeLevel(capped); }
         catch (Exception ex)
         {
@@ -205,11 +207,35 @@ public sealed class SceneModelHostService
         }
     }
 
+    private Timer? _tidyTimer;
+    private const int TidyAfterMs = 4000;
+
+    /// <summary>
+    /// Loading a view reads and serves hundreds of large buffers (meshes, textures, level pieces).
+    /// The runtime only gives that space back in a full collection, which an idle desktop app rarely
+    /// runs, so it stayed committed (127 MB on the Facility). A few seconds after the last request,
+    /// one compacting full collection hands it back. Each request pushes the moment back.
+    /// </summary>
+    private void TidyWhenIdle()
+    {
+        if (OperatingSystem.IsBrowser()) return;
+        lock (this)
+        {
+            _tidyTimer ??= new Timer(_ =>
+            {
+                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+            });
+            _tidyTimer.Change(TidyAfterMs, Timeout.Infinite);
+        }
+    }
+
     /// <summary>A mesh or texture by the id a model referenced, or null.</summary>
     public SceneAsset? OpenAsset(string assetId)
     {
         var provider = Provider?.Value;
         if (provider is null || string.IsNullOrWhiteSpace(assetId) || assetId.Length > 512) return null;
+        TidyWhenIdle();
         try { return provider.OpenAsset(assetId); }
         catch (Exception ex)
         {

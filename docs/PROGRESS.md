@@ -1,5 +1,36 @@
 # Abiotic Editor - Session history
 
+## Round-148: 3D ships with the app; editor memory 643 MB -> 355 MB (2026-10-02)
+
+- **3D view built in.** `AbioticEditor.Web.csproj` builds `plugins/GameModels3D` (ProjectReference
+  without output) and copies `GameModels3D.dll` + a `plugin.json` stamped with the app `$(Version)`
+  into `$(OutDir)plugins/GameModels3D` on build and `$(PublishDir)plugins/GameModels3D` on publish
+  (the bundled root `PluginPaths.BundledPluginsDirectory` already existed). The native animation
+  decoder is added from `GameModelsNativesDir`: the release passes `natives-windows` (Windows job now
+  needs `build-natives-windows`) and `natives-linux` (built with cmake in the Linux job); macOS has
+  none (rest pose). The separate `build-plugins` job, its release zip and the `nexus-models` upload
+  are removed (`NEXUS_MODELS_FILE_ID` is no longer needed). `PluginManager` now keeps the higher
+  version when an id appears in both roots (user copy on a tie), so a hand-installed 1.0.0 copy no
+  longer shadows the bundled one. Checked with a self-contained win-x64 publish: `plugins/GameModels3D`
+  next to the exe, status "available", log "Loaded 'com.abioticeditor.game-models-3d' v2.24.0".
+- **Memory** (headless, Cascade Facility opened, 3D view with models and the level; private bytes):
+  643 MB -> 355 MB. Idle after start 77 MB.
+  - Server GC was on (the web SDK default): one heap per core, 460 MB committed for 163 MB live.
+    `ServerGarbageCollection=false` (note: not `ServerGarbageCollector`), concurrent GC, and
+    `System.GC.ConserveMemory=7`. -> about 400 MB.
+  - `SaveTreeCompactor` (Core, after every world-save read): UeSaveGame gives each of the Facility's
+    141,000 properties its own name and type-name objects (714,000 strings). One shared instance per
+    spelling, set through `UnsafeAccessor` on the read-only backing fields; still byte-exact. The
+    Facility tree: 82 MB -> 41 MB (with the typed view).
+  - Cached meshes and textures are streamed from the cache file (`SceneAsset.FilePath`,
+    `SceneAsset.FromFile`, non-breaking addition to the SDK) instead of `File.ReadAllBytes` per
+    request, which left ~90 MB of dead large-object buffers; and a compacting, aggressive full GC runs
+    4 s after the last 3D request (`SceneModelHostService.TidyWhenIdle`).
+  - What remains is mostly the runtime and ASP.NET itself, the mounted game-file indexes (~40 MB) and
+    the open save.
+- Tests: `SaveTreeCompactorTests` (byte-exact, at least a quarter less memory),
+  `Discovery_PrefersTheHigherVersion...`, `The_desktop_app_bundles_the_3d_models_plugin...`.
+
 ## Round-147: why the 3D view loaded slowly, and fixes; clickable ground items and level things (2026-10-02)
 
 - **Measured** (headless, Cascade Facility, 949 objects, 273 model classes). All `/scene-models/*`

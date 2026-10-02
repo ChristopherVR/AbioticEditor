@@ -113,6 +113,31 @@ public sealed class PluginTests
         }
     }
 
+    [Fact]
+    public void Discovery_PrefersTheHigherVersion_SoABundledPluginBeatsAnOldHandInstalledCopy()
+    {
+        using var userRoot = new TempDir();
+        using var bundledRoot = new TempDir();
+        WritePlugin(userRoot.Path, "old", "com.test.models", enabled: false, version: "1.0.0");
+        WritePlugin(bundledRoot.Path, "new", "com.test.models", enabled: true, version: "2.25.0");
+
+        using (new EnvScope("ABIOTIC_PLUGINS_DIR", userRoot.Path + Path.PathSeparator + bundledRoot.Path))
+        {
+            var models = Assert.Single(PluginManager.DiscoverManifests(), m => m.Id == "com.test.models");
+            Assert.Equal("2.25.0", models.Version);
+        }
+    }
+
+    [Fact]
+    public void The_desktop_app_bundles_the_3d_models_plugin_and_uses_desktop_memory_settings()
+    {
+        var project = File.ReadAllText(UiSource.Resolve("AbioticEditor.Web.csproj"));
+        Assert.Contains("GameModels3D.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("DestinationFolder=\"$(PublishDir)plugins", project, StringComparison.Ordinal);
+        Assert.Contains("<ServerGarbageCollection>false</ServerGarbageCollection>", project, StringComparison.Ordinal);
+        Assert.Contains("System.GC.ConserveMemory", project, StringComparison.Ordinal);
+    }
+
     // ---------- save kind detection ----------
 
     [Fact]
@@ -463,7 +488,7 @@ public sealed class PluginTests
 
     // ---------- helpers ----------
 
-    private static void WritePlugin(string root, string folder, string id, bool enabled)
+    private static void WritePlugin(string root, string folder, string id, bool enabled, string version = "1.0.0")
     {
         var dir = Path.Combine(root, folder);
         Directory.CreateDirectory(dir);
@@ -471,7 +496,7 @@ public sealed class PluginTests
             {
               "id": "{{id}}",
               "name": "{{id}}",
-              "version": "1.0.0",
+              "version": "{{version}}",
               "entryAssembly": "{{folder}}.dll",
               "enabled": {{(enabled ? "true" : "false")}}
             }

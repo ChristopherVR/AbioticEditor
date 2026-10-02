@@ -81,11 +81,11 @@ public class GameModelsProviderProbe
             foreach (var p in m!.Parts)
             {
                 var a = provider.OpenAsset(p.Mesh);
-                if (a is null) { failed++; _output.WriteLine("   mesh failed " + p.Mesh); } else { meshes++; meshBytes += a.Data.Length; }
+                if (a is null) { failed++; _output.WriteLine("   mesh failed " + p.Mesh); } else { meshes++; meshBytes += a.ReadAllBytes().Length; }
                 foreach (var mat in p.Materials.Where(x => x.Texture is not null))
                 {
                     var t = provider.OpenAsset(mat.Texture!);
-                    if (t is null) { failed++; _output.WriteLine("   tex failed " + mat.Texture); } else { textures++; texBytes += t.Data.Length; }
+                    if (t is null) { failed++; _output.WriteLine("   tex failed " + mat.Texture); } else { textures++; texBytes += t.ReadAllBytes().Length; }
                 }
             }
         }
@@ -120,7 +120,7 @@ public class GameModelsProviderProbe
         foreach (var b in slice?.Batches.Take(150) ?? [])
         {
             var a = provider.OpenAsset(b.Mesh);
-            if (a is null) levelFailed++; else levelBytes += a.Data.Length;
+            if (a is null) levelFailed++; else levelBytes += a.ReadAllBytes().Length;
         }
         _output.WriteLine($"baked 150 level meshes: {levelBytes / 1024} KB, {levelFailed} failed, {sw.ElapsedMilliseconds} ms");
     }

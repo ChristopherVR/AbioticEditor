@@ -173,32 +173,7 @@ public sealed class PluginManager
     public static IReadOnlyList<PluginManifest> DiscoverManifests()
     {
         var found = new List<PluginManifest>();
-        var byId = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in PluginPaths.Roots())
-        {
-            if (!Directory.Exists(root))
-            {
-                continue;
-            }
-            foreach (var folder in SafeEnumerateDirectories(root))
-            {
-                var manifestPath = Path.Combine(folder, PluginManifestIo.FileName);
-                var manifest = PluginManifestIo.TryRead(manifestPath);
-                if (manifest is null || !byId.Add(manifest.Id))
-                {
-                    continue;
-                }
-                found.Add(manifest);
-            }
-        }
-        return found;
-    }
-
-    // ---------- internals ----------
-
-    private static void DiscoverInto(List<PluginDescriptor> sink)
-    {
-        var byId = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var byId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var root in PluginPaths.Roots())
         {
             if (!Directory.Exists(root))
@@ -213,17 +188,63 @@ public sealed class PluginManager
                 {
                     continue;
                 }
-                if (!byId.Add(manifest.Id))
+                // Same rule as loading: the higher version of a plugin wins, the user copy on a tie.
+                if (byId.TryGetValue(manifest.Id, out var seen))
                 {
-                    // A user-root copy shadows a bundled one with the same id (roots are
-                    // user-first). Skip the second sighting.
-                    EditorLog.Info("Plugins", $"Ignoring duplicate plugin id '{manifest.Id}' at {folder}.");
+                    if (VersionOf(manifest) > VersionOf(found[seen])) found[seen] = manifest;
                     continue;
                 }
+                byId[manifest.Id] = found.Count;
+                found.Add(manifest);
+            }
+        }
+        return found;
+    }
+
+    // ---------- internals ----------
+
+    private static void DiscoverInto(List<PluginDescriptor> sink)
+    {
+        var byId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in PluginPaths.Roots())
+        {
+            if (!Directory.Exists(root))
+            {
+                continue;
+            }
+            foreach (var folder in SafeEnumerateDirectories(root))
+            {
+                var manifestPath = Path.Combine(folder, PluginManifestIo.FileName);
+                var manifest = PluginManifestIo.TryRead(manifestPath);
+                if (manifest is null)
+                {
+                    continue;
+                }
+                if (byId.TryGetValue(manifest.Id, out var seen))
+                {
+                    // The same plugin twice (a user-installed copy and the one bundled with the app):
+                    // the higher version wins, and on a tie the user copy (roots are user-first). A
+                    // copy installed by hand before the plugin shipped with the app must not keep
+                    // shadowing the newer bundled one.
+                    if (VersionOf(manifest) > VersionOf(sink[seen].Manifest))
+                    {
+                        EditorLog.Info("Plugins", $"Using the newer copy of '{manifest.Id}' at {folder} instead of {sink[seen].Folder}.");
+                        sink[seen] = new PluginDescriptor(manifest, folder, manifestPath);
+                    }
+                    else
+                    {
+                        EditorLog.Info("Plugins", $"Ignoring duplicate plugin id '{manifest.Id}' at {folder}.");
+                    }
+                    continue;
+                }
+                byId[manifest.Id] = sink.Count;
                 sink.Add(new PluginDescriptor(manifest, folder, manifestPath));
             }
         }
     }
+
+    private static Version VersionOf(PluginManifest manifest)
+        => Version.TryParse(PluginManifestIo.NormalizeVersion(manifest.Version), out var v) ? v : new Version(0, 0);
 
     private static void LoadOne(PluginDescriptor descriptor, string hostKind, Func<PluginManifest, bool>? shouldLoad)
     {

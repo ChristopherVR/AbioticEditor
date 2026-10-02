@@ -215,6 +215,16 @@ public static class Program
             var asset = await Task.Run(() => scene.OpenAsset(Uri.UnescapeDataString(id)), cancellationToken);
             if (asset is null) return Results.NotFound();
             response.Headers.CacheControl = "private,max-age=3600";
+            // A cached asset is streamed from its file in small pieces, never held whole in memory.
+            if (asset.FilePath is { } file)
+            {
+                try
+                {
+                    return Results.Stream(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024,
+                        FileOptions.Asynchronous | FileOptions.SequentialScan), asset.ContentType);
+                }
+                catch (IOException) { return Results.NotFound(); }
+            }
             return Results.Bytes(asset.Data, asset.ContentType);
         });
         // Most screens live in AbioticEditor.Web.Shared now (so the browser host can render the

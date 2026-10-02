@@ -21,19 +21,21 @@ Plugins kept there survive editor updates.
 
 ## See your bases in 3D
 
-The **Game Models for 3D View** plugin adds a **3D view** to the **Bases** tab. It draws every
-object with the game's own models, read from your installed copy of Abiotic Factor, and can show
-the rooms around your base with the ceilings cut away. Nothing from the game is in the download.
+The **Bases** tab has a **3D view** that draws every object with the game's own models, read from
+your installed copy of Abiotic Factor, and can show the rooms around your base with the ceilings
+cut away. It comes with the editor: there is nothing extra to download or install, and nothing from
+the game is in the download.
 
-1. Download `AbioticEditor-plugin-game-models-3d-v<version>.zip` from the same release as your
-   editor ([GitHub releases](https://github.com/ChristopherVR/AbioticEditor/releases)).
-2. In the editor, open **Settings ▸ Plugins** and press **OPEN PLUGINS FOLDER**.
-3. Extract the zip there, so the folder holds a `GameModels3D` folder, and restart the editor.
-4. Open a world save, go to **Bases** and switch from **Map** to **3D view**. Pick a base in
-   **Base to show** and the view jumps to it.
+Open a world save, go to **Bases** and switch from **Map** to **3D view**. Pick a base in **Base to
+show** and the view jumps to it.
 
 The editor must be able to read your game files (the same setting that shows item icons). The
-first look at a new area takes a little while as the level is read; after that it is quick.
+editor starts reading an area's models as soon as you open its save, so by the time you open the 3D
+view they are usually ready; after the first time they are kept on disk and it is quick.
+
+If you installed the separate Game Models plugin with an earlier version, you can delete its
+`GameModels3D` folder from **Settings ▸ Plugins ▸ OPEN PLUGINS FOLDER**; the editor uses the newer
+copy it comes with either way.
 
 The view fills the window. Its buttons sit on top of it (frame everything, frame the selection,
 walk, labels, doors, characters and the surrounding level), and a box in the corner shows what is

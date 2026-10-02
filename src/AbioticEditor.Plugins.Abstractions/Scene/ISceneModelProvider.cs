@@ -184,7 +184,22 @@ public sealed record SceneLevelLight(float[] Position, float[] Color, float Brig
 public sealed record SceneLevelBatch(string Mesh, IReadOnlyList<SceneMaterial> Materials, float[] Matrices, string? Name = null);
 
 /// <summary>An asset's bytes and media type.</summary>
-public sealed record SceneAsset(string ContentType, byte[] Data);
+/// <remarks>
+/// A provider that already has the asset in a file can set <see cref="FilePath"/> (and leave
+/// <c>Data</c> empty): the host then streams the file instead of holding a whole copy in memory for
+/// every request, which on a big area meant over a hundred megabytes of short-lived buffers.
+/// </remarks>
+public sealed record SceneAsset(string ContentType, byte[] Data)
+{
+    /// <summary>A file holding the asset's bytes, streamed by the host in place of <c>Data</c> when set.</summary>
+    public string? FilePath { get; init; }
+
+    /// <summary>An asset served straight from a file.</summary>
+    public static SceneAsset FromFile(string contentType, string path) => new(contentType, []) { FilePath = path };
+
+    /// <summary>The asset's bytes, read from <see cref="FilePath"/> when that is how it was given.</summary>
+    public byte[] ReadAllBytes() => FilePath is { } path ? File.ReadAllBytes(path) : Data;
+}
 
 /// <summary>
 /// The binary mesh layout (<c>application/x-abiotic-mesh</c>) providers return for mesh assets.

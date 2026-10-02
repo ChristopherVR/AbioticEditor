@@ -26,10 +26,9 @@ name: Release
 #      versions. Both need the NEXUSMODS_API_KEY secret; the Windows file uses the
 #      NEXUS_APP_FILE_ID variable and Linux/Proton uses NEXUS_PROTON_FILE_ID. Each upload
 #      is skipped independently when its file id or the shared secret is absent.
-#   7b. `build-plugins` zips the optional Game Models for 3D View plugin
-#      (AbioticEditor-plugin-game-models-3d-vX.Y.Z.zip, a GameModels3D folder to drop into the
-#      editor's plugins folder) for the GitHub Release; `nexus-models` uploads it to NexusMods as an
-#      optional file when the NEXUS_MODELS_FILE_ID variable is set (skipped otherwise).
+#   7b. The Game Models for 3D View plugin is built into every desktop package
+#      (plugins/GameModels3D next to the executable, see AbioticEditor.Web.csproj), with the
+#      native animation decoder on Windows (build-natives-windows) and Linux (built in-job).
 #   8. `nuget` packs AbioticEditor.Core + AbioticEditor.Plugins.Abstractions off
 #      the new tag and pushes them to nuget.org (needs the NUGET_API_KEY secret;
 #      the push step is skipped, not failed, when the secret is absent). Each library
@@ -527,76 +526,6 @@ jobs:
           path: CUE4Parse-Natives.dll
           if-no-files-found: error
 
-  build-plugins:
-    needs: [version, build-natives-windows]
-    if: ${{ !cancelled() && needs.version.outputs.released == 'true' }}
-    runs-on: ubuntu-latest
-    concurrency:
-      group: release-build-plugins
-      cancel-in-progress: true
-    env:
-      ASSET_BASENAME: AbioticEditor-plugin-game-models-3d-v${{ needs.version.outputs.version }}
-    steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.version.outputs.tag }}
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10.0.x
-          dotnet-quality: ga
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/Directory.Build.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      - name: Build Game Models for 3D View
-        run: dotnet build plugins/GameModels3D -c Release
-
-      - name: Build CUE4Parse-Natives (Linux)
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          cmake -S submodules/CUE4Parse/CUE4Parse-Natives -B natives-build -DCMAKE_BUILD_TYPE=Release
-          cmake --build natives-build --config Release
-          find natives-build -name 'CUE4Parse-Natives.so' -o -name 'libCUE4Parse-Natives.so' | head -n 1 | xargs -I{} cp {} CUE4Parse-Natives.so
-
-      - name: Download native library (Windows)
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: cue4parse-natives-windows
-          path: natives-windows
-
-      # The zip holds one GameModels3D folder: the two files the editor loads, plus the optional
-      # native animation decoder for each platform it was built for, so players extract it into the
-      # folder that Settings, Plugins, OPEN PLUGINS FOLDER opens.
-      - name: Zip plugin
-        run: |
-          set -euo pipefail
-          out=plugins/GameModels3D/bin/Release/net10.0
-          mkdir -p stage/GameModels3D
-          cp "$out/GameModels3D.dll" "$out/plugin.json" stage/GameModels3D/
-          if [ -f natives-windows/CUE4Parse-Natives.dll ]; then cp natives-windows/CUE4Parse-Natives.dll stage/GameModels3D/; else echo "::warning::No Windows native decoder; ACL poses fall back to the rest pose"; fi
-          if [ -f CUE4Parse-Natives.so ]; then cp CUE4Parse-Natives.so stage/GameModels3D/; else echo "::warning::No Linux native decoder; ACL poses fall back to the rest pose"; fi
-          cp plugins/GameModels3D/README.md stage/GameModels3D/README.md
-          ( cd stage && zip -r "../${ASSET_BASENAME}.zip" GameModels3D )
-          unzip -l "${ASSET_BASENAME}.zip"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: AbioticEditor-plugin-game-models-3d
-          path: ${{ env.ASSET_BASENAME }}.zip
-          if-no-files-found: error
-
   build-web-linux:
     needs: version
     if: needs.version.outputs.released == 'true'
@@ -633,6 +562,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4 zenity xvfb xdotool
 
+      # The 3D view's game models plugin is built into the app; its optional native animation
+      # decoder is built here (without it, characters keep their rest pose).
+      - name: Build native animation decoder (Linux)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmake -S submodules/CUE4Parse/CUE4Parse-Natives -B natives-build -DCMAKE_BUILD_TYPE=Release
+          cmake --build natives-build --config Release
+          mkdir -p natives-linux
+          find natives-build -name 'CUE4Parse-Natives.so' -o -name 'libCUE4Parse-Natives.so' | head -n 1 | xargs -I{} cp {} natives-linux/CUE4Parse-Natives.so
+
       - name: Publish desktop app (Linux, self-contained)
         run: >-
           dotnet publish src/AbioticEditor.Web
@@ -640,6 +580,7 @@ jobs:
           -c Release
           -r linux-x64
           --self-contained true
+          -p:GameModelsNativesDir=${{ github.workspace }}/natives-linux
           -o out
 
       - name: Verify local-only publish contract
@@ -667,6 +608,7 @@ jobs:
           -r linux-x64
           --self-contained true
           -p:NexusMods=true
+          -p:GameModelsNativesDir=${{ github.workspace }}/natives-linux
           -o out-nexus
 
       - name: Verify Nexus build carries no updater
@@ -696,8 +638,8 @@ jobs:
   # Windows local Razor host, built separately so the Nexus upload can start as soon
   # as the player-facing Windows package is ready.
   build-web-win:
-    needs: version
-    if: needs.version.outputs.released == 'true'
+    needs: [version, build-natives-windows]
+    if: ${{ !cancelled() && needs.version.outputs.released == 'true' }}
     runs-on: windows-latest
     # Cancellable: this job publishes nothing externally, so a newer push may abort it.
     concurrency:
@@ -744,6 +686,15 @@ jobs:
         shell: pwsh
         run: ./tools/fetch-ue4ss.ps1
 
+      # The 3D view's game models plugin is built into the app (plugins/GameModels3D next to the
+      # executable). Its optional native animation decoder comes from build-natives-windows.
+      - name: Download native animation decoder (Windows)
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: cue4parse-natives-windows
+          path: natives-windows
+
       - name: Publish desktop app (Windows, self-contained)
         run: >-
           dotnet publish src/AbioticEditor.Web
@@ -751,6 +702,7 @@ jobs:
           -c Release
           -r win-x64
           --self-contained true
+          -p:GameModelsNativesDir=${{ github.workspace }}/natives-windows
           -o out
 
       - name: Verify local-only publish contract
@@ -841,6 +793,7 @@ jobs:
           -r win-x64
           --self-contained true
           -p:NexusMods=true
+          -p:GameModelsNativesDir=${{ github.workspace }}/natives-windows
           -o out-nexus
 
       - name: Verify Nexus build carries no updater
@@ -946,7 +899,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [version, build, build-plugins, build-web-linux, build-web-win, build-web-mac]
+    needs: [version, build, build-web-linux, build-web-win, build-web-mac]
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-latest
     # Protected: creates the GitHub Release and pushes the Scoop bucket commit.
@@ -1440,55 +1393,6 @@ jobs:
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux)
           description: ${{ steps.changelog.outputs.body }}
           category: main
-          archive_existing_version: true
-
-  # The optional 3D models plugin as its own NexusMods file (category "optional"), so players
-  # who want the 3D view can add it. Skipped until the NEXUS_MODELS_FILE_ID variable exists.
-  nexus-models:
-    needs: [version, build-plugins]
-    if: needs.version.outputs.released == 'true'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: release-nexus-models
-      cancel-in-progress: false
-    steps:
-      - name: Check for NexusMods plugin credentials
-        id: gate
-        env:
-          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
-          FILE_ID: ${{ vars.NEXUS_MODELS_FILE_ID }}
-        run: |
-          set -euo pipefail
-          if [ -n "${NEXUSMODS_API_KEY}" ] && [ -n "${FILE_ID}" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NEXUSMODS_API_KEY secret and/or NEXUS_MODELS_FILE_ID variable not set; skipping the 3D models plugin NexusMods upload."
-          fi
-
-      - name: Download plugin artifact
-        if: steps.gate.outputs.enabled == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: AbioticEditor-plugin-game-models-3d
-          path: dist
-
-      - name: Upload plugin to NexusMods
-        if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
-        with:
-          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_id: ${{ vars.NEXUS_MODELS_FILE_ID }}
-          filename: dist/AbioticEditor-plugin-game-models-3d-v${{ needs.version.outputs.version }}.zip
-          version: ${{ needs.version.outputs.version }}
-          # Same name rules as the other uploads: ^[a-zA-Z0-9 _'().-]+$ and short.
-          display_name: 3D Game Models v${{ needs.version.outputs.version }}
-          description: >-
-            Optional plugin for Abiotic Editor. Adds a 3D view to the Bases tab that draws your
-            bases with the game's own models, read from your installed game. Extract the
-            GameModels3D folder into the editor's plugins folder (Settings, Plugins, OPEN PLUGINS
-            FOLDER) and restart the editor. Needs the editor of the same version.
-          category: optional
           archive_existing_version: true
 
   # Pack the library packages off the new tag and push them to nuget.org.

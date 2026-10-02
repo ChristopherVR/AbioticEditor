@@ -773,8 +773,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var contentType = isMesh ? SceneMeshFormat.ContentType : "image/png";
         if (File.Exists(file))
         {
-            var bytes = File.ReadAllBytes(file);
-            return bytes.Length == 0 ? null : new SceneAsset(contentType, bytes);
+            // Served straight from the cache file (no whole copy in memory per request); an empty
+            // file records that the asset could not be read.
+            return new FileInfo(file).Length == 0 ? null : SceneAsset.FromFile(contentType, file);
         }
 
         var data = isMesh

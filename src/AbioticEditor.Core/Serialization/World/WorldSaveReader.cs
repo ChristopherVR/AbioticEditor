@@ -50,6 +50,7 @@ public static partial class WorldSaveReader
     public static WorldSaveData ReadFromStream(Stream stream)
     {
         var save = SaveGame.LoadFrom(stream);
+        SaveTreeCompactor.Compact(save);
         var data = ReadFromSave(save);
         LogUnmodeledKeys(save);
         return data;

@@ -1,4 +1,4 @@
-# Game Models for 3D View - optional plugin
+# Game Models for 3D View
 
 Draws the editor's **3D base view** with the game's own models and textures instead of coloured
 boxes, and can show the level around your base (floors, walls, rocks, pipes) so you can see where
@@ -9,14 +9,13 @@ Factor**; nothing from the game is shipped with the plugin or the editor.
 - **Capability:** 3D model provider (`sceneModels`)
 - **Surfaced in:** the desktop editor's **Bases** tab, as a Map / 3D view switch (the CLI and the
   browser build ignore it)
-- **Not bundled:** without it there is no 3D view at all and the Bases tab shows its map as before;
-  install it only if you want it.
+- **Bundled:** ships inside every desktop package of the editor (`plugins/GameModels3D` next to the
+  executable). There is nothing to download or install.
 
 ## Install
 
-**From a release:** download `AbioticEditor-plugin-game-models-3d-v<version>.zip` from the same
-release as your editor, open **Settings, Plugins, OPEN PLUGINS FOLDER** in the editor, extract the
-zip there (it holds one `GameModels3D` folder) and restart the editor.
+Nothing to do: it comes with the editor. A copy installed by hand under the user plugins folder
+is only used when its version is higher than the bundled one.
 
 **From source** (needs the .NET 10 SDK and a clone with submodules):
 

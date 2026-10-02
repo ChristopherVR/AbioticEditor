@@ -19,6 +19,11 @@
          ships and the editor opens to a blank window. The published executable is marked
          graphical afterwards instead (see SuppressPublishedConsoleWindow below). -->
     <RootNamespace>AbioticEditor.Web</RootNamespace>
+    <!-- A desktop app for one person, not a busy web server. The web SDK's default server GC keeps a
+         heap per core and holds on to freed memory: with the Facility open it had 460 MB committed for
+         163 MB of live data. Workstation GC returns what it does not need. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Ship as one executable with the runtime and every dependency inside it, including the
@@ -246,4 +251,46 @@
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Reading the game files and writing a 16 MB save make many large temporary buffers; this lets
+         the GC compact them away instead of keeping the fragmented space committed. -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+  <!-- The 3D view's game models ship with the app: the Game Models plugin is built with it and
+       placed in the plugins folder next to the executable (PluginPaths.BundledPluginsDirectory), so
+       there is nothing to download or install. It still reads the models from the player's own
+       game install; nothing from the game is in the download. The optional native animation
+       decoder is included when the release workflow built one (GameModelsNativesDir). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\plugins\GameModels3D\GameModels3D.csproj" ReferenceOutputAssembly="false" Private="false" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier;SelfContained" />
+  </ItemGroup>
+
+  <Target Name="ResolveBundledGameModels">
+    <MSBuild Projects="..\..\plugins\GameModels3D\GameModels3D.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework;RuntimeIdentifier;SelfContained">
+      <Output TaskParameter="TargetOutputs" ItemName="_GameModelsAssembly" />
+    </MSBuild>
+    <!-- The bundled copy carries the app's version, so it wins over a copy of the plugin installed
+         by hand before it shipped with the app (PluginManager keeps the higher version). -->
+    <PropertyGroup>
+      <_GameModelsManifestSource>@(_GameModelsAssembly->'%(RootDir)%(Directory)plugin.json')</_GameModelsManifestSource>
+      <_GameModelsManifest>$(IntermediateOutputPath)bundled-plugins\GameModels3D\plugin.json</_GameModelsManifest>
+      <_GameModelsManifestText>$([System.IO.File]::ReadAllText('$(_GameModelsManifestSource)'))</_GameModelsManifestText>
+      <_GameModelsManifestText>$([System.Text.RegularExpressions.Regex]::Replace('$(_GameModelsManifestText)', '"version":\s*"[^"]*"', '"version": "$(Version)"'))</_GameModelsManifestText>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)bundled-plugins\GameModels3D" />
+    <WriteLinesToFile File="$(_GameModelsManifest)" Lines="$(_GameModelsManifestText)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <_GameModelsFiles Include="@(_GameModelsAssembly)" />
+      <_GameModelsFiles Include="$(_GameModelsManifest)" />
+      <_GameModelsFiles Include="$(GameModelsNativesDir)\CUE4Parse-Natives.*" Condition="'$(GameModelsNativesDir)' != ''" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BundleGameModelsOnBuild" AfterTargets="Build" DependsOnTargets="ResolveBundledGameModels">
+    <Copy SourceFiles="@(_GameModelsFiles)" DestinationFolder="$(OutDir)plugins\GameModels3D" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="BundleGameModelsOnPublish" AfterTargets="Publish" DependsOnTargets="ResolveBundledGameModels">
+    <Copy SourceFiles="@(_GameModelsFiles)" DestinationFolder="$(PublishDir)plugins\GameModels3D" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
