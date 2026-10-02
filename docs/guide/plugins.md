@@ -33,6 +33,10 @@ The editor must be able to read your game files (the same setting that shows ite
 editor starts reading an area's models as soon as you open its save, so by the time you open the 3D
 view they are usually ready; after the first time they are kept on disk and it is quick.
 
+The start page offers **Prepare 3D**: it reads every part of the game's world once, in the
+background, so the 3D view never waits on it later. It takes a few minutes and you can keep editing
+meanwhile. It comes back after a game update, because the game's files have changed.
+
 Opening a save also prepares the level around your bases and the rest of the area in the
 background, so **Show in 3D** on a door or button elsewhere is quick too. The level appears in parts
 as it arrives.
@@ -55,13 +59,13 @@ a time, following the view as you move. Its buttons sit on top of it (frame ever
 walk, labels, doors, characters and the surrounding level), and a box in the corner shows what is
 still loading: models, their textures and the level. A model appears once its textures are in, so
 nothing shows up blank first. The panel beside the view shows what you clicked at the top, with
-**Objects** (search and the full list), **Filters** and **Display** (game models and the level) as
-tabs underneath.
+the list of objects (and a search) underneath. **Show** on the view holds everything about what is
+drawn: labels and markers, the filters, and the game models and level.
 
 Scroll to zoom towards whatever is under the pointer, and double-click a spot to swing the view
 round it and move in close. **Full screen** gives the view the whole window; press Escape or the
 button again to leave. Whatever the pointer is over gets a thin blue outline, so you can see what a
-click will pick. With **Edit mode** ticked on the view, press and drag any piece you built to
+click will pick. With **Edit mode** on, press and drag any piece you built to
 move it across the floor; a selected group moves together. It moves in 10 cm steps (hold Shift to move
 freely, Alt to raise or lower it). R turns the selection 45 degrees (Shift+R 15), Delete removes it and
 Ctrl+D copies it beside itself. Furniture and walls that
@@ -78,19 +82,27 @@ height: drag to look, use W A S D or the arrow keys to move, Shift to go faster,
 You bump into walls while walking; turn off **Stay on the floor** to fly through them. E and Q take
 you up and down: let go and you land on the floor below, so you can reach another storey.
 Diamonds mark story characters, traders and pets; click one to see who it is: their portrait, their
-story and, for a trader, what they take and sell. Turn on **Edit mode** on the view, then **Add object** puts a fresh copy of
-something you have already built where the view is looking. **Also list things built in my other
+story and, for a trader, what they take and sell. Turn on **Edit mode**, then **Add object** opens a searchable set of
+pictures of the things you can place: drag one onto the view to put it there, or click it to place
+it where the view is looking. **Also list things built in my other
 worlds** adds everything you have built in your other worlds on this computer, so you can place a
 kind this world has never had.
 
 The panel beside the view always shows what you clicked at the top: its picture and name, its
 contents (change them right there), then **Remove** and **Copy**. Pressing either turns **Edit mode**
-on. The numbers behind it are folded under **Details**. The object list, filters and display settings
-are tabs underneath. With **Edit mode** on, **Add object** on the view places a new piece. Things
+on. The numbers behind it are folded under **Details**. The object list is underneath. **Changes** on the view lists everything waiting for **SAVE**. Things
 that came with the level (a fridge, a locker) can't be removed, because the game puts them back from
 its own files. **Copy as my own piece** places one of your own beside it instead, made from one you
 built in any of your worlds. Wall sockets built into the level show as
 markers too: click one to plug a device into it.
+
+A bench's card lists its upgrades to tick on or off, and a painted piece has a colour to pick. A
+containment cell's card shows the creature inside it, with a picker to put another one in and
+**Release** to empty it; the change is saved to the story save along with this one. Clicking a
+breakable wall, a resource node or anything else from another tab opens its card too.
+
+Click any "where it is" picture in the lists to see it large: scroll to zoom in, drag to move
+around, and press Escape to close it.
 
 **Show in 3D** also works from the story save: a trader's card offers one for each place they stand,
 and each containment cell has one. It opens the right area's save and takes you there; holograms

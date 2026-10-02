@@ -108,7 +108,13 @@ public partial class WorldBases3DTab
                     return false;
                 }
                 var level = await Art.TryGetActorWorldTransformAsync(target.Id);
-                return await LocatePointAsync(target, level is { } t ? new PlacedVector(t.X, t.Y, t.Z) : target.At);
+                var shown = await LocatePointAsync(target, level is { } t ? new PlacedVector(t.X, t.Y, t.Z) : target.At);
+                // A breakable wall, button, resource node... opens its card too, so what can be done
+                // with it is right there (not only a pin).
+                var (actorMap, actorName) = DoorIdParser.Parse(target.Id);
+                if (shown && actorMap.Length > 0)
+                    await PickLevelActorAsync($"{actorMap[(actorMap.LastIndexOf('/') + 1)..]}:{actorName[(actorName.LastIndexOf('.') + 1)..]}");
+                return shown;
 
             default:
                 return await LocatePointAsync(target, target.At);

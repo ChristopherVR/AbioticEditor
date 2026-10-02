@@ -299,7 +299,27 @@
         Selection.Clear();
         StateHasChanged();
     }
-    private void OpenWorldTab(string id) { _worldTab = id; Selection.Clear(); }
+    /// <summary>
+    /// Opens a world tab. "WorldSave_MetaData.sav|containment" opens a tab of another save of this
+    /// world first (the 3D view's containment cell card opens the story save's Containment tab).
+    /// </summary>
+    private async Task OpenWorldTab(string id)
+    {
+        var bar = id.IndexOf('|', StringComparison.Ordinal);
+        if (bar > 0 && Workspace.Current is { } workspace
+            && workspace.Saves.FirstOrDefault(s => string.Equals(Path.GetFileName(s.Path), id[..bar], StringComparison.OrdinalIgnoreCase)) is { } save)
+        {
+            if (!string.Equals(Workspace.Current?.WorldSession?.Path, save.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                try { await Workspace.SelectAsync(save.Path); }
+                catch (InvalidOperationException) { return; }
+            }
+            id = id[(bar + 1)..];
+        }
+        _worldTab = id;
+        Selection.Clear();
+        StateHasChanged();
+    }
     private void OpenPowerSockets() { _worldTab = FeatureTabPrefix + PowerSocketsFeatureId; Selection.Clear(); }
     private void OpenVehicleContainer(string containerId) { _containersInitialFilter = containerId; _worldTab = "containers"; }
     @* Each of these has to tell the workspace it changed something, the way PlayerChanged does.

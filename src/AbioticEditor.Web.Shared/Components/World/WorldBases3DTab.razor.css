@@ -146,3 +146,55 @@
 .b3d-panel ::deep .b3d-character-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .b3d-panel ::deep .b3d-character-offer.named { grid-column: span 2; padding: 2px 4px; }
 .b3d-panel ::deep .b3d-character-offer-name { font-size: 11px; line-height: 1.2; text-align: center; }
+
+/* The Show menu: what is drawn (labels, markers), which objects (filters) and the level and models,
+   in three sections, scrolling when the view is short. */
+.b3d-show-popover { min-width: 300px; max-width: min(360px, calc(100vw - 40px)); max-height: min(70vh, 560px); overflow-y: auto; gap: 8px; padding: 8px 10px; }
+.b3d-menu-section { display: flex; flex-direction: column; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.b3d-menu-section:last-child { border-bottom: 0; padding-bottom: 0; }
+.b3d-menu-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent, #f08418); }
+.b3d-show-popover .wt-card, .b3d-show-popover .b3d-panel { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.b3d-show-popover .wt-check, .b3d-show-popover label { font-size: 12px; color: #eaf3f8; }
+.b3d-show-popover .b3d-cats { grid-template-columns: 1fr 1fr; }
+
+/* Edit mode and the unsaved-changes count are toggles like Walk, not checkboxes. */
+.b3d-hud-btn.b3d-hud-edit { border-color: rgba(240, 132, 24, 0.6); }
+.b3d-hud-btn.b3d-hud-changes { border-color: rgba(245, 197, 24, 0.7); color: #f5c518; }
+.b3d-hud-btn.b3d-hud-changes.on { color: #fff; }
+
+/* The side panel: what was picked, then the object list (no tabs). */
+.b3d-objects-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 0; border-top: 1px solid var(--line, #224158); }
+.b3d-close { width: 24px; height: 24px; padding: 0; line-height: 1; font-size: 12px; color: var(--muted, #a9cbe0); background: transparent; border: 1px solid transparent; cursor: pointer; }
+.b3d-close:hover { color: #fff; border-color: rgba(255, 255, 255, 0.25); }
+.b3d-selection-bar .b3d-selection-list { max-height: 110px; }
+
+/* One look for the controls in the side panel: dropdowns, inputs and buttons the same height and type. */
+.b3d-side ::deep select.wt-input, .b3d-side ::deep input.wt-input, .b3d-side ::deep .wt-btn {
+    min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; line-height: 28px; box-sizing: border-box; border-radius: 2px;
+}
+.b3d-side ::deep select.wt-input { padding-right: 24px; }
+.b3d-side ::deep .wt-btn { display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.b3d-side ::deep .b3d-links { align-items: center; }
+.b3d-side ::deep .b3d-links > select { flex: 1 1 140px; min-width: 0; }
+.b3d-panel ::deep .b3d-upgrades { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+.b3d-panel ::deep .b3d-field { display: flex; flex-direction: column; gap: 3px; }
+
+/* Add object: a searchable grid of the kinds that can be placed, dragged onto the view. */
+.b3d-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; max-height: 320px; overflow-y: auto; }
+.b3d-palette-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; text-align: center; cursor: grab;
+    color: #eaf3f8; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line, #224158); transform: none !important; }
+.b3d-palette-item:hover { border-color: var(--accent, #f08418); background: rgba(240, 132, 24, 0.08); }
+.b3d-palette-item.selected { border-color: var(--accent, #f08418); }
+.b3d-palette-item:active { cursor: grabbing; }
+.b3d-palette-art { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+.b3d-palette-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.b3d-palette-name { font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; }
+.b3d-palette-item small { font-size: 10px; color: var(--muted, #a9cbe0); }
+.b3d-palette-hint { margin: 0; font-size: 12px; }
+
+/* Tiles keep their own height (a button's 36px minimum otherwise squashes the rows together). */
+.b3d-palette { grid-auto-rows: max-content; align-content: start; }
+.b3d-palette .b3d-palette-item { height: auto; min-height: 96px; text-transform: none; letter-spacing: normal; font-weight: 500; border-radius: 4px; }
+
+/* Inside the Show menu every option reads the same: plain sentence-case labels. */
+.b3d-show-popover ::deep label, .b3d-show-popover ::deep .wt-check { text-transform: none; letter-spacing: normal; font-weight: 400; font-size: 12px; }

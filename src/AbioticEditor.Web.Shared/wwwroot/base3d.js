@@ -189,17 +189,20 @@ export async function mapBackdrop(options) {
  */
 const backdrops = new Map();
 export async function fillMapBackdrop(element, key, options) {
-    if (!element) return false;
+    if (!element) return "none";
     element.dataset.shot = JSON.stringify(options); // what was asked for (diagnostics and UI tests)
     let picture = backdrops.get(key);
     if (picture === undefined) {
         element.removeAttribute("href"); // the old framing's picture would sit misaligned meanwhile
         picture = await mapBackdrop(options).catch(() => null);
-        backdrops.set(key, picture);
+        // Only a finished picture is kept: an empty answer or one made while level files were still
+        // being read would otherwise stay for the whole session.
+        if (picture?.pending) return "pending";
+        if (picture) backdrops.set(key, picture);
     }
-    if (!picture) return false;
+    if (!picture) return "none";
     element.setAttribute("href", picture);
-    return true;
+    return "shown";
 }
 
 export function createView(host, dotnet, parkKey) {
@@ -2608,6 +2611,21 @@ function buildView(host, dotnet) {
          * The point under the middle of the view (the floor, a level piece, a model or a box the view
          * looks at, above the ceiling cut ignored), or the orbit target when nothing is there. Viewer space.
          */
+        /** The surface under a page point (a piece dropped on the view lands there), or the view centre's. */
+        placementPointAt(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const at = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
+            raycaster.setFromCamera(at, camera);
+            const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
+            for (const hit of raycaster.intersectObjects(targets, false)) {
+                if (levelClip.distanceToPoint(hit.point) < 0) continue;
+                return hit.point.toArray();
+            }
+            // Nothing under the pointer: where the ray meets the floor height of the view centre.
+            const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -controls.target.y);
+            const point = raycaster.ray.intersectPlane(floor, new THREE.Vector3());
+            return (point ?? controls.target).toArray();
+        },
         placementPoint() {
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
@@ -2791,6 +2809,9 @@ function buildView(host, dotnet) {
             const slice = await postJson(`${MODEL_BASE}/level`, {
                 region, min: [f.x - r, floorY - 4, f.z - r], max: [f.x + r, floorY + cutAbove + 1, f.z + r], maxInstances: 12000,
             });
+            // Level files still being read (the first time, or after a game update): the picture would be
+            // missing parts, so the map waits and asks again rather than keeping a half picture.
+            if ((slice?.pendingMaps ?? 0) > 0) return { pending: true };
             const small = m => ({ ...m, layers: null });
             const group = new THREE.Group(), materials = [];
             const instance = new THREE.Matrix4();

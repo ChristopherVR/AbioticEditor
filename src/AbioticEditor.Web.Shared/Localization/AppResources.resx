@@ -3691,7 +3691,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldEditor_TabTraders" xml:space="preserve"><value>Traders</value></data>
   <data name="WorldEditor_TabContainment" xml:space="preserve"><value>Containment</value></data>
   <data name="WorldEditor_TabRawJson" xml:space="preserve"><value>Advanced Data</value></data>
-  <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} IN THIS WORLD</value></data>
+  <data name="WorldFeature_TitleFormat" xml:space="preserve"><value>{0} in this world</value></data>
   <data name="WorldEditor_ExportingJson" xml:space="preserve"><value>Writing the raw JSON... (the main facility save makes a file of about 100 MB, so this can take a moment)</value></data>
   <data name="WorldEditor_ExportedJsonFormat" xml:space="preserve"><value>Done - wrote {0:F1} MB → {1}</value></data>
   <data name="WorldEditor_ExportFailedFormat" xml:space="preserve"><value>Export failed: {0}</value></data>
@@ -4375,15 +4375,15 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PowerRewire_Plug" xml:space="preserve"><value>PLUG IN</value></data>
   <data name="PowerRewire_Unplug" xml:space="preserve"><value>UNPLUG</value></data>
   <data name="PowerRepair_Title" xml:space="preserve"><value>POWER TOOLS</value></data>
-  <data name="PowerRepair_StagedFormat" xml:space="preserve"><value>{0} power change(s) waiting for SAVE:</value></data>
+  <data name="PowerRepair_StagedFormat" xml:space="preserve"><value>{0} power changes waiting for SAVE</value></data>
   <data name="PowerRepair_PlugRowFormat" xml:space="preserve"><value>Plug {0} into {1}</value></data>
   <data name="PowerRepair_UnplugRowFormat" xml:space="preserve"><value>Unplug {0}</value></data>
   <data name="PowerRepair_CleanupRowFormat" xml:space="preserve"><value>Remove the leftover record of outlet {1} on device {0}</value></data>
   <data name="PowerRepair_Revert" xml:space="preserve"><value>UNDO</value></data>
   <data name="PowerRepair_Check" xml:space="preserve"><value>CHECK POWER</value></data>
   <data name="PowerRepair_Checking" xml:space="preserve"><value>CHECKING...</value></data>
-  <data name="PowerRepair_NothingFound" xml:space="preserve"><value>No broken power links or leftover outlet records were found.</value></data>
-  <data name="PowerRepair_FoundFormat" xml:space="preserve"><value>{0} thing(s) to fix. Tick the fixes you want; the safe ones are already ticked.</value></data>
+  <data name="PowerRepair_NothingFound" xml:space="preserve"><value>No power problems found</value></data>
+  <data name="PowerRepair_FoundFormat" xml:space="preserve"><value>{0} power problems found</value></data>
   <data name="PowerRepair_ThisSaveOnly" xml:space="preserve"><value>The other saves of this world could not be read, so links into other regions and leftover records were not checked.</value></data>
   <data name="PowerRepair_Kind_UnplugMissingDevice" xml:space="preserve"><value>SOCKETS POWERING A DEVICE THAT IS GONE</value></data>
   <data name="PowerRepair_Kind_UnplugSelfLink" xml:space="preserve"><value>DEVICES PLUGGED INTO THEMSELVES</value></data>
@@ -4541,7 +4541,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_DuplicateButtonFormat" xml:space="preserve"><value>Duplicate ({0})...</value></data>
   <data name="World3D_DuplicateTitleFormat" xml:space="preserve"><value>DUPLICATE {0} OBJECT(S)</value></data>
   <data name="World3D_EditNeedsOptIn" xml:space="preserve"><value>Turn on Edit mode on the view to remove, copy or arrange objects.</value></data>
-  <data name="World3D_EditUnverified" xml:space="preserve"><value>The game loads moved, copied, placed and removed pieces exactly as written and does not check that a piece fits where you put it, so look over the warnings before you SAVE. Nothing is written until you press SAVE, and a .bak backup is kept.</value></data>
+  <data name="World3D_EditUnverified" xml:space="preserve"><value>The game doesn't check where pieces end up, so look over any warnings before you SAVE. A .bak backup is kept.</value></data>
   <data name="World3D_GroupAlignYaw" xml:space="preserve"><value>Align yaw to the primary</value></data>
   <data name="World3D_GroupArrange" xml:space="preserve"><value>Align and distribute</value></data>
   <data name="World3D_GroupDistribute" xml:space="preserve"><value>Distribute along axis</value></data>
@@ -4608,7 +4608,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_StagedDeletions" xml:space="preserve"><value>Deletions</value></data>
   <data name="World3D_StagedForDeletion" xml:space="preserve"><value>Staged for deletion.</value></data>
   <data name="World3D_StagedMoves" xml:space="preserve"><value>Moves and turns</value></data>
-  <data name="World3D_StagedSummaryFormat" xml:space="preserve"><value>{0} move(s), {1} deletion(s), {2} copy(ies). Objects in the save: {3} now, {4} after saving. Items deleted with their objects: {5}. Items duplicated: {6}. Links touched: {7}. Everything is written when you press SAVE.</value></data>
+  <data name="World3D_StagedSummaryFormat" xml:space="preserve"><value>Moved {0}, removed {1}, added {2}. The region holds {3} objects now and {4} after saving.</value></data>
   <data name="World3D_Select" xml:space="preserve"><value>Select</value></data>
   <data name="World3D_ViewLabel" xml:space="preserve"><value>3D view of placed objects</value></data>
   <data name="World3D_InvalidNumber" xml:space="preserve"><value>Enter numbers for X, Y, Z and yaw.</value></data>
@@ -4731,4 +4731,21 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_HelpRotateKey" xml:space="preserve"><value>Edit mode: turn the selection 45 degrees (15 with Shift)</value></data>
   <data name="World3D_HelpDeleteKey" xml:space="preserve"><value>Edit mode: remove the selection (you see what goes first)</value></data>
   <data name="World3D_HelpCopyKey" xml:space="preserve"><value>Edit mode: copy the selection beside itself</value></data>
+  <data name="World3D_ContainmentHolds" xml:space="preserve"><value>Holds</value></data>
+  <data name="World3D_ContainmentSavedWith" xml:space="preserve"><value>Which creature a cell holds is kept in the world's story save; SAVE writes both.</value></data>
+  <data name="World3D_LevelActorHelp" xml:space="preserve"><value>Part of the level. This save has no record of it yet (the game adds one once it is used, taken or broken), so there is nothing to change here.</value></data>
+  <data name="World3D_ChangesFormat" xml:space="preserve"><value>Changes ({0})</value></data>
+  <data name="PowerRepair_ShowChanges" xml:space="preserve"><value>Show the changes</value></data>
+  <data name="PowerRepair_ShowFixes" xml:space="preserve"><value>Show what the check found</value></data>
+  <data name="PowerRepair_FixesHint" xml:space="preserve"><value>Tick the fixes you want; the safe ones are already ticked.</value></data>
+  <data name="Prepare3D_Title" xml:space="preserve"><value>Get the 3D view ready</value></data>
+  <data name="Prepare3D_Body" xml:space="preserve"><value>The 3D view reads each part of the world from your game files the first time it shows it, which can take minutes. Do it now, once, in the background ({0} level files): after that every area opens quickly. It comes back after a game update.</value></data>
+  <data name="Prepare3D_Start" xml:space="preserve"><value>Prepare now</value></data>
+  <data name="Prepare3D_Later" xml:space="preserve"><value>Not now</value></data>
+  <data name="Prepare3D_Running" xml:space="preserve"><value>Getting the 3D view ready</value></data>
+  <data name="Prepare3D_ProgressFormat" xml:space="preserve"><value>{0} of {1} level files read. You can keep working meanwhile.</value></data>
+  <data name="World3D_PaletteHint" xml:space="preserve"><value>Drag a piece onto the view to place it there, or click one to place it where the view is looking.</value></data>
+  <data name="World3D_PaletteSearch" xml:space="preserve"><value>Search pieces</value></data>
+  <data name="World3D_PaletteHereFormat" xml:space="preserve"><value>{0} in this world</value></data>
+  <data name="World3D_PlaceExact" xml:space="preserve"><value>Exact position</value></data>
 </root>

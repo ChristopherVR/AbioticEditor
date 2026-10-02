@@ -1,0 +1,16 @@
+/* Power tools: one compact line with what waits for SAVE and what the check found; the lists fold away. */
+.power-repair { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; }
+.power-repair-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.power-repair-head .eyebrow { margin: 0; }
+.power-chip { display: inline-flex; align-items: center; padding: 2px 8px; font-size: 12px; line-height: 1.5; border: 1px solid var(--line, #224158); color: var(--muted, #a9cbe0); }
+.power-chip.waiting { color: #f5c518; border-color: rgba(245, 197, 24, 0.55); }
+.power-chip.ok { color: #9fe39f; border-color: rgba(159, 227, 159, 0.45); }
+.power-chip.problem { color: #ffb4ac; border-color: rgba(255, 120, 100, 0.5); }
+.power-repair-fold > summary { cursor: pointer; font-size: 12px; color: var(--muted, #a9cbe0); padding: 2px 0; }
+.power-repair-fold[open] > summary { margin-bottom: 6px; }
+.power-staged-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+.power-staged-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px; font-size: 12px; border-left: 2px solid rgba(245, 197, 24, 0.55); background: rgba(255, 255, 255, 0.03); }
+.power-staged-list li > span:first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.power-staged-list li button { flex: none; }
+.power-fix-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.power-fix { font-size: 12px; align-items: flex-start; }

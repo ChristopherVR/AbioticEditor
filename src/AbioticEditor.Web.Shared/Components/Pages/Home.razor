@@ -67,6 +67,8 @@
                 : Languages.Resource("Empty_DropHere"))
         </p>
         <p class="empty-note">@Languages.Resource("Empty_EveryWriteKeepsABakBackupNextToTheSave")</p>
+        @* The 3D view's one-time reading of the game, offered before anything else (desktop only). *@
+        <ThreeDPrepareCard />
 
         @* Worlds opened in an earlier visit. A browser forgets the folder when the tab closes,
            so without this a refresh meant finding it in the picker all over again. *@

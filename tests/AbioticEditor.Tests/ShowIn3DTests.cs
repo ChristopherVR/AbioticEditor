@@ -70,12 +70,14 @@ public sealed class ShowIn3DTests
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
         Assert.Contains("data-b3d=\"loading\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"hud\"", tab, StringComparison.Ordinal);
-        // The inspector is always shown above the tabs (picking never switches tabs); the lists are tabs.
+        // What was picked is on top, the object list below (no tabs); what is drawn and how (filters,
+        // level, models) is in the view's Show menu.
         Assert.Contains("data-b3d=\"inspect-pane\"", tab, StringComparison.Ordinal);
-        foreach (var t in new[] { "objects", "filters", "display" })
-            Assert.Contains($"_sideTab == \"{t}\"", tab, StringComparison.Ordinal);
-        Assert.Contains("[\"objects\", \"filters\", \"display\"]",
-            UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Layout.razor.cs"), StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"objects-pane\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"filters-section\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"display-section\"", tab, StringComparison.Ordinal);
+        Assert.DoesNotContain("role=\"tablist\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"staged-toggle\"", tab, StringComparison.Ordinal); // changes listed only when asked
         // A crate's contents are edited in the inspector, not by jumping to the Containers tab.
         Assert.Contains("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\" />", tab, StringComparison.Ordinal);
     }

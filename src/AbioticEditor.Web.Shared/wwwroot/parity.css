@@ -242,8 +242,8 @@ button,input,select,textarea{font:inherit}
 
 /* Native buttons, fields and focus behavior */
 button,.primary,.secondary,.button-link{box-sizing:border-box;min-height:36px;border-radius:6px;cursor:pointer;font:600 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;transition:background-color 90ms ease,border-color 90ms ease,opacity 90ms ease,transform 90ms ease}
-button:hover,.primary:hover,.button-link:hover{transform:scale(1.02);opacity:.92}
-button:active,.primary:active,.button-link:active{transform:scale(.97);background-color:var(--orange-dim)}
+button:hover,.primary:hover,.button-link:hover{opacity:.92}
+.primary:active,.button-link:active{background-color:var(--orange-dim)}
 .secondary:hover,.icon-button:hover,.round-action:hover,.open-folder-action:hover,.shell-splitter button:hover,.settings-tab-rail button:hover,.theme-segments button:hover{transform:none;opacity:1}
 /* Full-width list rows must not zoom on hover: inside an overflow:auto list the scaled
    row overflows sideways and flashes a horizontal scrollbar. Rows highlight instead. */
@@ -2334,3 +2334,17 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 .world-feature-pictures .world-thumb-art figcaption{position:absolute;left:4px;right:4px;bottom:4px;padding:2px 4px;text-align:center;background:rgba(8,17,25,.85)}
 .world-state-badge.on{color:#9fe39f;border:1px solid rgba(159,227,159,.5)}
 .world-state-badge.off{color:#c9d3da;border:1px solid rgba(255,255,255,.18)}
+/* Click-to-enlarge pictures (modal.js abiotic.zoom). */
+img[data-zoom]{cursor:zoom-in}
+.zoom-overlay{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(5,8,11,.88)}
+.zoom-image{max-width:92vw;max-height:86vh;object-fit:contain;cursor:grab;user-select:none;transform-origin:center;image-rendering:auto;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.zoom-image:active{cursor:grabbing}
+.zoom-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:4px 10px;font-size:12px;color:#eaf3f8;background:rgba(8,17,25,.85)}
+/* Start page: getting the 3D view ready (ThreeDPrepareCard). */
+.prepare-3d{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin:16px auto 0;max-width:720px;padding:12px 16px;text-align:left;border:1px solid var(--line,#224158);background:var(--panel,rgba(255,255,255,.03))}
+.prepare-3d-icon{font-size:28px;color:var(--orange,#f08418)}
+.prepare-3d-text{display:flex;flex-direction:column;gap:4px;flex:1 1 280px;min-width:0}
+.prepare-3d-text small{color:var(--muted,#a9cbe0);line-height:1.4}
+.prepare-3d-actions{display:flex;gap:8px;flex-wrap:wrap}
+.prepare-3d-progress{display:block;height:5px;background:rgba(255,255,255,.1)}
+.prepare-3d-progress>span{display:block;height:100%;background:var(--orange,#f08418);transition:width .3s ease-out}

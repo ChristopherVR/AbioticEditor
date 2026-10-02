@@ -63,3 +63,6 @@ __pycache__/
 
 # Thumbnail renderer dependencies (tools/thumbnails, maintainer only)
 tools/thumbnails/node_modules/
+
+# Build output: the bundled GameModels3D plugin is built from plugins/ and copied in at build/publish time
+src/AbioticEditor.Web/plugins/

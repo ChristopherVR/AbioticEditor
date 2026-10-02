@@ -136,6 +136,73 @@ public sealed class SceneModelHostService
         });
     }
 
+    // ---- getting the 3D view ready up front --------------------------------------------------
+    /// <summary>How far preparing the 3D view has got (see <see cref="StartPreparing"/>).</summary>
+    public sealed record PreparationState(bool Running, int Done, int Total, bool Finished);
+
+    private PreparationState _preparation = new(false, 0, 0, false);
+    private int? _remaining;
+
+    /// <summary>Raised (from a background thread) whenever <see cref="Preparation"/> changes.</summary>
+    public event Action? PreparationChanged;
+
+    public PreparationState Preparation => _preparation;
+
+    /// <summary>
+    /// How many level files still have to be read before the 3D view is quick everywhere; null when
+    /// there is no game to read (or the provider cannot prepare). Worked out once, off the caller's thread.
+    /// </summary>
+    public async Task<int?> RemainingToPrepareAsync()
+    {
+        if (_remaining is { } known) return _preparation.Running ? Math.Max(0, _preparation.Total - _preparation.Done) : known;
+        if (OperatingSystem.IsBrowser()) return null;
+        var count = await Task.Run(() =>
+        {
+            try { return Provider?.Value is ISceneModelPreparation prep ? prep.RemainingToPrepare() : (int?)null; }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                EditorLog.Warn("Scene", $"Could not tell what the 3D view still needs to read: {ex.Message}");
+                return null;
+            }
+        }).ConfigureAwait(false);
+        _remaining = count;
+        return count;
+    }
+
+    /// <summary>
+    /// Reads every level file's index now, in the background at low priority, so the 3D view never
+    /// waits on one later (the first time, and after each game update). Safe to call twice.
+    /// </summary>
+    public void StartPreparing()
+    {
+        if (OperatingSystem.IsBrowser() || _preparation.Running || Provider?.Value is not ISceneModelPreparation prep) return;
+        _preparation = new PreparationState(true, 0, 0, false);
+        PreparationChanged?.Invoke();
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                prep.Prepare(new SyncProgress(p => { _preparation = _preparation with { Done = p.Done, Total = p.Total }; PreparationChanged?.Invoke(); }), CancellationToken.None);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                EditorLog.Warn("Scene", $"Preparing the 3D view stopped: {ex.Message}");
+            }
+            _remaining = 0;
+            _preparation = _preparation with { Running = false, Finished = true };
+            EditorLog.Info("Scene", $"Prepared the 3D view: {_preparation.Done} level files read.");
+            PreparationChanged?.Invoke();
+        })
+        { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "3D view preparation" };
+        thread.Start();
+    }
+
+    /// <summary>Reports straight away on the working thread (Progress would post to a context that may not exist).</summary>
+    private sealed class SyncProgress(Action<(int Done, int Total)> report) : IProgress<(int Done, int Total)>
+    {
+        public void Report((int Done, int Total) value) => report(value);
+    }
+
     private readonly HashSet<string> _prewarmed = new(StringComparer.Ordinal);
 
     /// <summary>

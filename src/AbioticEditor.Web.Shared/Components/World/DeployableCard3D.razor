@@ -1,0 +1,75 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+@inject SaveWorkspaceSessionService Workspace
+@inject ToastService Toasts
+
+@* A built piece picked in the 3D view: a bench's upgrades and a piece's paint colour, changed right
+   here the same way the Bases tab changes them (staged until SAVE). *@
+@if (Deployable is { } piece)
+{
+    @if (Bases.BenchSupportsUpgrades(piece.Id))
+    {
+        <span class="wt-label">@L.Resource("WorldBases_Upgrades")</span>
+        <div class="b3d-upgrades" data-b3d="bench-upgrades">
+            @foreach (var upgrade in BenchUpgradeCatalog.All)
+            {
+                <label class="wt-check" @key="upgrade.Row">
+                    <input type="checkbox" checked="@Bases.BenchInstalledUpgrades(piece.Id).Contains(upgrade.Row, StringComparer.OrdinalIgnoreCase)"
+                           @onchange="e => SetUpgradeAsync(piece.Id, upgrade.Row, e.Value is true)" />
+                    @upgrade.DisplayName
+                </label>
+            }
+        </div>
+    }
+    @if (piece.SupportsPaint)
+    {
+        <label class="b3d-field" data-b3d="paint">
+            <span class="wt-label">@L.Resource("WorldBases_PaintColour")</span>
+            <select class="wt-input" value="@(piece.PaintColorValue?.ToString() ?? "")" @onchange="e => SetPaintAsync(piece.Id, e.Value?.ToString())">
+                <option value="">@L.Resource("WorldBases_Unpainted")</option>
+                @foreach (var color in DeployablePaintCatalog.Colors)
+                {
+                    <option value="@color.Value">@color.DisplayName</option>
+                }
+            </select>
+        </label>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public string PieceKey { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private IWorldBasesSession Bases => Session;
+
+    private WorldDeployable? Deployable => Bases.Deployables.FirstOrDefault(d => string.Equals(d.Id, PieceKey, StringComparison.OrdinalIgnoreCase));
+
+    private async Task SetUpgradeAsync(string benchId, string row, bool installed)
+    {
+        try
+        {
+            if (await Bases.SetBenchUpgradeAsync(benchId, row, installed)) Workspace.NotifyEdited();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Toasts.Show(Errors.Present(ex, "Change this bench upgrade.", "Try again."), ToastKind.Error);
+        }
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task SetPaintAsync(string id, string? raw)
+    {
+        try
+        {
+            await Bases.SetPaintColorAsync(id, int.TryParse(raw, out var value) ? value : null);
+            Workspace.NotifyEdited();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Toasts.Show(Errors.Present(ex, "Change this object's paint colour.", "Try again."), ToastKind.Error);
+        }
+        await OnChanged.InvokeAsync();
+    }
+}

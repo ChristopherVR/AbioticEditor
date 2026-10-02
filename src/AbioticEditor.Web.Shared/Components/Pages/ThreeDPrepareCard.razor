@@ -1,0 +1,61 @@
+@namespace AbioticEditor.Web.Components.Pages
+@inject IServiceProvider Services
+@implements IDisposable
+
+@* The 3D view reads each part of the game's world from the game files the first time it shows it,
+   which is slow (minutes for a big area). This offers to do all of it now, once, in the background:
+   after that every area opens quickly. It comes back after a game update. *@
+@if (_scene is not null && (_remaining > 0 || _scene.Preparation.Running))
+{
+    var state = _scene.Preparation;
+    <section class="prepare-3d" data-prepare="card" aria-live="polite">
+        <span class="material-symbol prepare-3d-icon" aria-hidden="true">view_in_ar</span>
+        <div class="prepare-3d-text">
+            <strong>@L.Resource(state.Running ? "Prepare3D_Running" : "Prepare3D_Title")</strong>
+            @if (state.Running && state.Total > 0)
+            {
+                <span class="prepare-3d-progress" role="progressbar" aria-valuemin="0" aria-valuemax="@state.Total" aria-valuenow="@state.Done">
+                    <span style="width:@((state.Done * 100 / Math.Max(1, state.Total)).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span>
+                </span>
+                <small>@L.Resource("Prepare3D_ProgressFormat", state.Done, state.Total)</small>
+            }
+            else if (!state.Running)
+            {
+                <small>@L.Resource("Prepare3D_Body", _remaining ?? 0)</small>
+            }
+        </div>
+        @if (!state.Running)
+        {
+            <div class="prepare-3d-actions">
+                <button type="button" class="primary" data-prepare="start" @onclick="Start">@L.Resource("Prepare3D_Start")</button>
+                <button type="button" class="secondary" data-prepare="later" @onclick="() => _remaining = 0">@L.Resource("Prepare3D_Later")</button>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private SceneModelHostService? _scene;
+    private int? _remaining;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _scene = Services.GetService(typeof(SceneModelHostService)) as SceneModelHostService;
+        if (_scene is null || OperatingSystem.IsBrowser()) { _scene = null; return; }
+        _scene.PreparationChanged += Changed;
+        _remaining = await _scene.RemainingToPrepareAsync();
+    }
+
+    private void Start() => _scene?.StartPreparing();
+
+    private void Changed() => _ = InvokeAsync(() =>
+    {
+        if (_scene?.Preparation is { Finished: true }) _remaining = 0;
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        if (_scene is not null) _scene.PreparationChanged -= Changed;
+    }
+}

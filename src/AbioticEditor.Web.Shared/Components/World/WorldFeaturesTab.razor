@@ -595,7 +595,7 @@ else
         .GroupBy(deployable => deployable.Id, StringComparer.OrdinalIgnoreCase)
         .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
-    private string Heading(WorldMapFeatureSnapshot feature) => L.Resource("WorldFeature_TitleFormat", DisplayLabel(feature).ToUpperInvariant());
+    private string Heading(WorldMapFeatureSnapshot feature) => L.Resource("WorldFeature_TitleFormat", DisplayLabel(feature));
 
     private string DisplayLabel(WorldMapFeatureSnapshot feature)
         => IsResourceNodes ? L.Resource("WorldResourceNodes_Title") : feature.DisplayName;

@@ -24,7 +24,7 @@
     {
     <div class="b3d-layout">
         <div class="b3d-stage">
-            <div class="b3d-viewport" @ref="_viewport">
+            <div class="b3d-viewport" @ref="_viewport" @ondragover:preventDefault="true" @ondrop="DropOnViewAsync">
                 <div @ref="_host" class="b3d-canvas" role="img" aria-label="@L.Resource("World3D_ViewLabel")" data-b3d="canvas"></div>
 
                 @* View controls float over the top of the view, so the view itself can take the height. *@
@@ -39,10 +39,16 @@
                     {
                         <label class="b3d-hud-check"><input type="checkbox" checked="@_walkFloor" data-b3d="walk-floor" @onchange="e => SetWalkFloorAsync(e.Value is true)" /> @L.Resource("World3D_WalkFloor")</label>
                     }
-                    <label class="b3d-hud-check b3d-hud-edit"><input type="checkbox" checked="@_moveOptIn" data-b3d="edit-quick" @onchange="e => SetMoveOptInAsync(e.Value is true)" /> @L.Resource("World3D_MoveOptIn")</label>
+                    <button type="button" class="b3d-hud-btn b3d-hud-edit @(_moveOptIn ? "on" : null)" aria-pressed="@(_moveOptIn ? "true" : "false")" data-b3d="edit-quick"
+                            @onclick="() => SetMoveOptInAsync(!_moveOptIn)">@L.Resource("World3D_MoveOptIn")</button>
                     @if (_moveOptIn)
                     {
                         <button type="button" class="b3d-hud-btn" data-b3d="place-open" @onclick="OpenPlaceAsync">@L.Resource("World3D_AddObject")</button>
+                    }
+                    @if (_basePreview is not null || Session.LastBaseEditRefusal.Count > 0)
+                    {
+                        <button type="button" class="b3d-hud-btn b3d-hud-changes @(_showStaged ? "on" : null)" aria-expanded="@(_showStaged ? "true" : "false")" data-b3d="staged-toggle"
+                                @onclick="() => _showStaged = !_showStaged">@L.Resource("World3D_ChangesFormat", StagedCount)</button>
                     }
                     <span class="b3d-hud-sep" aria-hidden="true"></span>
                     @* What is drawn, folded into one menu so the view is not covered in checkboxes. *@
@@ -51,7 +57,9 @@
                                 @onclick="() => _showMenu = !_showMenu">@L.Resource("World3D_ShowMenu") &#9662;</button>
                         @if (_showMenu)
                         {
-                            <div class="b3d-hud-popover" data-b3d="show-popover">
+                            <div class="b3d-hud-popover b3d-show-popover" data-b3d="show-popover">
+                            <section class="b3d-menu-section">
+                                <span class="b3d-menu-title">@L.Resource("World3D_ShowMenu")</span>
                             <label class="b3d-menu-check"><input type="checkbox" checked="@_labels" @onchange="e => SetLabelsAsync(e.Value is true)" /> @L.Resource("World3D_Labels")</label>
                             <label class="b3d-menu-check"><input type="checkbox" checked="@_doorsOn" data-b3d="doors-toggle" @onchange="e => SetDoorsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_Doors")</label>
                             <label class="b3d-menu-check"><input type="checkbox" checked="@_npcsOn" data-b3d="npcs-toggle" @onchange="e => SetNpcsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_Npcs")</label>
@@ -64,6 +72,103 @@
                             {
                                 <label class="b3d-menu-check"><input type="checkbox" checked="@_levelOn" data-b3d="level-quick" @onchange="e => SetLevelAsync(e.Value is true)" /> @L.Resource("World3D_LevelQuick")</label>
                             }
+                            </section>
+                            <section class="b3d-menu-section" data-b3d="filters-section">
+                <div class="wt-card b3d-panel" data-b3d="filters">
+                    <span class="wt-label accent-orange-text">@L.Resource("World3D_Filters")</span>
+                    <label class="wt-check"><input type="checkbox" checked="@_filter.ShowPlayerBuilt" @onchange="e => SetFilter(_filter with { ShowPlayerBuilt = e.Value is true })" /> @L.Resource("World3D_PlayerBuilt")</label>
+                    <label class="wt-check"><input type="checkbox" checked="@_filter.ShowLevelPlaced" @onchange="e => SetFilter(_filter with { ShowLevelPlaced = e.Value is true })" /> @L.Resource("World3D_LevelPlaced")</label>
+                    <div class="b3d-cats">
+                        @foreach (var category in PlacedObjectCategoryCatalog.All)
+                        {
+                            var c = category;
+                            <label class="wt-check" @key="c">
+                                <span class="b3d-swatch" style="background:@CategoryColor(c)"></span>
+                                <input type="checkbox" checked="@(!_filter.HiddenCategories.Contains(c))" @onchange="e => ToggleCategory(c, e.Value is true)" />
+                                @L.Resource("World3D_Category_" + c)
+                            </label>
+                        }
+                    </div>
+                    <span class="wt-label">@L.Resource("World3D_HeightBand")</span>
+                    <div class="b3d-band">
+                        <label>@L.Resource("World3D_HeightFrom")
+                            <input type="number" class="wt-input" step="50" placeholder="@_scene.MinZCm.ToString("F0", CultureInfo.InvariantCulture)"
+                                   value="@FormatOptional(_filter.MinZCm)" @onchange="e => SetBand(e.Value?.ToString(), true)" /></label>
+                        <label>@L.Resource("World3D_HeightTo")
+                            <input type="number" class="wt-input" step="50" placeholder="@_scene.MaxZCm.ToString("F0", CultureInfo.InvariantCulture)"
+                                   value="@FormatOptional(_filter.MaxZCm)" @onchange="e => SetBand(e.Value?.ToString(), false)" /></label>
+                    </div>
+                    <button type="button" class="wt-btn wt-plain" @onclick="ResetFilters">@L.Resource("World3D_ResetFilters")</button>
+                </div>
+                            </section>
+                            <section class="b3d-menu-section" data-b3d="display-section">
+                @if (InBrowser)
+                {
+                    <div class="wt-card b3d-panel" data-b3d="models">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
+                        <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
+                    </div>
+                }
+                else if (_modelStatus is { } ms)
+                {
+                    <div class="wt-card b3d-panel" data-b3d="models">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
+                        @if (!ms.Available)
+                        {
+                            <p class="wt-muted" data-b3d="models-nogame">@L.Resource("World3D_ModelsNoGame")</p>
+                        }
+                        else
+                        {
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
+                                @L.Resource("World3D_ModelsShow")
+                            </label>
+                            @if (!string.IsNullOrEmpty(ms.Plugin)) { <small class="wt-muted">@L.Resource("World3D_ModelsFromFormat", ms.Plugin)</small> }
+                            @if (_modelsOn && _modelProgress is not null) { <small class="wt-muted" data-b3d="models-progress">@_modelProgress</small> }
+
+                            @if (LevelRegion is null)
+                            {
+                                <small class="wt-muted">@L.Resource("World3D_LevelNoRegion")</small>
+                            }
+                            else
+                            {
+                                <label class="wt-check">
+                                    <input type="checkbox" checked="@_levelOn" data-b3d="level-toggle" @onchange="e => SetLevelAsync(e.Value is true)" />
+                                    @L.Resource("World3D_LevelShow")
+                                </label>
+                                @if (_levelOn)
+                                {
+                                    <div class="b3d-band">
+                                        <label>@L.Resource("World3D_LevelRadius")
+                                            <select class="wt-input" data-b3d="level-radius" @onchange="e => SetLevelRadiusAsync(e.Value?.ToString())">
+                                                @foreach (var r in LevelRadii)
+                                                {
+                                                    <option value="@r" selected="@(r == _levelRadius)">@L.Resource("World3D_MetresFormat", r)</option>
+                                                }
+                                            </select>
+                                        </label>
+                                        <label>@L.Resource("World3D_LevelCut")
+                                            <select class="wt-input" data-b3d="level-cut" @onchange="e => SetLevelCutAsync(e.Value?.ToString())">
+                                                @foreach (var c in LevelCuts)
+                                                {
+                                                    <option value="@c" selected="@(c == _levelCut)">@(c == 0 ? L.Resource("World3D_LevelCutOff") : L.Resource("World3D_MetresFormat", c))</option>
+                                                }
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <label class="wt-check">
+                                        <input type="checkbox" checked="@_lampsOn" data-b3d="lamps-toggle" @onchange="e => SetLampsAsync(e.Value is true)" />
+                                        @L.Resource("World3D_LevelLamps")
+                                    </label>
+                                    <button type="button" class="wt-btn" data-b3d="level-reload" @onclick="ReloadLevelAsync">@L.Resource("World3D_LevelReload")</button>
+                                    @if (_levelProgress is not null) { <small class="wt-muted" data-b3d="level-progress">@_levelProgress</small> }
+                                    <small class="wt-muted">@L.Resource("World3D_LevelHint")</small>
+                                }
+                            }
+                        }
+                    </div>
+                }
+                            </section>
                             </div>
                         }
                     </div>
@@ -129,71 +234,194 @@
             @* What you picked is always shown at the top (clicking never switches tabs); the
                place, remove and copy panels open here too. The lists sit in tabs below. *@
             <div class="b3d-inspect" data-b3d="inspect-pane">
+                @* The changes waiting for SAVE, only when asked for (the button on the view). *@
+                @if (_showStaged)
+                {
+                @if (Session.LastBaseEditRefusal.Count > 0)
+                {
+                    <div class="wt-card b3d-panel b3d-refusal" role="alert" data-b3d="save-refused">
+                        <span class="wt-label">@L.Resource("World3D_SaveRefusedTitle")</span>
+                        <p>@L.Resource("World3D_SaveRefusedIntro")</p>
+                        @IssueList(Session.LastBaseEditRefusal, "save-refused-issues")
+                    </div>
+                }
+
+                @if (_basePreview is { } bp)
+                {
+                    <div class="wt-card b3d-panel b3d-staged" data-b3d="staged">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_Staged")</span>
+                        <p class="wt-muted b3d-warning" data-b3d="staged-unverified">@L.Resource("World3D_EditUnverified")</p>
+                        <p class="wt-muted" data-b3d="staged-summary">@L.Resource("World3D_StagedSummaryFormat", bp.Transforms.Count, bp.Deletions.Count, bp.Duplications.Count, bp.ObjectsBefore, bp.ObjectsAfter, bp.ItemsDeleted, bp.ItemsCopied, bp.ReferencesAffected)</p>
+
+                        @if (_preview.Count > 0)
+                        {
+                            <span class="wt-label">@L.Resource("World3D_StagedMoves")</span>
+                            <div class="b3d-table-wrap">
+                                <table class="b3d-table" data-b3d="staged-moves">
+                                    <thead>
+                                        <tr>
+                                            <th>@L.Resource("World3D_ColObject")</th>
+                                            <th>@L.Resource("World3D_ColBefore")</th>
+                                            <th>@L.Resource("World3D_ColAfter")</th>
+                                            <th>@L.Resource("World3D_ColMoved")</th>
+                                            <th>@L.Resource("World3D_ColTurned")</th>
+                                            <th>@L.Resource("World3D_ColWarnings")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (row, rowKey) in RenderKeys.With(_preview, r => r.Key))
+                                        {
+                                            <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)">
+                                                <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.Key, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
+                                                <td class="b3d-mono">@Describe(row.Before)</td>
+                                                <td class="b3d-mono">@Describe(row.After)</td>
+                                                <td class="b3d-mono">@(row.DistanceCm is { } d ? Num(d) : "-")</td>
+                                                <td class="b3d-mono">@(row.YawDeltaDegrees is { } y ? Num(y) : "-")</td>
+                                                <td class="b3d-notes">@string.Join(" ", row.Warnings)</td>
+                                                <td><button type="button" class="wt-btn wt-plain" @onclick="() => RevertObjectAsync(row.Key)">@L.Resource("World3D_RevertObject")</button></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        @if (bp.Deletions.Count > 0)
+                        {
+                            <span class="wt-label">@L.Resource("World3D_StagedDeletions")</span>
+                            <div class="b3d-table-wrap">
+                                <table class="b3d-table b3d-table-delete" data-b3d="staged-deletions">
+                                    <thead>
+                                        <tr>
+                                            <th>@L.Resource("World3D_ColObject")</th>
+                                            <th>@L.Resource("World3D_ColItems")</th>
+                                            <th>@L.Resource("World3D_ColLinks")</th>
+                                            <th>@L.Resource("World3D_ColWarnings")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (row, rowKey) in RenderKeys.With(bp.Deletions, r => r.Key))
+                                        {
+                                            <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)" data-b3d="staged-delete-row">
+                                                <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.Key, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
+                                                <td class="b3d-mono">@row.Contents.Sum(c => Math.Max(c.Count, 1))</td>
+                                                <td class="b3d-mono">@(row.OwnedSocketIds.Count + row.InboundLinks.Count)</td>
+                                                <td class="b3d-notes">@string.Join(" ", row.Issues.Select(i => i.Message))</td>
+                                                <td><button type="button" class="wt-btn wt-plain" data-b3d="revert-deletion" @onclick="() => RevertDeletionAsync(row.Key)">@L.Resource("World3D_RevertObject")</button></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        @if (bp.Duplications.Count > 0)
+                        {
+                            <span class="wt-label">@L.Resource("World3D_StagedCopies")</span>
+                            <div class="b3d-table-wrap">
+                                <table class="b3d-table b3d-table-copy" data-b3d="staged-copies">
+                                    <thead>
+                                        <tr>
+                                            <th>@L.Resource("World3D_ColObject")</th>
+                                            <th>@L.Resource("World3D_ColCopiedTo")</th>
+                                            <th>@L.Resource("World3D_ColItems")</th>
+                                            <th>@L.Resource("World3D_ColLinks")</th>
+                                            <th>@L.Resource("World3D_ColWarnings")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (row, rowKey) in RenderKeys.With(bp.Duplications, r => r.NewKey))
+                                        {
+                                            <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)" data-b3d="staged-copy-row">
+                                                <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.NewKey, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
+                                                <td class="b3d-mono">@Describe(row.After)</td>
+                                                <td class="b3d-mono">@(row.Contents == ContentsMode.Copy ? row.SourceContents.Sum(c => Math.Max(c.Count, 1)) : 0)</td>
+                                                <td class="b3d-mono">@row.Sockets.Count</td>
+                                                <td class="b3d-notes">@string.Join(" ", row.Issues.Select(i => i.Message))</td>
+                                                <td><button type="button" class="wt-btn wt-plain" data-b3d="revert-duplication" @onclick="() => RevertDuplicationAsync(row.DuplicationId)">@L.Resource("World3D_RevertCopy")</button></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        <span class="wt-label">@L.Resource("World3D_Issues")</span>
+                        @IssueList(bp.Issues, "staged-issues")
+                        @HintList(bp.ProximityHints)
+                        <div class="b3d-links">
+                            <button type="button" class="wt-btn" data-b3d="revert-all" @onclick="RevertAllAsync">@L.Resource("World3D_RevertAll")</button>
+                        </div>
+                    </div>
+                }
+                }
                 @if (_moveOptIn) { <p class="wt-muted b3d-edit-note" data-b3d="move-warning">@L.Resource("World3D_MoveWarning")</p> }
 
                 @if (_moveOptIn && _placeOpen)
                 {
                     var kinds = PlaceKinds;
                     <div class="wt-card b3d-panel b3d-op" data-b3d="place-panel">
-                        <span class="wt-label accent-orange-text">@L.Resource("World3D_PlaceTitle")</span>
-                        <p class="error-text b3d-warning" role="alert" data-b3d="place-unverified">@L.Resource("World3D_EditUnverified")</p>
-                        @if (kinds.Count == 0 && OtherKinds.Count == 0)
+                        <div class="b3d-panel-head">
+                            <span class="wt-label accent-orange-text">@L.Resource("World3D_PlaceTitle")</span>
+                            <button type="button" class="b3d-close" aria-label="@L.Resource("World3D_Cancel")" data-b3d="place-close" @onclick="ClosePlace">&#x2715;</button>
+                        </div>
+                        <p class="wt-muted b3d-palette-hint">@L.Resource("World3D_PaletteHint")</p>
+                        <input type="search" class="wt-input" data-b3d="palette-search" placeholder="@L.Resource("World3D_PaletteSearch")"
+                               value="@_paletteQuery" @oninput="e => _paletteQuery = e.Value?.ToString() ?? string.Empty" />
+                        @{ var palette = PaletteItems(); }
+                        @if (palette.Count == 0)
                         {
                             <p class="wt-muted" data-b3d="place-none">@L.Resource(Session.OtherWorldsLoaded ? "World3D_PlaceNoKindsAnywhere" : "World3D_PlaceNoKinds")</p>
                         }
-                        else
+                        <div class="b3d-palette" data-b3d="palette">
+                            @foreach (var (item, itemKey) in RenderKeys.With(palette, i => i.Value))
+                            {
+                                var it = item;
+                                <button type="button" class="b3d-palette-item @(string.Equals(it.Value, _placeClass, StringComparison.Ordinal) ? "selected" : null)" @key="itemKey"
+                                        draggable="true" data-b3d="palette-item" title="@it.Label"
+                                        @ondragstart="() => _dragValue = it.Value" @ondragend="() => _dragValue = null"
+                                        @onclick="() => PlaceFromPaletteAsync(it.Value)">
+                                    <span class="b3d-palette-art">
+                                        @if (WorldThumbnails.ForPlaced(it.ClassName) is { } art) { <img src="@art" alt="" loading="lazy" draggable="false" /> }
+                                        else { <span class="material-symbol" aria-hidden="true">deployed_code</span> }
+                                    </span>
+                                    <span class="b3d-palette-name">@it.Label</span>
+                                    <small>@it.Subtitle</small>
+                                </button>
+                            }
+                        </div>
+                        @if (!Session.OtherWorldsLoaded)
                         {
-                            <p class="wt-muted">@L.Resource("World3D_PlaceIntro")</p>
-                            <label>@L.Resource("World3D_PlaceKind")
-                                <select class="wt-input" data-b3d="place-kind" @onchange="e => _placeClass = e.Value?.ToString()">
-                                    @if (kinds.Count > 0)
-                                    {
-                                        <optgroup label="@L.Resource("World3D_PlaceFromThisWorld")">
-                                            @foreach (var k in kinds)
-                                            {
-                                                <option value="@k.ClassPath" selected="@string.Equals(k.ClassPath, _placeClass, StringComparison.OrdinalIgnoreCase)">@L.Resource("World3D_PlaceKindFormat", k.Label, k.Count)</option>
-                                            }
-                                        </optgroup>
-                                    }
-                                    @if (OtherKinds.Count > 0)
-                                    {
-                                        <optgroup label="@L.Resource("World3D_PlaceFromOtherWorlds")">
-                                            @foreach (var k in OtherKinds)
-                                            {
-                                                var value = OtherKindValue(k);
-                                                <option value="@value" selected="@string.Equals(value, _placeClass, StringComparison.Ordinal)">@L.Resource("World3D_PlaceOtherKindFormat", Base3DScene.FriendlyClass(k.ClassName), k.World)</option>
-                                            }
-                                        </optgroup>
-                                    }
-                                </select>
-                            </label>
+                            <button type="button" class="wt-btn wt-plain" data-b3d="place-other-worlds" disabled="@_placeScanning" @onclick="LoadOtherWorldsAsync">@L.Resource(_placeScanning ? "World3D_PlaceScanningOtherWorlds" : "World3D_PlaceShowOtherWorlds")</button>
+                        }
+                        <label class="wt-check">
+                            <input type="checkbox" checked="@_placeOnFloor" data-b3d="place-on-floor" @onchange="e => _placeOnFloor = e.Value is true" />
+                            @L.Resource("World3D_PlaceOnFloor")
+                        </label>
+                        @* Exact numbers, for those who want them; most just drag a piece onto the view. *@
+                        <details class="b3d-details">
+                            <summary>@L.Resource("World3D_PlaceExact")</summary>
                             <div class="b3d-numbers">
                                 <label>@L.Resource("World3D_X")<input class="wt-input" inputmode="decimal" @bind="_placeX" @bind:event="oninput" data-b3d="place-x" /></label>
                                 <label>@L.Resource("World3D_Y")<input class="wt-input" inputmode="decimal" @bind="_placeY" @bind:event="oninput" data-b3d="place-y" /></label>
                                 <label>@L.Resource("World3D_Z")<input class="wt-input" inputmode="decimal" @bind="_placeZ" @bind:event="oninput" data-b3d="place-z" /></label>
                                 <label>@L.Resource("World3D_PlaceTurn")<input class="wt-input" inputmode="decimal" @bind="_placeYaw" @bind:event="oninput" data-b3d="place-yaw" /></label>
                             </div>
-                            <button type="button" class="wt-btn wt-plain" data-b3d="place-here" @onclick="UseViewCentreAsync">@L.Resource("World3D_PlaceUseView")</button>
-                            <label class="wt-check">
-                                <input type="checkbox" checked="@_placeOnFloor" data-b3d="place-on-floor" @onchange="e => _placeOnFloor = e.Value is true" />
-                                @L.Resource("World3D_PlaceOnFloor")
-                            </label>
-                            @if (_placeLastId is not null)
-                            {
-                                <p class="wt-muted" data-b3d="place-done">@L.Resource("World3D_PlaceDone")</p>
-                                @if (_placeLastKey is { } placedKey) { @PlacementWarnings(placedKey) }
-                                @IssueList(LastPlaceIssues, "place-issues")
-                            }
-                        }
-                        @if (!Session.OtherWorldsLoaded)
+                            <div class="b3d-links">
+                                <button type="button" class="wt-btn wt-plain" data-b3d="place-here" @onclick="UseViewCentreAsync">@L.Resource("World3D_PlaceUseView")</button>
+                                <button type="button" class="wt-btn" data-b3d="place-confirm" disabled="@(_placeClass is null)" @onclick="ConfirmPlaceAsync">@L.Resource("World3D_PlaceConfirm")</button>
+                            </div>
+                        </details>
+                        @if (_placeLastId is not null)
                         {
-                            <button type="button" class="wt-btn wt-plain" data-b3d="place-other-worlds" disabled="@_placeScanning" @onclick="LoadOtherWorldsAsync">@L.Resource(_placeScanning ? "World3D_PlaceScanningOtherWorlds" : "World3D_PlaceShowOtherWorlds")</button>
+                            <p class="wt-muted" data-b3d="place-done">@L.Resource("World3D_PlaceDone")</p>
+                            @if (_placeLastKey is { } placedKey) { @PlacementWarnings(placedKey) }
+                            @IssueList(LastPlaceIssues, "place-issues")
                         }
                         @if (_placeError is not null) { <p class="error-text" role="alert" data-b3d="place-error">@_placeError</p> }
-                        <div class="b3d-links">
-                            <button type="button" class="wt-btn" data-b3d="place-confirm" disabled="@(kinds.Count == 0 && OtherKinds.Count == 0)" @onclick="ConfirmPlaceAsync">@L.Resource("World3D_PlaceConfirm")</button>
-                            <button type="button" class="wt-btn wt-plain" data-b3d="place-close" @onclick="ClosePlace">@L.Resource("World3D_Cancel")</button>
-                        </div>
                     </div>
                 }
 
@@ -347,8 +575,17 @@
                 {
                     <div class="wt-card b3d-panel" data-b3d="level-card">
                         <span class="wt-label accent-orange-text">@L.Resource("World3D_LevelCard")</span>
-                        <strong class="b3d-title" data-b3d="level-picked">@_levelPicked</strong>
-                        <p class="wt-muted">@L.Resource("World3D_LevelCardHelp")</p>
+                        @* The thing the piece belongs to (a calculator to salvage, a lamp), by its own name and
+                           picture when the level says which actor it is; the mesh name stays in Details. *@
+                        <div class="b3d-title-row">
+                            @if (LevelActorPicture() is { } levelPicture) { <img class="b3d-title-art" src="@levelPicture" alt="" data-zoom /> }
+                            <strong class="b3d-title" data-b3d="level-picked">@(LevelActorLabel() ?? _levelPicked)</strong>
+                        </div>
+                        <p class="wt-muted">@L.Resource(_levelPickedActor is null ? "World3D_LevelCardHelp" : "World3D_LevelActorHelp")</p>
+                        @if (_levelPickedActor is not null)
+                        {
+                            <details class="b3d-details"><summary>@L.Resource("World3D_Details")</summary><span class="b3d-mono">@_levelPicked · @_levelPickedActor</span></details>
+                        }
                         <div class="b3d-links">
                             <button type="button" class="wt-btn wt-plain" @onclick="() => OnLevelPicked(null)">@L.Resource("World3D_DoorCardClose")</button>
                         </div>
@@ -377,7 +614,7 @@
                     <div class="wt-card b3d-panel" data-b3d="thing-card">
                         <span class="wt-label accent-orange-text">@thing.FeatureName</span>
                         <div class="b3d-title-row">
-                            @if (ThingPicture(thing) is { } thingPicture) { <img class="b3d-title-art" src="@thingPicture" alt="" /> }
+                            @if (ThingPicture(thing) is { } thingPicture) { <img class="b3d-title-art" src="@thingPicture" alt="" data-zoom /> }
                             else if (thing.FeatureId == "npc-spawns" && Catalog.SpawnedCreature(thing.Key) is { } creature)
                             {
                                 <span class="b3d-title-art">
@@ -492,9 +729,9 @@
                     </div>
                 }
 
-                @if (_selected.Count > 0)
+                @if (_selected.Count > 1)
                 {
-                    <div class="wt-card b3d-panel" data-b3d="selection">
+                    <div class="wt-card b3d-panel b3d-selection-bar" data-b3d="selection">
                         <div class="b3d-panel-head">
                             <span class="wt-label accent-orange-text">@L.Resource("World3D_SelectionFormat", _selected.Count)</span>
                             <button type="button" class="wt-btn wt-plain" data-b3d="clear-selection" @onclick="ClearSelectionAsync">@L.Resource("World3D_ClearSelection")</button>
@@ -516,7 +753,10 @@
                 @if (SelectedObject is not null || SelectedCopy is not null || (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null && _levelPicked is null))
                 {
                     <div class="wt-card b3d-panel" data-b3d="inspector">
-                        <span class="wt-label accent-orange-text">@L.Resource("World3D_Inspector")</span>
+                        <div class="b3d-panel-head">
+                            <span class="wt-label accent-orange-text">@L.Resource("World3D_Inspector")</span>
+                            @if (_selected.Count == 1) { <button type="button" class="b3d-close" aria-label="@L.Resource("World3D_ClearSelection")" data-b3d="clear-one" @onclick="ClearSelectionAsync">&#x2715;</button> }
+                        </div>
                         @if (SelectedObject is not { } obj)
                         {
                             @if (SelectedCopy is { } copy)
@@ -541,7 +781,7 @@
                             var current = Session.CurrentPlacedTransform(obj.Key) ?? obj.Transform;
                             var built = obj.DeployedByPlayer == true;
                             <div class="b3d-title-row">
-                                @if (WorldThumbnails.For("containers", obj.ClassName) is { } objPicture) { <img class="b3d-title-art" src="@objPicture" alt="" /> }
+                                @if (WorldThumbnails.For("containers", obj.ClassName) is { } objPicture) { <img class="b3d-title-art" src="@objPicture" alt="" data-zoom /> }
                                 <div class="b3d-title-text">
                                     <strong class="b3d-title">@Base3DScene.LabelOf(obj)</strong>
                                     <small class="wt-muted" data-b3d="origin">@L.Resource(built ? "World3D_BuiltByPlayer" : "World3D_CameWithLevel")</small>
@@ -558,6 +798,10 @@
                             {
                                 <ContainerSlotsPanel Session="@Session" ContainerId="@obj.Key" />
                             }
+                            @* A containment cell: the creature it holds, changed or released right here. *@
+                            <ContainmentCard3D Session="Session" UnitKey="@obj.Key" />
+                            @* A bench's upgrades and a piece's paint colour. *@
+                            <DeployableCard3D Session="Session" PieceKey="@obj.Key" OnChanged="StateHasChanged" />
 
                             @* EXTENSION POINT (delete and duplicate): wired. The buttons act on the whole selection,
                                open a confirmation panel with a preview (Core's StagedBaseEdits.Preview), and stage
@@ -722,17 +966,12 @@
                     </div>
                 }
             </div>
-            <nav class="b3d-tabs" role="tablist" aria-label="@L.Resource("World3D_PanelTabs")">
-                @foreach (var tab in SideTabs)
-                {
-                    var t = tab;
-                    <button type="button" role="tab" class="b3d-tab @(_sideTab == t ? "active" : null)" aria-selected="@(_sideTab == t ? "true" : "false")"
-                            data-b3d="@("tab-" + t)" @onclick="() => _sideTab = t">@SideTabLabel(t)</button>
-                }
-            </nav>
-            <div class="b3d-tab-body" role="tabpanel">
-            @if (_sideTab == "objects")
-            {
+            @* What is in the view, searchable. What is drawn and how (filters, level, models) is in the
+               view's Show menu, next to the other things it shows. *@
+            <div class="b3d-objects-head">
+                <span class="wt-label">@L.Resource("World3D_TabObjectsFormat", _visible.Length)</span>
+            </div>
+            <div class="b3d-tab-body" data-b3d="objects-pane">
                 <div class="b3d-objects-tools">
                     <input type="search" class="wt-input b3d-search" value="@_filter.Search" placeholder="@L.Resource("World3D_SearchPlaceholder")"
                            aria-label="@L.Resource("World3D_Search")" @oninput="OnSearchInput" />
@@ -771,229 +1010,9 @@
                 </div>
             </div>
         }
-            }
-            else if (_sideTab == "filters")
-            {
-                <div class="wt-card b3d-panel" data-b3d="filters">
-                    <span class="wt-label accent-orange-text">@L.Resource("World3D_Filters")</span>
-                    <label class="wt-check"><input type="checkbox" checked="@_filter.ShowPlayerBuilt" @onchange="e => SetFilter(_filter with { ShowPlayerBuilt = e.Value is true })" /> @L.Resource("World3D_PlayerBuilt")</label>
-                    <label class="wt-check"><input type="checkbox" checked="@_filter.ShowLevelPlaced" @onchange="e => SetFilter(_filter with { ShowLevelPlaced = e.Value is true })" /> @L.Resource("World3D_LevelPlaced")</label>
-                    <div class="b3d-cats">
-                        @foreach (var category in PlacedObjectCategoryCatalog.All)
-                        {
-                            var c = category;
-                            <label class="wt-check" @key="c">
-                                <span class="b3d-swatch" style="background:@CategoryColor(c)"></span>
-                                <input type="checkbox" checked="@(!_filter.HiddenCategories.Contains(c))" @onchange="e => ToggleCategory(c, e.Value is true)" />
-                                @L.Resource("World3D_Category_" + c)
-                            </label>
-                        }
-                    </div>
-                    <span class="wt-label">@L.Resource("World3D_HeightBand")</span>
-                    <div class="b3d-band">
-                        <label>@L.Resource("World3D_HeightFrom")
-                            <input type="number" class="wt-input" step="50" placeholder="@_scene.MinZCm.ToString("F0", CultureInfo.InvariantCulture)"
-                                   value="@FormatOptional(_filter.MinZCm)" @onchange="e => SetBand(e.Value?.ToString(), true)" /></label>
-                        <label>@L.Resource("World3D_HeightTo")
-                            <input type="number" class="wt-input" step="50" placeholder="@_scene.MaxZCm.ToString("F0", CultureInfo.InvariantCulture)"
-                                   value="@FormatOptional(_filter.MaxZCm)" @onchange="e => SetBand(e.Value?.ToString(), false)" /></label>
-                    </div>
-                    <button type="button" class="wt-btn wt-plain" @onclick="ResetFilters">@L.Resource("World3D_ResetFilters")</button>
-                </div>
-            }
-            else if (_sideTab == "display")
-            {
-                @if (InBrowser)
-                {
-                    <div class="wt-card b3d-panel" data-b3d="models">
-                        <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
-                        <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
-                    </div>
-                }
-                else if (_modelStatus is { } ms)
-                {
-                    <div class="wt-card b3d-panel" data-b3d="models">
-                        <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
-                        @if (!ms.Available)
-                        {
-                            <p class="wt-muted" data-b3d="models-nogame">@L.Resource("World3D_ModelsNoGame")</p>
-                        }
-                        else
-                        {
-                            <label class="wt-check">
-                                <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
-                                @L.Resource("World3D_ModelsShow")
-                            </label>
-                            @if (!string.IsNullOrEmpty(ms.Plugin)) { <small class="wt-muted">@L.Resource("World3D_ModelsFromFormat", ms.Plugin)</small> }
-                            @if (_modelsOn && _modelProgress is not null) { <small class="wt-muted" data-b3d="models-progress">@_modelProgress</small> }
-
-                            @if (LevelRegion is null)
-                            {
-                                <small class="wt-muted">@L.Resource("World3D_LevelNoRegion")</small>
-                            }
-                            else
-                            {
-                                <label class="wt-check">
-                                    <input type="checkbox" checked="@_levelOn" data-b3d="level-toggle" @onchange="e => SetLevelAsync(e.Value is true)" />
-                                    @L.Resource("World3D_LevelShow")
-                                </label>
-                                @if (_levelOn)
-                                {
-                                    <div class="b3d-band">
-                                        <label>@L.Resource("World3D_LevelRadius")
-                                            <select class="wt-input" data-b3d="level-radius" @onchange="e => SetLevelRadiusAsync(e.Value?.ToString())">
-                                                @foreach (var r in LevelRadii)
-                                                {
-                                                    <option value="@r" selected="@(r == _levelRadius)">@L.Resource("World3D_MetresFormat", r)</option>
-                                                }
-                                            </select>
-                                        </label>
-                                        <label>@L.Resource("World3D_LevelCut")
-                                            <select class="wt-input" data-b3d="level-cut" @onchange="e => SetLevelCutAsync(e.Value?.ToString())">
-                                                @foreach (var c in LevelCuts)
-                                                {
-                                                    <option value="@c" selected="@(c == _levelCut)">@(c == 0 ? L.Resource("World3D_LevelCutOff") : L.Resource("World3D_MetresFormat", c))</option>
-                                                }
-                                            </select>
-                                        </label>
-                                    </div>
-                                    <label class="wt-check">
-                                        <input type="checkbox" checked="@_lampsOn" data-b3d="lamps-toggle" @onchange="e => SetLampsAsync(e.Value is true)" />
-                                        @L.Resource("World3D_LevelLamps")
-                                    </label>
-                                    <button type="button" class="wt-btn" data-b3d="level-reload" @onclick="ReloadLevelAsync">@L.Resource("World3D_LevelReload")</button>
-                                    @if (_levelProgress is not null) { <small class="wt-muted" data-b3d="level-progress">@_levelProgress</small> }
-                                    <small class="wt-muted">@L.Resource("World3D_LevelHint")</small>
-                                }
-                            }
-                        }
-                    </div>
-                }
-            }
             </div>
         </aside>
     </div>
-
-    @if (Session.LastBaseEditRefusal.Count > 0)
-    {
-        <div class="wt-card b3d-panel b3d-refusal" role="alert" data-b3d="save-refused">
-            <span class="wt-label">@L.Resource("World3D_SaveRefusedTitle")</span>
-            <p>@L.Resource("World3D_SaveRefusedIntro")</p>
-            @IssueList(Session.LastBaseEditRefusal, "save-refused-issues")
-        </div>
-    }
-
-    @if (_basePreview is { } bp)
-    {
-        <div class="wt-card b3d-panel b3d-staged" data-b3d="staged">
-            <span class="wt-label accent-orange-text">@L.Resource("World3D_Staged")</span>
-            <p class="error-text b3d-warning" role="alert" data-b3d="staged-unverified">@L.Resource("World3D_EditUnverified")</p>
-            <p class="wt-muted" data-b3d="staged-summary">@L.Resource("World3D_StagedSummaryFormat", bp.Transforms.Count, bp.Deletions.Count, bp.Duplications.Count, bp.ObjectsBefore, bp.ObjectsAfter, bp.ItemsDeleted, bp.ItemsCopied, bp.ReferencesAffected)</p>
-
-            @if (_preview.Count > 0)
-            {
-                <span class="wt-label">@L.Resource("World3D_StagedMoves")</span>
-                <div class="b3d-table-wrap">
-                    <table class="b3d-table" data-b3d="staged-moves">
-                        <thead>
-                            <tr>
-                                <th>@L.Resource("World3D_ColObject")</th>
-                                <th>@L.Resource("World3D_ColBefore")</th>
-                                <th>@L.Resource("World3D_ColAfter")</th>
-                                <th>@L.Resource("World3D_ColMoved")</th>
-                                <th>@L.Resource("World3D_ColTurned")</th>
-                                <th>@L.Resource("World3D_ColWarnings")</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var (row, rowKey) in RenderKeys.With(_preview, r => r.Key))
-                            {
-                                <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)">
-                                    <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.Key, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
-                                    <td class="b3d-mono">@Describe(row.Before)</td>
-                                    <td class="b3d-mono">@Describe(row.After)</td>
-                                    <td class="b3d-mono">@(row.DistanceCm is { } d ? Num(d) : "-")</td>
-                                    <td class="b3d-mono">@(row.YawDeltaDegrees is { } y ? Num(y) : "-")</td>
-                                    <td class="b3d-notes">@string.Join(" ", row.Warnings)</td>
-                                    <td><button type="button" class="wt-btn wt-plain" @onclick="() => RevertObjectAsync(row.Key)">@L.Resource("World3D_RevertObject")</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-
-            @if (bp.Deletions.Count > 0)
-            {
-                <span class="wt-label">@L.Resource("World3D_StagedDeletions")</span>
-                <div class="b3d-table-wrap">
-                    <table class="b3d-table b3d-table-delete" data-b3d="staged-deletions">
-                        <thead>
-                            <tr>
-                                <th>@L.Resource("World3D_ColObject")</th>
-                                <th>@L.Resource("World3D_ColItems")</th>
-                                <th>@L.Resource("World3D_ColLinks")</th>
-                                <th>@L.Resource("World3D_ColWarnings")</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var (row, rowKey) in RenderKeys.With(bp.Deletions, r => r.Key))
-                            {
-                                <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)" data-b3d="staged-delete-row">
-                                    <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.Key, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
-                                    <td class="b3d-mono">@row.Contents.Sum(c => Math.Max(c.Count, 1))</td>
-                                    <td class="b3d-mono">@(row.OwnedSocketIds.Count + row.InboundLinks.Count)</td>
-                                    <td class="b3d-notes">@string.Join(" ", row.Issues.Select(i => i.Message))</td>
-                                    <td><button type="button" class="wt-btn wt-plain" data-b3d="revert-deletion" @onclick="() => RevertDeletionAsync(row.Key)">@L.Resource("World3D_RevertObject")</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-
-            @if (bp.Duplications.Count > 0)
-            {
-                <span class="wt-label">@L.Resource("World3D_StagedCopies")</span>
-                <div class="b3d-table-wrap">
-                    <table class="b3d-table b3d-table-copy" data-b3d="staged-copies">
-                        <thead>
-                            <tr>
-                                <th>@L.Resource("World3D_ColObject")</th>
-                                <th>@L.Resource("World3D_ColCopiedTo")</th>
-                                <th>@L.Resource("World3D_ColItems")</th>
-                                <th>@L.Resource("World3D_ColLinks")</th>
-                                <th>@L.Resource("World3D_ColWarnings")</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var (row, rowKey) in RenderKeys.With(bp.Duplications, r => r.NewKey))
-                            {
-                                <tr @key="rowKey" class="@(row.Blocked ? "blocked" : null)" data-b3d="staged-copy-row">
-                                    <td><button type="button" class="wt-btn wt-plain" @onclick="() => SelectAsync(row.NewKey, frame: true)">@Base3DScene.FriendlyClass(row.ClassName)</button></td>
-                                    <td class="b3d-mono">@Describe(row.After)</td>
-                                    <td class="b3d-mono">@(row.Contents == ContentsMode.Copy ? row.SourceContents.Sum(c => Math.Max(c.Count, 1)) : 0)</td>
-                                    <td class="b3d-mono">@row.Sockets.Count</td>
-                                    <td class="b3d-notes">@string.Join(" ", row.Issues.Select(i => i.Message))</td>
-                                    <td><button type="button" class="wt-btn wt-plain" data-b3d="revert-duplication" @onclick="() => RevertDuplicationAsync(row.DuplicationId)">@L.Resource("World3D_RevertCopy")</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-
-            <span class="wt-label">@L.Resource("World3D_Issues")</span>
-            @IssueList(bp.Issues, "staged-issues")
-            @HintList(bp.ProximityHints)
-            <div class="b3d-links">
-                <button type="button" class="wt-btn" data-b3d="revert-all" @onclick="RevertAllAsync">@L.Resource("World3D_RevertAll")</button>
-            </div>
-        </div>
-    }
     }
 </section>
 
@@ -1539,8 +1558,9 @@
         // A piece of something the lists know (a wall socket's plug, a button, a door's frame) opens
         // that thing's card, where it can be changed, instead of the plain "part of the level" card.
         if (actor is not null && await PickLevelActorAsync(actor)) return;
-        if (_levelPicked == name) return;
+        if (_levelPicked == name && _levelPickedActor == actor) return;
         _levelPicked = name;
+        _levelPickedActor = name is null ? null : actor;
         if (name is not null) ShowInspector();
         StateHasChanged();
     }
@@ -1566,6 +1586,17 @@
     }
 
     private string? _levelPicked;
+    private string? _levelPickedActor; // "Map:Actor" of the clicked level piece, when the level says
+
+    private static readonly string[] PictureKinds = ["resource-nodes", "buttons", "destructibles", "doors", "elevators", "trams", "portals", "power-sockets", "containers"];
+
+    /// <summary>The clicked level actor's kind as a name ("Resource MicroNode Calculator").</summary>
+    private string? LevelActorLabel()
+        => _levelPickedActor is { } a ? Base3DScene.FriendlyClass(WorldThumbnails.ClassOf(a[(a.IndexOf(':') + 1)..])) : null;
+
+    /// <summary>A picture of the clicked level actor's kind, from whichever list has one.</summary>
+    private string? LevelActorPicture()
+        => _levelPickedActor is { } a ? PictureKinds.Select(k => WorldThumbnails.For(k, a[(a.IndexOf(':') + 1)..])).FirstOrDefault(p => p is not null) : null;
 
     /// <summary>Progress from the viewer while it loads models ("models") or the level ("level").</summary>
     [JSInvokable]

@@ -400,13 +400,13 @@
                 @if (WorldThumbnails.PlaceOf(door.Id) is { } doorPlace)
                 {
                     <div class="detail-card-art world-place-art">
-                        <img src="@doorPlace" alt="@friendlyClass" loading="lazy" />
+                        <img src="@doorPlace" alt="@friendlyClass" loading="lazy" data-zoom />
                     </div>
                 }
                 else if (WorldThumbnails.For("doors", door.Id) is { } doorPicture)
                 {
                     <div class="detail-card-art world-thumb-art">
-                        <img src="@doorPicture" alt="@friendlyClass" loading="lazy" />
+                        <img src="@doorPicture" alt="@friendlyClass" loading="lazy" data-zoom />
                     </div>
                 }
                 else if (wikiFile is not null)

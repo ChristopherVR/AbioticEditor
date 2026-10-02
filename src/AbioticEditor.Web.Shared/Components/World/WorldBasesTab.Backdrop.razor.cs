@@ -21,6 +21,7 @@ public partial class WorldBasesTab
     private bool _backdropShown;
     private string? _backdropKey;
     private bool _backdropBusy;
+    private bool _disposedBackdrop;
 
     /// <summary>The map wants a level picture: a save on this computer whose area has a level to draw.</summary>
     private bool BackdropWanted => !_show3D && Session is WorldSaveSession save && Base3DScene.RegionOf(save.Path) is not null;
@@ -50,6 +51,7 @@ public partial class WorldBasesTab
             StateHasChanged();
         }
         var shown = false;
+        var pending = false;
         try
         {
             // The map's whole rectangle in save space (Px/Py put the first marker 18 px in).
@@ -61,7 +63,7 @@ public partial class WorldBasesTab
             var right = Subtract(PlacedSceneSpace.ToViewer(new PlacedVector(x0 + 100, y0, floor)), PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0, floor)));
             var down = Subtract(PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0 + 100, floor)), PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0, floor)));
             _viewModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
-            shown = await _viewModule.InvokeAsync<bool>("fillMapBackdrop", _backdropImage, key, new
+            var answer = await _viewModule.InvokeAsync<string>("fillMapBackdrop", _backdropImage, key, new
             {
                 region,
                 center = new[] { centre.X, centre.Y, centre.Z },
@@ -75,6 +77,8 @@ public partial class WorldBasesTab
                 width = (int)MapW * 2,
                 height = (int)MapH * 2,
             });
+            shown = answer == "shown";
+            pending = answer == "pending";
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
         {
@@ -88,6 +92,14 @@ public partial class WorldBasesTab
         {
             _backdropShown = shown;
             StateHasChanged();
+        }
+        if (pending)
+        {
+            // The level files are still being read: ask again in a few seconds.
+            _backdropKey = null;
+            await Task.Delay(5000);
+            if (!_disposedBackdrop) await InvokeAsync(EnsureBackdropAsync);
+            return;
         }
         // The base picked while this one was drawn gets its own picture now (its floor may differ).
         await EnsureBackdropAsync();

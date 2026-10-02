@@ -1,5 +1,43 @@
 # Abiotic Editor - Session history
 
+## Round-155: Prepare 3D, side panel rework, Add-object palette, containment and bench cards, power tools, zoomable pictures, Traders wording (2026-10-02)
+
+- **Why the 3D view was slow**: each cache format bump (level index v14, classes-v4, materials-v5)
+  forces a one-time re-read of every level the first time it is shown (minutes for a big area).
+  Shipping extracted game meshes/textures was rejected (copyrighted, and the guide promises nothing
+  from the game is in the download). Instead the start page offers **Prepare 3D**
+  (`ThreeDPrepareCard`), which runs `ISceneModelPreparation.Prepare` (new optional SDK interface,
+  implemented in `PakSceneModelProvider.Prepare.cs`) on a BelowNormal background thread via
+  `SceneModelHostService.StartPreparing`. It counts `/Maps/` umaps without a level cache file, so it
+  reappears after a game update (new install stamp). Verified: hidden on a profile with all 60 levels
+  cached, shown on a fresh profile.
+- **3D side panel**: the Objects/Filters/Display tabs are gone. Filters and Display moved into the
+  **Show** popover (three sections, sentence-case labels); the object list sits under the inspector.
+  **Edit mode** is a toolbar toggle; the staged-edits block opens from a **Changes (n)** toolbar
+  button instead of sitting at the bottom; the selection card only shows for 2+ picks; the inspector
+  has a close button. Staged summary and warning reworded (no "move(s)/copy(ies)").
+- **Add object** is a searchable picture palette (`WorldThumbnails.ForPlaced`): click places where
+  the view looks, drag drops at the surface under the pointer (`placementPointAt` in base3d.js).
+  Drag-over is a client-side `preventDefault` only (no server round trip per mouse move). Exact
+  numbers fold under a details block. Verified in Playwright: click and native drag each stage one copy.
+- **Containment cells** (`ContainmentCard3D`): shows the creature in the cell with a picker and
+  Release; writes the story save through a linked transfer so SAVE writes both. Creature models are
+  not drawn inside the cells in 3D.
+- **Benches/painted pieces** (`DeployableCard3D`): upgrade checkboxes and paint colour in the inspector.
+- **Other tabs into the inspector**: locating a level actor (ice wall etc.) now picks it so its card
+  opens. The level card names the actor and shows its picture.
+- **SM_Calculator_01** is `Resource_MicroNode_Calculator`, a salvage resource node, not a keypad.
+- **Region scoping**: WorldSave_Facility holds the Facility persistent level (473 entries), so the
+  "one big world" look is the game's own layout; not changed.
+- **2D map backdrop**: a top-down shot taken while level parts were still loading was cached as
+  "no picture"; `fillMapBackdrop` now answers shown/pending/none and the tab retries every 5 s.
+- **Power tools** panel compacted (status chips, lists folded); **click-to-zoom** lightbox for any
+  `img[data-zoom]` (wheel zoom, drag pan, Esc); global button hover scale removed (the "weird
+  animation" on Show in 3D and trader cards).
+- **Traders and wording pass** (agent): Traders tab copy rewritten, "What they sell" overlap and hover
+  animation fixed, sentence-case headings and unified font sizes in parity.css.
+- Pictures for teleporter pads, sconce lamps, power outlets, crates and trams landed in 35fd50ea.
+
 ## Round-154: review list: clipping, small windows, walking, cards, spawn pictures, plugs, characters, speed, base editing, map picture (2026-10-02)
 
 - **Containers tab**: the card's header lines shrank and overlapped ("Rotten Food" under Show in 3D)

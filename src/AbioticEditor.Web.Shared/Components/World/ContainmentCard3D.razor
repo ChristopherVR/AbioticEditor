@@ -1,0 +1,102 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Web.Models
+@inject SaveWorkspaceSessionService Workspace
+
+@* A containment cell picked in the 3D view: the creature it holds, and changing or releasing it right
+   here. Which creature sits in which cell is kept in the world's story save, not the area's, so the
+   story save is read alongside and linked to this one: SAVE writes both. *@
+@if (_story is { } story && _isCell)
+{
+    var creature = story.CreatureInUnit(UnitKey);
+    <div class="b3d-containment" data-b3d="containment">
+        <span class="wt-label">@L.Resource("World3D_ContainmentHolds")</span>
+        <div class="b3d-character-head">
+            <span class="b3d-character-portrait">
+                @if (creature is null)
+                {
+                    <span class="material-symbol" aria-hidden="true">block</span>
+                }
+                else if (BundledImage(creature) is { } bundled)
+                {
+                    <img src="_content/AbioticEditor.Web.Shared/images/@bundled" alt="@ContainmentCreatureCatalog.DisplayName(creature)" />
+                }
+                else
+                {
+                    <GameArtImage GameRefs="@ContainmentCreatureCatalog.TextureRefs(creature)" Alt="@ContainmentCreatureCatalog.DisplayName(creature)">
+                        <span class="material-symbol" aria-hidden="true">skull</span>
+                    </GameArtImage>
+                }
+            </span>
+            <span class="b3d-character-title">
+                <strong data-b3d="containment-creature">@(creature is null ? L.Resource("WorldContainment_EmptyUnit") : ContainmentCreatureCatalog.DisplayName(creature))</strong>
+                @if (creature is not null) { <small class="wt-muted">@ContainmentCreatureCatalog.Lore(creature)</small> }
+            </span>
+        </div>
+        <div class="b3d-links">
+            <select class="wt-input" aria-label="@L.Resource("WorldContainment_HoldsLabel")" data-b3d="containment-choose" @onchange="e => AssignAsync(e.Value?.ToString())">
+                <option value="" selected="@(creature is null)">@L.Resource("WorldContainment_OptionEmpty")</option>
+                @foreach (var option in ContainmentCreatureCatalog.Containable)
+                {
+                    <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@ContainmentCreatureCatalog.DisplayName(option.Row)</option>
+                }
+            </select>
+            @if (creature is not null)
+            {
+                <button type="button" class="wt-btn" data-b3d="containment-release" @onclick="() => AssignAsync(null)">@L.Resource("WorldContainment_Release")</button>
+            }
+        </div>
+        <small class="wt-muted">@L.Resource("World3D_ContainmentSavedWith")</small>
+    </div>
+}
+
+@code {
+    /// <summary>The area save the 3D view shows.</summary>
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+
+    /// <summary>The picked object's key (a containment cell's id when it is one).</summary>
+    [Parameter, EditorRequired] public string UnitKey { get; set; } = string.Empty;
+
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private WorldSaveSession? _story;
+    private bool _isCell;
+    private string? _loadedFor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor == UnitKey) return;
+        _loadedFor = UnitKey;
+        _isCell = false;
+        if (System.IO.Path.GetDirectoryName(Session.Path) is not { Length: > 0 } dir) return;
+        var storyPath = System.IO.Path.Combine(dir, "WorldSave_MetaData.sav");
+        try
+        {
+            _story = Session.IsMetadataSave ? Session : await Workspace.GetTransferWorldAsync(storyPath);
+            if (_story is null) return;
+            // A cell is one the story save's survey of the world's cells knows (found by what the
+            // game built, not by a list of names).
+            await _story.LoadContainmentUnitsAsync();
+            _isCell = _story.ContainmentUnits.Any(u => string.Equals(u.Id, UnitKey, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            _story = null;
+        }
+    }
+
+    private async Task AssignAsync(string? creature)
+    {
+        if (_story is null) return;
+        _story.SetContainmentUnitOccupant(UnitKey, string.IsNullOrWhiteSpace(creature) ? null : creature);
+        if (!ReferenceEquals(_story, Session)) Workspace.RegisterTransfer(Session, _story);
+        Workspace.NotifyEdited();
+        await OnChanged.InvokeAsync();
+    }
+
+    /// <summary>The bundled portrait the Containment tab uses for these creatures.</summary>
+    private static string? BundledImage(string creature)
+        => creature.StartsWith("Krasue", StringComparison.OrdinalIgnoreCase) ? "krasue.png"
+           : creature.StartsWith("Leyak", StringComparison.OrdinalIgnoreCase) ? "leyak.png"
+           : null;
+}

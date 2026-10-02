@@ -6,14 +6,21 @@
    which runs by itself and lists broken links and leftover outlet records with a fix for each. Fixes are chosen one by
    one; the ones that only undo an impossible state start ticked. *@
 <section class="power-repair wt-card" aria-label="@L.Resource("PowerRepair_Title")" data-power="repair">
-    <p class="eyebrow">@L.Resource("PowerRepair_Title")</p>
-
     @{
         var preview = Session.PreviewBaseEdits();
+        var stagedCount = preview.PowerLinks.Count + preview.SocketCleanups.Count;
     }
-    @if (preview.PowerLinks.Count > 0 || preview.SocketCleanups.Count > 0)
+    <header class="power-repair-head">
+        <span class="eyebrow">@L.Resource("PowerRepair_Title")</span>
+        @if (stagedCount > 0) { <span class="power-chip waiting" data-power="staged-count">@L.Resource("PowerRepair_StagedFormat", stagedCount)</span> }
+        @if (_checking && _fixes is null) { <span class="power-chip" data-power="checking">@L.Resource("PowerRepair_Checking")</span> }
+        else if (_fixes is { Count: 0 }) { <span class="power-chip ok" data-power="no-fixes">@L.Resource("PowerRepair_NothingFound")</span> }
+        else if (_fixes is { Count: > 0 } found) { <span class="power-chip problem">@L.Resource("PowerRepair_FoundFormat", found.Count)</span> }
+    </header>
+    @if (stagedCount > 0)
     {
-        <p class="world-feature-hint">@L.Resource("PowerRepair_StagedFormat", preview.PowerLinks.Count + preview.SocketCleanups.Count)</p>
+        <details class="power-repair-fold">
+        <summary>@L.Resource("PowerRepair_ShowChanges")</summary>
         <ul class="power-staged-list" data-power="staged-list">
             @foreach (var row in preview.PowerLinks)
             {
@@ -33,19 +40,15 @@
                 </li>
             }
         </ul>
+        </details>
     }
 
     @* Checked on its own when the panel opens and after every power change: there is nothing to press. *@
-    @if (_checking && _fixes is null) { <p class="world-feature-hint" data-power="checking">@L.Resource("PowerRepair_Checking")</p> }
-    @if (_fixes is { } fixes)
+    @if (_fixes is { Count: > 0 } fixes)
     {
-        @if (fixes.Count == 0)
-        {
-            <p class="world-feature-hint" data-power="no-fixes">@L.Resource("PowerRepair_NothingFound")</p>
-        }
-        else
-        {
-            <p class="world-feature-hint">@L.Resource("PowerRepair_FoundFormat", fixes.Count)</p>
+        <details class="power-repair-fold">
+            <summary>@L.Resource("PowerRepair_ShowFixes")</summary>
+            <p class="world-feature-hint">@L.Resource("PowerRepair_FixesHint")</p>
             @if (!Session.OtherSavesLoaded || Session.OtherSaveNames.Count == 0)
             {
                 <p class="world-feature-hint">@L.Resource("PowerRepair_ThisSaveOnly")</p>
@@ -68,7 +71,7 @@
             <div class="editor-actions">
                 <button class="primary" type="button" data-power="stage-fixes" disabled="@(_chosen.Count == 0)" @onclick="StageAsync">@L.Resource("PowerRepair_StageFormat", _chosen.Count)</button>
             </div>
-        }
+        </details>
     }
 </section>
 

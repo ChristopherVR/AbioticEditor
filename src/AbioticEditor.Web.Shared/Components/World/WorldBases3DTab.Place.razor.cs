@@ -210,4 +210,52 @@ public partial class WorldBases3DTab
             _levelCopyBusy = false;
         }
     }
+
+    // ---- the Add object palette ------------------------------------------------------------------
+    // Every kind that can be placed (built in this world, or in the player's other worlds once listed),
+    // with its picture, searchable. Drag one onto the view to place it where it is dropped, or click
+    // it to place it where the view is looking.
+
+    private sealed record PaletteItem(string Value, string Label, string Subtitle, string? ClassName);
+
+    private string _paletteQuery = string.Empty;
+    private string? _dragValue;
+
+    private List<PaletteItem> PaletteItems()
+    {
+        var items = PlaceKinds
+            .Select(k => new PaletteItem(k.ClassPath, k.Label, L.Resource("World3D_PaletteHereFormat", k.Count), k.ClassPath))
+            .Concat(OtherKinds.Select(k => new PaletteItem(OtherKindValue(k), Base3DScene.FriendlyClass(k.ClassName), k.World, k.ClassName)));
+        var words = _paletteQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return items
+            .Where(i => words.All(w => i.Label.Contains(w, StringComparison.CurrentCultureIgnoreCase) || (i.ClassName?.Contains(w, StringComparison.OrdinalIgnoreCase) ?? false)))
+            .ToList();
+    }
+
+    /// <summary>A click on a kind: placed where the view is looking (on the floor below it).</summary>
+    private async Task PlaceFromPaletteAsync(string value)
+    {
+        _placeClass = value;
+        await UseViewCentreAsync();
+        await ConfirmPlaceAsync();
+    }
+
+    /// <summary>A kind dropped on the view: placed on the surface under the pointer.</summary>
+    private async Task DropOnViewAsync(Microsoft.AspNetCore.Components.Web.DragEventArgs e)
+    {
+        if (_dragValue is not { } value || _view is null || !_moveOptIn) return;
+        _dragValue = null;
+        _placeClass = value;
+        try
+        {
+            var p = await _view.InvokeAsync<double[]>("placementPointAt", e.ClientX, e.ClientY);
+            if (p is not { Length: 3 }) return;
+            var save = PlacedSceneSpace.FromViewer(new PlacedVector(p[0], p[1], p[2]));
+            _placeX = Num(save.X);
+            _placeY = Num(save.Y);
+            _placeZ = Num(save.Z);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException) { return; }
+        await ConfirmPlaceAsync();
+    }
 }

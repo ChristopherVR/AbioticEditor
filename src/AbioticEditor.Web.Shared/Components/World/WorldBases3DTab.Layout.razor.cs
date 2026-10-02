@@ -8,16 +8,18 @@ namespace AbioticEditor.Web.Components.World;
 /// </summary>
 public partial class WorldBases3DTab
 {
-    private static readonly string[] SideTabs = ["objects", "filters", "display"];
+    // The side panel no longer has tabs (what is drawn moved into the view's Show menu); the names are
+    // kept so a view kept from before still restores.
+    private static readonly string[] SideTabs = ["objects"];
     private string _sideTab = "objects";
+
+    /// <summary>The changes waiting for SAVE are listed in the side panel only when asked for.</summary>
+    private bool _showStaged;
+
+    /// <summary>How many base changes wait for SAVE (moves, removals, copies and new pieces, power changes).</summary>
+    private int StagedCount => _basePreview is { } bp ? bp.Transforms.Count + bp.Deletions.Count + bp.Duplications.Count + bp.PowerLinks.Count : 0;
     private ElementReference _viewport;
 
-    private string SideTabLabel(string tab) => tab switch
-    {
-        "objects" => L.Resource("World3D_TabObjectsFormat", _visible.Length),
-        "filters" => L.Resource("World3D_TabFilters"),
-        _ => L.Resource("World3D_TabDisplay"),
-    };
 
     /// <summary>
     /// After something was picked. The inspector is always shown above the tabs now, so nothing
