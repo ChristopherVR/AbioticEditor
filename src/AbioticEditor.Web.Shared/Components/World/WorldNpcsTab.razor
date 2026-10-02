@@ -159,6 +159,8 @@
                         }
                         <h3 class="wt-h3">@CharacterName(selected)</h3>
                         <p class="wt-muted">Class: @NpcClassName(selected), instance: @NpcInstanceName(selected)</p>
+                        @* A recording plays from a projector placed in the level: show where it stands. *@
+                        <ShowIn3DButton Target="@(new WorldLocateTarget(WorldLocateKind.LevelActor, selected.Id, CharacterName(selected)))" />
                         <p class="wt-muted">This saved entry is a scripted projection. Its raw phase belongs to this instance's dialogue or scene script; we have not verified what each value means, and it is not a global quest progress value.</p>
                         <div class="wt-field">
                             <span class="wt-label">@L.Resource("WorldNpcs_ScriptPhase")</span>

@@ -79,7 +79,8 @@
                    therefore clears any stuck error) the instant the player switches tabs, on top of
                    the boundary's own dismiss button. *@
                 <AppErrorBoundary @key="_worldTab">
-                <CascadingValue Value="@(ThreeDViewAvailable && world.Deployables.Count > 0 ? Locator3D : null)">
+                @{ Locators.Current = ThreeDViewAvailable ? Locator3D : null; }
+                <CascadingValue Value="@(ThreeDViewAvailable ? Locator3D : null)">
                 @if (_worldTab == "containers") { <WorldContainersTab Title="@workspace.SelectedSave!.Name" Session="@world" PlayerSession="@Workspace.TransferPlayerSession" InitialFilter="@_containersInitialFilter" OnError="WorldError" /> }
                 else if (_worldTab == "flags") { <WorldFlagsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
                 else if (_worldTab == "doors") { <WorldDoorsTab Title="@workspace.SelectedSave!.Name" Session="@world" OnError="WorldError" /> }
@@ -106,6 +107,7 @@
 @code {
     [Inject] private HostLanguageService Languages { get; set; } = null!;
     [Inject] private InventorySelectionService Selection { get; set; } = null!;
+    [Inject] private WorldLocatorService Locators { get; set; } = null!;
 
     // ---- World tab strip (ported from the native WorldEditorViewModel.BuildTabs) ----
     // The strip is one flat, ordered list built per loaded save: fixed tabs filtered by save
@@ -208,7 +210,9 @@
         // creature entry to clone.
         if (world.Pets.Count > 0 || world.Npcs.Count > 0) Add("pets", "WorldEditor_TabPets");
         if (world.Vehicles.Count > 0) Add("vehicles", "WorldEditor_TabVehicles");
-        if (world.Deployables.Count > 0) Add("bases", "WorldEditor_TabBases");
+        // The Bases tab holds the 3D view, so with game models every region save has it (a trader or a
+        // door can stand where nothing was built); without them only saves with built pieces do.
+        if (world.Deployables.Count > 0 || (!world.IsMetadataSave && ThreeDViewAvailable)) Add("bases", "WorldEditor_TabBases");
         if (world.IsMetadataSave)
         {
             Add("story", "WorldEditor_TabStory");
@@ -253,15 +257,47 @@
     /// A fresh record each time, so asking for the same thing twice shows it again.
     /// </summary>
     private WorldLocator? _locator;
-    private WorldLocator Locator3D => _locator ??= new WorldLocator(ShowIn3DAsync);
+    private WorldLocator Locator3D => _locator ??= new WorldLocator(ShowIn3DAsync, CanShowIn3D);
     private WorldLocateTarget? _locate;
-    private Task ShowIn3DAsync(WorldLocateTarget target)
+
+    /// <summary>A target in the open region save, or in another save of this world that can be opened.</summary>
+    private bool CanShowIn3D(WorldLocateTarget target)
     {
+        if (Workspace.Current?.WorldSession is not { } world) return false;
+        if (target.SaveFileName is null && target.LevelName is null) return !world.IsMetadataSave;
+        return SaveFor(target) is not null;
+    }
+
+    /// <summary>The region save a target names (by file name, or by its level), or null when the world has none.</summary>
+    private WorkspaceSave? SaveFor(WorldLocateTarget target)
+    {
+        if (Workspace.Current is not { } workspace) return null;
+        var saves = workspace.Saves.Where(s => s.Kind == SaveDocumentKind.World).ToList();
+        if (target.SaveFileName is { } file)
+            return saves.FirstOrDefault(s => string.Equals(Path.GetFileName(s.Path), file, StringComparison.OrdinalIgnoreCase));
+        if (target.LevelName is not { } level) return null;
+        // A level's own region save, else the nearest broader one: Facility_MFWest -> Facility.
+        for (var name = level; name.Length > 0; name = name.LastIndexOf('_') is > 0 and var cut ? name[..cut] : "")
+        {
+            if (saves.FirstOrDefault(s => string.Equals(Path.GetFileName(s.Path), $"WorldSave_{name}.sav", StringComparison.OrdinalIgnoreCase)) is { } save)
+                return save;
+        }
+        return null;
+    }
+
+    private async Task ShowIn3DAsync(WorldLocateTarget target)
+    {
+        // A target in another save of the world (a trader, a containment cell): open that save first.
+        if ((target.SaveFileName ?? target.LevelName) is not null && SaveFor(target) is { } save
+            && !string.Equals(Workspace.Current?.WorldSession?.Path, save.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            try { await Workspace.SelectAsync(save.Path); }
+            catch (InvalidOperationException) { return; }
+        }
         _locate = target with { };
         _worldTab = "bases";
         Selection.Clear();
         StateHasChanged();
-        return Task.CompletedTask;
     }
     private void OpenWorldTab(string id) { _worldTab = id; Selection.Clear(); }
     private void OpenPowerSockets() { _worldTab = FeatureTabPrefix + PowerSocketsFeatureId; Selection.Clear(); }
@@ -298,5 +334,9 @@
     private Task PlayerChanged() { Workspace.Current?.PlayerSession?.MarkChanged(); Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
     private Task ChemistryChanged() { Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
     private Task WorldError(string? error) { _error = error; return Task.CompletedTask; }
-    public void Dispose() => Workspace.Changed -= WorkspaceChanged;
+    public void Dispose()
+    {
+        Workspace.Changed -= WorkspaceChanged;
+        if (ReferenceEquals(Locators.Current, _locator)) Locators.Current = null;
+    }
 }

@@ -27,6 +27,19 @@ public enum WorldLocateKind
 /// </summary>
 public sealed record WorldLocateTarget(WorldLocateKind Kind, string Id, string Label, PlacedVector? At = null)
 {
+    /// <summary>
+    /// The region save the target stands in, by file name (<c>WorldSave_Facility_Labs.sav</c>), when it
+    /// is not the open save: "Show in 3D" opens that save first. A trader or containment cell listed in
+    /// the story save, for example.
+    /// </summary>
+    public string? SaveFileName { get; init; }
+
+    /// <summary>
+    /// The level the target is placed in (<c>Facility_MFWest</c>), when its save is not known by file name:
+    /// the save is that level's region save, or the nearest broader one (<c>Facility</c>).
+    /// </summary>
+    public string? LevelName { get; init; }
+
     public static WorldLocateTarget Placed(string key, string label) => new(WorldLocateKind.PlacedObject, key, label);
 
     public static WorldLocateTarget Door(string id, string label) => new(WorldLocateKind.Door, id, label);
@@ -64,7 +77,10 @@ public sealed record WorldLocateTarget(WorldLocateKind Kind, string Id, string L
 /// Handed down to every world tab: whether the 3D view can be shown, and how to show something in it.
 /// Null (no cascading value) where there is no 3D view, which hides every "Show in 3D" link.
 /// </summary>
-public sealed class WorldLocator(Func<WorldLocateTarget, Task> show)
+public sealed class WorldLocator(Func<WorldLocateTarget, Task> show, Func<WorldLocateTarget, bool>? canShow = null)
 {
     public Task ShowAsync(WorldLocateTarget target) => show(target);
+
+    /// <summary>Whether "Show in 3D" can show this target (its save is open or can be opened).</summary>
+    public bool CanShow(WorldLocateTarget target) => canShow?.Invoke(target) ?? true;
 }

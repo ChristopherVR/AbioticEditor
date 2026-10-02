@@ -16,7 +16,7 @@ public static class IconColorizer
     /// mask path is returned.
     /// </summary>
     public static string Colorize(string maskPngPath, ItemCatalogEntry entry)
-        => ColorizeCore(maskPngPath, PickTint(entry), ".colored.png");
+        => ColorizeCore(maskPngPath, PickTint(entry), ".colored2.png");
 
     /// <summary>
     /// Colorizes a mask PNG with a caller-chosen tint - used for non-item masks like the
@@ -157,10 +157,12 @@ public static class IconColorizer
     private static readonly SKColor BoneCream    = new(232, 220, 188);
     private static readonly SKColor Blood        = new(160, 56, 56);
     private static readonly SKColor KeyGold      = new(220, 180, 80);
+    private static readonly SKColor MoneyGreen   = new(118, 170, 104); // banknotes, not the default tan
 
     // Ordered: longer / more-specific needles first so they beat broader ones.
     private static readonly (string Needle, SKColor Color)[] TagPalette =
     {
+        ("money",         MoneyGreen),
         ("ammo",          AmmoBrass),
         ("magazine",      AmmoBrass),
         ("medkit",        Medical),

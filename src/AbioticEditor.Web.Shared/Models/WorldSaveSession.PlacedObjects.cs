@@ -369,6 +369,61 @@ public sealed partial class WorldSaveSession
         OtherWorldsLoaded = true;
     }
 
+    private readonly Dictionary<string, OtherWorldKind?> _donorsByClass = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A piece of the given kind the player built somewhere, to copy a level-placed one from: first
+    /// this world's other areas, then the same area in their other worlds, then any area of those.
+    /// Stops at the first one found (each save read is a few hundred milliseconds to seconds). Null
+    /// when they have never built one.
+    /// </summary>
+    public async Task<OtherWorldKind?> FindDonorAsync(string classPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(classPath);
+        if (_donorsByClass.TryGetValue(classPath, out var known)) return known;
+        OtherWorldKind? found = null;
+        if ((_files is null || _files.HasLocalPaths) && System.IO.Path.GetDirectoryName(_path) is { Length: > 0 } dir && Directory.Exists(dir))
+        {
+            var fileName = System.IO.Path.GetFileName(_path);
+            var worldsDir = System.IO.Path.GetDirectoryName(dir);
+            var others = worldsDir is not null && Directory.Exists(worldsDir)
+                ? Directory.EnumerateDirectories(worldsDir).Where(d => !string.Equals(System.IO.Path.GetFullPath(d), System.IO.Path.GetFullPath(dir), StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(d => d, StringComparer.OrdinalIgnoreCase).ToList()
+                : [];
+            static IEnumerable<string> Regions(string folder) => Directory.EnumerateFiles(folder, "WorldSave_*.sav")
+                .Where(f => !System.IO.Path.GetFileName(f).Equals("WorldSave_MetaData.sav", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+            var order = Regions(dir).Where(f => !System.IO.Path.GetFileName(f).Equals(fileName, StringComparison.OrdinalIgnoreCase))
+                .Concat(others.Select(o => System.IO.Path.Combine(o, fileName)).Where(File.Exists))
+                .Concat(others.SelectMany(o => Regions(o).Where(f => !System.IO.Path.GetFileName(f).Equals(fileName, StringComparison.OrdinalIgnoreCase))));
+            foreach (var file in order)
+            {
+                try
+                {
+                    var census = await Task.Run(() => PlacedObjectCensus.Build(WorldSaveReader.ReadFromFile(file), file, includeObjects: true)).ConfigureAwait(false);
+                    var matches = (census.Objects ?? [])
+                        .Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.Transform?.Translation is not null
+                                    && string.Equals(o.ClassPath, classPath, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    if (matches.Count == 0) continue;
+                    var donor = matches.OrderBy(o => o.Transform?.Rotation is null ? 1 : 0).ThenBy(o => o.Key, StringComparer.Ordinal).First();
+                    var folder = System.IO.Path.GetDirectoryName(file)!;
+                    var world = string.Equals(System.IO.Path.GetFullPath(folder), System.IO.Path.GetFullPath(dir), StringComparison.OrdinalIgnoreCase)
+                        ? System.IO.Path.GetFileNameWithoutExtension(file)["WorldSave_".Length..]
+                        : System.IO.Path.GetFileName(folder);
+                    found = new OtherWorldKind(world, file, classPath, donor.ClassName, matches.Count, donor.Key);
+                    break;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or NotSupportedException or FormatException or EndOfStreamException)
+                {
+                    AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseEdits", $"Could not read {file} while looking for a piece to copy: {ex.Message}");
+                }
+            }
+        }
+        _donorsByClass[classPath] = found;
+        return found;
+    }
+
     /// <summary>
     /// Stages a new object copied from another world: <paramref name="kind"/>'s donor, standing at
     /// <paramref name="at"/> (cm) and turned by <paramref name="yawDegrees"/>. It starts empty, unplugged

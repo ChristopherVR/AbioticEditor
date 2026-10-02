@@ -73,7 +73,6 @@ public partial class WorldBases3DTab
 
     private async Task OpenPlaceAsync()
     {
-        _sideTab = "edit";
         _placeOpen = true;
         _placeError = null;
         _placeLastId = null;
@@ -140,4 +139,75 @@ public partial class WorldBases3DTab
     /// <summary>The findings for the object just placed (empty until one is placed).</summary>
     private IReadOnlyList<BaseEditIssue> LastPlaceIssues
         => _placeLastId is { } id && _basePreview?.Duplications.FirstOrDefault(r => r.DuplicationId == id) is { } row ? row.Issues : [];
+
+    // ---- remove and copy from the picked object's card ----------------------------------------
+    // The buttons are always shown; pressing one turns Edit mode on, so there is no separate step.
+
+    private async Task StartDeleteAsync()
+    {
+        if (!_moveOptIn) await SetMoveOptInAsync(true);
+        await OpenDeleteAsync();
+    }
+
+    private async Task StartDuplicateAsync()
+    {
+        if (!_moveOptIn) await SetMoveOptInAsync(true);
+        OpenDuplicate();
+    }
+
+    private bool _levelCopyBusy;
+    private string? _levelCopyNote;
+
+    /// <summary>
+    /// "Copy" on a piece that came with the level: the level owns that piece, so it cannot be copied
+    /// itself. A new piece of the player's own is placed beside it instead, made from one of the same
+    /// kind they built (in this area, another area of this world, or another of their worlds), facing
+    /// the same way.
+    /// </summary>
+    private async Task CopyLevelPieceAsync(PlacedObjectSummary obj)
+    {
+        _levelCopyNote = null;
+        _levelCopyBusy = true;
+        try
+        {
+            if (!_moveOptIn) await SetMoveOptInAsync(true);
+            var at = Session.CurrentPlacedTransform(obj.Key) ?? obj.Transform;
+            if (at?.Translation is not { } t || obj.ClassPath is null)
+            {
+                _levelCopyNote = L.Resource("World3D_LevelCopyRefused");
+                return;
+            }
+            var kind = PlaceKinds.FirstOrDefault(k => string.Equals(k.ClassPath, obj.ClassPath, StringComparison.OrdinalIgnoreCase));
+            WorldSaveSession.OtherWorldKind? other = null;
+            if (kind is null)
+            {
+                StateHasChanged(); // shows the button busy while other saves are looked through
+                other = await Session.FindDonorAsync(obj.ClassPath);
+            }
+            if (kind is null && other is null)
+            {
+                _levelCopyNote = L.Resource("World3D_LevelCopyNoDonor");
+                return;
+            }
+            // Beside the original (1.2 m to its right), turned the same way.
+            var yaw = at.Rotation?.YawDegrees ?? 0;
+            var radians = yaw * Math.PI / 180;
+            var spot = new PlacedVector(t.X - Math.Sin(radians) * 120, t.Y + Math.Cos(radians) * 120, t.Z);
+            var staged = other is not null
+                ? await Session.StagePlacedImportAsync(other, spot, yaw)
+                : Session.StagePlacedNew(kind!.DonorKey, spot, yaw);
+            if (staged is null)
+            {
+                _levelCopyNote = L.Resource("World3D_LevelCopyRefused");
+                return;
+            }
+            await AfterEditAsync(PlacedTransformStageResult.Ok);
+            // The new piece is picked, so its own card (a staged copy, with revert) shows next.
+            if (staged.NewKeys.Values.FirstOrDefault() is { } newKey) await SetSelectionAsync([newKey], newKey, frame: false);
+        }
+        finally
+        {
+            _levelCopyBusy = false;
+        }
+    }
 }

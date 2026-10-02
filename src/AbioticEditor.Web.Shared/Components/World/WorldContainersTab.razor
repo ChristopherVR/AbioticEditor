@@ -75,7 +75,12 @@
                            grid-template-areas/grid-template-columns (fixed this round to stop the
                            position line clipping under the name) is untouched. *@
                         <span class="wc-row-name">
-                            @if (ContainerItemId(container) is { Length: > 0 } previewId)
+                            @* A picture of the container itself, drawn from its model; the placeable item's icon when there is none. *@
+                            @if (WorldThumbnails.For("containers", container.ClassName) is { } containerPicture)
+                            {
+                                <img class="wc-row-icon" src="@containerPicture" alt="" loading="lazy" />
+                            }
+                            else if (ContainerItemId(container) is { Length: > 0 } previewId)
                             {
                                 <ItemIcon ItemId="@previewId" Alt="" Class="wc-row-icon" />
                             }
@@ -102,7 +107,13 @@
                 }
                 else
                 {
-                    <h3 class="wc-title">@DisplayName(selected)</h3>
+                    <div class="wc-title-row">
+                        @if (WorldThumbnails.For("containers", selected.ClassName) is { } selectedPicture)
+                        {
+                            <img class="wc-detail-art" src="@selectedPicture" alt="" />
+                        }
+                        <h3 class="wc-title">@DisplayName(selected)</h3>
+                    </div>
                     @if (HealthText(selected) is { Length: > 0 } detailHealth) { <p class="wc-health">@detailHealth</p> }
                     <p class="wc-id">@WhereText(selected)</p>
                     @if (selected.Source == WorldContainerSource.Deployed)

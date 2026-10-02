@@ -41,6 +41,7 @@ public sealed class ItemCatalogService : IDisposable
         _bundledNpcDisplayNames = registry?.NpcDisplayNames;
         _narrativeNpcNames = registry?.NarrativeNpcNames;
         _narrativeNpcPlacements = registry?.NarrativeNpcPlacements;
+        _bundledDistillations = registry?.Distillations;
         var merged = (registry?.Items ?? []).ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         // The slot editor is always present in the desktop shell. Do not make resolving it
         // mount and scan the installed game paks before a save can open. Bundled registry
@@ -135,6 +136,54 @@ public sealed class ItemCatalogService : IDisposable
     /// </summary>
     public string? GetNarrativeNpcName(string? actorId)
         => AbioticEditor.Core.WorldSaves.NarrativeNpcNameCatalog.Resolve(_narrativeNpcNames, actorId);
+
+    /// <summary>
+    /// Where the story places a character whose name contains one of <paramref name="words"/> (whole
+    /// words, ignoring case), as (level, actor path, name); level menus are left out. A trader in the
+    /// Traders tab is found this way ("Warren" stands in Facility_Office1).
+    /// </summary>
+    public IReadOnlyList<(string Level, string ActorPath, string Name)> FindNarrativeNpcs(IEnumerable<string> words)
+    {
+        if (_narrativeNpcNames is null) return [];
+        var wanted = words.Where(w => w.Length >= 4).Select(w => w.ToLowerInvariant()).ToHashSet();
+        var result = new List<(string, string, string)>();
+        foreach (var (key, name) in _narrativeNpcNames)
+        {
+            var colon = key.IndexOf(':');
+            if (colon <= 0) continue;
+            var level = key[..colon];
+            if (level.StartsWith("MainMenu", StringComparison.OrdinalIgnoreCase)) continue;
+            var nameWords = name.ToLowerInvariant().Split([' ', '.', ',', '-'], StringSplitOptions.RemoveEmptyEntries);
+            if (!nameWords.Any(wanted.Contains)) continue;
+            result.Add((level, $"/Game/Maps/{level}.{level}:PersistentLevel.{key[(colon + 1)..]}", name));
+        }
+        return result.OrderBy(r => r.Item1, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private readonly IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe>? _bundledDistillations;
+    private IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe>? _distillations;
+
+    /// <summary>
+    /// The items a distillery accepts (what goes in, the distillate and how many), from the installed
+    /// game when it can be read, else the bundled registry; empty when neither has them.
+    /// </summary>
+    public IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe> Distillations => _distillations ??= LoadDistillations();
+
+    private IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe> LoadDistillations()
+    {
+        // The installed game's own table when its files are already open (never opened just for this,
+        // which would stall the screen), else the bundled copy.
+        if (_extractsIconsLive && _provider.IsValueCreated)
+        {
+            try
+            {
+                if (_provider.Value is { HasMappings: true } provider && AbioticEditor.Core.Items.DistillationCatalog.LoadFrom(provider) is { Count: > 0 } live)
+                    return live;
+            }
+            catch (Exception) { /* fall back to the bundled list */ }
+        }
+        return _bundledDistillations ?? [];
+    }
 
     private readonly IReadOnlyDictionary<string, AbioticEditor.Core.WorldSaves.NarrativeNpcPlacement>? _narrativeNpcPlacements;
 

@@ -37,24 +37,27 @@ Opening a save also prepares the level around your bases and the rest of the are
 background, so **Show in 3D** on a door or button elsewhere is quick too. The level appears in parts
 as it arrives.
 
-The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters and Resource Nodes lists
-show a picture of each kind of thing, drawn from the game's own models and included with the editor.
+The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes and
+Containers lists show a picture of each kind of thing, drawn from the game's own models and included
+with the editor.
 
 If you installed the separate Game Models plugin with an earlier version, you can delete its
 `GameModels3D` folder from **Settings ▸ Plugins ▸ OPEN PLUGINS FOLDER**; the editor uses the newer
 copy it comes with either way.
 
-The view fills the window. Its buttons sit on top of it (frame everything, frame the selection,
+The view fills the window below the Map / 3D switch and the base picker, so nothing needs scrolling.
+The level around what you are looking at is drawn by default and loads in the background, a part at
+a time, following the view as you move. Its buttons sit on top of it (frame everything, frame the selection,
 walk, labels, doors, characters and the surrounding level), and a box in the corner shows what is
 still loading: models, their textures and the level. A model appears once its textures are in, so
-nothing shows up blank first. The panel beside the view has five tabs: **Inspect** (what you
-clicked), **Objects** (search and the full list), **Filters**, **Display** (game models and the
-level) and **Edit**.
+nothing shows up blank first. The panel beside the view shows what you clicked at the top, with
+**Objects** (search and the full list), **Filters** and **Display** (game models and the level) as
+tabs underneath.
 
 Scroll to zoom towards whatever is under the pointer, and double-click a spot to swing the view
 round it and move in close. **Full screen** gives the view the whole window; press Escape or the
 button again to leave. Whatever the pointer is over gets a thin blue outline, so you can see what a
-click will pick. With **Edit mode** ticked (on the view or in the Edit tab), drag a piece you built to
+click will pick. With **Edit mode** ticked on the view, drag a piece you built to
 move it across the floor; hold Alt while dragging to raise or lower it. Furniture and walls that
 belong to the level itself show a card saying so: the game rebuilds those from its own files, so
 they cannot be moved. Leaving the 3D view and coming back keeps it exactly as you left it.
@@ -67,10 +70,23 @@ way round for a swinging door); the change waits for **SAVE** like any other edi
 height: drag to look, use W A S D or the arrow keys to move, Shift to go faster, and Escape to stop.
 You bump into walls while walking; turn off **Stay on the floor** to fly through them.
 Diamonds mark story characters, traders and pets; click one to see who it is and jump to the tab
-that edits it. In the **Edit** tab, turn on **Edit mode**, then **Place a new object** puts a fresh copy of
+that edits it. Turn on **Edit mode** on the view, then **Add object** puts a fresh copy of
 something you have already built where the view is looking. **Also list things built in my other
 worlds** adds everything you have built in your other worlds on this computer, so you can place a
 kind this world has never had.
+
+The panel beside the view always shows what you clicked at the top: its picture and name, its
+contents (change them right there), then **Remove** and **Copy**. Pressing either turns **Edit mode**
+on. The numbers behind it are folded under **Details**. The object list, filters and display settings
+are tabs underneath. With **Edit mode** on, **Add object** on the view places a new piece. Things
+that came with the level (a fridge, a locker) can't be removed, because the game puts them back from
+its own files. **Copy as my own piece** places one of your own beside it instead, made from one you
+built in any of your worlds. Wall sockets built into the level show as
+markers too: click one to plug a device into it.
+
+**Show in 3D** also works from the story save: a trader's card offers one for each place they stand,
+and each containment cell has one. It opens the right area's save and takes you there; holograms
+have one as well. The view stays covered until the place has loaded, so it never shows half-drawn.
 
 Most other tabs have a **Show in 3D** button next to what you pick: a door, a container, a chemistry
 bench, an item on the ground, a vehicle, a story character, a pet, a button, a breakable wall, a

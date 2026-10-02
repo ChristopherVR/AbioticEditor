@@ -499,7 +499,41 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// no list. Streamed areas matter because player-built pieces are kept in the save of the
     /// persistent level even when they stand inside a streamed area.
     /// </summary>
-    private WorldMaps WorldFor(string region) => _worlds.GetOrAdd(region, r =>
+    private WorldMaps WorldFor(string region) => _worlds.GetOrAdd(region, r => LoadWorld(r) ?? SaveWorld(r, BuildWorld(r)));
+
+    /// <summary>
+    /// The layout is kept on disk with the rest of the cache: working it out reads the area's largest
+    /// level files, which on a fresh start kept the first level request waiting.
+    /// </summary>
+    private sealed record CachedWorld(string[] Always, Dictionary<string, float[][]> Streamed, Dictionary<string, float[]> Placements);
+
+    private string WorldCachePath(string region) => CachePath("worlds", region, ".json");
+
+    private WorldMaps? LoadWorld(string region)
+    {
+        if (TryReadJson<CachedWorld>(WorldCachePath(region)) is not { } cached) return null;
+        var streamed = cached.Streamed.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.Where(b => b.Length == 6).Select(b => (new Vector3(b[0], b[1], b[2]), new Vector3(b[3], b[4], b[5]))).ToList(),
+            StringComparer.OrdinalIgnoreCase);
+        var placements = cached.Placements.Where(kv => kv.Value.Length == 16).ToDictionary(
+            kv => kv.Key,
+            kv => { var m = kv.Value; return new Matrix4x4(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]); },
+            StringComparer.OrdinalIgnoreCase);
+        return new WorldMaps(cached.Always, streamed, placements);
+    }
+
+    private WorldMaps SaveWorld(string region, WorldMaps world)
+    {
+        if (world.AlwaysDrawn.Count == 0) return world; // nothing found (game files not read): ask again next time
+        WriteJson(WorldCachePath(region), new CachedWorld(
+            [.. world.AlwaysDrawn],
+            world.Streamed.ToDictionary(kv => kv.Key, kv => kv.Value.Select(b => new[] { b.Min.X, b.Min.Y, b.Min.Z, b.Max.X, b.Max.Y, b.Max.Z }).ToArray()),
+            world.Placements.ToDictionary(kv => kv.Key, kv => { var m = kv.Value; return new[] { m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24, m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44 }; })));
+        return world;
+    }
+
+    private WorldMaps BuildWorld(string r)
     {
         var byName = _mapsByName.Value;
         var parts = r.Split('_');
@@ -541,7 +575,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             }
         }
         return new WorldMaps(always, streamed, placements);
-    });
+    }
 
     /// <summary>
     /// Where a top-level world map (a map whose name is a single word, like <c>Facility</c>) streams
@@ -582,7 +616,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     {
         var result = new List<(string, Matrix4x4)>();
         if (!provider.TryLoadPackage(mapPackage, out var package)) return result;
-        var world = package.GetExports().OfType<UWorld>().FirstOrDefault();
+        var world = AbioticEditor.Core.Assets.GameMaps.WorldOf(package);
         foreach (var index in world?.StreamingLevels ?? [])
         {
             var streaming = index.Load();

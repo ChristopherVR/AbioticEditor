@@ -320,6 +320,12 @@
                 <p class="wt-detail-blurb">@detailBlurb</p>
             }
             <small class="wt-availability">@AvailabilityText(trader, detailLore)</small>
+            @* Where the trader stands: opens that area's save in the 3D view (one button per place). *@
+            @foreach (var place in Items.FindNarrativeNpcs(TraderWords(trader, detailLore)))
+            {
+                <ShowIn3DButton Target="@(new WorldLocateTarget(WorldLocateKind.Character, place.ActorPath, ShownName(trader, detailLore, false)) { LevelName = place.Level })" />
+                <small class="wt-availability">@place.Level.Replace('_', ' ')</small>
+            }
             <div class="wm-divider" role="presentation"></div>
 
             <span class="wm-label">@L.Resource("Slot_WhatTheyAcceptAsPayment")</span>
@@ -553,4 +559,8 @@
         }
         finally { _unlocking = false; RefreshTraderDetail(); }
     }
+
+    /// <summary>Words that name a trader's character in the level: its id ("Larva") and its display name's words.</summary>
+    private static IEnumerable<string> TraderWords(TraderInfo trader, TraderLore.Entry? lore)
+        => new[] { trader.Id }.Concat((lore?.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries));
 }

@@ -66,6 +66,10 @@
                                 <strong>@OccupantLabel(creature, concealed)</strong>
                                 <small>@UnitWhere(unit)</small>
                             </span>
+                            @* The cell itself, in the region save it stands in. *@
+                            <span @onclick:stopPropagation="true">
+                                <ShowIn3DButton Compact="true" Target="@CellTarget(unit, OccupantLabel(creature, concealed))" />
+                            </span>
                             <span class="wc-assign" @onclick:stopPropagation="true">
                                 <label class="wm-label" for="@("wc-sel-" + unit.Id)">@L.Resource("WorldContainment_HoldsLabel")</label>
                                 @* Options carry their own selected flag rather than the select
@@ -469,4 +473,9 @@
         }
         finally { _worldUnlockBusy = false; }
     }
+
+    /// <summary>"Show in 3D" for a containment cell: its placed unit (else its saved spot) in its own region save.</summary>
+    private static WorldLocateTarget CellTarget(WorldContainmentUnit unit, string label)
+        => (WorldLocateTarget.ForMapKey(unit.Id, label) ?? WorldLocateTarget.Point(unit.Id, label, unit.X, unit.Y, unit.Z))
+            with { At = new PlacedVector(unit.X, unit.Y, unit.Z), SaveFileName = unit.RegionSaveFileName };
 }

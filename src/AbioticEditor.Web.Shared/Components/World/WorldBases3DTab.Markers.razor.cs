@@ -13,14 +13,14 @@ namespace AbioticEditor.Web.Components.World;
 public partial class WorldBases3DTab
 {
     /// <summary>World lists keyed by level actors, which the view can place from the game files.</summary>
-    private static readonly string[] ThingFeatures = ["buttons", "destructibles", "resource-nodes", "elevators", "npc-spawns", "portals", "trams"];
+    private static readonly string[] ThingFeatures = ["buttons", "destructibles", "resource-nodes", "elevators", "npc-spawns", "portals", "trams", "power-sockets"];
 
     private const int MaxThings = 600;
     private const int ItemColor = 0xffd23f;
 
     private sealed record ThingInfo(string FeatureId, string FeatureName, string Key, string Label, PlacedVector At);
 
-    private bool _itemsOn = true;
+    private bool _itemsOn; // off at first: hundreds of them crowd the overview; one click away in Show
     private bool _thingsOn = true;
     private bool _markersDirty = true;
     private int _itemStamp = -1;
@@ -94,6 +94,7 @@ public partial class WorldBases3DTab
     private static int ThingColor(string featureId) => featureId switch
     {
         "buttons" => 0x4fc3f7,
+        "power-sockets" => 0xffd23f,
         "destructibles" => 0xff7043,
         "resource-nodes" => 0x81c784,
         "elevators" or "trams" or "portals" => 0xba68c8,

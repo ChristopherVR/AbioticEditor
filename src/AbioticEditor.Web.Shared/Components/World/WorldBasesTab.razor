@@ -27,29 +27,35 @@
     }
     @if (Session.AppliesImmediately) { <p class="muted">@L.Resource("WorldBases_LiveUpgradeCaveat")</p> }
     <h2 class="wt-h2">@L.Resource("WorldBases_BaseManager")</h2>
-    <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p>
+    @if (ThreeDView is null || !_show3D) { <p class="wt-intro">@L.Resource("WorldBases_BaseManagerIntro")</p> }
     @* Map / 3D switch. The 3D view is handed in by the file editor only when the optional game
-       models plugin is available (ThreeDView); otherwise there is no switch and the map is all. *@
+       models plugin is available (ThreeDView); otherwise there is no switch and the map is all.
+       In 3D the switch and the base picker share one line, so the view gets the rest of the window. *@
     @if (ThreeDView is not null)
     {
+        <div class="bases-view-bar" data-b3d="bar">
         <div class="wt-seg bases-view-switch" role="radiogroup" aria-label="@L.Resource("WorldBases_ViewSwitch")" data-b3d="view-switch">
             <button type="button" role="radio" aria-checked="@(!_show3D)" class="wt-btn @(!_show3D ? "active" : "wt-plain")" data-b3d="view-2d" @onclick="() => _show3D = false">@L.Resource("WorldBases_ViewMap")</button>
             <button type="button" role="radio" aria-checked="@_show3D" class="wt-btn @(_show3D ? "active" : "wt-plain")" data-b3d="view-3d" @onclick="() => _show3D = true">@L.Resource("WorldBases_View3D")</button>
         </div>
+        @if (_show3D)
+        {
+            @* The 3D view frames the base picked here (or the whole region), the same selection the map uses. *@
+            <label class="wt-field bases-3d-focus">
+                <span>@L.Resource("WorldBases_3DFocus")</span>
+                <select data-b3d="base-focus" @onchange="e => FocusBase(e.Value?.ToString())">
+                    <option value="" selected="@(SelectedBase is null)">@L.Resource("WorldBases_3DWholeRegion")</option>
+                    @foreach (var worldBase in Bases)
+                    {
+                        <option value="@worldBase.Name" selected="@(_selectedBaseName == worldBase.Name)">@L.Resource("WorldBases_3DFocusOptionFormat", worldBase.Name, worldBase.Deployables.Count)</option>
+                    }
+                </select>
+            </label>
+        }
+        </div>
     }
     @if (ThreeDView is not null && _show3D)
     {
-        @* The 3D view frames the base picked here (or the whole region), the same selection the map uses. *@
-        <label class="wt-field bases-3d-focus">
-            <span>@L.Resource("WorldBases_3DFocus")</span>
-            <select data-b3d="base-focus" @onchange="e => FocusBase(e.Value?.ToString())">
-                <option value="" selected="@(SelectedBase is null)">@L.Resource("WorldBases_3DWholeRegion")</option>
-                @foreach (var worldBase in Bases)
-                {
-                    <option value="@worldBase.Name" selected="@(_selectedBaseName == worldBase.Name)">@L.Resource("WorldBases_3DFocusOptionFormat", worldBase.Name, worldBase.Deployables.Count)</option>
-                }
-            </select>
-        </label>
         @ThreeDView(SelectedBase)
     }
     else

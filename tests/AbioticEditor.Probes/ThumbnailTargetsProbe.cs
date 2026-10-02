@@ -40,6 +40,8 @@ public sealed partial class ThumbnailTargetsProbe
         if (string.IsNullOrWhiteSpace(dir) || string.IsNullOrWhiteSpace(output)) return;
 
         var targets = new Dictionary<(string Kind, string Cls), object>();
+        var instances = new List<object>();
+        var classes = new Dictionary<string, object>(StringComparer.Ordinal);
         foreach (var path in Directory.GetFiles(dir, "WorldSave_*.sav").OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
         {
             var region = Path.GetFileNameWithoutExtension(path)["WorldSave_".Length..];
@@ -52,14 +54,27 @@ public sealed partial class ThumbnailTargetsProbe
             {
                 if (!actorPath.StartsWith("/Game/", StringComparison.Ordinal)) return;
                 var key = (kind, ClassOf(actorPath));
-                // A plain mesh placed in the level has no kind of its own to picture.
-                if (key.Item2.StartsWith("StaticMeshActor", StringComparison.Ordinal)) return;
+                // A plain mesh placed in the level has no kind of its own to picture (but has a place).
+                if (key.Item2.StartsWith("StaticMeshActor", StringComparison.Ordinal)) { instances.Add(new { kind, cls = key.Item2, region, actor = actorPath }); return; }
                 targets.TryAdd(key, new { kind, cls = key.Item2, region, actor = actorPath });
+                instances.Add(new { kind, cls = key.Item2, region, actor = actorPath });
             }
             foreach (var door in data.Doors) Add("doors", door.Id);
+            // Containers are drawn from their own model (classThumbnail), so they need the class path.
+            var classPaths = (PlacedObjectCensus.Build(data).Objects ?? [])
+                .Where(o => o.ClassPath is not null)
+                .GroupBy(o => o.Key, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().ClassPath!, StringComparer.Ordinal);
+            foreach (var container in data.Containers)
+                if (container.ClassName is { Length: > 0 } cls && classPaths.TryGetValue(container.Id, out var classPath))
+                    classes.TryAdd(cls, new { kind = "containers", cls, classPath });
             foreach (var (map, kind) in Lists)
                 foreach (var entry in WorldMapAccessor.Entries(data.Raw, map)) Add(kind, entry.Key);
         }
         File.WriteAllText(output, JsonSerializer.Serialize(targets.Values, new JsonSerializerOptions { WriteIndented = true }));
+        if (Environment.GetEnvironmentVariable("THUMBNAIL_CLASSES_OUT") is { Length: > 0 } classesOut)
+            File.WriteAllText(classesOut, JsonSerializer.Serialize(classes.Values, new JsonSerializerOptions { WriteIndented = true }));
+        if (Environment.GetEnvironmentVariable("THUMBNAIL_INSTANCES_OUT") is { Length: > 0 } instancesOut)
+            File.WriteAllText(instancesOut, JsonSerializer.Serialize(instances, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

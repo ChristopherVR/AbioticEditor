@@ -69,6 +69,7 @@ public sealed class SceneModelHostService
     public IReadOnlyDictionary<string, SceneClassModel?> DescribeClasses(IEnumerable<string> classPaths)
     {
         var paths = classPaths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).Take(2000).ToList();
+        using var foreground = Foreground();
         var result = new System.Collections.Concurrent.ConcurrentDictionary<string, SceneClassModel?>(StringComparer.Ordinal);
         // Each class is mostly a small cache file read (or, the first time, a game-file read), so a
         // batch is worked out in parallel. Half the cores at most: the first read of an area keeps
@@ -80,6 +81,46 @@ public sealed class SceneModelHostService
     }
 
     private static int WorkerCount => Math.Max(2, Environment.ProcessorCount / 2);
+
+    // ---- the view first ------------------------------------------------------------------------
+    // The background warm-up and the view read the game through one shared lock. Left to compete,
+    // the warm-up's workers kept taking it, and the view's first look at an area after starting the
+    // editor waited up to two minutes for its level. Now every request from the view counts itself
+    // in, and the warm-up waits between pieces while any is running.
+    private int _foreground;
+
+    [ThreadStatic] private static bool t_warmingUp;
+
+    private ForegroundScope Foreground() => new(t_warmingUp ? null : this);
+
+    private readonly struct ForegroundScope : IDisposable
+    {
+        private readonly SceneModelHostService? _owner;
+        public ForegroundScope(SceneModelHostService? owner)
+        {
+            _owner = owner;
+            if (owner is not null) Interlocked.Increment(ref owner._foreground);
+        }
+        public void Dispose() { if (_owner is not null) Interlocked.Decrement(ref _owner._foreground); }
+    }
+
+    /// <summary>Called by the warm-up before each piece: waits while the view is asking for something.</summary>
+    private void YieldToView()
+    {
+        for (var waited = 0; Volatile.Read(ref _foreground) > 0 && waited < 120_000; waited += 25) Thread.Sleep(25);
+    }
+
+    /// <summary>Runs a warm-up step: it does not count as the view asking (the flag is reset after, as pool threads are shared).</summary>
+    private static T AsWarmUp<T>(Func<T> step)
+    {
+        var was = t_warmingUp;
+        t_warmingUp = true;
+        try { return step(); }
+        finally { t_warmingUp = was; }
+    }
+
+    /// <summary>True while a request from the view is being answered (for tests).</summary>
+    internal bool ViewIsAsking => Volatile.Read(ref _foreground) > 0;
 
     private SceneClassModel? DescribeOne(string path)
     {
@@ -113,7 +154,7 @@ public sealed class SceneModelHostService
             {
                 List<string> todo;
                 lock (_prewarmed) todo = keys().Where(k => !string.IsNullOrWhiteSpace(k) && _prewarmed.Add(k)).ToList();
-                Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, key => DescribeOne(key));
+                Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, key => { YieldToView(); DescribeOne(key); });
                 if (region is not null && levelCentres is not null) PrewarmLevel(region, levelCentres());
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -142,13 +183,14 @@ public sealed class SceneModelHostService
         const float Everywhere = 1_000_000f;
         var whole = new SceneLevelQuery(region, [-Everywhere, -Everywhere, -Everywhere], [Everywhere, Everywhere, Everywhere], 1);
         var waitedUntil = DateTime.UtcNow.AddMinutes(5);
-        while (DescribeLevel(whole) is { PendingMaps: > 0 } && DateTime.UtcNow < waitedUntil) Thread.Sleep(2000);
+        while (AsWarmUp(() => DescribeLevel(whole)) is { PendingMaps: > 0 } && DateTime.UtcNow < waitedUntil) { Thread.Sleep(2000); YieldToView(); }
 
         var assets = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in centres.Where(c => c is { Length: 3 }).Take(12))
         {
             var r = PrewarmLevelRadiusM;
-            var slice = DescribeLevel(new SceneLevelQuery(region, [c[0] - r, c[1] - r / 2, c[2] - r], [c[0] + r, c[1] + r / 2, c[2] + r], 25000));
+            YieldToView();
+            var slice = AsWarmUp(() => DescribeLevel(new SceneLevelQuery(region, [c[0] - r, c[1] - r / 2, c[2] - r], [c[0] + r, c[1] + r / 2, c[2] + r], 25000)));
             if (slice is null) continue;
             foreach (var batch in slice.Batches)
             {
@@ -160,7 +202,7 @@ public sealed class SceneModelHostService
                 }
             }
         }
-        Parallel.ForEach(assets, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, id => OpenAsset(id));
+        Parallel.ForEach(assets, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, WorkerCount / 2) }, id => { YieldToView(); AsWarmUp(() => OpenAsset(id)); });
         EditorLog.Info("Scene", $"Prepared {assets.Count} level pieces and textures for {region} in the background.");
     }
 
@@ -238,6 +280,7 @@ public sealed class SceneModelHostService
         if (provider is null || string.IsNullOrWhiteSpace(query.Region)) return null;
         if (query.Min is not { Length: 3 } || query.Max is not { Length: 3 }) return null;
         var capped = query with { MaxInstances = Math.Clamp(query.MaxInstances, 1, 200_000) };
+        using var foreground = Foreground();
         TidyWhenIdle();
         try { return provider.DescribeLevel(capped); }
         catch (Exception ex)
@@ -275,6 +318,7 @@ public sealed class SceneModelHostService
     {
         var provider = Provider?.Value;
         if (provider is null || string.IsNullOrWhiteSpace(assetId) || assetId.Length > 512) return null;
+        using var foreground = Foreground();
         TidyWhenIdle();
         try { return provider.OpenAsset(assetId); }
         catch (Exception ex)

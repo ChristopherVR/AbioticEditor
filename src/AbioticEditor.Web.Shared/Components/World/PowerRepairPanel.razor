@@ -2,8 +2,8 @@
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Models
 
-@* Tab-level power tools: the power changes staged so far (each can be reverted), and "Check power",
-   which lists broken links and leftover outlet records with a fix for each. Fixes are chosen one by
+@* Tab-level power tools: the power changes staged so far (each can be reverted), and the power check,
+   which runs by itself and lists broken links and leftover outlet records with a fix for each. Fixes are chosen one by
    one; the ones that only undo an impossible state start ticked. *@
 <section class="power-repair wt-card" aria-label="@L.Resource("PowerRepair_Title")" data-power="repair">
     <p class="eyebrow">@L.Resource("PowerRepair_Title")</p>
@@ -35,9 +35,8 @@
         </ul>
     }
 
-    <div class="editor-actions">
-        <button class="secondary" type="button" data-power="check" disabled="@_checking" @onclick="CheckAsync">@L.Resource(_checking ? "PowerRepair_Checking" : "PowerRepair_Check")</button>
-    </div>
+    @* Checked on its own when the panel opens and after every power change: there is nothing to press. *@
+    @if (_checking && _fixes is null) { <p class="world-feature-hint" data-power="checking">@L.Resource("PowerRepair_Checking")</p> }
     @if (_fixes is { } fixes)
     {
         @if (fixes.Count == 0)
@@ -83,6 +82,16 @@
     private readonly HashSet<string> _chosen = new(StringComparer.Ordinal);
     private bool _checking;
 
+    private int _checkedRevision = -1;
+
+    /// <summary>Re-checks whenever the staged edits changed (and once when the panel opens).</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_checking || Session.PlacedTransformsRevision == _checkedRevision) return;
+        _checkedRevision = Session.PlacedTransformsRevision;
+        await CheckAsync();
+    }
+
     private async Task CheckAsync()
     {
         _checking = true;
@@ -111,6 +120,7 @@
         _fixes = null;
         _chosen.Clear();
         await OnChanged.InvokeAsync();
+        await CheckAsync();
     }
 
     private async Task RevertAsync(int id)

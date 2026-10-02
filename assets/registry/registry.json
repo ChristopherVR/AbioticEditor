@@ -90431,5 +90431,692 @@
     "V_Winter:NarrativeNPC_SignPost_VWinter_C_7": {
       "Row": "VWinter_SignPost_04"
     }
-  }
+  },
+  "Distillations": [
+    {
+      "Input": "acid",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "alienwheat",
+      "Output": "distillation_vigorous",
+      "Count": 2
+    },
+    {
+      "Input": "anomaly",
+      "Output": "distillation_vigorous",
+      "Count": 2
+    },
+    {
+      "Input": "antejuicesac",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "bleach",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "blood_plutonic",
+      "Output": "distillation_unstable",
+      "Count": 4
+    },
+    {
+      "Input": "capacitor",
+      "Output": "distillation_charged",
+      "Count": 6
+    },
+    {
+      "Input": "carapace",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "carapace_plutonic",
+      "Output": "distillation_unstable",
+      "Count": 2
+    },
+    {
+      "Input": "censer",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "eel_fat",
+      "Output": "distillation_charged",
+      "Count": 2
+    },
+    {
+      "Input": "eel_organ",
+      "Output": "distillation_charged",
+      "Count": 6
+    },
+    {
+      "Input": "enethiol",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "essence_frozen",
+      "Output": "distillation_endothermic",
+      "Count": 12
+    },
+    {
+      "Input": "essence_leyak",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "essence_reaper",
+      "Output": "distillation_unnerving",
+      "Count": 12
+    },
+    {
+      "Input": "feces",
+      "Output": "distillation_vigorous",
+      "Count": 1
+    },
+    {
+      "Input": "feces_skink",
+      "Output": "distillation_void",
+      "Count": 3
+    },
+    {
+      "Input": "filet_antefish_raw",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "filet_dw_raw",
+      "Output": "distillation_expanding",
+      "Count": 2
+    },
+    {
+      "Input": "filet_eel_raw",
+      "Output": "distillation_charged",
+      "Count": 2
+    },
+    {
+      "Input": "filet_fogfish_raw",
+      "Output": "distillation_foggy",
+      "Count": 2
+    },
+    {
+      "Input": "filet_icefish_raw",
+      "Output": "distillation_charged",
+      "Count": 2
+    },
+    {
+      "Input": "filet_moonfish_raw",
+      "Output": "distillation_fizzy",
+      "Count": 4
+    },
+    {
+      "Input": "filet_portal_raw",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "filet_radfish_raw",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "filet_reaper_raw",
+      "Output": "distillation_unnerving",
+      "Count": 2
+    },
+    {
+      "Input": "filet_silkfish_raw",
+      "Output": "distillation_unstable",
+      "Count": 2
+    },
+    {
+      "Input": "filet_umbrafish_raw",
+      "Output": "distillation_occult",
+      "Count": 2
+    },
+    {
+      "Input": "fish_crab_gem",
+      "Output": "distillation_void",
+      "Count": 3
+    },
+    {
+      "Input": "food_apple",
+      "Output": "distillation_vigorous",
+      "Count": 4
+    },
+    {
+      "Input": "food_brain",
+      "Output": "distillation_brainy",
+      "Count": 4
+    },
+    {
+      "Input": "food_candy",
+      "Output": "distillation_fizzy",
+      "Count": 3
+    },
+    {
+      "Input": "food_candycane",
+      "Output": "distillation_fizzy",
+      "Count": 4
+    },
+    {
+      "Input": "food_carrot",
+      "Output": "distillation_vigorous",
+      "Count": 4
+    },
+    {
+      "Input": "food_cheese",
+      "Output": "distillation_alien",
+      "Count": 1
+    },
+    {
+      "Input": "food_cheesepuffs",
+      "Output": "distillation_fizzy",
+      "Count": 1
+    },
+    {
+      "Input": "food_chips",
+      "Output": "distillation_fizzy",
+      "Count": 1
+    },
+    {
+      "Input": "food_cookie",
+      "Output": "distillation_fizzy",
+      "Count": 3
+    },
+    {
+      "Input": "food_corn",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "food_corn_infected",
+      "Output": "distillation_unnerving",
+      "Count": 2
+    },
+    {
+      "Input": "food_donut",
+      "Output": "distillation_fizzy",
+      "Count": 3
+    },
+    {
+      "Input": "food_eggplant_raw",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "food_greyeb",
+      "Output": "distillation_fleshy",
+      "Count": 2
+    },
+    {
+      "Input": "food_lamogi_corrupted",
+      "Output": "distillation_charged",
+      "Count": 6
+    },
+    {
+      "Input": "food_lettuce",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "food_milksac",
+      "Output": "food_milk",
+      "Count": 1
+    },
+    {
+      "Input": "food_mushroom",
+      "Output": "distillation_mycological",
+      "Count": 4
+    },
+    {
+      "Input": "food_pepper",
+      "Output": "distillation_boiling",
+      "Count": 4
+    },
+    {
+      "Input": "food_pepper_corrupted",
+      "Output": "distillation_boiling",
+      "Count": 1
+    },
+    {
+      "Input": "food_potato",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "food_rice_raw",
+      "Output": "distillation_alien",
+      "Count": 3
+    },
+    {
+      "Input": "food_roastpecc_raw",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "food_shadowberry",
+      "Output": "distillation_occult",
+      "Count": 2
+    },
+    {
+      "Input": "food_sugar",
+      "Output": "distillation_fizzy",
+      "Count": 8
+    },
+    {
+      "Input": "food_taco",
+      "Output": "distillation_vigorous",
+      "Count": 1
+    },
+    {
+      "Input": "food_tomato",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "food_tomato_super",
+      "Output": "distillation_alien",
+      "Count": 3
+    },
+    {
+      "Input": "gel",
+      "Output": "distillation_boiling",
+      "Count": 3
+    },
+    {
+      "Input": "gem",
+      "Output": "distillation_void",
+      "Count": 3
+    },
+    {
+      "Input": "gib_carbuncle_carcass",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "gib_chieftain_skull",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "gib_exor_arm",
+      "Output": "distillation_alien",
+      "Count": 4
+    },
+    {
+      "Input": "gib_exor_arm_red",
+      "Output": "distillation_alien",
+      "Count": 8
+    },
+    {
+      "Input": "gib_exor_skull",
+      "Output": "distillation_alien",
+      "Count": 3
+    },
+    {
+      "Input": "gib_exor_skull_volatile",
+      "Output": "distillation_unstable",
+      "Count": 3
+    },
+    {
+      "Input": "gib_exorheart",
+      "Output": "distillation_alien",
+      "Count": 5
+    },
+    {
+      "Input": "gib_gkheavy_skull",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "gib_human_arm_mil",
+      "Output": "distillation_vigorous",
+      "Count": 2
+    },
+    {
+      "Input": "gib_mage_skull",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "gib_meat_larva",
+      "Output": "distillation_vigorous",
+      "Count": 2
+    },
+    {
+      "Input": "gib_meat_skink",
+      "Output": "distillation_unstable",
+      "Count": 2
+    },
+    {
+      "Input": "gib_peccary_chop",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "gib_peccary_furry_skull",
+      "Output": "distillation_endothermic",
+      "Count": 2
+    },
+    {
+      "Input": "gib_peccary_leg",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "gib_peccary_skull",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "gib_peccary_skull_red",
+      "Output": "distillation_alien",
+      "Count": 8
+    },
+    {
+      "Input": "gib_pecmushroom_skull",
+      "Output": "distillation_mycological",
+      "Count": 8
+    },
+    {
+      "Input": "gib_pest_body",
+      "Output": "distillation_alien",
+      "Count": 1
+    },
+    {
+      "Input": "gib_pest_tail",
+      "Output": "distillation_alien",
+      "Count": 1
+    },
+    {
+      "Input": "gib_skull_behemoth",
+      "Output": "distillation_expanding",
+      "Count": 24
+    },
+    {
+      "Input": "gib_sniper_skull",
+      "Output": "distillation_brainy",
+      "Count": 4
+    },
+    {
+      "Input": "gib_sow_skull",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "gib_symph_skull",
+      "Output": "distillation_foggy",
+      "Count": 4
+    },
+    {
+      "Input": "gib_tarasque_skull",
+      "Output": "distillation_expanding",
+      "Count": 8
+    },
+    {
+      "Input": "gib_witch_skull",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "gib_yeti_skull",
+      "Output": "distillation_brainy",
+      "Count": 12
+    },
+    {
+      "Input": "gigaglue",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "gloweye",
+      "Output": "distillation_expanding",
+      "Count": 2
+    },
+    {
+      "Input": "goo_exor",
+      "Output": "distillation_alien",
+      "Count": 32
+    },
+    {
+      "Input": "greenliver",
+      "Output": "distillation_alien",
+      "Count": 2
+    },
+    {
+      "Input": "grimoire",
+      "Output": "distillation_occult",
+      "Count": 5
+    },
+    {
+      "Input": "growth",
+      "Output": "distillation_charged",
+      "Count": 4
+    },
+    {
+      "Input": "gunpowder",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "hexwood",
+      "Output": "distillation_unnerving",
+      "Count": 2
+    },
+    {
+      "Input": "honey",
+      "Output": "distillation_vigorous",
+      "Count": 3
+    },
+    {
+      "Input": "icecream",
+      "Output": "distillation_fizzy",
+      "Count": 3
+    },
+    {
+      "Input": "icecream_melted",
+      "Output": "distillation_fizzy",
+      "Count": 3
+    },
+    {
+      "Input": "ichor",
+      "Output": "distillation_expanding",
+      "Count": 12
+    },
+    {
+      "Input": "keresphere",
+      "Output": "distillation_unnerving",
+      "Count": 4
+    },
+    {
+      "Input": "keyboard",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "liquidcrystal",
+      "Output": "distillation_charged",
+      "Count": 3
+    },
+    {
+      "Input": "lodestone_fragment",
+      "Output": "distillation_fleshy",
+      "Count": 6
+    },
+    {
+      "Input": "mage_eye",
+      "Output": "distillation_occult",
+      "Count": 3
+    },
+    {
+      "Input": "oil_black",
+      "Output": "distillation_unnerving",
+      "Count": 2
+    },
+    {
+      "Input": "organ",
+      "Output": "distillation_foggy",
+      "Count": 12
+    },
+    {
+      "Input": "organ_partial",
+      "Output": "distillation_foggy",
+      "Count": 3
+    },
+    {
+      "Input": "phone",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "powderedcrystal",
+      "Output": "distillation_void",
+      "Count": 4
+    },
+    {
+      "Input": "pumpkin",
+      "Output": "distillation_vigorous",
+      "Count": 12
+    },
+    {
+      "Input": "refinedcarbon",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_arcane",
+      "Output": "distillation_occult",
+      "Count": 2
+    },
+    {
+      "Input": "scrap_bio",
+      "Output": "distillation_vigorous",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_composer",
+      "Output": "distillation_foggy",
+      "Count": 2
+    },
+    {
+      "Input": "scrap_glass",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_gunk",
+      "Output": "distillation_charged",
+      "Count": 4
+    },
+    {
+      "Input": "scrap_leather",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_plastic",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_silver",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "scrap_tech",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "slushie",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_a",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_anom",
+      "Output": "distillation_charged",
+      "Count": 3
+    },
+    {
+      "Input": "soda_b",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_bad",
+      "Output": "distillation_noxious",
+      "Count": 1
+    },
+    {
+      "Input": "soda_c",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_d",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_e",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_energy",
+      "Output": "distillation_fizzy",
+      "Count": 8
+    },
+    {
+      "Input": "soda_votv_04",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_votv_05",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "soda_votv_07",
+      "Output": "distillation_fizzy",
+      "Count": 2
+    },
+    {
+      "Input": "sugarcrystal",
+      "Output": "distillation_fizzy",
+      "Count": 8
+    },
+    {
+      "Input": "tentacle98_raw",
+      "Output": "distillation_fleshy",
+      "Count": 1
+    },
+    {
+      "Input": "transcendium",
+      "Output": "distillation_charged",
+      "Count": 8
+    },
+    {
+      "Input": "votv_harddrive",
+      "Output": "distillation_fleshy",
+      "Count": 1
+    },
+    {
+      "Input": "wax",
+      "Output": "distillation_vigorous",
+      "Count": 1
+    }
+  ]
 }

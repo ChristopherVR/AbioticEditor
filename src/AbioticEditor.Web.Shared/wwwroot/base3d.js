@@ -123,6 +123,44 @@ export function isWebGlAvailable() {
 const PARK_MS = 15 * 60 * 1000;
 const parked = new Map(); // key -> { api, timer }
 
+/** The nearest ancestor that scrolls (the editor's page body), or null for the window itself. */
+function scrollParent(el) {
+    for (let p = el.parentElement; p; p = p.parentElement) {
+        const overflow = getComputedStyle(p).overflowY;
+        if ((overflow === "auto" || overflow === "scroll") && p.clientHeight > 0) return p;
+    }
+    return null;
+}
+
+/**
+ * Sizes the 3D view so it, and the Map / 3D bar above it, fill the editor's scrolling area exactly,
+ * and scrolls them to the top of it: everything the view needs is in sight without scrolling the
+ * page. Kept up to date as the window is resized. Returns a handle whose stop() ends that.
+ */
+export function fitToWindow(root) {
+    const scroller = scrollParent(root);
+    const bar = () => document.querySelector('[data-b3d="bar"]');
+    const apply = () => {
+        const canvas = root.querySelector('[data-b3d="canvas"]');
+        const stage = root.querySelector(".b3d-stage");
+        if (!canvas || !stage) return;
+        const available = scroller ? scroller.clientHeight : window.innerHeight;
+        const top = (bar() ?? canvas).getBoundingClientRect().top;
+        const above = canvas.getBoundingClientRect().top - top;
+        const below = stage.getBoundingClientRect().bottom - canvas.getBoundingClientRect().bottom;
+        root.style.setProperty("--b3d-fit", `${Math.max(360, Math.floor(available - above - below - 14))}px`);
+    };
+    apply();
+    (bar() ?? root).scrollIntoView({ block: "start" });
+    const observer = new ResizeObserver(apply);
+    observer.observe(scroller ?? document.documentElement);
+    window.addEventListener("resize", apply);
+    return {
+        refit() { apply(); (bar() ?? root).scrollIntoView({ block: "start", behavior: "smooth" }); },
+        stop() { observer.disconnect(); window.removeEventListener("resize", apply); },
+    };
+}
+
 export function createView(host, dotnet, parkKey) {
     const waiting = parkKey ? parked.get(parkKey) : null;
     if (waiting) {
@@ -137,7 +175,23 @@ export function createView(host, dotnet, parkKey) {
 
 function buildView(host, dotnet) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Full sharpness when the view is still; while it moves (orbit, pan, walk) it is drawn at a lower
+    // resolution, which on a high-DPI screen is most of the cost of a frame. Sharp again 200 ms after
+    // the last movement.
+    const SHARP_RATIO = Math.min(window.devicePixelRatio || 1, 2);
+    const MOVING_RATIO = Math.min(SHARP_RATIO, 1) * 0.75;
+    let movingUntil = 0, sharpTimer = 0;
+    renderer.setPixelRatio(SHARP_RATIO);
+    function markMoving() {
+        movingUntil = performance.now() + 200;
+        if (renderer.getPixelRatio() !== MOVING_RATIO) { renderer.setPixelRatio(MOVING_RATIO); resize(); }
+        clearTimeout(sharpTimer);
+        sharpTimer = setTimeout(() => {
+            if (disposed || performance.now() < movingUntil) return;
+            renderer.setPixelRatio(SHARP_RATIO);
+            resize();
+        }, 220);
+    }
     renderer.localClippingEnabled = true; // the level's ceiling cut
     // Reading every shader's compile log (three's error check) makes the browser finish each compile on
     // the spot, which defeats parallel compiling (compileAsync). The view's shaders are fixed and tested.
@@ -160,7 +214,8 @@ function buildView(host, dotnet) {
     scene.add(sun);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.14;
     controls.screenSpacePanning = true;
     // The wheel zooms towards what is under the pointer, not only the orbit centre, so a detail
     // anywhere on screen can be reached; the near limit lets the camera get right up to a small item.
@@ -478,13 +533,63 @@ function buildView(host, dotnet) {
         camera.updateProjectionMatrix();
     }
 
-    function frame() {
+    function frame(now) {
         if (disposed) return;
         dirty = false;
+        // Orbit easing keeps the camera gliding for a moment after a drag; fly keys move it.
+        const flying = !walkOn && flyKeys.size > 0 && flyStep(now);
+        const easing = !walkOn && controls.enableDamping && controls.update();
+        if (flying || easing) { markMoving(); requestRender(); }
+        else flyLast = 0;
         updateClipping();
         renderer.render(scene, camera);
         renderLabels();
     }
+
+    // ---- keyboard flying (orbit view) ------------------------------------------------------------
+    // W A S D (or the arrows) slide the view across the area, Q / E lower and raise it, Shift is
+    // faster: getting around without switching to Walk. Speed follows how far out the camera is.
+    const flyKeys = new Set();
+    let flyLast = 0;
+    function flyStep(now) {
+        const dt = flyLast ? Math.min(0.1, (now - flyLast) / 1000) : 0;
+        flyLast = now;
+        if (!dt) return true;
+        const forward = controls.target.clone().sub(camera.position).setY(0);
+        if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+        forward.normalize();
+        const right = new THREE.Vector3(-forward.z, 0, forward.x);
+        const move = new THREE.Vector3();
+        if (flyKeys.has("w") || flyKeys.has("arrowup")) move.add(forward);
+        if (flyKeys.has("s") || flyKeys.has("arrowdown")) move.sub(forward);
+        if (flyKeys.has("d") || flyKeys.has("arrowright")) move.add(right);
+        if (flyKeys.has("a") || flyKeys.has("arrowleft")) move.sub(right);
+        if (flyKeys.has("e")) move.y += 1;
+        if (flyKeys.has("q")) move.y -= 1;
+        if (move.lengthSq() === 0) return true;
+        const distance = camera.position.distanceTo(controls.target);
+        const speed = Math.min(60, Math.max(2, distance * 0.5)) * (flyKeys.has("shift") ? 3 : 1) * dt;
+        move.normalize().multiplyScalar(speed);
+        camera.position.add(move);
+        controls.target.add(move);
+        return true;
+    }
+    function onFlyKeyDown(e) {
+        if (walkOn || isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (!hostHasFocus()) return;
+        const k = e.key.toLowerCase();
+        if (!["w", "a", "s", "d", "q", "e", "shift", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) return;
+        e.preventDefault();
+        flyKeys.add(k);
+        requestRender();
+    }
+    function onFlyKeyUp(e) { flyKeys.delete(e.key.toLowerCase()); }
+    // Keys only steer the view after it was clicked (or hovered), so typing elsewhere never moves it.
+    let pointerInside = false;
+    function hostHasFocus() { return pointerInside || document.activeElement === renderer.domElement; }
+    window.addEventListener("keydown", onFlyKeyDown);
+    window.addEventListener("keyup", onFlyKeyUp);
+    window.addEventListener("blur", () => flyKeys.clear());
 
     // ---- scene building ----------------------------------------------------------------------
     function disposeMeshes() {
@@ -1013,6 +1118,50 @@ function buildView(host, dotnet) {
         report("models", wanted.length, wanted.length);
     }
 
+    /** Renders a group on its own into a transparent square picture, framed from a three-quarter front view. */
+    function shootSquare(group, box, size, front) {
+        const stage = new THREE.Scene();
+        stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.7));
+        const key = new THREE.DirectionalLight(0xffffff, 1.6);
+        key.position.set(0.6, 1, 0.8);
+        stage.add(key);
+        stage.add(group);
+        const centre = box.getCenter(new THREE.Vector3());
+        const extent = box.getSize(new THREE.Vector3());
+        const fitRadius = Math.max(extent.length() / 2, 0.2);
+        const shot = new THREE.PerspectiveCamera(30, 1, 0.01, 1000);
+        const dir = viewDirection(front, 0.45);
+        shot.position.copy(centre).addScaledVector(dir, fitRadius / Math.sin((shot.fov * Math.PI) / 360) * 1.05);
+        shot.lookAt(centre);
+        shot.updateProjectionMatrix();
+
+        const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+        target.texture.colorSpace = THREE.SRGBColorSpace;
+        const oldTarget = renderer.getRenderTarget();
+        const oldClear = renderer.getClearColor(new THREE.Color());
+        const oldAlpha = renderer.getClearAlpha();
+        renderer.setRenderTarget(target);
+        renderer.setClearColor(0x000000, 0);
+        renderer.clear();
+        renderer.render(stage, shot);
+        const pixels = new Uint8Array(size * size * 4);
+        renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
+        renderer.setRenderTarget(oldTarget);
+        renderer.setClearColor(oldClear, oldAlpha);
+        target.dispose();
+        for (const mesh of group.children) mesh.dispose?.();
+
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = size;
+        const g = canvas.getContext("2d");
+        const image = g.createImageData(size, size);
+        for (let y = 0; y < size; y++) image.data.set(pixels.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+        g.putImageData(image, 0, 0);
+        requestRender();
+        const pieces = group.children.length;
+        return { image: canvas.toDataURL("image/webp", 0.9), pieces };
+    }
+
     // ---- level geometry -------------------------------------------------------------------------
     function clearLevel() {
         for (const child of [...levelGroup.children]) {
@@ -1024,12 +1173,30 @@ function buildView(host, dotnet) {
         ambient.intensity = 1.6;
     }
 
+    let levelFloorY = null; // the level's own floor under the view centre (null until the level is in)
+
+    /** The highest level surface straight below a point (ignoring the cut), or null. */
+    function levelFloorUnder(at) {
+        raycaster.set(new THREE.Vector3(at.x, at.y + 0.3, at.z), new THREE.Vector3(0, -1, 0));
+        raycaster.far = 30;
+        const hits = raycaster.intersectObjects(nearSolids(at, 3), false);
+        raycaster.far = Infinity;
+        return hits.length ? hits[0].point.y : null;
+    }
+
     /** Height (viewer Y) above which the level is cut away, so ceilings and upper floors do not hide the base. */
     function updateLevelCut() {
         if (levelOptions.cutAbove === null || levelOptions.cutAbove === undefined || levelOptions.cutAbove <= 0) {
             levelClip.constant = 1e6;
         } else {
-            levelClip.constant = baseFloor(levelCentre ?? controls.target) + levelOptions.cutAbove;
+            const c = levelCentre ?? controls.target;
+            // The floor the level itself has under the view centre, once it has loaded; until then
+            // (and where it has none) the nearby objects' heights. Objects alone could put the cut
+            // a storey too high: a shelf or wall lamp near the centre counted as the floor, and the
+            // floor above stayed in, hiding the room (a fridge shown from "Show in 3D").
+            const objects = baseFloor(c);
+            const floor = levelFloorY === null ? objects : (objects < levelFloorY && levelFloorY - objects < 1.5 ? objects : levelFloorY);
+            levelClip.constant = floor + levelOptions.cutAbove;
         }
         // A lamp's glow above the cut would float where its (cut away) fixture was; its light still falls below.
         for (const child of lampGroup.children) if (child.isSprite) child.visible = child.position.y <= levelClip.constant;
@@ -1067,6 +1234,7 @@ function buildView(host, dotnet) {
         const r = Math.max(5, levelOptions.radius || 40);
         const c = controls.target.clone();
         levelCentre = c;
+        levelFloorY = null;
         let slice;
         report("level", 0, 0, "query");
         try {
@@ -1133,6 +1301,7 @@ function buildView(host, dotnet) {
         if (!cleared) { clearLevel(); cleared = true; if (grid) grid.visible = true; }
         setLamps(slice.lights);
         if (grid) grid.visible = levelGroup.children.length === 0;
+        levelFloorY = levelGroup.children.length ? levelFloorUnder(levelCentre) : null;
         updateLevelCut();
         report("level", slice.totalInBox ?? levelInstances, slice.pendingMaps ?? 0, slice.note ?? null);
         // Level files still being read in the background: ask again shortly.
@@ -1228,6 +1397,19 @@ function buildView(host, dotnet) {
             used++;
         }
         for (let i = used; i < labelPool.length; i++) labelPool[i].style.display = "none";
+    }
+
+    /**
+     * Where a picture is taken from: in front of the thing (its facing, flattened), a little to its
+     * side and raised by `lift`, so a door, button or lift is seen from the side it is used from.
+     * Without a facing, a fixed three-quarter view.
+     */
+    function viewDirection(front, lift) {
+        const f = front ? new THREE.Vector3(front[0], 0, front[2]) : new THREE.Vector3();
+        if (f.lengthSq() < 1e-6) return new THREE.Vector3(0.55, lift, 0.8).normalize();
+        f.normalize();
+        const side = new THREE.Vector3(-f.z, 0, f.x);
+        return f.addScaledVector(side, 0.4).setY(lift).normalize();
     }
 
     // ---- locating -----------------------------------------------------------------------------
@@ -1528,7 +1710,9 @@ function buildView(host, dotnet) {
         if (on === walkOn) return;
         walkOn = on;
         walkKeys.clear();
+        walkEyeY = null;
         controls.enabled = !on;
+        if (!on && document.pointerLockElement === renderer.domElement) document.exitPointerLock();
         if (on) {
             const f = controls.target.clone().sub(camera.position).normalize();
             walkYaw = Math.atan2(-f.x, -f.z);
@@ -1550,12 +1734,15 @@ function buildView(host, dotnet) {
         requestRender();
     }
 
+    let walkRamp = 0, walkEyeY = null;
     function walkTick(now) {
-        if (!walkOn || disposed || walkKeys.size === 0) { walkLast = 0; return; }
+        if (!walkOn || disposed || walkKeys.size === 0) { walkLast = 0; walkRamp = 0; return; }
         const dt = walkLast ? Math.min(0.1, (now - walkLast) / 1000) : 0;
         walkLast = now;
         const fast = walkKeys.has("shift") ? 3 : 1;
-        const speed = 4 * fast * dt;
+        // Speeds up over a quarter of a second instead of starting at full speed.
+        walkRamp = Math.min(1, walkRamp + dt * 4);
+        const speed = 4 * fast * dt * (0.35 + 0.65 * walkRamp);
         const flat = new THREE.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
         const right = new THREE.Vector3(Math.cos(walkYaw), 0, -Math.sin(walkYaw));
         const move = new THREE.Vector3();
@@ -1576,8 +1763,11 @@ function buildView(host, dotnet) {
             walkFloorCheck = now;
             // Steps and ramps are climbed (up to knee height); a drop is followed down.
             const ground = floorBelow(new THREE.Vector3(camera.position.x, camera.position.y - EYE_M + 0.6, camera.position.z));
-            if (ground !== null) camera.position.y = ground + EYE_M;
+            if (ground !== null) walkEyeY = ground + EYE_M;
         }
+        // Steps and drops are followed smoothly rather than in jumps.
+        if (walkFloor && walkEyeY !== null) camera.position.y += (walkEyeY - camera.position.y) * Math.min(1, dt * 12);
+        markMoving();
         applyWalkCamera();
         maybeFollowLevel();
         requestAnimationFrame(walkTick);
@@ -1614,14 +1804,27 @@ function buildView(host, dotnet) {
     window.addEventListener("keydown", onWalkKeyDown);
     window.addEventListener("keyup", onWalkKeyUp);
     window.addEventListener("blur", () => walkKeys.clear());
+    // Walking looks around like a game: click the view to capture the mouse (Escape lets it go), or
+    // drag when it is not captured.
+    const locked = () => document.pointerLockElement === renderer.domElement;
     renderer.domElement.addEventListener("pointermove", e => {
-        if (!walkOn || !walkLookFrom) return;
-        walkYaw -= (e.clientX - walkLookFrom[0]) * 0.005;
-        walkPitch = Math.max(-1.4, Math.min(1.4, walkPitch - (e.clientY - walkLookFrom[1]) * 0.005));
-        walkLookFrom = [e.clientX, e.clientY];
+        if (!walkOn) return;
+        let dx, dy;
+        if (locked()) { dx = e.movementX; dy = e.movementY; }
+        else if (walkLookFrom) { dx = e.clientX - walkLookFrom[0]; dy = e.clientY - walkLookFrom[1]; walkLookFrom = [e.clientX, e.clientY]; }
+        else return;
+        walkYaw -= dx * 0.0032;
+        walkPitch = Math.max(-1.45, Math.min(1.45, walkPitch - dy * 0.0032));
+        markMoving();
         applyWalkCamera();
     });
-    renderer.domElement.addEventListener("pointerdown", e => { if (walkOn) walkLookFrom = [e.clientX, e.clientY]; });
+    renderer.domElement.addEventListener("pointerdown", e => {
+        if (!walkOn) return;
+        if (!locked() && renderer.domElement.requestPointerLock) {
+            try { renderer.domElement.requestPointerLock(); } catch { /* not allowed here: drag instead */ }
+        }
+        walkLookFrom = [e.clientX, e.clientY];
+    });
     window.addEventListener("pointerup", () => { walkLookFrom = null; });
 
     /** The name of the level piece under a screen point (visible side of the ceiling cut), or null. */
@@ -1876,7 +2079,28 @@ function buildView(host, dotnet) {
     }
     const observer = new ResizeObserver(resize);
     observer.observe(host);
-    controls.addEventListener("change", requestRender);
+    controls.addEventListener("change", () => { markMoving(); requestRender(); followLevelSoon(); });
+
+    // The level follows the view: once it settles (after a pan, a fly or a jump to something picked
+    // in a list) far enough from where the level was loaded, the level around the new spot loads.
+    let followTimer = 0;
+    function followLevelSoon() {
+        clearTimeout(followTimer);
+        followTimer = setTimeout(followLevelNow, 700);
+    }
+    /** Loads the level around the view's centre when it has moved far from the last load. */
+    function followLevelNow() {
+        clearTimeout(followTimer);
+        if (disposed || walkOn || !levelOptions.enabled || !levelCentre) return false;
+        const r = Math.max(5, levelOptions.radius || 40);
+        const t = controls.target;
+        if (Math.hypot(t.x - levelCentre.x, t.z - levelCentre.z) <= r * 0.5 && Math.abs(t.y - levelCentre.y) <= r * 0.25) return false;
+        loadLevel();
+        return true;
+    }
+    renderer.domElement.tabIndex = 0;
+    renderer.domElement.addEventListener("pointerenter", () => { pointerInside = true; });
+    renderer.domElement.addEventListener("pointerleave", () => { pointerInside = false; });
     resize();
     requestRender();
 
@@ -2115,7 +2339,7 @@ function buildView(host, dotnet) {
          * Returns null when the level has no pieces for the actor.
          */
         async thumbnail(options) {
-            const { region, actor, center, size = 256, radius = 25 } = options ?? {};
+            const { region, actor, center, front, size = 256, radius = 25 } = options ?? {};
             const slice = await postJson(`${MODEL_BASE}/level`, {
                 region,
                 min: [center[0] - radius, center[1] - radius, center[2] - radius],
@@ -2148,51 +2372,137 @@ function buildView(host, dotnet) {
             }
             if (!group.children.length || box.isEmpty()) return null;
             await texturesReady(materials);
+            return shootSquare(group, box, size, front);
+        },
+        /**
+         * Draws one kind of placed object (a locker, a fridge, a crate) from its own model on its own
+         * and returns its picture, like thumbnail() does for level actors. Used by tools/thumbnails for
+         * the containers list. Returns null when the game has no model for the class.
+         */
+        async classThumbnail(options) {
+            const { cls, size = 256 } = options ?? {};
+            const answer = await postJson(`${MODEL_BASE}/classes`, [cls]) ?? {};
+            const description = answer[cls];
+            if (!description?.parts?.length) return null;
+            const group = new THREE.Group();
+            const box = new THREE.Box3();
+            const materials = [];
+            for (const part of description.parts) {
+                const geometry = await loadGeometry(part.mesh);
+                if (!geometry) continue;
+                if (!geometry.boundingBox) geometry.computeBoundingBox();
+                const mats = part.materials.length ? part.materials.map(m => materialFor(m, false)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, false)];
+                materials.push(...mats);
+                const mesh = new THREE.Mesh(geometry, mats);
+                mesh.matrixAutoUpdate = false;
+                mesh.matrix.fromArray(part.matrix);
+                box.union(geometry.boundingBox.clone().applyMatrix4(mesh.matrix));
+                group.add(mesh);
+            }
+            if (!group.children.length || box.isEmpty()) return null;
+            await texturesReady(materials);
+            // A placed object's front faces along its own +X (the save's forward axis).
+            return shootSquare(group, box, size, [1, 0, 0]);
+        },
+        /**
+         * A picture of where one level actor (a door, button, elevator...) is: the level around it seen
+         * from above at an angle, with the ceiling cut away a little above it, and the actor outlined
+         * and pinned in orange. Used by tools/thumbnails for the places shown in the editor's lists.
+         * Returns null when the level has nothing there.
+         */
+        async locationShot(options) {
+            const { region, actor, center, front, width = 384, height = 240, radius = 16, cutAbove = 2.6, distance = 12 } = options ?? {};
+            const query = r => ({ region, min: [center[0] - r, center[1] - r, center[2] - r], max: [center[0] + r, center[1] + r, center[2] + r], maxInstances: 6000 });
+            const [around, own] = await Promise.all([
+                postJson(`${MODEL_BASE}/level`, query(radius)),
+                postJson(`${MODEL_BASE}/level`, { ...query(radius), onlyActors: [actor] }),
+            ]);
+            const build = async (slice, group, box, materials) => {
+                const instance = new THREE.Matrix4();
+                for (const batch of slice?.batches ?? []) {
+                    const geometry = await loadGeometry(batch.mesh);
+                    if (!geometry) continue;
+                    if (!geometry.boundingBox) geometry.computeBoundingBox();
+                    const mats = batch.materials.length ? batch.materials.map(m => materialFor(m, true)) : [materialFor({ color: [0.6, 0.6, 0.6], opacity: 1 }, true)];
+                    materials.push(...mats);
+                    const count = batch.matrices.length / 16;
+                    const mesh = new THREE.InstancedMesh(geometry, mats, count);
+                    for (let i = 0; i < count; i++) {
+                        instance.fromArray(batch.matrices, i * 16);
+                        mesh.setMatrixAt(i, instance);
+                        if (box) box.union(geometry.boundingBox.clone().applyMatrix4(instance));
+                    }
+                    mesh.instanceMatrix.needsUpdate = true;
+                    mesh.computeBoundingSphere();
+                    group.add(mesh);
+                }
+            };
+            const group = new THREE.Group(), materials = [], ownBox = new THREE.Box3();
+            await build(around, group, null, materials);
+            await build(own, new THREE.Group(), ownBox, []);
+            if (!group.children.length) return null;
+            await texturesReady(materials);
 
+            const focus = ownBox.isEmpty() ? new THREE.Vector3(...center) : ownBox.getCenter(new THREE.Vector3());
+            const floorY = ownBox.isEmpty() ? center[1] : ownBox.min.y;
             const stage = new THREE.Scene();
-            stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.7));
-            const key = new THREE.DirectionalLight(0xffffff, 1.6);
-            key.position.set(0.6, 1, 0.8);
-            stage.add(key);
+            stage.background = new THREE.Color(0x101418);
+            stage.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.6));
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.3);
+            sunLight.position.set(0.4, 1, 0.6);
+            stage.add(sunLight);
             stage.add(group);
-            const centre = box.getCenter(new THREE.Vector3());
-            const extent = box.getSize(new THREE.Vector3());
-            const fitRadius = Math.max(extent.length() / 2, 0.2);
-            const shot = new THREE.PerspectiveCamera(30, 1, 0.01, 1000);
-            const dir = new THREE.Vector3(1, 0.65, 1.2).normalize();
-            shot.position.copy(centre).addScaledVector(dir, fitRadius / Math.sin((shot.fov * Math.PI) / 360) * 1.05);
-            shot.lookAt(centre);
+            if (!ownBox.isEmpty()) {
+                const outline = new THREE.LineSegments(edgesGeometry, new THREE.LineBasicMaterial({ color: 0xff9a2e, depthTest: false, transparent: true }));
+                outline.renderOrder = 20;
+                outline.matrixAutoUpdate = false;
+                const size = ownBox.getSize(new THREE.Vector3()).max(new THREE.Vector3(0.2, 0.2, 0.2));
+                outline.matrix.compose(focus, new THREE.Quaternion(), size.multiplyScalar(1.08));
+                stage.add(outline);
+            }
+            const pin = pinGroup.clone();
+            pin.visible = true;
+            pin.position.set(focus.x, ownBox.isEmpty() ? focus.y : ownBox.max.y + 0.1, focus.z);
+            stage.add(pin);
+
+            const shot = new THREE.PerspectiveCamera(45, width / height, 0.05, 2000);
+            const dir = viewDirection(front, 1.1);
+            // Aimed a little above the thing so the pin over it stays in the picture.
+            const aim = focus.clone().add(new THREE.Vector3(0, 1, 0));
+            shot.position.copy(aim).addScaledVector(dir, distance);
+            shot.lookAt(aim);
             shot.updateProjectionMatrix();
 
-            const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+            const savedCut = levelClip.constant;
+            levelClip.constant = floorY + cutAbove;
+            const target = new THREE.WebGLRenderTarget(width, height, { samples: 4 });
             target.texture.colorSpace = THREE.SRGBColorSpace;
             const oldTarget = renderer.getRenderTarget();
-            const oldClear = renderer.getClearColor(new THREE.Color());
-            const oldAlpha = renderer.getClearAlpha();
             renderer.setRenderTarget(target);
-            renderer.setClearColor(0x000000, 0);
-            renderer.clear();
             renderer.render(stage, shot);
-            const pixels = new Uint8Array(size * size * 4);
-            renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
+            const pixels = new Uint8Array(width * height * 4);
+            renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
             renderer.setRenderTarget(oldTarget);
-            renderer.setClearColor(oldClear, oldAlpha);
+            levelClip.constant = savedCut;
             target.dispose();
             for (const mesh of group.children) mesh.dispose();
 
             const canvas = document.createElement("canvas");
-            canvas.width = canvas.height = size;
+            canvas.width = width;
+            canvas.height = height;
             const g = canvas.getContext("2d");
-            const image = g.createImageData(size, size);
-            for (let y = 0; y < size; y++) image.data.set(pixels.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+            const image = g.createImageData(width, height);
+            for (let y = 0; y < height; y++) image.data.set(pixels.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4);
             g.putImageData(image, 0, 0);
             requestRender();
-            return { image: canvas.toDataURL("image/webp", 0.9), pieces: group.children.length };
+            return { image: canvas.toDataURL("image/webp", 0.5), pieces: group.children.length, found: !ownBox.isEmpty() };
         },
         /** Removes the pin left by focusPoint. */
         clearPin() { setPin(null); },
+        /** Loads the level around where the view now looks, at once (Show in 3D waits for it). */
+        followLevel() { return followLevelNow(); },
         /** Scrolls the page so the whole view is in sight. */
-        reveal() { host.scrollIntoView({ block: "start", behavior: "smooth" }); },
+        reveal() { (document.querySelector('[data-b3d="bar"]') ?? host).scrollIntoView({ block: "start", behavior: "smooth" }); },
         frameSelection() {
             const list = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined);
             if (list.length) frameIndices(list);
@@ -2304,6 +2614,9 @@ function buildView(host, dotnet) {
             disposed = true;
             window.removeEventListener("keydown", onWalkKeyDown);
             window.removeEventListener("keyup", onWalkKeyUp);
+            window.removeEventListener("keydown", onFlyKeyDown);
+            window.removeEventListener("keyup", onFlyKeyUp);
+            clearTimeout(sharpTimer);
             clearLamps();
             glowTexture.dispose();
             for (const layer of Object.values(markerLayers)) layer.dispose();

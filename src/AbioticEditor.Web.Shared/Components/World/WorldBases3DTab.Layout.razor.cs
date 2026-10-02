@@ -8,21 +8,22 @@ namespace AbioticEditor.Web.Components.World;
 /// </summary>
 public partial class WorldBases3DTab
 {
-    private static readonly string[] SideTabs = ["inspect", "objects", "filters", "display", "edit"];
-    private string _sideTab = "inspect";
+    private static readonly string[] SideTabs = ["objects", "filters", "display"];
+    private string _sideTab = "objects";
     private ElementReference _viewport;
 
     private string SideTabLabel(string tab) => tab switch
     {
-        "inspect" => L.Resource("World3D_TabInspect"),
         "objects" => L.Resource("World3D_TabObjectsFormat", _visible.Length),
         "filters" => L.Resource("World3D_TabFilters"),
-        "display" => L.Resource("World3D_TabDisplay"),
-        _ => L.Resource("World3D_TabEdit"),
+        _ => L.Resource("World3D_TabDisplay"),
     };
 
-    /// <summary>Shows the inspector (after something in the view was picked).</summary>
-    private void ShowInspector() => _sideTab = "inspect";
+    /// <summary>
+    /// After something was picked. The inspector is always shown above the tabs now, so nothing
+    /// switches; kept as the one place to hook "the inspector has news".
+    /// </summary>
+    private void ShowInspector() { }
 
     /// <summary>One line of the loading readout: what is loading, and how far along (null when unknown).</summary>
     private sealed record LoadingLine(string Text, double? Fraction);

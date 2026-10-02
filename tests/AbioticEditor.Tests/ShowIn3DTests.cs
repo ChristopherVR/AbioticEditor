@@ -70,10 +70,14 @@ public sealed class ShowIn3DTests
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
         Assert.Contains("data-b3d=\"loading\"", tab, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"hud\"", tab, StringComparison.Ordinal);
-        foreach (var t in new[] { "inspect", "objects", "filters", "display" })
+        // The inspector is always shown above the tabs (picking never switches tabs); the lists are tabs.
+        Assert.Contains("data-b3d=\"inspect-pane\"", tab, StringComparison.Ordinal);
+        foreach (var t in new[] { "objects", "filters", "display" })
             Assert.Contains($"_sideTab == \"{t}\"", tab, StringComparison.Ordinal);
-        Assert.Contains("[\"inspect\", \"objects\", \"filters\", \"display\", \"edit\"]",
+        Assert.Contains("[\"objects\", \"filters\", \"display\"]",
             UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Layout.razor.cs"), StringComparison.Ordinal);
+        // A crate's contents are edited in the inspector, not by jumping to the Containers tab.
+        Assert.Contains("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\" />", tab, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -161,8 +165,26 @@ public sealed class ShowIn3DTests
         Assert.NotNull(WorldThumbnails.For("doors", "/Game/Maps/Facility.Facility:PersistentLevel.BlastDoor_C_11"));
         Assert.NotNull(WorldThumbnails.For("trams", "/Game/Maps/Facility.Facility:PersistentLevel.Tram_Default_C_1"));
 
+        // Where each particular door, button or tram is: one picture per level actor, keyed by map and actor.
+        Assert.Null(WorldThumbnails.PlaceOf("/Game/Maps/Nowhere.Nowhere:PersistentLevel.NoSuchDoor_C_1"));
+        var places = Path.Combine(root, "places");
+        if (Directory.Exists(places))
+        {
+            foreach (var mapDir in Directory.GetDirectories(places))
+            {
+                var map = Path.GetFileName(mapDir);
+                foreach (var file in Directory.GetFiles(mapDir, "*.webp").Take(20))
+                {
+                    var actor = Path.GetFileNameWithoutExtension(file);
+                    Assert.Equal($"_content/AbioticEditor.Web.Shared/thumbs/places/{map}/{actor}.webp",
+                        WorldThumbnails.PlaceOf($"/Game/Maps/{map}.{map}:PersistentLevel.{actor}"));
+                }
+            }
+        }
+
         var doors = UiSource.ReadAllText("Components", "World", "WorldDoorsTab.razor");
         Assert.Contains("WorldThumbnails.For(\"doors\", door.Id)", doors, StringComparison.Ordinal);
+        Assert.Contains("WorldThumbnails.PlaceOf(door.Id)", doors, StringComparison.Ordinal);
         Assert.Contains("WorldThumbnails.KindOfFeature(FeatureId)", UiSource.ReadAllText("Components", "World", "WorldFeaturesTab.razor"), StringComparison.Ordinal);
     }
 
@@ -177,6 +199,68 @@ public sealed class ShowIn3DTests
         Assert.Contains("GetWorldDoorPositionsForMapAsync(map)", surface, StringComparison.Ordinal);
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
         Assert.Contains("if (pending.length >= 24) flushing = flushing.then(flush);", js, StringComparison.Ordinal); // level shown in batches
+    }
+
+    [Fact]
+    public void Moving_around_is_smooth_and_the_view_controls_are_compact()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("controls.enableDamping = true;", js, StringComparison.Ordinal);
+        Assert.Contains("function markMoving()", js, StringComparison.Ordinal); // lower resolution only while moving
+        Assert.Contains("function flyStep(now)", js, StringComparison.Ordinal); // W A S D / Q E without walking
+        Assert.Contains("Math.min(60, Math.max(2, distance * 0.5))", js, StringComparison.Ordinal);
+        Assert.Contains("requestPointerLock", js, StringComparison.Ordinal); // walk looks with the mouse
+        Assert.Contains("walkRamp", js, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("data-b3d=\"show-popover\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"help-card\"", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Traders_containment_cells_and_side_panel_cards_reach_the_3d_view_in_their_own_save()
+    {
+        // A target can name the save it stands in; "Show in 3D" opens that save first.
+        var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
+        Assert.Contains("await Workspace.SelectAsync(save.Path);", surface, StringComparison.Ordinal);
+        Assert.Contains("$\"WorldSave_{name}.sav\"", surface, StringComparison.Ordinal); // a level's region save, or a broader one
+        Assert.Contains("(!world.IsMetadataSave && ThreeDViewAvailable)", surface, StringComparison.Ordinal); // every region has the 3D view
+        Assert.Contains("Locators.Current = ThreeDViewAvailable ? Locator3D : null;", surface, StringComparison.Ordinal);
+        Assert.Contains("Locators.Current", UiSource.ReadAllText("Components", "World", "ShowIn3DButton.razor"), StringComparison.Ordinal);
+
+        Assert.Contains("Items.FindNarrativeNpcs(TraderWords(trader, detailLore))", UiSource.ReadAllText("Components", "World", "WorldTradersTab.razor"), StringComparison.Ordinal);
+        Assert.Contains("SaveFileName = unit.RegionSaveFileName", UiSource.ReadAllText("Components", "World", "WorldContainmentTab.razor"), StringComparison.Ordinal);
+        Assert.Contains("WorldLocateKind.LevelActor, selected.Id", UiSource.ReadAllText("Components", "World", "WorldNpcsTab.razor"), StringComparison.Ordinal); // holograms
+
+        using var catalog = new ItemCatalogService();
+        var blacksmith = catalog.FindNarrativeNpcs(["Blacksmith"]);
+        if (blacksmith.Count > 0) Assert.All(blacksmith, b => Assert.Equal("Facility_MFWest", b.Level));
+        Assert.DoesNotContain(catalog.FindNarrativeNpcs(["Warren"]), w => w.Level.StartsWith("MainMenu", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Show_in_3d_waits_for_the_view_and_wall_sockets_can_be_wired_in_it()
+    {
+        var locate = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Locate.razor.cs");
+        Assert.Contains("private async Task LiftCurtainWhenLoadedAsync()", locate, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("data-b3d=\"curtain\"", tab, StringComparison.Ordinal);
+        Assert.Contains("<PowerRewirePanel Session=\"Session\" SocketKey=\"@thing.Key\"", tab, StringComparison.Ordinal);
+        Assert.Contains("\"power-sockets\"]", UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Markers.razor.cs"), StringComparison.Ordinal);
+        // The power check runs by itself: no button.
+        var repair = UiSource.ReadAllText("Components", "World", "PowerRepairPanel.razor");
+        Assert.DoesNotContain("data-power=\"check\"", repair, StringComparison.Ordinal);
+        Assert.Contains("protected override async Task OnParametersSetAsync()", repair, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_distillery_history_offers_only_what_a_distillery_accepts()
+    {
+        var registry = GameDataRegistry.LoadBundled();
+        Assert.NotNull(registry?.Distillations);
+        Assert.InRange(registry!.Distillations!.Count, 100, 400);
+        Assert.Contains(registry.Distillations, r => r.Input == "sugarcrystal" && r.Output == "distillation_fizzy" && r.Count == 8);
+        var section = UiSource.ReadAllText("Components", "Player", "PlayerDistilledSection.razor");
+        Assert.Contains("Catalog.Distillations", section, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -205,5 +289,56 @@ public sealed class ShowIn3DTests
         Assert.Contains(names, n => n!.EndsWith("(Security)", StringComparison.Ordinal));
         // A name nobody else shares is left as it is.
         Assert.DoesNotContain("(", names[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_3d_view_fits_the_window_and_draws_the_level_by_default()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("export function fitToWindow(root)", js, StringComparison.Ordinal);
+        Assert.Contains("followLevel() { return followLevelNow(); }", js, StringComparison.Ordinal); // the level follows the view
+        Assert.Contains("function levelFloorUnder(at)", js, StringComparison.Ordinal); // the cut sits above the real floor
+        Assert.Contains("async classThumbnail(options)", js, StringComparison.Ordinal);
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("private bool _levelOn = true;", tab, StringComparison.Ordinal);
+        Assert.Contains("\"fitToWindow\", _root", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"bar\"", UiSource.ReadAllText("Components", "World", "WorldBasesTab.razor"), StringComparison.Ordinal);
+        Assert.Contains("await _view.InvokeAsync<bool>(\"followLevel\")", UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Locate.razor.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_picked_piece_shows_its_contents_first_and_level_pieces_copy_as_your_own()
+    {
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("data-b3d=\"level-copy\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"details\"", tab, StringComparison.Ordinal); // file paths and numbers folded away
+        Assert.True(tab.IndexOf("<ContainerSlotsPanel Session=\"@Session\" ContainerId=\"@obj.Key\" />", StringComparison.Ordinal)
+                    < tab.IndexOf("data-b3d=\"details\"", StringComparison.Ordinal));
+        Assert.DoesNotContain("World3D_EditNeedsOptIn", tab, StringComparison.Ordinal); // remove and copy turn Edit mode on themselves
+        var place = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Place.razor.cs");
+        Assert.Contains("await Session.FindDonorAsync(obj.ClassPath)", place, StringComparison.Ordinal);
+        Assert.Contains("if (!_moveOptIn) await SetMoveOptInAsync(true);", place, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Containers_built_into_the_level_have_pictures_and_money_is_green()
+    {
+        Assert.NotNull(WorldThumbnails.For("containers", "Container_Locker_C"));
+        Assert.NotNull(WorldThumbnails.For("containers", "Deployed_Refrigerator_C"));
+        Assert.Null(WorldThumbnails.For("containers", "Not_A_Real_Container_C"));
+        Assert.Contains("WorldThumbnails.For(\"containers\", container.ClassName)", UiSource.ReadAllText("Components", "World", "WorldContainersTab.razor"), StringComparison.Ordinal);
+        Assert.Contains("(\"money\",         MoneyGreen)", File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Core", "Infrastructure", "GameAssets", "IconColorizer.cs")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Game_file_reads_for_the_3d_view_do_not_queue_behind_the_background_work()
+    {
+        var root = UiSource.RepositoryRoot;
+        var host = File.ReadAllText(Path.Combine(root, "src", "AbioticEditor.Web.Shared", "Services", "SceneModelHostService.cs"));
+        Assert.Contains("private void YieldToView()", host, StringComparison.Ordinal);
+        Assert.Contains("private readonly SemaphoreSlim _actorReads", File.ReadAllText(Path.Combine(root, "src", "AbioticEditor.Web.Shared", "Services", "GameArtService.cs")), StringComparison.Ordinal);
+        Assert.Contains("TryGetKnownActorPosition(actorObjectPath, out var known)", File.ReadAllText(Path.Combine(root, "src", "AbioticEditor.Core", "Infrastructure", "GameAssets", "GameAssetProvider.cs")), StringComparison.Ordinal);
+        Assert.Contains("GameMaps.WorldOf(package)", File.ReadAllText(Path.Combine(root, "plugins", "GameModels3D", "LevelIndex.cs")), StringComparison.Ordinal);
+        Assert.Contains("LoadWorld(r) ?? SaveWorld(r, BuildWorld(r))", File.ReadAllText(Path.Combine(root, "plugins", "GameModels3D", "PakSceneModelProvider.cs")), StringComparison.Ordinal);
     }
 }

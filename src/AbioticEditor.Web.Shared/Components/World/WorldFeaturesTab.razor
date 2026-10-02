@@ -84,7 +84,20 @@ else
                 {
                     <h3>@selected.Label</h3>
                     @* What this kind of thing looks like, drawn from the game's own models (tools/thumbnails). *@
-                    @if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
+                    @* An NPC spawn point shows the creature it spawns (the game's bestiary picture, else the wiki's). *@
+                    @if (FeatureId == "npc-spawns" && SpawnedCreature(selected.Key) is { Length: > 0 } creature)
+                    {
+                        <div class="world-thumb-art">
+                            <GameArtImage GameRefs="@AbioticEditor.Core.WorldSaves.PetCatalog.CompendiumTextureRefs(creature)"
+                                          WikiFiles="@AbioticEditor.Core.Codex.CreatureWikiImages.CandidatesFor(AbioticEditor.Core.WorldSaves.PetCatalog.FriendlyName(creature) ?? creature)"
+                                          Alt="@creature" />
+                        </div>
+                    }
+                    else if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place)
+                    {
+                        <div class="world-place-art"><img src="@place" alt="@selected.Label" loading="lazy" /></div>
+                    }
+                    else if (WorldThumbnails.KindOfFeature(FeatureId) is { } pictureKind && WorldThumbnails.For(pictureKind, selected.Key) is { } picture)
                     {
                         <div class="world-thumb-art"><img src="@picture" alt="@selected.Label" loading="lazy" /></div>
                     }
@@ -790,8 +803,8 @@ else
     // both did, before this round's fix to each) skipped every line below, including the final
     // RefreshSnapshot() that snaps a checkbox/select back to the confirmed value. Left stuck like
     // that, the control kept showing the click the game never accepted, and the very next
-    // unrelated re-render (the live world's own 2-second periodic refresh, LiveConnect.razor's
-    // LiveRefreshLoopAsync) redrew this same stale field, which is what produced the observed
+    // unrelated re-render (the live world's own 2-second periodic refresh, the live connection
+    // page's LiveRefreshLoopAsync) redrew this same stale field, which is what produced the observed
     // "elevator is not powered" toast repeating every couple of seconds instead of once (see
     // docs/PROGRESS.md's Round-125 entry). Two things close that gap for good, for every feature
     // this tab serves, not only the one that was actually observed misbehaving:
@@ -865,4 +878,13 @@ else
         RefreshSnapshot();
     }
 
+
+    /// <summary>The creature an NPC spawn point makes, from its name: <c>NPCSpawn_Peccary_C_12</c> spawns a Peccary.</summary>
+    private static string? SpawnedCreature(string key)
+    {
+        var name = WorldThumbnails.ClassOf(key);
+        if (name.StartsWith("NPCSpawn_", StringComparison.OrdinalIgnoreCase)) name = name["NPCSpawn_".Length..];
+        if (name.EndsWith("_C", StringComparison.Ordinal)) name = name[..^2];
+        return name.Length == 0 || name.Equals("Generic", StringComparison.OrdinalIgnoreCase) ? null : name;
+    }
 }

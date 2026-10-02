@@ -1,0 +1,183 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.Items
+@using AbioticEditor.Web.Components.Player
+@implements IDisposable
+@inject ItemCatalogService Catalog
+@inject ItemUpgradeVocabularyService Upgrades
+@inject InventorySelectionService Selection
+@inject SlotDragDropService Dnd
+@inject SaveWorkspaceSessionService Workspace
+
+@* A crate's slots, edited where it is shown (the 3D view's inspector) instead of sending the player
+   to the Containers tab. Same staged path as that tab: tapping a slot opens it in the right-hand
+   slot editor, items can be dragged in from the catalog, and slots dragged onto each other swap. *@
+@if (Container is { } container)
+{
+    <div class="container-slots-panel" data-container-slots="@container.Id">
+        <div class="base-container-header">
+            <span class="wt-row-text"><strong>@DisplayName(container)</strong></span>
+            <span class="wt-readout">@CountText(container)</span>
+        </div>
+        <div class="base-slot-grid">
+            @foreach (var edit in _slotEdits)
+            {
+                var isActive = ReferenceEquals(Selection.Current?.Slot, edit);
+                <button type="button" class="base-slot @(isActive ? "selected" : null)" @key="edit.Index"
+                        aria-pressed="@isActive" aria-label="@($"[{edit.Index:D2}] {SlotName(edit)}")"
+                        title="@L.Resource("WorldBases_SlotEditHint")"
+                        data-slot-drop
+                        draggable="@((!edit.IsEmpty).ToString().ToLowerInvariant())"
+                        @ondragstart="() => _dragEdit = edit"
+                        @ondragend="() => _dragEdit = null"
+                        @ondragover:preventDefault
+                        @ondrop="() => DropOnSlot(edit)"
+                        @onclick="() => SelectSlot(edit)">
+                    @if (!edit.IsEmpty && edit.ItemId is { } itemId)
+                    {
+                        <ItemIcon ItemId="@itemId" Alt="@SlotName(edit)" Class="base-slot-icon" />
+                        @if (edit.Count > 1) { <span class="base-slot-count-badge">@edit.Count</span> }
+                        <span class="base-slot-name">@SlotName(edit)</span>
+                    }
+                    else
+                    {
+                        <span class="base-slot-index">[@edit.Index.ToString("D2")]</span>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = null!;
+
+    /// <summary>The placed object's key: its crate is the deployed container with this id.</summary>
+    [Parameter, EditorRequired] public string ContainerId { get; set; } = string.Empty;
+
+    private List<PlayerInventorySlotEdit> _slotEdits = [];
+    private PlayerInventorySlotEdit? _dragEdit;
+    private string? _loadedFor;
+
+    private WorldContainer? Container => Session.Containers.FirstOrDefault(c => c.Source == WorldContainerSource.Deployed && c.Id == ContainerId);
+
+    private ItemUpgradeCatalog UpgradeCatalog => Upgrades.TryGet(out var catalog) ? catalog : ItemUpgradeCatalog.Empty;
+
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    protected override void OnParametersSet()
+    {
+        if (_loadedFor != ContainerId) { _loadedFor = ContainerId; Load(); }
+        else Sync();
+    }
+
+    private void Refresh() => _ = InvokeAsync(() => { Sync(); StateHasChanged(); });
+
+    private static string DisplayName(WorldContainer container)
+        => container.ClassName is { Length: > 0 } className ? PlainNames.Thing(className) : PlainNames.Words(container.Id);
+
+    private static string CountText(WorldContainer container)
+    {
+        var slots = container.Inventories.SelectMany(inventory => inventory.Slots).ToList();
+        return $"{slots.Count(slot => !slot.IsEmpty)}/{slots.Count}";
+    }
+
+    private string SlotName(PlayerInventorySlotEdit edit)
+        => edit.IsEmpty ? L.Inventory("empty") : Catalog.Find(edit.ItemId)?.DisplayName ?? PlainNames.Words(edit.ItemId);
+
+    private void Load()
+    {
+        _slotEdits = Container?.Inventories.FirstOrDefault()?.Slots.Select(slot => new PlayerInventorySlotEdit(slot)).ToList() ?? [];
+    }
+
+    /// <summary>Re-reads the slots when the session moved on underneath (a save, a revert, another tab's edit).</summary>
+    private void Sync()
+    {
+        if (Container is not { } container) { _slotEdits = []; return; }
+        var slots = container.Inventories.FirstOrDefault()?.Slots ?? [];
+        if (slots.Count != _slotEdits.Count) { Load(); return; }
+        for (var i = 0; i < slots.Count; i++)
+        {
+            if (!Equals(_slotEdits[i].ToInventorySlot(), slots[i]))
+            {
+                _slotEdits[i].LoadFrom(slots[i]);
+                _slotEdits[i].AcceptCurrentAsBaseline();
+            }
+        }
+    }
+
+    private async Task DropOnSlot(PlayerInventorySlotEdit target)
+    {
+        if (Dnd.PaletteItem is { } palette)
+        {
+            Dnd.End();
+            if (SlotDropRules.ValidateForSlot(L, null, null, palette) is not null) return;
+            SlotDropRules.FillFromCatalog(target, palette);
+            await ApplyAsync();
+            SelectSlot(target);
+            return;
+        }
+        if (_dragEdit is not { } source || ReferenceEquals(source, target)) return;
+        _dragEdit = null;
+        await SwapAsync((source.Index, target.Index));
+        SelectSlot(target);
+    }
+
+    private void SelectSlot(PlayerInventorySlotEdit edit)
+    {
+        if (Container is not { } container) return;
+        Selection.Select(new InventorySelection(
+            DisplayName(container), edit, _slotEdits,
+            Catalog.Entries.Select(entry => entry.Id).ToArray(),
+            Session.Deployables.Where(deployable => deployable.IsCraftingBench).ToArray(),
+            _slotEdits, true,
+            ApplyAsync, SwapAsync, UpgradeAsync,
+            slotEdit => UpgradeCatalog.UpgradeFor(slotEdit.ItemId) is not null,
+            slotEdit => UpgradeCatalog.SourceOf(slotEdit.ItemId) is not null)
+        {
+            QuickGiveFallback = _ => _slotEdits.FirstOrDefault(candidate => candidate.IsEmpty) is { } empty ? new(empty, null, null) : null,
+            SelectSlot = sibling => { if (_slotEdits.Contains(sibling)) SelectSlot(sibling); },
+        });
+    }
+
+    /// <summary>Stages every slot into the world session (the single SAVE / REVERT path).</summary>
+    private Task ApplyAsync()
+    {
+        if (Container is not { } container) return Task.CompletedTask;
+        for (var i = 0; i < _slotEdits.Count; i++)
+        {
+            Session.TrySetContainerSlot(container.Source, container.Id, 0, i, _slotEdits[i].ToInventorySlot());
+            _slotEdits[i].AcceptCurrentAsBaseline();
+        }
+        Workspace.NotifyEdited();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task SwapAsync((int First, int Second) pair)
+    {
+        if (Container is not { } container) return;
+        var first = _slotEdits.FindIndex(edit => edit.Index == pair.First);
+        var second = _slotEdits.FindIndex(edit => edit.Index == pair.Second);
+        if (first < 0 || second < 0 || first == second) return;
+        await ApplyAsync();
+        Session.TrySwapContainerSlots(container.Source, container.Id, 0, first, second);
+        Sync();
+    }
+
+    private async Task UpgradeAsync((int Index, bool Downgrade) action)
+    {
+        var edit = _slotEdits.FirstOrDefault(candidate => candidate.Index == action.Index);
+        if (edit is null || edit.IsEmpty) return;
+        var edge = action.Downgrade ? UpgradeCatalog.SourceOf(edit.ItemId) : UpgradeCatalog.UpgradeFor(edit.ItemId);
+        if (edge is null) return;
+        edit.ItemId = action.Downgrade ? edge.SourceId : edge.OutputId;
+        edit.AssetId = null;
+        await ApplyAsync();
+    }
+
+    public void Dispose()
+    {
+        Workspace.Changed -= Refresh;
+        if (Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();
+    }
+}

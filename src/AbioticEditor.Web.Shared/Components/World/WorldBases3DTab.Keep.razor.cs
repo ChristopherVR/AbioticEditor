@@ -28,7 +28,8 @@ public partial class WorldBases3DTab
         if (!Kept.TryGetValue(Session, out var k)) return;
         _keptModelsOn = k.ModelsOn;
         (_levelOn, _levelRadius, _levelCut, _lampsOn) = (k.LevelOn, k.LevelRadius, k.LevelCut, k.LampsOn);
-        (_labels, _doorsOn, _npcsOn, _sideTab, _filter) = (k.Labels, k.DoorsOn, k.NpcsOn, k.SideTab, k.Filter);
+        (_labels, _doorsOn, _npcsOn, _filter) = (k.Labels, k.DoorsOn, k.NpcsOn, k.Filter);
+        if (Array.IndexOf(SideTabs, k.SideTab) >= 0) _sideTab = k.SideTab;
     }
 
     private void Keep() => Kept.AddOrUpdate(Session,

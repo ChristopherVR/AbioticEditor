@@ -87,6 +87,7 @@ public static class Program
         builder.Services.AddSingleton<HostAdvancedPreferences>();
         builder.Services.AddSingleton<ShellPreferencesService>();
         builder.Services.AddSingleton<InventorySelectionService>();
+        builder.Services.AddSingleton<WorldLocatorService>();
         builder.Services.AddSingleton<SlotDragDropService>();
         builder.Services.AddSingleton<ItemCatalogService>();
         builder.Services.AddSingleton<GameArtService>();
@@ -217,7 +218,12 @@ public static class Program
             if (string.IsNullOrWhiteSpace(path) || path.Length > 512) return Results.BadRequest();
             if (await art.TryGetActorWorldTransformAsync(path) is not { } at) return Results.NotFound();
             var v = AbioticEditor.Core.WorldSaves.PlacedSceneSpace.ToViewer(new AbioticEditor.Core.WorldSaves.PlacedVector(at.X, at.Y, at.Z));
-            return Results.Json(new[] { v.X, v.Y, v.Z });
+            // The way the actor faces (its forward axis), in the view's space, so its picture can be
+            // taken from the front rather than from behind.
+            var f = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX,
+                new System.Numerics.Quaternion((float)at.QuatX, (float)at.QuatY, (float)at.QuatZ, (float)at.QuatW));
+            var ahead = AbioticEditor.Core.WorldSaves.PlacedSceneSpace.ToViewer(new AbioticEditor.Core.WorldSaves.PlacedVector(at.X + f.X * 100, at.Y + f.Y * 100, at.Z + f.Z * 100));
+            return Results.Json(new { p = new[] { v.X, v.Y, v.Z }, front = new[] { ahead.X - v.X, ahead.Y - v.Y, ahead.Z - v.Z } });
         });
         app.MapGet("/scene-models/asset/{**id}", async (string id, SceneModelHostService scene, HttpResponse response, CancellationToken cancellationToken) =>
         {

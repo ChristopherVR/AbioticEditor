@@ -6,7 +6,7 @@
 @* The distillery history: every item the character has put through a distillery. It is one
    yes/no per item, so it is a tile grid you click, with a shortcut to mark everything. *@
 <div class="distilled-section">
-    <p class="muted">Items this character has already distilled. Click a tile to toggle it. Changes stage until you press SAVE.</p>
+    <p class="muted">Items this character has already put through a distillery. Only items a distillery accepts are listed, with what each one turns into. Click a tile to toggle it. Changes stage until you press SAVE.</p>
     <div class="distilled-toolbar">
         <input type="search" @bind="_filter" @bind:event="oninput" placeholder="Search items" aria-label="Search items" />
         <div class="distilled-chips" role="group" aria-label="Show">
@@ -32,6 +32,7 @@
                         title="@entry.Id" @onclick="() => Toggle(entry.Id, !on)">
                     <span class="distilled-icon"><ItemIcon ItemId="@entry.Id" Alt="@entry.Name" /></span>
                     <span class="distilled-name">@entry.Name</span>
+                    @if (entry.Makes is { } makes) { <span class="distilled-makes">@makes</span> }
                     <span class="distilled-state">@(on ? "Distilled" : "Not yet")</span>
                 </button>
             }
@@ -53,21 +54,34 @@
     private string _filter = string.Empty;
     private Mode _mode = Mode.All;
 
-    private sealed record Entry(string Id, string Name);
+    private sealed record Entry(string Id, string Name, string? Makes = null);
 
     // Every known item plus anything already in the save, keyed by the lower-case row name the
     // save stores, so items the catalog does not know are still shown and can be untoggled.
     private readonly RenderMemo<List<Entry>> _entriesMemo = new();
     private readonly RenderMemo<List<Entry>> _visibleMemo = new();
 
-    private List<Entry> Entries => _entriesMemo.Get((Session.ItemVocabulary.Count, Session.ItemsDistilled.Count), () => Session.ItemVocabulary
-        .Concat(Session.ItemsDistilled)
-        .Select(id => id.Trim().ToLowerInvariant())
-        .Where(id => id.Length > 0)
-        .Distinct(StringComparer.Ordinal)
-        .Select(id => new Entry(id, Catalog.Find(id)?.DisplayName ?? id))
-        .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
-        .ToList());
+    private List<Entry> Entries => _entriesMemo.Get((Catalog.Distillations.Count, Session.ItemVocabulary.Count, Session.ItemsDistilled.Count), BuildEntries);
+
+    /// <summary>
+    /// The items a distillery accepts (the game's distillation table), plus anything already in this
+    /// save's history so it can still be untoggled. Only when that table is unavailable (no game and no
+    /// bundled copy) does it fall back to every known item.
+    /// </summary>
+    private List<Entry> BuildEntries()
+    {
+        var recipes = Catalog.Distillations;
+        var makes = recipes.ToDictionary(r => r.Input, r => r.Output is { } o ? $"makes {Catalog.Find(o)?.DisplayName ?? o} x{r.Count}" : null, StringComparer.Ordinal);
+        var source = recipes.Count > 0 ? recipes.Select(r => r.Input) : Session.ItemVocabulary;
+        return source
+            .Concat(Session.ItemsDistilled)
+            .Select(id => id.Trim().ToLowerInvariant())
+            .Where(id => id.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Select(id => new Entry(id, Catalog.Find(id)?.DisplayName ?? id, makes.GetValueOrDefault(id)))
+            .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
 
     // The list is read three times per render and re-sorted on every keystroke otherwise; it only
     // changes when the mode, the search text or the set of distilled items does.

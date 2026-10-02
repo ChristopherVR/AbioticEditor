@@ -36,6 +36,22 @@ public static partial class WorldThumbnails
         return classes.Contains(cls) ? $"{Root}/{kind}/{cls}.webp" : null;
     }
 
+    /// <summary>
+    /// A picture of where this particular level actor is (the level around it from above, it outlined
+    /// and pinned), or null when none was rendered. Level actors stand in the same place in every
+    /// world, so these ship with the editor (tools/thumbnails/places.mjs).
+    /// </summary>
+    public static string? PlaceOf(string? actorPath)
+    {
+        if (string.IsNullOrEmpty(actorPath)) return null;
+        var colon = actorPath.IndexOf(':', StringComparison.Ordinal);
+        if (colon <= 0) return null;
+        var package = actorPath[..colon];
+        var map = package[(package.LastIndexOf('.') + 1)..];
+        var actor = actorPath[(Math.Max(actorPath.LastIndexOf('.'), colon) + 1)..];
+        return Places.Contains($"{map}:{actor}") ? $"{Root}/places/{map}/{actor}.webp" : null;
+    }
+
     /// <summary>The picture folder for a world-map feature id, or null for lists without pictures.</summary>
     public static string? KindOfFeature(string featureId) => featureId switch
     {

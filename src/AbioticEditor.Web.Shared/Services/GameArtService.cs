@@ -282,15 +282,30 @@ public sealed class GameArtService : IDisposable
     public Task<ActorTransform?> TryGetActorWorldTransformAsync(string? actorObjectPath)
     {
         if (string.IsNullOrWhiteSpace(actorObjectPath)) return Task.FromResult<ActorTransform?>(null);
-        return _actorWorldTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => Task.Run(() =>
+        return _actorWorldTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => service.ReadActorAsync(path)), this).Value;
+    }
+
+    // One position read at a time, waited for without holding a worker thread: each read takes the
+    // shared game-files lock anyway, and hundreds queued at once (the 3D view's markers) used to block
+    // every worker, so the view's own requests (the level around it) could not even start.
+    private readonly SemaphoreSlim _actorReads = new(1, 1);
+
+    private async Task<ActorTransform?> ReadActorAsync(string path)
+    {
+        await _actorReads.WaitAsync().ConfigureAwait(false);
+        try
         {
-            try
+            return await Task.Run(() =>
             {
-                var provider = service._provider.Value;
-                return provider is not { HasMappings: true } ? null : provider.TryGetActorWorldTransform(path);
-            }
-            catch { return null; }
-        })), this).Value;
+                try
+                {
+                    var provider = _provider.Value;
+                    return provider is not { HasMappings: true } ? null : provider.TryGetActorWorldTransform(path);
+                }
+                catch { return null; }
+            }).ConfigureAwait(false);
+        }
+        finally { _actorReads.Release(); }
     }
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<Task<ActorTransform?>>> _actorWorldTransforms = new(StringComparer.Ordinal);

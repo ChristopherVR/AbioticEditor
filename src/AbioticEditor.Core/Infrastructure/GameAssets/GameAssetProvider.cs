@@ -20,7 +20,7 @@ public readonly record struct ActorTransform(
 /// Loads Abiotic Factor's pak archives and exposes high-level asset extraction.
 /// Extracted bytes are cached on disk under <see cref="CacheDirectory"/>.
 /// </summary>
-public sealed class GameAssetProvider : IDisposable
+public sealed partial class GameAssetProvider : IDisposable
 {
     private readonly DefaultFileProvider _provider;
     private readonly string _cacheDir;
@@ -29,6 +29,7 @@ public sealed class GameAssetProvider : IDisposable
     // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
     // once, so every package-load entry point serializes through this lock.
     private readonly object _providerLoadLock = new();
+    private string? _paksDirectory;
     private bool _disposed;
 
     private GameAssetProvider(DefaultFileProvider provider, string cacheDir, IReadOnlyList<string> loadedMods)
@@ -288,7 +289,7 @@ public sealed class GameAssetProvider : IDisposable
         // LocalizedString once, at deserialize time, not on later lookup.
         GameLocalizationLoader.Apply(provider, culture);
 
-        return new GameAssetProvider(provider, cache, loadedMods);
+        return new GameAssetProvider(provider, cache, loadedMods) { _paksDirectory = paksDirectory };
     }
 
     /// <summary>
@@ -521,25 +522,27 @@ public sealed class GameAssetProvider : IDisposable
     public ActorTransform? TryGetActorTransform(string? actorObjectPath)
     {
         if (string.IsNullOrEmpty(actorObjectPath) || _disposed) return null;
+        if (TryGetKnownActorPosition(actorObjectPath, out var known)) return known;
         try
         {
-            CUE4Parse.UE4.Assets.Exports.UObject? actor;
+            ActorTransform? found = null;
             lock (_providerLoadLock)
             {
-                if (!_provider.TryLoadPackageObject(actorObjectPath, out actor) || actor is null)
+                // Read under the lock: the actor's properties load more of its level file lazily.
+                if (LoadActorKeepingLevel(actorObjectPath) is { } actor)
                 {
-                    return null;
+                    // The transform lives on the actor's RootComponent (a scene component export).
+                    var root = actor.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("RootComponent");
+                    var holder = root ?? actor;
+
+                    var loc = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FVector>("RelativeLocation");
+                    var rot = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FRotator>("RelativeRotation");
+                    var q = rot.Quaternion();
+                    found = new ActorTransform(loc.X, loc.Y, loc.Z, q.X, q.Y, q.Z, q.W);
                 }
             }
-
-            // The transform lives on the actor's RootComponent (a scene component export).
-            var root = actor.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("RootComponent");
-            var holder = root ?? actor;
-
-            var loc = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FVector>("RelativeLocation");
-            var rot = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FRotator>("RelativeRotation");
-            var q = rot.Quaternion();
-            return new ActorTransform(loc.X, loc.Y, loc.Z, q.X, q.Y, q.Z, q.W);
+            RememberActorPosition(actorObjectPath, found);
+            return found;
         }
         catch (Exception ex)
         {
@@ -634,7 +637,7 @@ public sealed class GameAssetProvider : IDisposable
                 lock (_providerLoadLock)
                 {
                     if (!_provider.TryLoadPackage(rootPath, out var package)) continue;
-                    var world = package.GetExports().OfType<CUE4Parse.UE4.Objects.Engine.UWorld>().FirstOrDefault();
+                    var world = GameMaps.WorldOf(package);
                     foreach (var index in world?.StreamingLevels ?? [])
                     {
                         var streaming = index.Load();
@@ -684,6 +687,12 @@ public sealed class GameAssetProvider : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _recentPackagesTimer?.Dispose();
+        if (_actorPositionsSaveTimer is not null)
+        {
+            _actorPositionsSaveTimer.Dispose();
+            SaveActorPositions();
+        }
         _provider.Dispose();
     }
 }

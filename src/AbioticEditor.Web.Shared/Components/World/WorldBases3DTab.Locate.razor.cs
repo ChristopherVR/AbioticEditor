@@ -21,11 +21,27 @@ public partial class WorldBases3DTab
 
     private const double LocateDistanceM = 9;
 
+    /// <summary>
+    /// "Show in 3D" covers the view until the models, textures and level around the target are in,
+    /// so it never shows the place half-built (at most 12 seconds, then it shows whatever is there).
+    /// </summary>
+    private bool _curtain;
+
+    private async Task LiftCurtainWhenLoadedAsync()
+    {
+        var until = DateTime.UtcNow.AddSeconds(12);
+        await Task.Delay(400); // the level query for the new spot starts a moment after the camera moves
+        while (DateTime.UtcNow < until && !_disposed && LoadingLines().Count > 0) await Task.Delay(250);
+        _curtain = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private void TakeLocateRequest()
     {
         if (Locate is null || ReferenceEquals(Locate, _seenLocate)) return;
         _seenLocate = Locate;
         _pendingLocate = Locate;
+        _curtain = true; // the view stays covered until what it shows has loaded
     }
 
     /// <summary>Runs a waiting request once the view has its scene.</summary>
@@ -37,6 +53,10 @@ public partial class WorldBases3DTab
         {
             await _view.InvokeVoidAsync("reveal");
             _locateNote = await LocateAsync(target) ? L.Resource("World3D_LocatedFormat", target.Label) : _locateNote;
+            // The level around the target starts loading now, not when the camera settles, so the
+            // cover below waits for it.
+            if (_levelOn) await _view.InvokeAsync<bool>("followLevel");
+            _ = LiftCurtainWhenLoadedAsync();
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) { return; }
         StateHasChanged();

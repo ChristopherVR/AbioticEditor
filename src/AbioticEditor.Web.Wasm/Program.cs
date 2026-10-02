@@ -59,6 +59,7 @@ builder.Services.AddScoped<HostSpoilerPreferences>();
 builder.Services.AddScoped<HostAdvancedPreferences>();
 builder.Services.AddScoped<ShellPreferencesService>();
 builder.Services.AddScoped<InventorySelectionService>();
+builder.Services.AddScoped<WorldLocatorService>();
 builder.Services.AddScoped<SlotDragDropService>();
 builder.Services.AddScoped<ItemCatalogService>();
 builder.Services.AddScoped<GameArtService>();

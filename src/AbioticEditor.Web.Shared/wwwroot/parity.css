@@ -2140,6 +2140,9 @@ button.wd-sector-map:hover{opacity:1;transform:none}
 .wc-row-name .item-artwork.wc-row-icon { width:24px; height:24px; flex:none; display:flex; align-items:center; justify-content:center; }
 .wc-row-name .item-artwork.wc-row-icon img { max-width:100%; max-height:100%; object-fit:contain; }
 .wc-row-name .item-artwork.wc-row-icon .item-artwork-fallback { display:none; }
+.wc-row-name img.wc-row-icon { width:28px; height:28px; flex:none; object-fit:contain; }
+.wc-title-row { display:flex; align-items:center; gap:12px; }
+.wc-detail-art { width:72px; height:72px; flex:none; object-fit:contain; }
 /* A container's player-given name (round 85) can run noticeably longer than the short
    auto-generated label ("Storage Crate") this row was originally sized around - clamp it to one
    line with an ellipsis instead of letting it wrap and crowd the count/health/position lines
@@ -2299,3 +2302,16 @@ button.world-row-name,button.world-row-name:active{min-height:0;background-color
 .world-thumb-art{display:flex;justify-content:center;align-items:center;padding:6px;margin:6px 0;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.08),transparent 70%);border:1px solid var(--line,#224158)}
 .world-thumb-art img{width:100%;max-width:240px;max-height:200px;object-fit:contain}
 .world-row-thumb{width:34px;height:34px;object-fit:contain;flex:0 0 auto}
+.world-place-art{margin:6px 0;border:1px solid var(--line,#224158);background:#101418;line-height:0}
+.world-place-art img{width:100%;height:auto;aspect-ratio:384/240;object-fit:cover}
+.distilled-makes{font-size:11px;color:var(--muted,#a9cbe0)}
+/* Container rows: the select button covers the whole row (it sat in the first grid column only, so
+   clicks on the rest of the row missed), and pressing it no longer flashes the global orange
+   pressed-button colour or shrinks. */
+.wc-row{padding:0}
+.wc-row-select{grid-column:1/-1;width:100%;padding:8px 12px;text-align:left;background:transparent;border:0;cursor:pointer}
+.wc-row-select:hover,.wc-row-select:active{transform:none!important;opacity:1;background:transparent!important}
+/* Bases tab: the Map / 3D switch and, in 3D, the base picker on one line above the view. */
+.bases-view-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 8px}
+.bases-view-bar .bases-3d-focus{flex-direction:row;align-items:center;gap:8px;flex:1 1 280px;max-width:560px;margin:0}
+.bases-view-bar .bases-3d-focus select{flex:1 1 auto;min-width:0}

@@ -104,6 +104,7 @@ public partial class WorldBases3DTab
 
     private async Task SetSelectionAsync(IEnumerable<string> keys, string? primary, bool frame)
     {
+        _levelCopyNote = null;
         _selected.Clear();
         _selected.AddRange(keys.Distinct(StringComparer.Ordinal));
         _selectedKey = primary is not null && _selected.Contains(primary) ? primary : _selected.LastOrDefault();
@@ -232,7 +233,6 @@ public partial class WorldBases3DTab
 
     private async Task OpenDeleteAsync()
     {
-        _sideTab = "edit";
         _dupOpen = false;
         _dupPreview = null;
         _deleteOpen = true;
@@ -305,7 +305,6 @@ public partial class WorldBases3DTab
 
     private void OpenDuplicate()
     {
-        _sideTab = "edit";
         _deleteOpen = false;
         _deletePreview = null;
         _dupOpen = true;

@@ -111,7 +111,7 @@ internal static class LevelIndex
     {
         var data = new LevelIndexData { Map = mapPackage, Meshes = [], OverrideSets = [], Actors = [], Entries = [] };
         if (!provider.TryLoadPackage(mapPackage, out var package)) return data;
-        var world = package.GetExports().OfType<UWorld>().FirstOrDefault();
+        var world = AbioticEditor.Core.Assets.GameMaps.WorldOf(package);
         var mapObjectPath = world?.GetPathName() ?? mapPackage;
         var level = world?.PersistentLevel.Load<ULevel>();
         if (level is null) return data;

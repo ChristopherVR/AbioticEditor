@@ -1,5 +1,117 @@
 # Abiotic Editor - Session history
 
+## Round-153: 3D view fits the window, level on by default, fresh-start loading, container pictures, level-piece copy (2026-10-02)
+
+- **Fresh-start stall (measured, headless, MFWest).** The first level request after starting the host
+  took 105-122 s. Dumps (`dotnet-dump clrstack -all`) showed it waiting on the shared game-files lock
+  (`GameAssetProvider.UseFileProvider`), held first by `PlacementOf` and then by hundreds of
+  `TryGetActorTransform` calls for the view's markers, each re-reading its whole level package; the
+  blocked calls also starved the thread pool so `Task.Run(DescribeLevel)` never started. Fixes:
+  - `GameMaps.WorldOf(package)`: a map's `UWorld` export by name (walking `GetExports()` built every
+    actor first). Used by `PlacementOf`, the plugin's `StreamedPlacements` and `LevelIndex.Build`.
+  - `GameAssetProvider.ActorPositions.cs`: the last two level packages stay open (dropped after 20 s
+    idle), and actor positions are kept on disk (`<cache>/actors/positions-<pak stamp>.json`).
+  - `GameArtService` reads actor positions one at a time behind an async `SemaphoreSlim`.
+  - The plugin keeps each region's layout (`WorldFor`) on disk (`cache/<stamp>/worlds`).
+  - `SceneModelHostService`: view requests count themselves in; the warm-up waits between pieces
+    (`YieldToView`, flag scoped per step because pool threads are shared).
+  - Result: 108 s -> 15 s (first run, filling caches) -> 5 s on later fresh starts; Show in 3D on a
+    locker or fridge after a fresh start 2-3 s.
+- **Layout**: `fitToWindow` sizes the view and side panel to the editor's scroll area and scrolls the
+  Map/3D bar to the top; the bar holds the switch and the base picker on one line (intro hidden in 3D).
+- **Level on by default** once the model status says the game can be read; the level follows the
+  view (700 ms after it settles, or at once for Show in 3D via `followLevel`); the cut sits
+  `cutAbove` over the level's own floor under the view centre (`levelFloorUnder`, a ray at the end
+  of each load) instead of the nearest object height, which left the floor above in and hid a fridge.
+- **Picked-object card**: picture + name + "Came with the level"/"Built by a player", contents, then
+  Remove/Copy (pressing one turns Edit mode on), power, and the class/key/paths/numbers folded into
+  Details. With something picked the card gets most of the panel.
+- **Level pieces**: Core refuses deleting or duplicating them (the level recreates them); the card
+  now says so in plain words. "Copy as my own piece" places a player-built one beside it from a donor
+  of the same class (`WorldSaveSession.FindDonorAsync`: this world's other areas, then the same area in
+  other worlds, then any of their areas). Headless: a level medkit in MFWest copied from a medkit
+  built in `WorldSave_Facility.sav`; staged as a copy, 147 -> 148 objects.
+- **Container pictures**: `ThumbnailTargetsProbe` writes `THUMBNAIL_CLASSES_OUT` (container classes
+  with their class paths), `render.mjs` draws them with the new `classThumbnail` (73 of 73, facing
+  the class's +X). The Containers tab rows and detail header, and the 3D card, use them (item icon
+  as fallback).
+- **Money icon** was the default tan (every item icon is a silhouette tinted by tags); money is now
+  green. The coloured-icon cache suffix moved to `.colored2.png` so old tints are redone.
+- **Location pictures** re-rendered facing front: 5,348 written, 64 MB; re-encoded at WebP quality 50
+  (47 MB, no visible change at 384x240), and `locationShot` now encodes at 0.5.
+
+## Round-152: review fixes: Distilled, cross-save Show in 3D, containers, inspector layout, facing pictures (2026-10-02)
+
+- **Distilled** offered every item (~1,000) with "Mark all distilled". The game's `DT_ItemDistillations`
+  has 137 rows (row = input item id, `Item_` = distillate row, `Count_`). `DistillationCatalog.LoadFrom`;
+  registry `Distillations` (injected into all 10 registry files, culture-independent);
+  `ItemCatalogService.Distillations` (the open game's table if its files are already mounted, else the
+  registry); the section lists only those plus anything already in the save, each with what it makes.
+- **Show in 3D across saves.** `WorldLocateTarget.SaveFileName` / `LevelName`; `SaveEditorSurface`
+  resolves the region save (a level's own `WorldSave_<level>.sav`, else the nearest broader one) and
+  `Workspace.SelectAsync`s it first. The Bases tab (3D view) is now offered on every region save when
+  models are available, and the view counts as ready after its first (possibly empty) scene.
+  - Traders: `ItemCatalogService.FindNarrativeNpcs` matches the trader id and display-name words
+    (4+ letters) against the bundled story-character names (menus left out): one button per place.
+    Headless: The Blacksmith opened `WorldSave_Facility_MFWest.sav` and picked
+    `NarrativeNPC_Human_TRADER_C_0`. Grayson and Dr. Carson do not match a placed name yet.
+    (The trader link itself is a `TraderComponent`; only 2 placed ones carry `TraderRow`, the rest
+    inherit it from their class; `TraderPlacementProbe` dumps them.)
+  - Containment cells: the unit (placed key, else its saved spot) in `RegionSaveFileName`.
+  - Holograms: their projector actor (`LevelActor`).
+  - Cards drawn in the right-hand panel (doors, traders) are outside the tabs' cascading value; a
+    `WorldLocatorService` (singleton desktop, scoped browser) carries the locator there.
+- **"Show in 3D" curtain**: the view is covered ("Getting the view ready...") until the loading readout
+  is empty (12 s at most after the target is found).
+- **Containers tab rows**: the select button sat in the first grid column only (the rest of the row
+  ignored clicks) and the global `button:active` turned it orange and shrank it; now it spans the
+  row with no pressed effect.
+- **3D side panel**: the inspector is always visible on top (picking never switches tabs); Objects,
+  Filters, Display are tabs below; the Edit tab is gone (Edit mode stays on the view, plus an "Add
+  object" button there; place, remove and copy panels open in the inspector area). A crate's contents
+  are edited in the inspector (`ContainerSlotsPanel`, same staged path and slot editor as the
+  Containers tab) instead of "Open in containers" jumping tabs.
+- **Power check** runs by itself (on open and after every power change); the button is gone.
+- **Wall sockets** in the level are "thing" markers whose card has the rewire controls
+  (`PowerRewirePanel`), so a device can be plugged into one from the 3D view.
+- **NPC spawns** show the creature they spawn (compendium art, else the wiki), from the spawner's name.
+- **Pictures from the front**: `/scene-models/actor` also returns the actor's facing (its forward
+  axis in view space); `viewDirection` puts the camera in front, a little to the side. The keypad,
+  light switch and elevators now read correctly; `Button_Generic_C`'s level mesh is a plain block
+  (its look is added at runtime). Kind pictures re-rendered (175 of 200; the rest kept); location
+  pictures re-rendered. `render.mjs` now writes the index from every picture on disk (a partial run
+  had dropped the others).
+
+## Round-151: a picture of where each door, button, tram and more is (2026-10-02)
+
+- Asked for: the door card's preview to show where that door is, from a pre-rendered 3D view.
+- Level actors stand in the same place in every world (they come from the level files), so one
+  picture per actor ships with the editor. `view.locationShot({region, actor, center})` renders the
+  level within 16 m from above at an angle (camera 12 m out, aimed 1 m above the actor), the ceiling
+  cut 2.6 m above the actor's base (the shared `levelClip`), the actor outlined (its own pieces via
+  `OnlyActors`) and pinned in orange; 384 x 240 WebP at quality 0.72, about 8 KB.
+  `tools/thumbnails/places.mjs` renders every door, button, breakable, elevator, tram and teleporter in
+  the instance list (`ThumbnailTargetsProbe` with `THUMBNAIL_INSTANCES_OUT`; plain mesh actors kept
+  here since they still have a place; resource nodes included at the user's request, 4,515 of them) into
+  `wwwroot/thumbs/places/<map>/<actor>.webp`, skips ones on disk (resumable) and regenerates
+  `WorldThumbnails.Places.g.cs` from the files. `WorldThumbnails.PlaceOf(actorPath)` is shown first in
+  the door card and the world-list detail pane, before the per-kind picture.
+- Cascade world: about 1,200 actors, ~1.1 s each with a warm cache.
+- **Moving around** (same round, reported as awkward and sometimes slow):
+  - Adaptive resolution: drawn at 0.75 pixel ratio while the camera moves (orbit, pan, fly, walk),
+    back to full sharpness 200 ms after it stops (`markMoving`); on a high-DPI screen most of a
+    frame's cost is pixels.
+  - Orbit easing (`enableDamping`, factor 0.14), driven from the render loop.
+  - Keyboard flying without Walk: W A S D / arrows slide view and target across the area, Q / E down
+    / up, Shift x3; speed half the camera distance per second, 2 to 60 m/s; only while the pointer is
+    over the view (or it has focus), never while typing.
+  - Walk: click captures the mouse (pointer lock, Escape releases) for mouse-look, drag otherwise;
+    speed ramps up over a quarter second; floor height is followed smoothly instead of snapping
+    every 90 ms.
+  - View controls: the six show/hide checkboxes are one "Show" menu; a "?" card lists the controls.
+    Ground items start hidden (728 triangles crowded the overview).
+- Tests: `Moving_around_is_smooth_and_the_view_controls_are_compact`.
+
 ## Round-150: background warm-up of the whole region's level; pictures of doors, buttons, trams and more (2026-10-02)
 
 - **Show in 3D on a blast door** (Cascade Facility, headless): was models 1.3 s, door framed 3.2 s,

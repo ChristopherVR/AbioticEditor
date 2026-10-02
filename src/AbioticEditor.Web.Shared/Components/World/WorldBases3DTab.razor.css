@@ -1,8 +1,8 @@
-/* The view takes the height of the window; the side panel is a fixed-height tabbed column beside it. */
+/* The view takes the height of the window (--b3d-fit, measured by base3d.js fitToWindow); the side panel is a fixed-height tabbed column beside it. */
 .b3d-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; align-items: start; }
 .b3d-stage { min-width: 0; position: relative; }
 .b3d-viewport { position: relative; scroll-margin-top: 12px; }
-.b3d-canvas { position: relative; width: 100%; height: clamp(420px, calc(100vh - 210px), 980px); border: 1px solid var(--line, #224158); background: #101418; overflow: hidden; touch-action: none; }
+.b3d-canvas { position: relative; width: 100%; height: var(--b3d-fit, clamp(420px, calc(100vh - 210px), 980px)); border: 1px solid var(--line, #224158); background: #101418; overflow: hidden; touch-action: none; }
 .b3d-hud { position: absolute; z-index: 3; }
 .b3d-hud-top { top: 8px; left: 8px; right: 150px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; pointer-events: none; }
 .b3d-hud-top > * { pointer-events: auto; }
@@ -21,7 +21,7 @@
 @keyframes b3d-spin { to { transform: rotate(360deg); } }
 .b3d-hud-walk { left: 50%; bottom: 10px; transform: translateX(-50%); margin: 0; padding: 4px 10px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.85); }
 .b3d-hud-locate { right: 10px; bottom: 10px; margin: 0; max-width: 45%; padding: 6px 10px; font-size: 12px; color: #fff; background: rgba(240, 132, 24, 0.9); }
-.b3d-side { display: flex; flex-direction: column; min-width: 0; height: clamp(420px, calc(100vh - 210px), 980px); border: 1px solid var(--line, #224158); background: rgba(8, 17, 25, 0.35); }
+.b3d-side { display: flex; flex-direction: column; min-width: 0; height: var(--b3d-fit, clamp(420px, calc(100vh - 210px), 980px)); border: 1px solid var(--line, #224158); background: rgba(8, 17, 25, 0.35); }
 .b3d-tabs { display: flex; flex-wrap: wrap; flex: 0 0 auto; border-bottom: 1px solid var(--line, #224158); overflow: hidden; }
 .b3d-tab { flex: 1 1 auto; padding: 8px 6px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; color: var(--muted, #a9cbe0); background: transparent; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
 .b3d-tab:hover { color: #eaf3f8; }
@@ -100,3 +100,29 @@
 .b3d.b3d-fullscreen .b3d-canvas, .b3d.b3d-fullscreen .b3d-side { height: calc(100vh - 16px); }
 .b3d.b3d-fullscreen .b3d-stage > .b3d-hint { display: none; }
 .b3d-hud-edit { border-color: rgba(240, 132, 24, 0.6); }
+
+/* The Show menu and the controls card on the view. */
+.b3d-hud-menu { position: relative; }
+.b3d-hud-popover { position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px; background: rgba(8, 17, 25, 0.95); border: 1px solid rgba(255, 255, 255, 0.22); }
+.b3d-menu-check { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12px; color: #eaf3f8; cursor: pointer; }
+.b3d-menu-check:hover { background: rgba(255, 255, 255, 0.08); }
+.b3d-hud-help { top: 48px; right: 10px; width: 300px; padding: 10px 12px; font-size: 12px; color: #eaf3f8; background: rgba(8, 17, 25, 0.93); border: 1px solid rgba(255, 255, 255, 0.22); }
+.b3d-hud-help dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 6px 0 0; }
+.b3d-hud-help dt { color: var(--accent, #f08418); font-weight: 600; }
+.b3d-hud-help dd { margin: 0; }
+
+/* The side panel: what you picked on top (always visible), the lists in tabs below. */
+.b3d-inspect { flex: 1 1 58%; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-bottom: 1px solid var(--line, #224158); }
+.b3d-side .b3d-tab-body { flex: 1 1 42%; }
+.b3d-edit-note { margin: 0; font-size: 11px; }
+.b3d-curtain { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #eaf3f8; background: rgba(16, 20, 24, 0.94); font-size: 14px; }
+.b3d-curtain small { color: var(--muted, #a9cbe0); font-size: 12px; }
+.b3d-title-row { display: flex; align-items: center; gap: 10px; }
+.b3d-title-art { width: 56px; height: 56px; flex: none; object-fit: contain; }
+.b3d-title-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b3d-actions { display: flex; flex-direction: column; gap: 6px; }
+.b3d-details > summary { cursor: pointer; color: var(--muted, #a9cbe0); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.b3d-details[open] > summary { margin-bottom: 6px; }
+/* With something picked, its card gets most of the panel; the lists shrink below it. */
+.b3d-side.picked .b3d-inspect { flex: 3 1 0; }
+.b3d-side.picked .b3d-tab-body { flex: 1 1 0; min-height: 120px; }
