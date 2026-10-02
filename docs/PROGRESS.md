@@ -1,5 +1,32 @@
 # Abiotic Editor - Session history
 
+## Round-149: full screen, drag to move, hover outline, tighter framing, level piece card (2026-10-02)
+
+- Reported: the 3D view is still hard to use; a full-screen mode; "can't just click on the model
+  (e.g. the iodine table), it's not mapped onto it"; moving things.
+- Findings (headless, Facility): clicks on a model's centre did select it, but "Frame selection"
+  framed a 10 m sphere (5 m minimum radius), so a bench was ~70 px wide; there was no feedback about
+  what a click would pick; moving needed Edit mode plus the gizmo arrows (default Off); nothing
+  called "iodine" is in the save's objects, so that table is most likely level furniture (from the
+  level files, not the save), where a click only printed a line under the view.
+- Changes:
+  - Framing uses each object's own extent (`boxMatrix`, i.e. its model bounds), minimum radius 0.6 m
+    for one piece (2.5 m for several): the bench now fills the view.
+  - Hover: a thin blue outline of the piece under the pointer and a hand cursor (`hoverLine`, picked
+    once per animation frame).
+  - Drag to move: in Edit mode, the selected player-built piece can be dragged across a horizontal
+    plane through it (Alt: vertical plane facing the camera); the drop is staged through the same
+    `OnGizmoCommitted` path as the gizmo. Allowed by `setDraggable(SelectedIsMovable)` from C#,
+    independent of the drag-handle setting. Headless: the bench followed the mouse 127 px, its
+    position changed and one move was staged.
+  - Full screen: a HUD button puts the view and its panel over the whole window (`b3d-fullscreen`,
+    fixed, 100vh); Escape (or the button) leaves it (`OnEscapePressed`; walk mode keeps its own
+    Escape). Headless: canvas 1218 x 986 at a 1600 x 1000 window.
+  - Edit mode switch on the view itself (`edit-quick`), next to the view buttons.
+  - Level pieces: a click opens a "Part of the level" card in Inspect explaining they come from the
+    level files and cannot be moved.
+- Tests: `Pieces_can_be_dragged_in_edit_mode_and_the_view_goes_full_screen`.
+
 ## Round-148: 3D ships with the app; editor memory 643 MB -> 355 MB (2026-10-02)
 
 - **3D view built in.** `AbioticEditor.Web.csproj` builds `plugins/GameModels3D` (ProjectReference

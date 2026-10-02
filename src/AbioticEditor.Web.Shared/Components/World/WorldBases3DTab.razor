@@ -14,7 +14,7 @@
    drawing lives in wwwroot/base3d.js (Three.js, vendored, no CDN). Conversion between the save's
    left-handed Z-up centimetres and the viewer's right-handed Y-up metres is Core's
    PlacedSceneSpace, so JavaScript never converts and the maths is unit tested. *@
-<section class="world-editor world-native-tab b3d" aria-label="@L.Resource("World3D_Title")" data-b3d="root">
+<section class="world-editor world-native-tab b3d @(_fullscreen ? "b3d-fullscreen" : null)" aria-label="@L.Resource("World3D_Title")" data-b3d="root">
     @if (_webGlMissing)
     {
         <p class="error-text" role="alert" data-b3d="no-webgl">@L.Resource("World3D_NoWebGl")</p>
@@ -28,6 +28,8 @@
 
                 @* View controls float over the top of the view, so the view itself can take the height. *@
                 <div class="b3d-hud b3d-hud-top" data-b3d="hud">
+                    <button type="button" class="b3d-hud-btn @(_fullscreen ? "on" : null)" data-b3d="fullscreen" aria-pressed="@(_fullscreen ? "true" : "false")"
+                            @onclick="ToggleFullscreen">@L.Resource(_fullscreen ? "World3D_FullscreenExit" : "World3D_Fullscreen")</button>
                     <button type="button" class="b3d-hud-btn" @onclick="FrameAllAsync">@L.Resource("World3D_FrameAll")</button>
                     <button type="button" class="b3d-hud-btn" disabled="@(_selected.Count == 0)" @onclick="FrameSelectionAsync">@L.Resource("World3D_FrameSelection")</button>
                     <button type="button" class="b3d-hud-btn @(_walkOn ? "on" : null)" aria-pressed="@(_walkOn ? "true" : "false")" data-b3d="walk-toggle"
@@ -36,6 +38,7 @@
                     {
                         <label class="b3d-hud-check"><input type="checkbox" checked="@_walkFloor" data-b3d="walk-floor" @onchange="e => SetWalkFloorAsync(e.Value is true)" /> @L.Resource("World3D_WalkFloor")</label>
                     }
+                    <label class="b3d-hud-check b3d-hud-edit"><input type="checkbox" checked="@_moveOptIn" data-b3d="edit-quick" @onchange="e => SetMoveOptInAsync(e.Value is true)" /> @L.Resource("World3D_MoveOptIn")</label>
                     <span class="b3d-hud-sep" aria-hidden="true"></span>
                     <label class="b3d-hud-check"><input type="checkbox" checked="@_labels" @onchange="e => SetLabelsAsync(e.Value is true)" /> @L.Resource("World3D_Labels")</label>
                     <label class="b3d-hud-check"><input type="checkbox" checked="@_doorsOn" data-b3d="doors-toggle" @onchange="e => SetDoorsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_Doors")</label>
@@ -71,7 +74,7 @@
             </div>
             <p class="wt-muted b3d-hint">@L.Resource(_modelsOn ? "World3D_HintModels" : "World3D_HintBoxes") @L.Resource("World3D_MultiSelectHint")</p>
             @if (_doorsNote is not null) { <p class="wt-muted b3d-hint" data-b3d="doors-note">@_doorsNote</p> }
-            @if (_levelPicked is not null) { <p class="wt-muted b3d-hint" data-b3d="level-picked">@L.Resource("World3D_LevelPickedFormat", _levelPicked)</p> }
+
         </div>
 
         <aside class="b3d-side">
@@ -86,6 +89,17 @@
             <div class="b3d-tab-body" role="tabpanel">
             @if (_sideTab == "inspect")
             {
+                @if (_levelPicked is not null)
+                {
+                    <div class="wt-card b3d-panel" data-b3d="level-card">
+                        <span class="wt-label accent-orange-text">@L.Resource("World3D_LevelCard")</span>
+                        <strong class="b3d-title" data-b3d="level-picked">@_levelPicked</strong>
+                        <p class="wt-muted">@L.Resource("World3D_LevelCardHelp")</p>
+                        <div class="b3d-links">
+                            <button type="button" class="wt-btn wt-plain" @onclick="() => OnLevelPicked(null)">@L.Resource("World3D_DoorCardClose")</button>
+                        </div>
+                    </div>
+                }
                 @if (PickedItem is { } item)
                 {
                     <div class="wt-card b3d-panel" data-b3d="item-card">
@@ -208,7 +222,7 @@
                     </div>
                 }
 
-                @if (SelectedObject is not null || SelectedCopy is not null || (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null))
+                @if (SelectedObject is not null || SelectedCopy is not null || (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null && _levelPicked is null))
                 {
                     <div class="wt-card b3d-panel" data-b3d="inspector">
                         <span class="wt-label accent-orange-text">@L.Resource("World3D_Inspector")</span>
@@ -320,7 +334,8 @@
                                 else
                                 {
                                     <div class="b3d-move" data-b3d="move-controls">
-                                        <span class="wt-label">@L.Resource("World3D_MoveGizmo")</span>
+                                        <p class="wt-muted" data-b3d="drag-hint">@L.Resource("World3D_DragHint")</p>
+                                    <span class="wt-label">@L.Resource("World3D_MoveGizmo")</span>
                                         <div class="b3d-gizmo-modes" role="radiogroup" aria-label="@L.Resource("World3D_MoveGizmo")">
                                             @foreach (var mode in GizmoModes)
                                             {
@@ -1276,6 +1291,7 @@
             await _view.InvokeVoidAsync("setLabels", _labels);
             await _view.InvokeVoidAsync("setSelection", _selected, _selectedKey);
             await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
+            await _view.InvokeVoidAsync("setDraggable", SelectedIsMovable);
             _ = RunPlacementChecksAsync();
             if (!_framedOnce && _scene.Objects.Count > 0)
             {
@@ -1424,6 +1440,25 @@
     {
         if (_levelPicked == name) return Task.CompletedTask;
         _levelPicked = name;
+        if (name is not null) ShowInspector();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private bool _fullscreen;
+
+    private async Task ToggleFullscreen()
+    {
+        _fullscreen = !_fullscreen;
+        if (_view is not null) await _view.InvokeVoidAsync("reveal");
+    }
+
+    /// <summary>Escape leaves full screen (walk mode handles its own Escape first).</summary>
+    [JSInvokable]
+    public Task OnEscapePressed()
+    {
+        if (!_fullscreen) return Task.CompletedTask;
+        _fullscreen = false;
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -1712,15 +1747,18 @@
         _ = SyncGizmoAsync();
     }
 
-    // ---- move / rotate (experimental, opt-in) -------------------------------------------------
-    private string? EffectiveGizmo
-        => _moveOptIn && _gizmo != "off" && _selected.Count <= 1 && SelectedObject is { DeployedByPlayer: true, Transform: { Translation: not null, Rotation: not null } } && _scene.Objects.Any(o => o.Key == _selectedKey)
-            ? _gizmo
-            : null;
+    // ---- move / rotate (opt-in with Edit mode) ------------------------------------------------
+    /// <summary>The selected piece can be moved: Edit mode is on and it is one player-built piece with a saved place.</summary>
+    private bool SelectedIsMovable
+        => _moveOptIn && _selected.Count <= 1 && SelectedObject is { DeployedByPlayer: true, Transform: { Translation: not null, Rotation: not null } } && _scene.Objects.Any(o => o.Key == _selectedKey);
+
+    private string? EffectiveGizmo => SelectedIsMovable && _gizmo != "off" ? _gizmo : null;
 
     private async Task SyncGizmoAsync()
     {
-        if (_view is not null) await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
+        if (_view is null) return;
+        await _view.InvokeVoidAsync("setGizmo", EffectiveGizmo);
+        await _view.InvokeVoidAsync("setDraggable", SelectedIsMovable);
     }
 
     private async Task SetMoveOptInAsync(bool on)

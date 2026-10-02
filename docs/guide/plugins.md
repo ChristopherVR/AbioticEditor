@@ -45,7 +45,12 @@ clicked), **Objects** (search and the full list), **Filters**, **Display** (game
 level) and **Edit**.
 
 Scroll to zoom towards whatever is under the pointer, and double-click a spot to swing the view
-round it and move in close. Leaving the 3D view and coming back keeps it exactly as you left it.
+round it and move in close. **Full screen** gives the view the whole window; press Escape or the
+button again to leave. Whatever the pointer is over gets a thin blue outline, so you can see what a
+click will pick. With **Edit mode** ticked (on the view or in the Edit tab), drag a piece you built to
+move it across the floor; hold Alt while dragging to raise or lower it. Furniture and walls that
+belong to the level itself show a card saying so: the game rebuilds those from its own files, so
+they cannot be moved. Leaving the 3D view and coming back keeps it exactly as you left it.
 Triangles mark items lying on the ground and squares mark buttons, breakable walls, resource nodes
 and the like; click one to see what it is and jump to the tab that edits it.
 

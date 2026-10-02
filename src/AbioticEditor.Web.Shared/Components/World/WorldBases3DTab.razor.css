@@ -94,3 +94,9 @@
 /* The editor's buttons grow slightly on hover; in the tab strip, the panel and over the view that
    growth pushed the edges out and brought up scrollbars. */
 .b3d-tab:hover, .b3d-hud-btn:hover, .b3d-tab-body ::deep button:hover { transform: none !important; }
+
+/* Full screen: the view and its panel cover the whole window (Escape or the button leaves it). */
+.b3d.b3d-fullscreen .b3d-layout { position: fixed; inset: 0; z-index: 2000; padding: 8px; gap: 8px; background: var(--bg, #0b0f13); }
+.b3d.b3d-fullscreen .b3d-canvas, .b3d.b3d-fullscreen .b3d-side { height: calc(100vh - 16px); }
+.b3d.b3d-fullscreen .b3d-stage > .b3d-hint { display: none; }
+.b3d-hud-edit { border-color: rgba(240, 132, 24, 0.6); }

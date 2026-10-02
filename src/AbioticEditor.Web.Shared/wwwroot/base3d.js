@@ -1155,9 +1155,12 @@ function buildView(host, dotnet) {
         if (robust) list = robustSubset(list);
         if (list.length === 0) return;
         const box = new THREE.Box3();
-        for (const i of list) box.expandByPoint(tmpPos.set(objects[i].p[0], objects[i].p[1], objects[i].p[2]));
+        // Each object's own extent (its model's bounds, or its marker box), so one small piece fills
+        // the view instead of sitting in the middle of a 10 m wide frame.
+        const corner = new THREE.Matrix4();
+        for (const i of list) box.union(new THREE.Box3(new THREE.Vector3(-0.5, -0.5, -0.5), new THREE.Vector3(0.5, 0.5, 0.5)).applyMatrix4(boxMatrix(corner, objects[i])));
         const center = box.getCenter(new THREE.Vector3());
-        const radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 5);
+        const radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, list.length === 1 ? 0.6 : 2.5);
         const dir = camera.position.clone().sub(controls.target);
         if (dir.lengthSq() < 1e-6) dir.set(1, 0.8, 1);
         dir.normalize();
@@ -1652,6 +1655,109 @@ function buildView(host, dotnet) {
         dotnet.invokeMethodAsync("OnPicked", hit ? hit.key : null, additive);
     });
 
+    // ---- hover and direct dragging ----------------------------------------------------------------
+    // What is under the pointer gets a thin outline and a hand cursor, so it is clear what a click
+    // will pick. With moving on (a gizmo mode set), the selected piece can be dragged straight across
+    // the floor; hold Alt to drag it up and down instead. The drop is staged like a gizmo move.
+    const hoverMaterial = new THREE.LineBasicMaterial({ color: 0x7fd8ff, depthTest: false, transparent: true, opacity: 0.85 });
+    const hoverLine = new THREE.LineSegments(edgesGeometry, hoverMaterial);
+    hoverLine.matrixAutoUpdate = false;
+    hoverLine.renderOrder = 9;
+    hoverLine.visible = false;
+    scene.add(hoverLine);
+    let hoverKey = null, hoverQueued = false, hoverAt = null;
+    let drag = null; // { idx, plane, offset, vertical }
+
+    function setHover(o) {
+        const key = o ? o.key : null;
+        renderer.domElement.style.cursor = drag ? "grabbing" : o ? (canDrag(o) ? "grab" : "pointer") : "";
+        if (key === hoverKey) return;
+        hoverKey = key;
+        hoverLine.visible = !!o && !selectedKeys.has(key);
+        if (o) boxMatrix(hoverLine.matrix, o);
+        hoverLine.matrixWorldNeedsUpdate = true;
+        requestRender();
+    }
+
+    let draggable = false; // set by the editor: Edit mode is on and the selected piece may move
+    function canDrag(o) {
+        return draggable && o && o.key === selectedKey && selectedKeys.size === 1 && !walkOn;
+    }
+
+    renderer.domElement.addEventListener("pointermove", e => {
+        if (drag) { dragTo(e); return; }
+        if (walkOn || e.buttons) return;
+        hoverAt = [e.clientX, e.clientY];
+        if (hoverQueued) return;
+        hoverQueued = true;
+        requestAnimationFrame(() => {
+            hoverQueued = false;
+            if (!hoverAt || drag) return;
+            setHover(pick(hoverAt[0], hoverAt[1]));
+        });
+    });
+    renderer.domElement.addEventListener("pointerleave", () => { hoverAt = null; if (!drag) setHover(null); });
+
+    renderer.domElement.addEventListener("pointerdown", e => {
+        if (e.button !== 0 || transform.dragging || transform.axis) return;
+        const o = pick(e.clientX, e.clientY);
+        if (!canDrag(o)) return;
+        const idx = keyToIndex.get(o.key);
+        const at = new THREE.Vector3(o.p[0], o.p[1], o.p[2]);
+        const vertical = e.altKey;
+        const normal = vertical ? camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize().negate() : new THREE.Vector3(0, 1, 0);
+        if (vertical && normal.lengthSq() < 1e-6) normal.set(0, 0, 1);
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, at);
+        const hit = planeHit(e, plane);
+        if (!hit) return;
+        drag = { idx, plane, offset: at.clone().sub(hit), vertical, moved: false };
+        controls.enabled = false;
+        downAt = null; // not a click
+        renderer.domElement.setPointerCapture(e.pointerId);
+        setHover(o);
+        e.stopImmediatePropagation();
+    }, true);
+
+    function planeHit(e, plane) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -(((e.clientY - rect.top) / rect.height) * 2 - 1));
+        raycaster.setFromCamera(pointer, camera);
+        return raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+    }
+
+    function dragTo(e) {
+        const hit = planeHit(e, drag.plane);
+        if (!hit) return;
+        const o = objects[drag.idx];
+        const next = hit.add(drag.offset);
+        if (drag.vertical) next.set(o.p[0], next.y, o.p[2]);
+        else next.y = o.p[1];
+        o.p = [next.x, next.y, next.z];
+        drag.moved = true;
+        proxy.position.set(o.p[0], o.p[1], o.p[2]);
+        proxy.quaternion.set(o.q[0], o.q[1], o.q[2], o.q[3]);
+        updateOneInstance(drag.idx);
+        if (hoverLine.visible) { boxMatrix(hoverLine.matrix, o); hoverLine.matrixWorldNeedsUpdate = true; }
+    }
+
+    window.addEventListener("pointerup", () => {
+        if (!drag) return;
+        const moved = drag.moved;
+        drag = null;
+        controls.enabled = !walkOn;
+        renderer.domElement.style.cursor = "grab";
+        if (moved && selectedKey !== null) {
+            const prev = gizmoMode;
+            gizmoMode = "translate";
+            commitGizmo();
+            gizmoMode = prev;
+        }
+    });
+
+    window.addEventListener("keydown", e => {
+        if (e.key === "Escape" && !walkOn && !isTyping(e)) dotnet.invokeMethodAsync("OnEscapePressed").catch(() => { });
+    });
+
     // Double-click a spot to orbit around it and move in closer: the quick way to look at a detail.
     renderer.domElement.addEventListener("dblclick", e => {
         if (walkOn) return;
@@ -1960,6 +2066,8 @@ function buildView(host, dotnet) {
         /** Replaces the whole selection: every selected key, and which one is primary (gizmo and inspector). */
         setSelection(keys, primary) { setSelection(keys, primary); },
         setLabels(on) { labelsOn = !!on; requestRender(); },
+        /** Whether the selected piece may be dragged in the view (Edit mode on and the piece is movable). */
+        setDraggable(on) { draggable = !!on; },
         /** mode: null | "translate" | "rotate". */
         setGizmo(mode) { gizmoMode = mode; attachGizmo(); requestRender(); },
         /**

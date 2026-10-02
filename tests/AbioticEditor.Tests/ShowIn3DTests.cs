@@ -120,6 +120,23 @@ public sealed class ShowIn3DTests
     }
 
     [Fact]
+    public void Pieces_can_be_dragged_in_edit_mode_and_the_view_goes_full_screen()
+    {
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("setDraggable(on) { draggable = !!on; },", js, StringComparison.Ordinal);
+        Assert.Contains("function dragTo(e)", js, StringComparison.Ordinal);
+        Assert.Contains("hoverLine", js, StringComparison.Ordinal); // what a click will pick is outlined
+        Assert.Contains("list.length === 1 ? 0.6 : 2.5", js, StringComparison.Ordinal); // one piece fills the view
+        var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
+        Assert.Contains("SelectedIsMovable", tab, StringComparison.Ordinal);
+        Assert.Contains("_moveOptIn && _selected.Count <= 1 && SelectedObject is { DeployedByPlayer: true", tab, StringComparison.Ordinal); // only player-built, only in Edit mode
+        Assert.Contains("data-b3d=\"fullscreen\"", tab, StringComparison.Ordinal);
+        Assert.Contains("public Task OnEscapePressed()", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"level-card\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"edit-quick\"", tab, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_two_Dr_Cahn_placements_are_told_apart_by_area()
     {
         var registry = GameDataRegistry.LoadBundled();
