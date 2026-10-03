@@ -1,5 +1,21 @@
 # Abiotic Editor - Session history
 
+## Round-163: verify and clean up older Nexus versions (2026-10-03)
+
+- Both platform uploads now read back their file history and explicitly archive any
+  predecessor left unarchived by the upload action. Cleanup uses the supplied Nexus
+  browser archive endpoint with game-scoped file IDs and verifies the result afterward.
+  It preserves the uploaded version, newer versions, and other platform/file histories.
+  Separate legacy file groups outside the configured histories are not swept.
+- Cleanup first verifies the configured file belongs to Abiotic Factor mod 244.
+  It requires the NEXUSMODS_SESSION_COOKIE repository secret only when leftovers exist.
+  The value is the signed-in browser's Cookie header; it is never printed. Redirects
+  are blocked. Missing/expired credentials or unarchived readback fail the upload job.
+- Verified: nine Python checks for selection, decimal ordering, archive requests,
+  credentials and readback; workflow YAML and both job connections; git whitespace.
+  Live cookie authentication and archive behavior remain unverified. No Nexus mutation
+  or push was performed.
+
 ## Round-162: Windows Nexus primary download (2026-10-03)
 
 - Windows Nexus uploads now explicitly select the uploaded version as the primary

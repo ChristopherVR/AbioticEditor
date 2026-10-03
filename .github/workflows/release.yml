@@ -26,6 +26,10 @@ name: Release
 #      versions. Both need the NEXUSMODS_API_KEY secret; the Windows file uses the
 #      NEXUS_APP_FILE_ID variable and Linux/Proton uses NEXUS_PROTON_FILE_ID. Each upload
 #      is skipped independently when its file id or the shared secret is absent.
+#      Post-upload cleanup verifies every predecessor in that platform's file history.
+#      If Nexus leaves any active, its browser archive endpoint needs the separate
+#      NEXUSMODS_SESSION_COOKIE secret (the signed-in browser's Cookie header).
+#      Missing/expired session credentials or failed archive readback fail the job.
 #   7b. The Game Models for 3D View plugin is built into every desktop package
 #      (plugins/GameModels3D next to the executable, see AbioticEditor.Web.csproj), with the
 #      native animation decoder on Windows (build-natives-windows) and Linux (built in-job).
@@ -1259,6 +1263,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload Windows host to NexusMods
+        id: upload
         if: steps.gate.outputs.enabled == 'true'
         uses: Nexus-Mods/upload-action@v1.0.0-beta.10
         with:
@@ -1271,6 +1276,23 @@ jobs:
           category: main
           primary_mod_manager_download: true
           archive_existing_version: true
+
+      - name: Check out release tools
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          path: release-tools
+          persist-credentials: false
+
+      - name: Archive leftover Windows versions and verify
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+          NEXUSMODS_SESSION_COOKIE: ${{ secrets.NEXUSMODS_SESSION_COOKIE }}
+          FILE_ID: ${{ vars.NEXUS_APP_FILE_ID }}
+          UPLOADED_ID: ${{ steps.upload.outputs.version_id }}
+        run: python3 release-tools/tools/verify-nexus-archives.py "$FILE_ID" "$UPLOADED_ID"
 
   # Publish the self-contained Linux Razor host to the NexusMods page as its own
   # Linux / Steam Deck (Proton saves) file. This is the same smoke-tested archive attached
@@ -1352,6 +1374,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload Linux / Steam Deck host to NexusMods
+        id: upload
         if: steps.gate.outputs.enabled == 'true'
         uses: Nexus-Mods/upload-action@v1.0.0-beta.10
         with:
@@ -1370,6 +1393,23 @@ jobs:
           # Keep Windows primary even when this independent upload finishes last.
           primary_mod_manager_download: false
           archive_existing_version: true
+
+      - name: Check out release tools
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          path: release-tools
+          persist-credentials: false
+
+      - name: Archive leftover Linux versions and verify
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+          NEXUSMODS_SESSION_COOKIE: ${{ secrets.NEXUSMODS_SESSION_COOKIE }}
+          FILE_ID: ${{ vars.NEXUS_PROTON_FILE_ID }}
+          UPLOADED_ID: ${{ steps.upload.outputs.version_id }}
+        run: python3 release-tools/tools/verify-nexus-archives.py "$FILE_ID" "$UPLOADED_ID"
 
   # Pack the library packages off the new tag and push them to nuget.org.
   # AbioticEditor.Plugins.Abstractions is what plugin authors compile against;
