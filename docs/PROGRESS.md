@@ -1,5 +1,17 @@
 # Abiotic Editor - Session history
 
+## Round-162: Windows Nexus primary download (2026-10-03)
+
+- Windows Nexus uploads now explicitly select the uploaded version as the primary
+  mod-manager download. Linux uploads explicitly leave that selection off, including
+  when the independent Linux job finishes after Windows.
+- Verified the pinned official upload action supports and sends this setting through
+  its API-key-authenticated version-creation API. No browser session credentials or
+  hard-coded uploaded version IDs are needed.
+- Verification: release workflow YAML parsed, both platform settings checked, and git
+  whitespace verification passed. The live Nexus result remains to be verified on the
+  next release. No upload or push was performed.
+
 ## Round-161: respawn anchors, pet controls and inspector pictures (2026-10-03)
 
 - Respawn-station relocation now uses the game's rotated SitSpots component position rather

@@ -1168,10 +1168,10 @@ jobs:
   # job no-ops (a warning, not a failure), so the rest of the release still ships.
   #
   # archive_existing_version: true moves the prior version into the file's archive
-  # when the new one lands, which is what keeps older releases around but not the
-  # primary download. Depends only on `build-web-win` (not `publish`), so the Windows
-  # upload runs as soon as the host zip is ready and never waits for the CLI legs or the
-  # GitHub Release; it downloads the app artifact directly rather than off the release.
+  # when the new one lands. primary_mod_manager_download selects the newly uploaded
+  # Windows version as the primary download. Depends only on `build-web-win` (not
+  # `publish`), so the upload runs as soon as the host zip is ready and never waits
+  # for the CLI legs or the GitHub Release; it downloads the app artifact directly.
   #
   # NOTE: the action is in open beta; pin bumps to a newer v1.0.0-beta.* tag as they ship.
   nexus:
@@ -1269,6 +1269,7 @@ jobs:
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Windows)
           description: ${{ steps.changelog.outputs.body }}
           category: main
+          primary_mod_manager_download: true
           archive_existing_version: true
 
   # Publish the self-contained Linux Razor host to the NexusMods page as its own
@@ -1366,6 +1367,8 @@ jobs:
           display_name: AbioticEditor v${{ needs.version.outputs.version }} (Linux)
           description: ${{ steps.changelog.outputs.body }}
           category: main
+          # Keep Windows primary even when this independent upload finishes last.
+          primary_mod_manager_download: false
           archive_existing_version: true
 
   # Pack the library packages off the new tag and push them to nuget.org.
