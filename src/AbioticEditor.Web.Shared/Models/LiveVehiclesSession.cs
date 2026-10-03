@@ -56,7 +56,7 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
         Vehicles = directory.Vehicles
             .Select(v => new WorldVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked,
                 v.X, v.Y, v.Z, QuatX: 0, QuatY: 0, QuatZ: 0, QuatW: 1,
-                InventoryItemCount: v.InventoryItemCount, HasInventory: v.HasInventory, ContainerId: v.ContainerId))
+                InventoryItemCount: v.InventoryItemCount, HasInventory: v.HasInventory, ContainerId: v.ContainerId, SavedRegion: v.Region))
             .ToList();
         IsHost = directory.IsHost;
         Changed?.Invoke();

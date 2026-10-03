@@ -40,7 +40,7 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         var pets = (wire.Pets ?? [])
             .Select(p => new LivePet(p.Id, p.NpcClass, p.IsDead, p.CustomName, p.X, p.Y, p.Z,
-                p.LimbHealth ?? new Dictionary<string, double>(), p.Xp, p.Matched))
+                p.LimbHealth ?? new Dictionary<string, double>(), p.Xp, p.Matched, p.ActorPath, p.Region))
             .ToList();
         return new LivePetDirectory(pets, wire.IsHost, wire.Available, wire.Reason,
             wire.SupportsSpeciesChange, wire.SupportsRemoval);
@@ -75,7 +75,7 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
     private sealed record DirectoryWire(IReadOnlyList<PetWire>? Pets, bool IsHost, bool Available, string? Reason,
         bool SupportsSpeciesChange, bool SupportsRemoval);
     private sealed record PetWire(string Id, string? NpcClass, bool IsDead, string? CustomName,
-        double X, double Y, double Z, Dictionary<string, double>? LimbHealth, int Xp, bool Matched = true);
+        double X, double Y, double Z, Dictionary<string, double>? LimbHealth, int Xp, bool Matched = true, string? ActorPath = null, string? Region = null);
     private sealed record SetWire(string Id, bool IsDead, string? CustomName, int Xp,
         IReadOnlyDictionary<string, double> LimbHealth, string? NpcClass = null);
     private sealed record SetResultWire(IReadOnlyList<string>? Warnings);
@@ -97,7 +97,7 @@ public sealed record LivePetSetResult(IReadOnlyList<string> Warnings);
 /// /<paramref name="Xp"/> are always null/0 - the class exposes neither field to read or write.</summary>
 public sealed record LivePet(string Id, string? NpcClass, bool IsDead, string? CustomName,
     double X, double Y, double Z, IReadOnlyDictionary<string, double> LimbHealth, int Xp,
-    bool Matched = true);
+    bool Matched = true, string? ActorPath = null, string? Region = null);
 
 /// <summary>Every live pet row found (matched and unmatched - see <see cref="LivePet.Matched"/>),
 /// whether this process has host authority, and whether pet editing is available at all (always

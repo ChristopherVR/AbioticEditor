@@ -28,6 +28,17 @@ public static class PlainNames
     /// <c>Office_TalkedToWarren</c> becomes "Office Talked To Warren". Returns an empty
     /// string for nothing. Plain numbers are already readable and come back untouched.
     /// </summary>
+    public static string Corpse(string key)
+    {
+        var cls = WorldThumbnails.ClassOf(key);
+        if (!cls.StartsWith("CharacterCorpse_", StringComparison.OrdinalIgnoreCase)) return Words(cls);
+        cls = cls["CharacterCorpse_".Length..];
+        foreach (var suffix in new[] { "_C", "_ParentBP", "_BP" })
+            if (cls.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) cls = cls[..^suffix.Length];
+        var words = Words(cls);
+        return words.StartsWith("Order ", StringComparison.Ordinal) ? "Order - " + words[6..] : words;
+    }
+
     public static string Words(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;

@@ -19,7 +19,7 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         var vehicles = (wire.Vehicles ?? [])
             .Select(v => new LiveVehicle(v.Id, v.VehicleId, v.VehicleClass, v.Driveable, v.Wrecked, v.X, v.Y, v.Z,
-                v.ContainerId, v.HasInventory, v.InventoryItemCount))
+                v.ContainerId, v.HasInventory, v.InventoryItemCount, v.Region))
             .ToList();
         return new LiveVehicleDirectory(vehicles, wire.IsHost, wire.SupportsWreckedState);
     }
@@ -35,7 +35,7 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
 
     private sealed record DirectoryWire(IReadOnlyList<VehicleWire>? Vehicles, bool IsHost, bool SupportsWreckedState);
     private sealed record VehicleWire(string Id, string? VehicleId, string? VehicleClass, bool Driveable, bool Wrecked,
-        double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0);
+        double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0, string? Region = null);
     private sealed record SetWire(string Id, bool? Driveable, bool? Wrecked, double? X, double? Y, double? Z);
 }
 
@@ -49,7 +49,7 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
 /// unchanged; see <c>vehicles.lua</c>'s own header comment for how this was confirmed from the
 /// game's own class layout, not guessed.</summary>
 public sealed record LiveVehicle(string Id, string? VehicleId, string? VehicleClass, bool Driveable, bool Wrecked,
-    double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0);
+    double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0, string? Region = null);
 
 /// <summary>Every loaded vehicle, whether this process has host authority to change them, and
 /// whether the wrecked/destroyed state can be edited live (yes, since round 77 - grounded in

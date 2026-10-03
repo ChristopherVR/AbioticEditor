@@ -368,7 +368,8 @@
     {
         _storyWikiFile = null;
         _storyWikiLoading = false;
-        var candidates = HologramPortraitCatalog.CandidatesFor(CharacterName(npc));
+        var candidates = HologramPortraitCatalog.CandidatesFor(npc.ActorName);
+        if (candidates.Count == 0) candidates = HologramPortraitCatalog.CandidatesFor(CharacterName(npc));
         if (candidates.Count == 0) return;
         _storyWikiLoading = true;
         var selected = npc.Id;

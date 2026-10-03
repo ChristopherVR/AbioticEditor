@@ -14,7 +14,15 @@ return function(H)
         K2_TeleportTo = function(self, location) rawget(self, "__methods").K2_GetActorLocation = function() return { X = location.X, Y = location.Y, Z = location.Z } end return true end,
     }))
 
+    H.world.static("/Script/AbioticFactor.Default__LevelStreamingCustom", H.object("LevelStreamingCustom", {}, {
+        GetActorLevelName = function(_, context, actor)
+            H.eq(context, forklift, "actor supplies the world context")
+            H.eq(actor, forklift, "save region resolves the vehicle actor")
+            return "Facility_DF_Central"
+        end,
+    }))
     local list = H.ok(H.dispatch("vehicles.list"), "vehicles.list")
+    H.eq(list.vehicles[1].region, "Facility_DF_Central", "native save section is reported independently of the persistent actor path")
     H.eq(#list.vehicles, 1, "one vehicle"); H.eq(list.supportsWreckedState, true, "wrecked state supported live (round 77 PendingDestroy path)")
     H.eq(list.vehicles[1].vehicleId, "Forklift_01", "vehicle id converted from FString")
     H.eq(list.vehicles[1].driveable, true, "driveable read")

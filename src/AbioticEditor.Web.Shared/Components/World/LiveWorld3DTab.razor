@@ -16,6 +16,7 @@
         <label class="wt-check"><input type="checkbox" checked="@_levelOn" @onchange="e => SetLevelAsync(e.Value is true)" />@L.Resource("World3D_LevelShow")</label>
         <small class="wt-muted">@_progress</small>
     </div>
+    @if (_loading) { <p class="wt-muted" role="status">Loading the 3D view...</p> }
     <div class="live3d-layout">
         <div class="b3d-stage"><div class="live3d-canvas" data-b3d="canvas" @ref="_host"></div></div>
         <aside class="live3d-inspector" data-b3d="inspect-pane">
@@ -70,7 +71,7 @@
     private LiveDeployedCareSession? _gardenCare;
     private WorldMapEntry? _entry;
     private string? _featureId, _selected, _vehicleId, _recallStation, _error, _progress;
-    private bool _levelOn = true, _disposed, _refreshing;
+    private bool _levelOn = true, _disposed, _refreshing, _loading = true;
     private LiveBasesSession? _subscribed;
 
     protected override void OnParametersSet()
@@ -87,20 +88,31 @@
         if (_disposed) return;
         if (firstRender)
         {
-            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
-            _self = DotNetObjectReference.Create(this);
-            _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self);
-            _fit = await _module.InvokeAsync<IJSObjectReference>("fitToWindow", _root);
-            await RefreshSceneAsync();
-            await _view.InvokeVoidAsync("setModelsEnabled", true);
-            if (PlayerPosition is { } player)
+            try
             {
-                var p = PlacedSceneSpace.ToViewer(new PlacedVector(player.X, player.Y, player.Z));
-                await _view.InvokeAsync<bool>("focusPoint", new[] { p.X, p.Y, p.Z }, 9);
+                _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
+                if (_disposed) return;
+                _self = DotNetObjectReference.Create(this);
+                _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self);
+                if (_disposed) { await _view.InvokeVoidAsync("dispose"); await _view.DisposeAsync(); return; }
+                _fit = await _module.InvokeAsync<IJSObjectReference>("fitToWindow", _root);
+                await RefreshSceneAsync();
+                await _view.InvokeVoidAsync("setModelsEnabled", true);
+                if (PlayerPosition is { } player)
+                {
+                    var p = PlacedSceneSpace.ToViewer(new PlacedVector(player.X, player.Y, player.Z));
+                    await _view.InvokeAsync<bool>("focusPoint", new[] { p.X, p.Y, p.Z }, 9);
+                }
+                else await FrameAsync();
+                await SetLevelAsync(_levelOn);
             }
-            else await FrameAsync();
-            await SetLevelAsync(_levelOn);
+            catch (Exception ex) when (ex is JSException or InvalidOperationException or TaskCanceledException)
+            {
+                if (!_disposed) _error = Errors.Present(ex, "Open the 3D view.", "Try opening the view again.");
+            }
+            finally { _loading = false; if (!_disposed) StateHasChanged(); }
         }
+        if (_disposed) return;
         if (_view is not null && !ReferenceEquals(_seenBase, FocusBase))
         {
             _seenBase = FocusBase;
@@ -116,7 +128,7 @@
     private async Task RefreshSceneAsync()
     {
         if (_view is null || _disposed) return;
-        var objects = Bases.SceneObjects.Where(o => Live.IsActorInCurrentRegion(o.Key)).ToList();
+        var objects = Bases.SceneObjects.Where(o => Live.IsActorInCurrentRegion(o.Key, Bases.RegionFor(o.Key))).ToList();
         if (_gardenCare?.MapFeature("garden-plots") is { } gardens)
         {
             foreach (var garden in gardens.Entries)
@@ -129,7 +141,7 @@
             }
         }
         if (Vehicles is not null)
-            objects.AddRange(Base3DScene.Build([], _ => null, vehicles: Vehicles.Vehicles.Where(v => Live.IsActorInCurrentRegion(v.Id))).Objects);
+            objects.AddRange(Base3DScene.Build([], _ => null, vehicles: Vehicles.Vehicles.Where(v => Live.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion))).Objects);
         await _view.InvokeVoidAsync("setScene", objects);
     }
     private static readonly string[] GrowthStages = ["Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead"];
@@ -252,7 +264,22 @@
         var colon = actor.IndexOf(':', StringComparison.Ordinal);
         if (colon > 0) await PickFeatureAsync(actor[..colon], actor[(colon + 1)..]);
     }
-    [JSInvokable] public Task OnModelProgress(string kind, int done, int total, string? note) { _progress = total > done ? $"{kind}: {done}/{total}" : null; StateHasChanged(); return Task.CompletedTask; }
+    [JSInvokable] public Task OnModelProgress(string kind, int done, int total, string? note)
+    {
+        if (_disposed) return Task.CompletedTask;
+        _progress = kind == "level" ? note switch
+        {
+            "query" => L.Resource("World3D_LevelQuerying"),
+            "meshes" => L.Resource("World3D_LevelMeshesFormat", done, total),
+            "textures" => L.Resource("World3D_LevelTextures"),
+            "none" => L.Resource("World3D_LevelNone"),
+            "error" => L.Resource("World3D_LevelError"),
+            _ when total > 0 => L.Resource("World3D_LevelReadingFormat", done, total),
+            _ => L.Resource("World3D_LevelShownFormat", done),
+        } : total > done ? $"{kind}: {done}/{total}" : null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
     [JSInvokable] public Task OnWalkEnded() => Task.CompletedTask;
     [JSInvokable] public Task OnEscapePressed() => OnPicked(null, false);
     public async ValueTask DisposeAsync()
@@ -261,11 +288,11 @@
         if (_subscribed is not null) _subscribed.Changed -= Changed;
         try
         {
-            if (_fit is not null) { await _fit.InvokeVoidAsync("dispose"); await _fit.DisposeAsync(); }
+            if (_fit is not null) { await _fit.InvokeVoidAsync("stop"); await _fit.DisposeAsync(); }
             if (_view is not null) { await _view.InvokeVoidAsync("dispose"); await _view.DisposeAsync(); }
             if (_module is not null) await _module.DisposeAsync();
         }
-        catch (JSDisconnectedException) { }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) { }
         _self?.Dispose();
     }
 }

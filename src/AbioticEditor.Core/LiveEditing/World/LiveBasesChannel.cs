@@ -32,7 +32,7 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
         var deployables = (wire.Deployables ?? [])
             .Select(d => new LiveDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.CustomName, d.HasInventory,
                 d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades,
-                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW))
+                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW, d.Region))
             .ToList();
         return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval);
     }
@@ -61,7 +61,7 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
     private sealed record DeployableWire(string Id, string ClassName, double X, double Y, double Z,
         string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
         IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades, int? PaintColor,
-        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1);
+        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null);
     private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled, int? PaintColor);
 }
 
@@ -76,7 +76,7 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
 public sealed record LiveDeployable(string Id, string ClassName, double X, double Y, double Z,
     string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
     IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false, int? PaintColor = null,
-    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1);
+    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null);
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see

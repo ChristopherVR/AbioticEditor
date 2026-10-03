@@ -37,7 +37,9 @@ public sealed record WorldPet(
     IReadOnlyDictionary<string, double> LimbHealth,
     int Xp,
     string? State,
-    bool Matched = true)
+    bool Matched = true,
+    string? ActorPath = null,
+    string? Region = null)
 {
     /// <summary>
     /// The class tail without the <c>_C</c> suffix, e.g. <c>NPC_Monster_Pest_Electro</c>.

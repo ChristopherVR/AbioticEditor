@@ -20,44 +20,18 @@
 -- rows are actually pets happens on the .NET side (PetItemCatalog.IsPetItem), same division of
 -- labor the file reader already uses (game-data catalogs live in Core, not in the mod).
 --
--- Round-78 bug fix (reported live: "removing a pet from a player leaves the pet standing next to
--- them, unable to be picked up"): equip slot 12 is the active Companion slot - the ONE slot the
--- game visibly spawns a live, in-world follower actor for (see PlayerCompanions.cs's own remarks).
--- Clearing that slot used to only ever write the inventory struct back to "Empty", which desyncs
--- the follower actor from its now-empty backing item instead of despawning it - the actor stays
--- there, still walking around, uninteractable. LiveClassPropsProbe's class dump
--- (NPC_Monster_Pest.uasset) found the fix: NPC_Monster_Pest_C (and its subclass
--- NPC_Skink_Basic_C) carries its own `FollowingOwner : FObjectProperty` - a direct reference to
--- the player it is currently following - so clearing the Companion slot can now find the matching
--- live follower (by comparing GetFullName() strings, the same object-identity technique
--- ctx.findByFullName already uses) and destroy it with `K2_DestroyActor()`, the same standard
--- AActor function the reference CheatConsoleCommands mod's own "deleteobject" console command
--- already uses on an arbitrary world actor (CommandsManager.lua). FollowingOwner was only
--- confirmed live on the Pest/Skink family at the time, so a Peccary/WinterSprite companion could
--- not be matched and might still be left behind.
---
--- Round-79: re-checked whether that gap could be widened, against the installed game's own class
--- data (LiveClassPropsProbe, run 2026-09-16 with LIVE_CLASS_PROBE_OUT against the mounted paks -
--- see tests/AbioticEditor.Probes/LiveClassPropsProbe.cs, fragments "NPC_Monster_Peccary.",
--- "NPC_Monster_WinterSprite"). The dump is conclusive, not a guess: both
--- NPC_Monster_Peccary_C and NPC_Monster_WinterSprite_C declare `super=NPC_Base_ParentBP_C`
--- directly (NOT a subclass of NPC_Monster_Pest_C, unlike Skink), and NEITHER their own declared
--- properties NOR NPC_Base_ParentBP_C's ~150 inherited properties include FollowingOwner, Guid,
--- PetName, or DynamicProperties, or any other player-identity reference. There is no live object-
--- identity path to a Peccary/Lamogi companion's owning player anywhere in the class hierarchy
--- today - this is a confirmed, hard limit of the current game build, not an unexplored one. A
--- future safe approach would need the game itself to add an equivalent owner reference to those
--- classes (matching pets.lua's own note on why this project refuses to guess at constructing one).
---
--- What DID change this round: FOLLOWER_FAMILY_CLASSES below now lists NPC_Skink_Basic_C
--- explicitly alongside NPC_Monster_Pest_C. NPC_Monster_Pest_C already hierarchy-matches every
--- Pest variant AND NPC_Skink_Basic_C (FindAllOf is hierarchy-inclusive - confirmed above and by
--- bases.lua/containers.list scanning the same way, and by this same probe run: NPC_Skink_Basic_C
--- declares `super=NPC_Monster_Pest_C`), so this makes no functional difference today - it only
--- protects against that one hierarchy fact ever changing, and is covered by its own Lua harness
--- case (tests/cases/companions.lua) matching a Skink actor by its own class name rather than by
--- falling through the Pest search.
+-- Changes notify CurrentInventory replication and its RepNotify listeners, matching inventory.set.
+-- New pet items get a unique AssetID and initialized dynamic state from the desktop channel,
+-- plus reflected XP/mutation entries just like the file writer. Otherwise equip/pickup can
+-- retain a stale companion item alongside the returned hotbar pet.
+-- Clearing the active equipment slot destroys the player's exact Companion ObjectProperty
+-- (verified in the player blueprint), with FollowingOwner matching as a fallback.
 return function(ctx)
+    local replication = require("replication")
+    local function notifyInventory(inv)
+        if replication.available() then replication.mark(replication.requireHelper(), inv, "CurrentInventory") end
+        pcall(function() inv:OnRep_CurrentInventory() end)
+    end
     local PET_KINDS = { "equip", "hotbar", "backpack" }
     local COMPANION_SLOT_KIND, COMPANION_SLOT_INDEX = "equip", 12
     local FOLLOWER_FAMILY_CLASSES = {
@@ -65,9 +39,7 @@ return function(ctx)
                                -- variant and NPC_Skink_Basic_C (see header above).
         "NPC_Skink_Basic_C",  -- Skink family root, listed explicitly for robustness against that
                                -- inheritance relationship ever changing (redundant today).
-        -- Peccary and Lamogi/WinterSprite are deliberately NOT listed: confirmed this round
-        -- (see header above) to expose no owner-identity field at all, so searching their
-        -- classes here could never find a match - it would just be dead code dressed up as a fix.
+        -- Families without FollowingOwner use the player's exact Companion reference instead.
     }
 
     -- Finds the live follower actor for `player` across every known pet family root
@@ -76,6 +48,13 @@ return function(ctx)
     -- the caller still clears the inventory slot as before.
     local function despawnFollowerFor(player)
         if not player then return false end
+        -- The player's Companion ObjectProperty names the exact spawned companion, including
+        -- families with no FollowingOwner. Verified in live-item-classes.txt's player layout.
+        local okCompanion, companion = pcall(function() return player.Companion end)
+        if okCompanion and companion and companion:IsValid() then
+            local removed = pcall(function() companion:K2_DestroyActor() end)
+            if removed then return true end
+        end
         local playerName = ctx.fullName(player)
         if not playerName then return false end
         for _, familyClass in ipairs(FOLLOWER_FAMILY_CLASSES) do
@@ -94,6 +73,14 @@ return function(ctx)
     -- Unverified against the real game (no mod precedent) - reads one int keyed by an
     -- EDynamicProperty enum tail, matching PlayerSaveReader.ReadSlotDynamicInt's own "ends with
     -- ::<suffix>" match against the enum's ToString().
+    local function dynamicKeyString(keyValue)
+        if type(keyValue) == "number" then
+            local enum = StaticFindObject("/Script/AbioticFactor.EDynamicProperty")
+            return enum:GetNameByValue(keyValue):ToString()
+        end
+        return keyValue.ToString and keyValue:ToString() or tostring(keyValue)
+    end
+
     local function dynamicInt(changeableData, keySuffix)
         local ok, array = pcall(function() return changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 end)
         if not ok or not array then return 0 end
@@ -101,7 +88,7 @@ return function(ctx)
             local okEntry, key, value = pcall(function()
                 local entry = array[i]
                 local keyValue = entry.Key
-                local keyString = keyValue.ToString and keyValue:ToString() or tostring(keyValue)
+                local keyString = dynamicKeyString(keyValue)
                 return keyString, entry.Value
             end)
             if okEntry and key and tostring(key):match(keySuffix .. "$") then return value or 0 end
@@ -109,10 +96,7 @@ return function(ctx)
         return 0
     end
 
-    -- Sets one int in place; does nothing when the slot has no existing entry for that key -
-    -- matching the file writer's own refusal to fabricate a new DynamicProperties array element
-    -- from scratch with no template to clone (PetDynamicProperties.cs) - a live struct offers no
-    -- safer template-cloning trick than the file format already needed one for.
+    -- Sets or adds an integer using the reflected EDynamicProperty enum, following item_metadata.lua.
     local function setDynamicInt(changeableData, keySuffix, value)
         local ok, array = pcall(function() return changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 end)
         if not ok or not array then return false end
@@ -120,7 +104,7 @@ return function(ctx)
             local okEntry, matched = pcall(function()
                 local entry = array[i]
                 local keyValue = entry.Key
-                local keyString = keyValue.ToString and keyValue:ToString() or tostring(keyValue)
+                local keyString = dynamicKeyString(keyValue)
                 if tostring(keyString):match(keySuffix .. "$") then
                     entry.Value = value
                     return true
@@ -129,7 +113,18 @@ return function(ctx)
             end)
             if okEntry and matched then return true end
         end
-        return false
+        local okEnum, enum = pcall(function() return StaticFindObject("/Script/AbioticFactor.EDynamicProperty") end)
+        if not okEnum or not enum or not enum:IsValid() then return false end
+        local enumValue
+        enum:ForEachName(function(name, number)
+            if name:ToString() == "EDynamicProperty::" .. keySuffix then enumValue = number end
+        end)
+        if enumValue == nil then return false end
+        local replacement = {}
+        for i = 1, #array do replacement[#replacement + 1] = { Key = array[i].Key, Value = array[i].Value } end
+        replacement[#replacement + 1] = { Key = enumValue, Value = value }
+        changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = replacement
+        return true
     end
 
     ctx.handlers["companions.list"] = function(payload, respond)
@@ -193,21 +188,22 @@ return function(ctx)
             end
             if payload.clear then
                 -- "Empty" (confirmed live in round 74's inventory.set), not NAME_None.
-                slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName("Empty", EFindName.FNAME_Find)
-                changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
-                changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
-                changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
+                ctx.writeSlot(slot, { clear = true })
                 -- Round 78: clearing the active Companion slot also despawns its matching live
                 -- follower actor, when one can be found - see this file's own header comment.
                 local despawnedFollower = false
                 if payload.kind == COMPANION_SLOT_KIND and payload.slotIndex == COMPANION_SLOT_INDEX then
                     despawnedFollower = despawnFollowerFor(player)
                 end
+                notifyInventory(inv)
                 return { despawnedFollower = despawnedFollower }
             end
 
             ctx.writeSlot(slot, { itemId = payload.itemId, dataTable = payload.dataTable,
-                stack = payload.requireEmpty and 1 or nil })
+                stack = payload.requireEmpty and 1 or nil,
+                details = payload.requireEmpty and {
+                    dynamicState = true, assetId = payload.assetId,
+                } or nil })
             if payload.health ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = payload.health end
             if payload.maxHealth ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = payload.maxHealth end
             if payload.name ~= nil then
@@ -216,6 +212,7 @@ return function(ctx)
             if payload.xp ~= nil then setDynamicInt(changeableData, "XP", math.floor(payload.xp)) end
             if payload.mutationProgress ~= nil then setDynamicInt(changeableData, "MutationProgress", math.floor(payload.mutationProgress)) end
             if payload.petMutation ~= nil then setDynamicInt(changeableData, "PetMutation", math.floor(payload.petMutation)) end
+            notifyInventory(inv)
 
             return nil
         end, respond)

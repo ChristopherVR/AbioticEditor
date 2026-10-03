@@ -283,8 +283,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReferenceEquals(_boundSession, Session)) return;
-        _boundSession = Session;
+        var source = Session is LivePlayerEditorSession live ? live.RecipesSession : Session;
+        if (ReferenceEquals(_boundSession, source) && _rows is not null) return;
+        _boundSession = source;
         _rows = null;
         CloseOwnDetail();
         // Mounting the game paks is expensive; keep it off the render path (native rule).
@@ -296,12 +297,12 @@
         if (worldFlags is not null) Gate.Warm();
         var (infos, traders, itemUpgrades) = await Task.Run(
             () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
-        if (!ReferenceEquals(_boundSession, Session)) return;
+        if (!ReferenceEquals(_boundSession, Session is LivePlayerEditorSession current ? current.RecipesSession : Session)) return;
         _worldFlags = worldFlags;
         _traders = traders;
         _itemUpgrades = itemUpgrades;
         Session.EnsureRecipeRows(infos.Select(info => info.Id));
-        var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.Ordinal);
+        var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.OrdinalIgnoreCase);
         // A session that could not add rows (a live one whose connection dropped mid-way, so the
         // page still holds the placeholder) shows every recipe as locked rather than throwing.
         _rows = infos

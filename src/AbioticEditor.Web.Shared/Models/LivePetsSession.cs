@@ -60,7 +60,7 @@ public sealed class LivePetsSession : IWorldPetsSession
     {
         Pets = directory.Pets
             .Select(p => new WorldPet(p.Id, p.IsDead, p.NpcClass, p.X, p.Y, p.Z, p.CustomName, p.LimbHealth, p.Xp,
-                State: null, Matched: p.Matched))
+                State: null, Matched: p.Matched, ActorPath: p.ActorPath, Region: p.Region))
             .ToList();
         IsHost = directory.IsHost;
         IsAvailable = directory.Available;

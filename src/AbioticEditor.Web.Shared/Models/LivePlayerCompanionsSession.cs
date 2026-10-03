@@ -96,24 +96,10 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
     /// <summary>Clears <paramref name="pet"/>'s slot immediately and drops it from
     /// <see cref="CarriedPets"/> - there is no undo, unlike the file session's staged removal.
     ///
-    /// Round 78 (reported live: "removing a pet from a player leaves the pet standing next to
-    /// them, unable to be picked up"): the Companion equipment slot
-    /// (<see cref="CarriedPet.IsCompanionSlot"/>) used to be refused outright, because clearing it
-    /// only ever wrote the inventory slot struct back to "Empty" and left the game's own live
-    /// follower actor - the one it visibly spawns for that slot - standing there, desynced from
-    /// its now-empty backing item. <c>LiveClassPropsProbe</c>'s class dump found the fix instead:
-    /// Pest/Skink-family NPCs carry their own <c>FollowingOwner</c> reference, so
-    /// <c>companions.lua</c> can now find the actual matching follower and destroy it
-    /// (<c>K2_DestroyActor</c>, the same standard actor-destroy call the reference
-    /// CheatConsoleCommands mod's own "deleteobject" command already uses) before clearing the
-    /// slot - see that file's own remarks. Round 79 re-checked whether Peccary/Lamogi could be
-    /// added too, against the installed game's own class data: confirmed (not guessed) that
-    /// neither family exposes <c>FollowingOwner</c> or any other owner-identity field anywhere in
-    /// their class hierarchy, so this stays a Pest/Skink-only match - a real, verified limit of
-    /// the current game build. <see cref="LiveClearResult.DespawnedFollower"/> says whether a
-    /// match was found, so <see cref="Status"/> says so rather than claiming success it can't back
-    /// up. A pet merely carried in the hotbar/backpack (not the active follower) has no such live
-    /// actor, so clearing those slots is unaffected either way.</summary>
+    /// The agent destroys the player's exact Companion actor first, falling back to a
+    /// FollowingOwner match for older game builds. The inventory notification refreshes the
+    /// backing equipment state, so picking up a later companion does not retain a stale slot.
+    /// </summary>
     public async Task RemovePetAsync(CarriedPetEdit pet, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pet);
@@ -121,9 +107,7 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
             .ConfigureAwait(false);
         _pets.Remove(pet);
         Status = pet.IsCompanionSlot && !result.DespawnedFollower
-            ? "Removed live - but this pet's live follower couldn't be matched to despawn automatically " +
-              "(only Pest- and Skink-family companions can be, confirmed against the game's own class " +
-              "data); if it's still following you in-game, dismiss it there too."
+            ? "Removed from inventory. No active companion actor was found; refresh to check the game state."
             : "Removed live - this took effect in the running game immediately.";
         Changed?.Invoke();
     }

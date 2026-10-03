@@ -8,6 +8,7 @@
 @using AbioticEditor.Core.PlayerSaves
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Components.Shared
+@inject LiveSessionService LiveRegion
 @inject ItemCatalogService Catalog
 @inject RecipeVocabularyService Recipes
 @implements IDisposable
@@ -35,7 +36,7 @@
     }
     <p class="muted">@L.Resource("LiveChemistryBenches_Intro")</p>
 
-    @if (Session.Entries.Count == 0)
+    @if (OrderedEntries.Count == 0)
     {
         <p class="muted">@L.Resource("LiveChemistryBenches_NoneFound")</p>
     }
@@ -234,8 +235,11 @@
 
     private IReadOnlyList<LiveCareEntry> OrderedEntries
         => PlayerPosition is { } position
-            ? Session.Entries.OrderBy(bench => bench.DistanceTo(position.X, position.Y, position.Z)).ToList()
-            : Session.Entries;
+            ? RegionEntries.OrderBy(bench => bench.DistanceTo(position.X, position.Y, position.Z)).ToList()
+            : RegionEntries.ToList();
+
+    private IEnumerable<LiveCareEntry> RegionEntries => Session.Entries.Where(e =>
+        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(e.Id, e.Region));
 
     private bool _busy;
     private string? _error;

@@ -31,6 +31,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     public IReadOnlyList<WorldDeployable> Deployables { get; private set; } = [];
     public bool IsHost { get; private set; }
+    public string? RegionFor(string id) => _byId.GetValueOrDefault(id)?.Region;
     public IReadOnlyList<Base3DObject> SceneObjects
     {
         get

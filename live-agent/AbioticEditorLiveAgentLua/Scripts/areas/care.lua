@@ -107,6 +107,7 @@ return function(ctx)
                         -- features previously needed a real world position.
                         local x, y, z = ctx.actorLocation(obj)
                         table.insert(entries, { id = id, label = ctx.classLabel(id), fields = fieldsFor(feature, obj, host),
+                            region = ctx.actorRegion(obj),
                             containerId = feature == "chemistry-benches" and id or nil, x = x, y = y, z = z })
                     end
                 end

@@ -1,4 +1,5 @@
 @namespace AbioticEditor.Web.Components.World
+@inject LiveSessionService LiveRegion
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Core.Assets
@@ -21,7 +22,7 @@
         @if (InspectorVehicleId is null)
         {
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldVehicles_VehiclesInThisWorld")">
-            @if (Session.Vehicles.Count == 0)
+            @if (!RegionVehicles.Any())
             {
                 <p class="wt-empty">@L.Resource("WorldVehicles_NoVehiclesInThisSave")</p>
             }
@@ -168,6 +169,9 @@
         if (InspectorVehicleId is { } id && Session.Vehicles.FirstOrDefault(v => v.Id == id) is { } vehicle) Select(vehicle);
     }
 
+    private IEnumerable<WorldVehicle> RegionVehicles => Session.Vehicles.Where(v =>
+        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion));
+
     private string? _selectedId;
     private ActorTransform? _spawn;
     private bool _spawnResolved;
@@ -175,7 +179,7 @@
     private CancellationTokenSource? _selectionLoad;
 
     private IEnumerable<IGrouping<string, (WorldVehicle Item, string Key)>> VehicleGroups => RenderKeys
-        .With(Session.Vehicles, vehicle => vehicle.Id)
+        .With(RegionVehicles, vehicle => vehicle.Id)
         .GroupBy(pair => string.IsNullOrEmpty(pair.Item.Region) ? L.Resource("WorldVehicles_UnknownWorld") : PlainNames.Area(pair.Item.Region))
         .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
 

@@ -201,6 +201,7 @@ return function(ctx)
                     end
                     table.insert(result, {
                         id = name,
+                        region = ctx.actorRegion(obj),
                         className = ctx.classLabel(name),
                         classPath = classPath, quatX = qx, quatY = qy, quatZ = qz, quatW = qw,
                         x = x, y = y, z = z,

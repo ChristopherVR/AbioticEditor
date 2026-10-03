@@ -100,6 +100,7 @@ return function(ctx)
                     pcall(function() vehicleClass = obj:GetClass():GetFullName():gsub("^%S+ ", "") end)
                     table.insert(result, {
                         id = name,
+                        region = ctx.actorRegion(obj),
                         vehicleId = (okId and vehicleId ~= "") and vehicleId or nil,
                         vehicleClass = vehicleClass,
                         driveable = okDrive and driveable or false,

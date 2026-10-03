@@ -46,7 +46,7 @@
             @if (Session.CarriedPets.Count == 0 && PendingPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
             @foreach (var row in Session.CarriedPets)
             {
-                <button type="button" class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row ? "true" : "false")" @onclick="() => _selected = row">
+                <button type="button" class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row ? "true" : "false")" @onclick="() => _selected = row" @oncontextmenu="() => { _selected = row; _contextPet = row; }" @oncontextmenu:preventDefault>
                     <span class="pet-row-text"><strong>@row.DisplayName</strong><small>@SlotText(row)</small></span>
                     <span class="pet-row-status">@(StillInInventory(row) ? StatusText(row) : L.Resource("PlayerPets_StatusTakenOutPending"))</span>
                 </button>
@@ -69,6 +69,13 @@
         </div>
 
         <div class="pet-detail">
+            @if (_contextPet is { } contextPet)
+            {
+                <div class="editor-actions" role="menu" aria-label="Remove pet">
+                    <button type="button" role="menuitem" class="accent-alert" @onclick="() => ToggleDeleted(contextPet)">Remove entirely</button>
+                    <button type="button" @onclick="() => _contextPet = null">Cancel</button>
+                </div>
+            }
             @if (_selected is not { } pet)
             {
                 <p class="muted">@L.Resource("PlayerPets_SelectAPet")</p>
@@ -418,10 +425,13 @@
     private Task SetMutationProgress(CarriedPetEdit pet, int value) { pet.MutationProgress = value; return CommitAsync(pet); }
     private Task SetPetMutation(CarriedPetEdit pet, int value) { pet.PetMutation = value; return CommitAsync(pet); }
 
+    private CarriedPetEdit? _contextPet;
+
     /// <summary>Removes (file: stages, reversible) or clears (live: immediate, no undo - see
     /// <see cref="IPlayerCompanionsSession.RemovePetAsync"/>) a carried pet.</summary>
     private async Task ToggleDeleted(CarriedPetEdit pet)
     {
+        _contextPet = null;
         try
         {
             await Session.RemovePetAsync(pet);

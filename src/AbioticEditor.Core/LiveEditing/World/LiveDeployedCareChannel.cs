@@ -21,7 +21,7 @@ public sealed record LiveCareDirectory(IReadOnlyList<LiveCareEntry> Entries, boo
 /// the field), unlike WorldContainer's X/Y/Z which stay 0 for every non-live source instead.
 /// </summary>
 public sealed record LiveCareEntry(string Id, string Label, IReadOnlyList<LiveCareField> Fields, string? ContainerId = null,
-    double X = 0, double Y = 0, double Z = 0)
+    double X = 0, double Y = 0, double Z = 0, string? Region = null)
 {
     public double DistanceTo(double x, double y, double z) => Math.Sqrt((X - x) * (X - x) + (Y - y) * (Y - y) + (Z - z) * (Z - z));
 }

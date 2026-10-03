@@ -102,7 +102,7 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
         Status = (result.Removed, result.Stuck, idList.Count) switch
         {
             (0, 0, _) => "Already gone - someone else picked it up or it despawned first.",
-            (0, > 0, _) => "The game did not let go of it - it is still lying there.",
+            (0, > 0, _) => null,
             (_, > 0, _) => $"Removed {result.Removed} of {idList.Count} from the running game; the game kept {result.Stuck}.",
             (1, 0, 1) => "Removed from the running game.",
             _ => $"Removed {result.Removed} of {idList.Count} from the running game.",

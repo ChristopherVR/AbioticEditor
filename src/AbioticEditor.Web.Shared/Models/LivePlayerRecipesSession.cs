@@ -10,7 +10,7 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
 {
     private readonly LivePlayerRecipesChannel _channel;
     private readonly List<PlayerRecipeEdit> _recipes = [];
-    private readonly HashSet<string> _unlockedIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _unlockedIds = new(StringComparer.OrdinalIgnoreCase);
     private string? _playerId;
 
     private LivePlayerRecipesSession(LivePlayerRecipesChannel channel, string? playerId, IReadOnlyList<string> unlockedIds)
@@ -52,7 +52,7 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
 
     public void EnsureRecipeRows(IEnumerable<string> ids)
     {
-        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.Ordinal);
+        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var id in ids)
         {
             if (string.IsNullOrWhiteSpace(id) || !known.Add(id)) continue;
@@ -68,7 +68,7 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
             if (!CanLock) throw new InvalidOperationException("Relocking recipes requires an updated agent with host authority.");
             await _channel.LockAsync([recipeId], _playerId).ConfigureAwait(false);
             _unlockedIds.Remove(recipeId);
-            var row = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
+            var row = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.OrdinalIgnoreCase));
             if (row is not null) row.IsUnlocked = false;
             Status = null;
             Changed?.Invoke();
@@ -76,7 +76,7 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
         }
         await _channel.UnlockAsync([recipeId], _playerId).ConfigureAwait(false);
         _unlockedIds.Add(recipeId);
-        var existing = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
+        var existing = _recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.OrdinalIgnoreCase));
         if (existing is not null) existing.IsUnlocked = true;
         else _recipes.Add(new PlayerRecipeEdit(recipeId, true));
         Status = null;
@@ -92,10 +92,10 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     /// like from the player's side.</summary>
     public async Task SetUnlockedManyAsync(IEnumerable<string> recipeIds)
     {
-        var ids = recipeIds.Where(id => !string.IsNullOrWhiteSpace(id) && !_unlockedIds.Contains(id)).Distinct(StringComparer.Ordinal).ToArray();
+        var ids = recipeIds.Where(id => !string.IsNullOrWhiteSpace(id) && !_unlockedIds.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         if (ids.Length == 0) return;
         await _channel.UnlockAsync(ids, _playerId).ConfigureAwait(false);
-        var byId = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
+        var byId = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.OrdinalIgnoreCase);
         foreach (var id in ids)
         {
             _unlockedIds.Add(id);
@@ -125,7 +125,7 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
         CanLock = directory.CanLock;
         _unlockedIds.Clear();
         foreach (var id in unlocked) _unlockedIds.Add(id);
-        var known = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.Ordinal);
+        var known = _recipes.ToDictionary(recipe => recipe.Id, StringComparer.OrdinalIgnoreCase);
         foreach (var id in unlocked)
         {
             if (known.TryGetValue(id, out var edit)) edit.IsUnlocked = true;

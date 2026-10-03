@@ -89,6 +89,29 @@ public sealed class InspectorEditingTests
         Assert.False(live.IsActorInCurrentRegion("/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.Button_C_1"));
     }
 
+    [Theory]
+    [InlineData("NarrativeNPC_UnlostMage_C_1", "Mage_of_the_Unlost.png")]
+    [InlineData("NarrativeNPC_HammeringHank_C_1", "T_Compendium_Hank.png")]
+    [InlineData("NarrativeNPC_Exor_ParentBP_C_1", "Exor.png")]
+    public void Runtime_narrative_instances_have_portraits_even_without_a_cooked_name(string actor, string picture)
+        => Assert.Equal(picture, Assert.Single(HologramPortraitCatalog.CandidatesFor(actor)));
+
+    [Fact]
+    public void Runtime_actors_use_the_game_reported_section_instead_of_the_persistent_outer()
+    {
+        var live = new LiveSessionService();
+        live.SetCurrentRegion("Facility_DF_Central");
+        const string path = "/Game/Maps/Facility.Facility:PersistentLevel.Deployed_ChemistryBench_C_1";
+        Assert.True(live.IsActorInCurrentRegion(path, "Facility_DF_Central"));
+        Assert.False(live.IsActorInCurrentRegion(path, "Facility_DarkFusion"));
+    }
+
+    [Theory]
+    [InlineData("CharacterCorpse_OrderGrunt_C", "Order - Grunt")]
+    [InlineData("CharacterCorpse_Human_BP_C", "Human")]
+    public void Corpse_names_are_readable(string actor, string expected)
+        => Assert.Equal(expected, AbioticEditor.Web.Components.Shared.PlainNames.Corpse(actor));
+
     [Fact]
     public async Task Live_pet_add_prefers_the_empty_companion_slot_and_guards_against_overwrite()
     {
@@ -98,6 +121,7 @@ public sealed class InspectorEditingTests
         Assert.Equal(12, channel.Write.GetProperty("slotIndex").GetInt32());
         Assert.True(channel.Write.GetProperty("requireEmpty").GetBoolean());
         Assert.Equal("Sprout", channel.Write.GetProperty("name").GetString());
+        Assert.True(Guid.TryParseExact(channel.Write.GetProperty("assetId").GetString(), "N", out _));
         channel.Full = true;
         await Assert.ThrowsAsync<LiveAgentException>(() => new LiveCompanionsChannel(channel).AddAsync("pet_skink", PetSlotKind.Hotbar, null));
         Assert.Equal(1, channel.Writes);

@@ -414,6 +414,8 @@ return function(ctx)
                 local fullName = ctx.fullName(npc)
                 table.insert(result, {
                     id = guid,
+                    actorPath = fullName,
+                    region = ctx.actorRegion(npc),
                     npcClass = ctx.classLabel(fullName),
                     isDead = npc.IsDead == true,
                     customName = (okName and name ~= "" and name) or nil,
@@ -444,6 +446,8 @@ return function(ctx)
                 local x, y, z = ctx.actorLocation(npc)
                 table.insert(result, {
                     id = fullName,
+                    actorPath = fullName,
+                    region = ctx.actorRegion(npc),
                     npcClass = ctx.classLabel(fullName),
                     isDead = npc.IsDead == true,
                     customName = nil,

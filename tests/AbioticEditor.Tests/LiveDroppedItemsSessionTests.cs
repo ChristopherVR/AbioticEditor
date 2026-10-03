@@ -56,7 +56,7 @@ public class LiveDroppedItemsSessionTests
         await session.RemoveDroppedItemAsync("Abiotic_Item_Dropped_C_1");
 
         Assert.Equal(2, session.DroppedItems.Count);
-        Assert.Contains("still lying there", session.Status);
+        Assert.Null(session.Status);
     }
 
     [Fact]

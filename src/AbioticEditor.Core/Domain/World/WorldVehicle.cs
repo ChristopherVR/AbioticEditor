@@ -39,7 +39,8 @@ public sealed record WorldVehicle(
     double QuatW,
     int InventoryItemCount,
     bool HasInventory,
-    string? ContainerId = null)
+    string? ContainerId = null,
+    string? SavedRegion = null)
 {
     /// <summary>Class tail without the <c>_C</c> suffix (e.g. <c>ABF_Vehicle_Forklift</c>).</summary>
     public string ShortClass

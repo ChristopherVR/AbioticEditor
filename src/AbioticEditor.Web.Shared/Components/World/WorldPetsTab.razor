@@ -1,4 +1,5 @@
 @namespace AbioticEditor.Web.Components.World
+@inject LiveSessionService LiveRegion
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Components.Shared
 @using AbioticEditor.Core.WorldSaves
@@ -262,6 +263,7 @@
     public void Dispose() => CloseAddPet();
 
     private List<WorldPet> AllPets => Session.Pets
+        .Where(p => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(p.ActorPath ?? p.Id, p.Region))
         .Concat(_deleted.Values.Where(pet => !Session.Pets.Any(live => live.Id == pet.Id)))
         .OrderBy(pet => pet.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();

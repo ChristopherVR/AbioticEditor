@@ -83,7 +83,7 @@ else
                 }
                 else
                 {
-                    <h3>@selected.Label</h3>
+                    <h3>@(FeatureId == "corpses" ? PlainNames.Corpse(selected.Key) : selected.Label)</h3>
                     @* What this kind of thing looks like (drawn from the game's own models, tools/thumbnails) with
                        its current state on it, and a small shot of where it stands. Both kept at the size they
                        were drawn, so they stay sharp. An NPC spawn point shows the creature it makes. A player-placed
@@ -124,7 +124,7 @@ else
                         }
                     </div>
                     <ShowIn3DButton Target="@WorldFeaturePositions.Target(Session, FeatureId, selected.Key, selected.Label)" />
-                    @if (FeatureId is "buttons" or "decals")
+                    @if (FeatureId is "buttons" or "decals" or "power-sockets")
                     {
                         <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>
                         <p class="world-feature-hint">@_actorLocationText</p>
@@ -439,12 +439,15 @@ else
     {
         _snapshot = Session.MapFeature(FeatureId);
         if (Session is not WorldSaveSession && LiveSession.CurrentRegionToken is not null && _snapshot is { } snapshot)
-            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key)).ToArray() };
+            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key)
+                || (FeatureId is "portals" or "trams"
+                    && WorldAreaCatalog.TokenFromActorPath(e.Key) == "Facility"
+                    && LiveSession.CurrentRegionToken.StartsWith("Facility_", StringComparison.OrdinalIgnoreCase))).ToArray() };
         _allRows = _snapshot is null
             ? []
             : RenderKeys.With(_snapshot.Entries, entry => entry.Key)
                 .Select(pair => new FeatureRow(
-                    pair.Item, pair.Item.Label, AreaFor(pair.Item) ?? string.Empty, Summary(pair.Item),
+                    pair.Item, FeatureId == "corpses" ? PlainNames.Corpse(pair.Item.Key) : pair.Item.Label, AreaFor(pair.Item) ?? string.Empty, Summary(pair.Item),
                     IsPluggedInSocket(pair.Item), pair.Key))
                 .ToList();
         // When every entry is in the same area (every tram is "The Facility"), the area chip on
@@ -483,7 +486,12 @@ else
     {
         _selectedKey = key;
         _actorLocationText = string.Empty;
-        if (FeatureId is not ("buttons" or "decals") || string.IsNullOrEmpty(Session.Path)) return;
+        if (FeatureId is not ("buttons" or "decals" or "power-sockets")) return;
+        if (WorldFeaturePositions.Find(Session, FeatureId, key) is { } livePosition)
+        {
+            _actorLocationText = $"X {livePosition.X:F0}, Y {livePosition.Y:F0}, Z {livePosition.Z:F0} (world coordinates)";
+            return;
+        }
         var session = Session;
         var feature = FeatureId;
         var map = WorldAreaCatalog.TokenFromActorPath(key) ?? WorldAreaCatalog.TokenFromSaveFile(Session.Path);

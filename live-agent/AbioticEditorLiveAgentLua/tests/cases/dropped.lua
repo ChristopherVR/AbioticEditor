@@ -64,4 +64,16 @@ return function(H)
     result = H.ok(H.dispatch("dropped.remove", { ids = { ids.battery } }))
     H.eq(result.removed, 1, "an actor that cannot be asked is still counted as removed")
     H.eq(H.calls(legacy, "OnItemDespawn"), 1, "legacy despawn ran")
+    -- Explicit removal still works when the blueprint's timed despawn path keeps the actor.
+    local forced = H.world.add(H.object("Abiotic_Item_Dropped_C", { HasBeenPickedUp = false }, {
+        InitDespawn = function() end,
+        OnItemDespawn = function() end,
+        IsActorBeingDestroyed = function(self) return H.field(self, "destroyed") == true end,
+        K2_DestroyActor = function(self) self.destroyed = true end,
+    }))
+    result = H.ok(H.dispatch("dropped.remove", { ids = { forced:GetFullName() } }))
+    H.eq(result.removed, 1, "explicit removal destroys an actor retained by timed despawn")
+    H.eq(result.stuck, 0, "forced removal is confirmed")
+    H.eq(H.calls(forced, "K2_DestroyActor"), 1, "native destruction is attempted once")
+
 end

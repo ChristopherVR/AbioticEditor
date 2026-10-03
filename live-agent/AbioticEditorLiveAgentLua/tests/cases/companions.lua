@@ -4,6 +4,14 @@
 -- PlayerSaveReader.ReadSlotDynamicInt's own "EndsWith("::"+suffix)" match in the file format).
 return function(H)
     local pawn = H.hostSession()
+    local enumNames = { [7] = "EDynamicProperty::XP", [8] = "EDynamicProperty::MutationProgress", [9] = "EDynamicProperty::PetMutation" }
+    H.world.static("/Script/AbioticFactor.EDynamicProperty", H.object("UEnum", {}, {
+        GetNameByValue = function(_, value) return H.fname(enumNames[value]) end,
+        ForEachName = function(_, callback) for value, name in pairs(enumNames) do callback(H.fname(name), value) end end,
+    }))
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", H.object("NetPushModelHelpers", {}, { MarkPropertyDirty = function() end }))
+    local notified = 0
+    rawget(pawn.CharacterEquipSlotInventory, "__methods").OnRep_CurrentInventory = function() notified = notified + 1 end
 
     -- A stand-in for the live enum key: exposes :ToString() the same way FName/FString do, since
     -- companions.lua's own dynamicInt()/setDynamicInt() only ever call :ToString() on it.
@@ -117,10 +125,31 @@ return function(H)
     H.eq(strangerSkink:IsValid(), true, "a different player's Skink follower is left alone")
 
     H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, itemId = "pet_skink",
-        requireEmpty = true, name = "Sprout", health = 100, maxHealth = 100 }), "add pet to an empty companion slot")
+        requireEmpty = true, name = "Sprout", health = 100, maxHealth = 100, assetId = "12345678123456781234567812345678", xp = 123, mutationProgress = 5, petMutation = 1 }), "add pet to an empty companion slot")
     H.eq(companionSlot2.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "pet_skink", "new pet row is stored")
     H.eq(companionSlot2.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313.CurrentStack_9_D443B69044D640B0989FD8A629801A49, 1, "new pet has one item in its stack")
     H.fails(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, itemId = "pet_pest", requireEmpty = true }),
         "now occupied", "a slot occupied since the directory read cannot be overwritten")
     H.eq(companionSlot2.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "pet_skink", "rejected add preserves the existing pet")
+    local data = companionSlot2.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    H.eq(data.AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB, "12345678123456781234567812345678", "new pet gets its own identity for equip and pickup")
+    H.eq(data.DynamicState_39_7597AC6549E292B931C61BB13C9E42EB, true, "new pet has initialized dynamic state")
+    local petRows = H.ok(H.dispatch("companions.list")).pets
+    local added
+    for _, pet in ipairs(petRows) do if pet.kind == "equip" and pet.slotIndex == 12 then added = pet end end
+    H.eq(added.xp, 123, "new pet XP reads back from its newly created numeric enum entry")
+    H.eq(added.mutationProgress, 5, "new pet mutation progress reads back")
+    H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, xp = 456 }))
+    H.eq(#data.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7, 3, "editing XP reuses its entry instead of duplicating it")
+    local follower = H.world.add(H.object("NPC_Monster_WinterSprite_C", {}, {
+        K2_DestroyActor = function(self) rawset(self, "__valid", false) end,
+    }))
+    pawn.Companion = follower
+    local beforeNotify = notified
+    local removed = H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, clear = true }))
+    H.eq(removed.despawnedFollower, true, "the exact companion reference supports families with no FollowingOwner")
+    H.eq(follower:IsValid(), false, "the exact follower was destroyed")
+    H.eq(notified, beforeNotify + 1, "removal notifies the game's inventory listeners")
+    H.eq(#data.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7, 0, "removed pet metadata was cleared")
+    H.eq(data.AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB, "-1", "removed pet identity is cleared")
 end

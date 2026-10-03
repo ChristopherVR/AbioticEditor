@@ -7,6 +7,22 @@ namespace AbioticEditor.Tests;
 
 public sealed class LiveProgressionCapabilitiesTests
 {
+    [Fact]
+    public async Task Recipe_unlocks_match_case_insensitive_game_names_and_keep_the_bound_row_on_refresh()
+    {
+        var channel = new Channel { Read = new { unlockedIds = new[] { "recipe_bandage" }, canLock = true } };
+        var session = await LivePlayerRecipesSession.ConnectAsync(new(channel));
+        session.EnsureRecipeRows(["Recipe_Bandage"]);
+        var row = Assert.Single(session.Recipes);
+        Assert.True(row.IsUnlocked);
+        channel.Read = new { unlockedIds = new[] { "RECIPE_BANDAGE" }, canLock = true };
+        await session.RefreshAsync();
+        Assert.Same(row, Assert.Single(session.Recipes));
+        Assert.True(row.IsUnlocked);
+        await session.SetUnlockedAsync("Recipe_Bandage", false);
+        Assert.False(row.IsUnlocked);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

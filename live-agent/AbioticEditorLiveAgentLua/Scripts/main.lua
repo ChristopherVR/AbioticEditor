@@ -2087,7 +2087,12 @@ handlers["dropped.remove"] = function(payload, respond)
                 -- (already mid-pickup, an odd blueprint override, ...) used to abort the loop early
                 -- and leave every later item in the batch undeleted with no sign why - matching a
                 -- player report that "delete all shown" looked like it silently did nothing.
-                local ok = pcall(function() item:InitDespawn() item:OnItemDespawn() end)
+                local ok = pcall(function()
+                    item:InitDespawn()
+                    item:OnItemDespawn()
+                    local asked, destroyed = pcall(function() return item:IsActorBeingDestroyed() end)
+                    if asked and destroyed == false then pcall(function() item:K2_DestroyActor() end) end
+                end)
                 if ok then
                     -- OnItemDespawn ends in K2_DestroyActor, so a despawn that worked leaves
                     -- the actor flagged as being destroyed. One that ran without error but left
@@ -2269,6 +2274,24 @@ end
 handlers["containers.setfull"] = handlers["containers.set"]
 handlers["containers.setcomplete"] = handlers["containers.set"]
 
+-- The game chooses an actor's save section through this native function, rather than its
+-- UObject outer (runtime pets and furniture often belong to the persistent level).
+-- Confirmed by UpdateActorToWorldSave bytecode: GetActorLevelName(Self, Actor).
+local function actorRegion(actor)
+    local ok, region = pcall(function()
+        local helper = StaticFindObject("/Script/AbioticFactor.Default__LevelStreamingCustom")
+        if not helper or not helper:IsValid() then return nil end
+        return helper:GetActorLevelName(actor, actor)
+    end)
+    if not ok or region == nil then return nil end
+    if type(region) ~= "string" then
+        local converted, text = pcall(function() return region:ToString() end)
+        if not converted then return nil end
+        region = text
+    end
+    return region ~= "" and region or nil
+end
+
 local ctx = {
     handlers = handlers,
     json = json,
@@ -2288,6 +2311,7 @@ local ctx = {
     fullName = fullName,
     classLabel = classLabel,
     actorLocation = actorLocation,
+    actorRegion = actorRegion,
     outNames = outNames,
     dayNightManager = dayNightManager,
     weatherLibrary = weatherLibrary,

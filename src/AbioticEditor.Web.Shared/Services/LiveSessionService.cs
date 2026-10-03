@@ -47,9 +47,10 @@ public sealed class LiveSessionService
     /// lands or when no local controller is loaded (main menu).</summary>
     public string? CurrentRegionToken { get; private set; }
 
-    public bool IsActorInCurrentRegion(string path)
+    public bool IsActorInCurrentRegion(string path, string? region = null)
     {
-        var map = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
+        var map = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.NormalizeLevelToken(region)
+            ?? AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
         if (map is null || CurrentRegionToken is null) return true;
         return string.Equals(map, CurrentRegionToken, StringComparison.OrdinalIgnoreCase);
     }

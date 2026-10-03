@@ -1,5 +1,29 @@
 # Abiotic Editor - Session history
 
+## Round-160: live pet inventory, world lists and 3D stability (2026-10-03)
+
+- Live pet adds now initialize unique item identity and dynamic state, including reflected
+  XP/mutation metadata, and notify inventory replication. Removal clears all slot metadata
+  and removes the player's exact Companion actor, covering pet families without FollowingOwner.
+  Carried pets offer right-click Remove entirely. The reported sequence was adding through
+  Pets, equipping the companion in-game, then picking it up into the hotbar.
+- Recipes rebind when their lazily loaded live session arrives, so unlocked counts and item
+  visibility agree. Recipe identity comparisons now follow Unreal's case-insensitive names.
+- Live pets, vehicles, chemistry benches and base scenes use the game's native actor save-section
+  lookup, with actor-path fallback. Persistent Facility teleporter and tram entries remain visible
+  in Facility sections. Buttons and power sockets show positions, corpses have friendlier names,
+  and Unlost Mage, Hammering Hank and Exor runtime classes resolve their existing portraits.
+- Dropped Items no longer shows the reported stuck-item footer. Explicit removal follows the
+  game's despawn events with actor destruction when those events leave the item alive.
+- Fixed the logged Map/3D circuit crash: fitToWindow exposes stop, not dispose. Added startup
+  error handling and loading feedback, including the level query and pending file phases.
+- Verified: Web build with zero warnings/errors; full Release .NET suite, 2,211 passed and one
+  skipped; 28 final focused checks including repeated 3D cleanup, recipe readback, portraits,
+  region filtering and dropped-item status; Lua harness, 1,365 checks passed with zero failures;
+  git diff whitespace check. No user save or installed game was changed. The exact pickup cycle,
+  native live region lookup and rendered live 3D scene still need an in-game check after installing
+  the updated agent. No push or release was performed.
+
 ## Round-159: Windows Nexus package review triggers (2026-10-03)
 
 - Investigated v2.25.1: the exact Windows Nexus ZIP matched its release checksum and

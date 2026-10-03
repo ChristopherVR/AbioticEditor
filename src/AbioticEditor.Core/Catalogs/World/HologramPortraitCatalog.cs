@@ -49,6 +49,9 @@ public static class HologramPortraitCatalog
     public static IReadOnlyList<string> CandidatesFor(string? characterName)
     {
         if (string.IsNullOrWhiteSpace(characterName)) return Array.Empty<string>();
+        if (characterName.Contains("UnlostMage", StringComparison.OrdinalIgnoreCase)) return ["Mage_of_the_Unlost.png"];
+        if (characterName.Contains("HammeringHank", StringComparison.OrdinalIgnoreCase)) return ["T_Compendium_Hank.png"];
+        if (characterName.Contains("NarrativeNPC_Exor_ParentBP", StringComparison.OrdinalIgnoreCase)) return ["Exor.png"];
         foreach (var (name, files) in Entries)
         {
             if (characterName.Contains(name, StringComparison.OrdinalIgnoreCase)) return files;

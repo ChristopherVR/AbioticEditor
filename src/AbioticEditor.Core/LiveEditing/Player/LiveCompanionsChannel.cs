@@ -34,7 +34,7 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
         await _channel.RequestAsync<object?>("companions.set",
             new SetWire(target.Kind, target.SlotIndex, false, itemRow, name,
                 WorldSaves.PetItemCatalog.DefaultMaxHealth, WorldSaves.PetItemCatalog.DefaultMaxHealth,
-                0, 0, 0, playerId, ItemTableIndex.TableRefFor(itemRow), RequireEmpty: true),
+                0, 0, 0, playerId, ItemTableIndex.TableRefFor(itemRow), RequireEmpty: true, AssetId: Guid.NewGuid().ToString("N").ToUpperInvariant()),
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -63,12 +63,10 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
     /// sent - the caller must have already confirmed this with the player. Round 78: when
     /// <paramref name="kind"/>/<paramref name="slotIndex"/> is the active Companion slot
     /// (<see cref="CarriedPet.IsCompanionSlot"/>), <c>companions.lua</c> also tries to despawn the
-    /// matching live follower actor (Pest/Skink family, matched by its own <c>FollowingOwner</c>
-    /// reference; round 79 re-checked Peccary/Lamogi against the installed game's own class data
-    /// and confirmed neither exposes an equivalent field, so they stay unmatched - a verified
-    /// limit, not an unexplored one) - <see cref="LiveClearResult.DespawnedFollower"/> says
-    /// whether a match was found, so the caller can tell the player if a follower might still be
-    /// standing around.</summary>
+    /// exact live companion actor through the player's Companion reference, falling back to
+    /// FollowingOwner matching for Pest/Skink actors when that reference is unavailable.
+    /// <see cref="LiveClearResult.DespawnedFollower"/> reports whether an actor was removed.
+    /// Inventory listeners and replication are notified after clearing the slot.</summary>
     public async Task<LiveClearResult> ClearAsync(string kind, int slotIndex, string? playerId = null,
         CancellationToken cancellationToken = default)
     {
@@ -100,7 +98,7 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
         double Health, double MaxHealth, int Xp, int MutationProgress, int PetMutation);
     private sealed record SetWire(string Kind, int SlotIndex, bool? Clear, string? ItemId, string? Name,
         double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId, string? DataTable,
-        bool RequireEmpty = false);
+        bool RequireEmpty = false, string? AssetId = null);
     private sealed record ClearResultWire(bool? DespawnedFollower);
 }
 
