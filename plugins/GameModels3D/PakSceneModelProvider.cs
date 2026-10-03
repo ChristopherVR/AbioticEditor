@@ -57,6 +57,8 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     private readonly IPluginHost _host;
     private readonly Lazy<string> _cacheRoot;
+    private readonly Lazy<HostedSceneryCache?> _hostedScenery;
+    private ConcurrentDictionary<string, byte>? _exportFiles;
     private readonly ConcurrentDictionary<string, MeshInfo?> _meshInfo = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ResolvedMaterial> _materials = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, LevelIndexData> _levels = new(StringComparer.OrdinalIgnoreCase);
@@ -66,10 +68,11 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     private readonly ConcurrentDictionary<string, WorldMaps> _worlds = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lazy<Dictionary<string, string>> _mapsByName;
 
-    public PakSceneModelProvider(IPluginHost host)
+    public PakSceneModelProvider(IPluginHost host, HostedSceneryCache? hostedCache = null)
     {
         _host = host;
         _cacheRoot = new Lazy<string>(() => Path.Combine(host.DataDirectory, "cache", InstallStamp()));
+        _hostedScenery = new Lazy<HostedSceneryCache?>(() => hostedCache ?? CreateHostedCache());
         _mapsByName = new Lazy<Dictionary<string, string>>(IndexMapNames);
         _plants = new Lazy<IReadOnlyDictionary<string, CUE4Parse.UE4.Assets.Objects.FStructFallback>>(() => Read(PlantTable.Read));
     }
@@ -823,13 +826,17 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// <summary>A landscape's material as blended layers (see <see cref="TerrainMaterial"/>), with the base layer's texture as the plain fallback.</summary>
     private List<SceneMaterial> TerrainMaterialOf(string materialPath) => _terrainMaterials.GetOrAdd(materialPath, path =>
     {
+        var cache = CachePath("terrain-materials-v1", path, ".json");
+        if (TryReadJson<List<SceneMaterial>>(cache) is { } cached) return cached;
         var layers = Read(p => TerrainMaterial.Read(p, path))
             .Select(l => new SceneTerrainLayer(l.Texture is { } t ? $"tex/{LevelTextureSize}{t}" : null, l.Color, l.RepeatMetres))
             .ToList();
         var fallback = MaterialOf(path);
         var baseLayer = layers.FirstOrDefault(l => l.Texture is not null);
-        return [new SceneMaterial(baseLayer?.Texture ?? (fallback.BaseColorTexture is { } t2 ? $"tex/{LevelTextureSize}{t2}" : null),
+        List<SceneMaterial> result = [new SceneMaterial(baseLayer?.Texture ?? (fallback.BaseColorTexture is { } t2 ? $"tex/{LevelTextureSize}{t2}" : null),
             baseLayer?.Color ?? fallback.Color) { Layers = layers.Any(l => l.Texture is not null) ? layers : null }];
+        WriteJson(cache, result);
+        return result;
     });
 
     /// <summary>
@@ -962,24 +969,30 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     /// (the native path could not have worked for anyone else either) and the texture is retried.
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _textureAlpha = new(StringComparer.OrdinalIgnoreCase);
+    private sealed record CachedAlpha(bool SeeThrough);
 
     /// <summary>True when a texture (asset id <c>tex/&lt;size&gt;/Game/...</c>) has see-through pixels, checked on a small copy.</summary>
     private bool TextureHasAlpha(string textureId) => _textureAlpha.GetOrAdd(textureId, id =>
     {
+        var cache = CachePath("texture-alpha-v1", id, ".json");
+        if (TryReadJson<CachedAlpha>(cache) is { } cached) return cached.SeeThrough;
         var match = AssetId().Match(id);
         if (!match.Success) return false;
         var path = match.Groups["path"].Value;
         var decoded = Read(p => p.TryLoadPackageObject(path, out var obj) && obj is UTexture2D texture ? DecodeWithFallback(texture, AlphaProbeSize) : null);
-        if (decoded is null) return false;
+        if (decoded is null) { WriteJson(cache, new CachedAlpha(false)); return false; }
         using var bitmap = decoded.ToSkBitmap();
-        if (bitmap is null || bitmap.AlphaType == SKAlphaType.Opaque) return false;
+        if (bitmap is null) { WriteJson(cache, new CachedAlpha(false)); return false; }
+        if (bitmap.AlphaType == SKAlphaType.Opaque) { WriteJson(cache, new CachedAlpha(false)); return false; }
         var see = 0;
         for (var y = 0; y < bitmap.Height; y++)
         for (var x = 0; x < bitmap.Width; x++)
         {
             if (bitmap.GetPixel(x, y).Alpha < 128) see++;
         }
-        return see > bitmap.Width * bitmap.Height / 20;
+        var result = see > bitmap.Width * bitmap.Height / 20;
+        WriteJson(cache, new CachedAlpha(result));
+        return result;
     });
 
     private const int AlphaProbeSize = 64;
@@ -999,8 +1012,29 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     // ---- cache ------------------------------------------------------------------------------
 
+    private HostedSceneryCache? CreateHostedCache()
+    {
+        if (_host.HostKind != "blazor" || OperatingSystem.IsBrowser() || Assets() is not { LoadedMods.Count: 0 }) return null;
+        try
+        {
+            var signature = HostedSceneryCache.Signature(AfInstallLocator.FindPaksDirectory(), GameAssetProvider.FindConventionalMappings());
+            return signature is null ? null : new HostedSceneryCache(signature);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OverflowException)
+        {
+            _host.Log.Warn($"Could not identify hosted scenery; using local game files: {ex.Message}");
+            return null;
+        }
+    }
+
     private string CachePath(string folder, string key, string extension)
-        => Path.Combine(_cacheRoot.Value, folder, Hash(key) + extension);
+    {
+        var name = Hash(key) + extension;
+        _exportFiles?.TryAdd(folder + "/" + name, 0);
+        var path = Path.Combine(_cacheRoot.Value, folder, name);
+        if (!File.Exists(path)) _hostedScenery.Value?.Fetch(folder, name, path);
+        return path;
+    }
 
     private static string Hash(string text)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();

@@ -14,6 +14,12 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($PublishDir)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Publish directory does not exist: $root" }
 
+# Prepared scenery belongs to Pages and the user's download cache only.
+$sceneryPacks = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object {
+    $_.FullName -match '[\\/]scenery[\\/]' -or $_.Extension -eq '.abm' -or $_.Name -match '^part-\d{3}\.zip$'
+}
+if ($sceneryPacks) { throw "Desktop release contains hosted scenery: $($sceneryPacks[0].FullName)" }
+
 # Managed assemblies ship in one executable. The standard package also embeds native
 # libraries; the Nexus package keeps those beside it to avoid extraction at startup.
 $required = @(

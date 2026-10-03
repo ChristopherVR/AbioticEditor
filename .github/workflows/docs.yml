@@ -23,6 +23,9 @@ on:
       - submodules/**
       - Directory.Packages.props
       - Directory.Build.props
+      - assets/scenery/**
+      - tools/scenery.py
+      - tools/test_scenery.py
       - .github/workflows/docs.yml
   workflow_dispatch:
 
@@ -98,6 +101,13 @@ jobs:
           # _framework/, which is where Blazor WASM ships the actual runtime and app
           # assemblies; without this the editor loads an empty shell with no app inside.
           touch docs/.vitepress/dist/.nojekyll
+
+      # Desktop-only 3D downloads live outside /app/. Neither release project includes
+      # assets/scenery, and these archives are unpacked only into the Pages artifact.
+      - name: Assemble desktop scenery downloads
+        run: |
+          python3 -m unittest discover -s tools -p test_scenery.py -q
+          python3 tools/scenery.py assemble --destination docs/.vitepress/dist/scenery
 
       # The editor's routes (/app/stats, /app/skills, ...) exist only in its client-side
       # router, so refreshing one - or following a link straight to it - asks Pages for a file

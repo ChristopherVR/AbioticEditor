@@ -1,5 +1,28 @@
 # Abiotic Editor - Session history
 
+## Round-166: Pages-only scenery downloads for the desktop app (2026-10-03)
+
+- The desktop Game Models provider downloads matching prepared scenery into its normal
+  user cache on demand. Archive footers, complete IoStore tables, archive sizes and mappings
+  identify the game content independently of installation paths or dates. Missing, unsupported,
+  invalid or offline downloads fall back to local extraction; asset mods bypass downloads.
+- Prepared all 62 gameplay maps. Pages source packs contain 30,266 assets, including binary
+  level indexes, world/streaming layouts, ABM1 meshes, PNG textures, terrain layers, materials
+  and transparency checks. The preparation inventory excludes unrelated cached object previews.
+  The packaged scenery is 531.6 MiB; the complete docs/browser/scenery site is 883.6 MiB.
+- Source packs live only under assets/scenery. The Pages workflow verifies names, sizes and
+  SHA-256 digests and unpacks them outside /app/. It rejects incomplete exports and sites over
+  900 MiB. Desktop publishing rejects linked scenery source packs, and Windows package checks
+  reject scenery directories, meshes or source chunks. No scenery is embedded or copied into
+  desktop release packages. The browser editor continues to draw boxes.
+- Added explicit maintainer preparation/export and verification tooling and maintenance notes.
+  A cold cache check found missing decal transparency entries; the export now prepares them too.
+- Verified: 54 focused Release checks, seven Python packaging checks, full source-pack hash
+  verification, and five scene-provider checks (Office, Dam, Alps, Island, Winter) with local
+  extraction forbidden. Windows self-contained publish and package layout checks passed;
+  browser publish passed; docs build checked 3,383 links/images across 67 pages. Git whitespace
+  verification passed. No installed game files or user saves were changed. No push or deployment.
+
 ## Round-165: live section boundaries, location pictures and 3D tools (2026-10-03)
 
 - Pet maximum health is read-only. GATEPal reapplies its game vocabulary when the late live

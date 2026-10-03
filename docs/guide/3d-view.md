@@ -8,13 +8,15 @@ Open a region save and choose the **Bases** tab. At the top you switch between *
 
 ## Where the models come from
 
-The desktop app draws everything with the game's own models and textures. It reads them from **your installed copy of Abiotic Factor**, so nothing from the game is in the editor download, and there is nothing extra to install. The editor needs to know where the game is: the same setting that shows item pictures (**Settings ▸ Game data**, see [Game data](./game-data)).
+The desktop app draws everything with the game's own models and textures. Prepared scenery is downloaded as needed from the editor's GitHub Pages site and kept on your computer for later visits. This includes floors, walls, terrain and level details. These downloads are separate from the desktop release package, and there is nothing extra to install.
+
+The editor still needs **your installed copy of Abiotic Factor** to identify the matching scenery and read anything that is not available online: the same setting that shows item pictures (**Settings ▸ Game data**, see [Game data](./game-data)). Offline, after an unsupported game update, or when game asset mods are loaded, it reads your game files instead. Scenery already cached on your computer remains available offline.
 
 The [browser version](./browser-editor) has the 3D view too. It cannot read game files, so every piece is drawn as a box. Moving, copying, placing and wiring work the same way.
 
 ## Get the 3D view ready
 
-The first time the view shows an area, it reads that part of the world from your game files. In a big area that can take minutes.
+The first time the view shows an area, it downloads available prepared scenery. If matching scenery is unavailable, it reads that part of the world from your game files. Preparing a big area locally can take minutes.
 
 ![The start page offering to get the 3D view ready](/screenshots/53-prepare-3d.png)
 

@@ -2,8 +2,10 @@
 
 Draws the editor's **3D base view** with the game's own models and textures instead of coloured
 boxes, and can show the level around your base (floors, walls, rocks, pipes) so you can see where
-things stand before you move them. Everything is read from **your installed copy of Abiotic
-Factor**; nothing from the game is shipped with the plugin or the editor.
+things stand before you move them. The desktop host downloads matching prepared scenery from
+GitHub Pages into its user cache, then reads anything unavailable from **your installed copy of
+Abiotic Factor**. Scenery data is published only on Pages and never bundled with the plugin or
+desktop release. See [Pages scenery maintenance](../../assets/scenery/README.md).
 
 - **Runtime:** .NET (`GameModels3D.dll`)
 - **Capability:** 3D model provider (`sceneModels`)

@@ -192,6 +192,15 @@
                              Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
+  <!-- Pages scenery is downloaded into user data only. Fail publishing if a future
+       content glob accidentally tries to put its source packs in a release package. -->
+  <Target Name="RejectBundledHostedScenery" AfterTargets="ComputeResolvedFilesToPublishList" BeforeTargets="GenerateSingleFileBundle">
+    <ItemGroup>
+      <_HostedSceneryInRelease Include="@(ResolvedFileToPublish)"
+        Condition="$([System.String]::Copy('%(ResolvedFileToPublish.FullPath)').Replace('\', '/').Contains('/assets/scenery/')) or $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\', '/').StartsWith('scenery/'))" />
+    </ItemGroup>
+    <Error Condition="'@(_HostedSceneryInRelease)' != ''" Text="Hosted scenery belongs only in the GitHub Pages artifact, never in a desktop release." />
+  </Target>
   <!-- Each platform's launcher ships only in that platform's package. The Linux and macOS
        scripts are the documented way to start the editor there (they set the library paths and
        clear macOS quarantine), but in the Windows download they were three files nobody can
