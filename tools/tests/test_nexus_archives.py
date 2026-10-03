@@ -47,7 +47,7 @@ class ArchiveTests(unittest.TestCase):
             {"data": {"versions": [old, version("new", 2)]}},
             {"data": {"versions": [version("old", 1, "archived"), version("new", 2)]}},
         ]
-        with patch.dict(os.environ, {"NEXUSMODS_API_KEY": "test"}), \
+        with patch.dict(os.environ, {"NEXUSMODS_API_KEY": "test", "NEXUSMODS_SESSION_COOKIE": "session=test"}), \
                 patch.object(archives.urllib.request, "urlopen", side_effect=[
                     io.BytesIO(json.dumps(r).encode()) for r in replies]), \
                 patch.object(archives, "archive_version") as archive, \
@@ -62,13 +62,23 @@ class ArchiveTests(unittest.TestCase):
                 archives.archive_version(version("123", 1))
             opener.assert_not_called()
 
+    def test_missing_or_blank_cookie_skips_cleanup_without_api_calls(self):
+        for cookie in (None, "", "   "):
+            env = {} if cookie is None else {"NEXUSMODS_SESSION_COOKIE": cookie}
+            with patch.dict(os.environ, env, clear=True), \
+                    patch.object(archives.urllib.request, "urlopen") as request, \
+                    patch.object(archives, "archive_version") as archive:
+                archives.verify("windows", "new")
+                request.assert_not_called()
+                archive.assert_not_called()
+
     def test_successful_archive_request_cannot_hide_failed_readback(self):
         replies = [
             {"data": {"id": "mod", "game_id": "6412", "game_scoped_id": "244"}},
             {"data": {"mod_files": [{"id": "windows"}]}},
             {"data": {"versions": [version("1599", 1), version("new", 2)]}},
         ]
-        with patch.dict(os.environ, {"NEXUSMODS_API_KEY": "test"}), \
+        with patch.dict(os.environ, {"NEXUSMODS_API_KEY": "test", "NEXUSMODS_SESSION_COOKIE": "session=test"}), \
                 patch.object(archives.urllib.request, "urlopen", side_effect=[
                     io.BytesIO(json.dumps(r).encode()) for r in replies]), \
                 patch.object(archives, "archive_version"):

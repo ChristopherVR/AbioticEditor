@@ -1,5 +1,14 @@
 # Abiotic Editor - Session history
 
+## Round-164: optional Nexus archive cleanup (2026-10-03)
+
+- When NEXUSMODS_SESSION_COOKIE is missing or blank, extra archive cleanup now skips
+  successfully without API calls. Uploads retain archive_existing_version and the
+  Windows primary-download setting. Configured-cookie cleanup still verifies archiving
+  and reports failures.
+- Verified: ten Python checks, including missing/empty/whitespace-only cookie cases;
+  workflow YAML parsed and git whitespace verification passed. No push or upload.
+
 ## Round-163: verify and clean up older Nexus versions (2026-10-03)
 
 - Both platform uploads now read back their file history and explicitly archive any

@@ -51,6 +51,10 @@ def archive_version(version):
 
 
 def verify(file_id, uploaded_id, attempts=6):
+    if not os.environ.get("NEXUSMODS_SESSION_COOKIE", "").strip():
+        print("Nexus archive cleanup skipped: no session cookie configured; "
+              "keeping the upload action's automatic archive behavior.")
+        return
     if not file_id or not uploaded_id:
         raise ValueError("Both the platform file ID and uploaded version ID are required")
     request = urllib.request.Request(

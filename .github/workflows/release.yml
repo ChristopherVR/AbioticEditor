@@ -29,7 +29,8 @@ name: Release
 #      Post-upload cleanup verifies every predecessor in that platform's file history.
 #      If Nexus leaves any active, its browser archive endpoint needs the separate
 #      NEXUSMODS_SESSION_COOKIE secret (the signed-in browser's Cookie header).
-#      Missing/expired session credentials or failed archive readback fail the job.
+#      Without a cookie, cleanup is skipped and the upload's archive behavior remains.
+#      With a cookie configured, expired credentials or failed readback fail the job.
 #   7b. The Game Models for 3D View plugin is built into every desktop package
 #      (plugins/GameModels3D next to the executable, see AbioticEditor.Web.csproj), with the
 #      native animation decoder on Windows (build-natives-windows) and Linux (built in-job).
