@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.6] - 2026-10-03
+
+### Bug Fixes
+- Restore live world sections, pictures and 3D editing
+
+
 ## [2.25.5] - 2026-10-03
 
 ### Bug Fixes
