@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.4] - 2026-10-03
+
+### Bug Fixes
+- Improve pet controls, respawn stations and world pictures
+
+
 ## [2.25.3] - 2026-10-03
 
 ### Bug Fixes
