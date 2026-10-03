@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.3] - 2026-10-03
+
+### Bug Fixes
+- Keep pets, recipes and live world views in sync
+
+
 ## [2.25.2] - 2026-10-03
 
 ### Bug Fixes
