@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.2] - 2026-10-03
+
+### Bug Fixes
+- Make Windows downloads easier for Nexus to review
+
+
 ## [2.25.1] - 2026-10-03
 
 ### Bug Fixes
