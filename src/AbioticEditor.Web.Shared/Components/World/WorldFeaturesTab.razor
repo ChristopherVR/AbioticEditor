@@ -7,6 +7,7 @@
 @inject AbioticEditor.Web.Services.ISaveFileSystem Files
 @inject AbioticEditor.Web.Services.ItemCatalogService Items
 @inject AbioticEditor.Web.Services.GameArtService GameArt
+@inject AbioticEditor.Web.Services.LiveSessionService LiveSession
 @implements IDisposable
 
 @* Faithful port of the native WorldFeatureTab: ONE world-map feature (buttons, elevators,
@@ -89,7 +90,11 @@ else
                        thing (a teleporter pad, a sconce lamp) and an outlet on a player-built device (a plug strip, a
                        battery) show that object's own picture. *@
                     <div class="world-feature-pictures">
-                        @if (FeatureId == "npc-spawns" && Items.SpawnedCreature(selected.Key) is { } creature)
+                        @if (FeatureId == "sconce-lamps")
+                        {
+                            <LampStatePictures ClassName="@(DeployablesById.GetValueOrDefault(selected.Key)?.ClassName ?? "Deployed_Lamp_Sconce_C")" On="@(selected.Fields.FirstOrDefault(f => f.Id == "on")?.Value == "true")" />
+                        }
+                        else if (FeatureId == "npc-spawns" && Items.SpawnedCreature(selected.Key) is { } creature)
                         {
                             <figure class="world-thumb-art">
                                 <GameArtImage GameRefs="@AbioticEditor.Core.WorldSaves.PetCatalog.CompendiumTextureRefs(creature.Class)"
@@ -118,7 +123,7 @@ else
                             </figure>
                         }
                     </div>
-                    <ShowIn3DButton Target="@WorldLocateTarget.ForMapKey(selected.Key, selected.Label)" />
+                    <ShowIn3DButton Target="@WorldFeaturePositions.Target(Session, FeatureId, selected.Key, selected.Label)" />
                     @if (FeatureId is "buttons" or "decals")
                     {
                         <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>
@@ -233,6 +238,7 @@ else
     [Parameter] public EventCallback<string> OnOpenLink { get; set; }
 
     private string _renderedFeatureId = string.Empty;
+    private string? _renderedRegion;
     private string _filter = string.Empty;
     private string? _selectedKey;
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
@@ -272,9 +278,12 @@ else
         // A different save behind the same tab has to be re-read even when the feature has not
         // changed - switching between two region saves keeps this component and its FeatureId.
         var sessionChanged = !ReferenceEquals(_renderedSession, Session);
-        if (!featureChanged && !sessionChanged) return;
+        var region = Session is WorldSaveSession ? null : LiveSession.CurrentRegionToken;
+        var regionChanged = _renderedRegion != region;
+        if (!featureChanged && !sessionChanged && !regionChanged) return;
+        _renderedRegion = region;
 
-        if (featureChanged || sessionChanged)
+        if (featureChanged || sessionChanged || regionChanged)
         {
             _renderedFeatureId = FeatureId;
             _filter = string.Empty;
@@ -429,6 +438,8 @@ else
     private void RefreshSnapshot()
     {
         _snapshot = Session.MapFeature(FeatureId);
+        if (Session is not WorldSaveSession && LiveSession.CurrentRegionToken is not null && _snapshot is { } snapshot)
+            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key)).ToArray() };
         _allRows = _snapshot is null
             ? []
             : RenderKeys.With(_snapshot.Entries, entry => entry.Key)
@@ -734,7 +745,7 @@ else
             return L.Resource("WorldFeature_ReasonMoving");
         if (reason.Contains("not controllable", StringComparison.OrdinalIgnoreCase))
             return L.Resource("WorldFeature_ReasonNotControllable");
-        return reason;
+        return AbioticEditor.Core.LiveEditing.LiveAgentException.CleanMessage(reason);
     }
 
     // A refused edit always says so, exactly once per click. When the refusal came with its own
@@ -784,7 +795,6 @@ else
                     ? FriendlyReason(explanation)
                     : L.Resource("WorldFeature_ChangeRefused");
                 _fieldErrors[fieldId] = reason;
-                await OnError.InvokeAsync(reason);
             }
             else
             {

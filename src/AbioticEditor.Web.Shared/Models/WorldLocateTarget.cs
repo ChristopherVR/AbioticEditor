@@ -58,6 +58,8 @@ public sealed record WorldLocateTarget(WorldLocateKind Kind, string Id, string L
     public static WorldLocateTarget? ForMapKey(string key, string label)
     {
         if (string.IsNullOrEmpty(key)) return null;
+        var pathStart = key.IndexOf("/Game/", StringComparison.Ordinal);
+        if (pathStart > 0) return new(WorldLocateKind.LevelActor, key, label);
         if (key.StartsWith("/Game/", StringComparison.Ordinal) && key.Contains(':', StringComparison.Ordinal))
             return new(WorldLocateKind.LevelActor, key, label);
         if (key.Length == 32 && IsHex(key)) return Placed(key, label);

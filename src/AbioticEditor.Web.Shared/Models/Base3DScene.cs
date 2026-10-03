@@ -18,7 +18,8 @@ public sealed record Base3DObject(
     int Mark = 0,
     string? Cls = null,
     int? Paint = null,
-    string? Variant = null)
+    string? Variant = null,
+    bool? LampOn = null)
 {
     /// <summary><see cref="Mark"/>: an ordinary object.</summary>
     public const int MarkNone = 0;
@@ -97,7 +98,7 @@ public sealed class Base3DScene
     /// <summary>Builds the scene. <paramref name="current"/> supplies each key's transform with staged edits applied.</summary>
     public static Base3DScene Build(
         IEnumerable<PlacedObjectSummary> placed, Func<string, PlacedObjectTransform?> current,
-        IReadOnlySet<string>? deleted = null, IEnumerable<Base3DCopy>? copies = null)
+        IReadOnlySet<string>? deleted = null, IEnumerable<Base3DCopy>? copies = null, IEnumerable<WorldVehicle>? vehicles = null)
     {
         var objects = new List<Base3DObject>();
         var rows = new List<PlacedObjectSummary>();
@@ -115,6 +116,18 @@ public sealed class Base3DScene
             objects.Add(deleted is not null && deleted.Contains(o.Key) ? drawn with { Mark = Base3DObject.MarkDeleted } : drawn);
             rows.Add(o);
             zs.Add(saved.Z);
+        }
+        foreach (var vehicle in vehicles ?? [])
+        {
+            var p = PlacedSceneSpace.ToViewer(new PlacedVector(vehicle.X, vehicle.Y, vehicle.Z));
+            var q = PlacedSceneSpace.ToViewer(PlacedSceneSpace.Normalize(new PlacedQuaternion(vehicle.QuatX, vehicle.QuatY, vehicle.QuatZ, vehicle.QuatW)));
+            objects.Add(new Base3DObject(vehicle.Id, (int)PlacedObjectCategory.Other,
+                [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [1, 1, 1], false, vehicle.DisplayName, Cls: vehicle.VehicleClass));
+            rows.Add(new PlacedObjectSummary(vehicle.Id, vehicle.VehicleClass, vehicle.ShortClass, PlacedClassOrigin.GameBlueprint,
+                null, vehicle.Region, new PlacedObjectTransform(new PlacedVector(vehicle.X, vehicle.Y, vehicle.Z),
+                    new PlacedQuaternion(vehicle.QuatX, vehicle.QuatY, vehicle.QuatZ, vehicle.QuatW), new PlacedVector(1, 1, 1)),
+                null, null, false, vehicle.DisplayName, null, null, null, 0, vehicle.InventoryItemCount, [], []));
+            zs.Add(vehicle.Z);
         }
         foreach (var copy in copies ?? [])
         {
@@ -135,7 +148,7 @@ public sealed class Base3DScene
             [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [s.X, s.Y, s.Z],
             o.DeployedByPlayer == true, LabelOf(o), Cls: o.ClassPath,
             Paint: o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue ? paint : null,
-            Variant: VariantOf(o));
+            Variant: VariantOf(o), LampOn: o.LampOn);
     }
 
     /// <summary>
@@ -147,6 +160,7 @@ public sealed class Base3DScene
     {
         ArgumentNullException.ThrowIfNull(o);
         var text = new System.Text.StringBuilder();
+        if (o.LampOn is { } on) text.Append(on ? "#lamp=1" : "#lamp=0");
         if (o.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue)
             text.Append(System.Globalization.CultureInfo.InvariantCulture, $"#paint={paint}");
         if (o.LiquidLevel is { } liquid)

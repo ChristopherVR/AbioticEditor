@@ -1,0 +1,271 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using AbioticEditor.Core.WorldSaves.Features
+@using AbioticEditor.Web.Models
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+@inject GameArtService Art
+@inject LiveSessionService Live
+@inject ItemCatalogService Items
+
+<div class="live3d" @ref="_root">
+    <div class="live3d-tools">
+        <button class="wt-btn" @onclick="FrameAsync">@L.Resource("World3D_FrameAll")</button>
+        <button class="wt-btn" disabled="@_refreshing" @onclick="ReloadAsync">@L.Resource("LiveNpcs_Refresh")</button>
+        <label class="wt-check"><input type="checkbox" checked="@_levelOn" @onchange="e => SetLevelAsync(e.Value is true)" />@L.Resource("World3D_LevelShow")</label>
+        <small class="wt-muted">@_progress</small>
+    </div>
+    <div class="live3d-layout">
+        <div class="b3d-stage"><div class="live3d-canvas" data-b3d="canvas" @ref="_host"></div></div>
+        <aside class="live3d-inspector" data-b3d="inspect-pane">
+            @if (_recallStation is { } station && Vehicles is LiveVehiclesSession liveVehicles)
+            {
+                <h3>Recall station</h3>
+                <button class="wt-btn wt-yellow" disabled="@(!liveVehicles.IsHost || _refreshing)" @onclick="() => RecallAsync(station)">Recall</button>
+            }
+            else if (_vehicleId is { } vehicleId && Vehicles is not null)
+            {
+                <WorldVehiclesTab Session="Vehicles" InspectorVehicleId="@vehicleId" OnError="e => _error = e" OnChanged="RefreshSceneAsync" OnOpenContainer="OnOpenContainer" />
+            }
+            else if (_entry is { } entry && _features is not null && _featureId is { } feature)
+            {
+                <h3>@entry.Label</h3>
+                @if (feature == "npc-spawns" && Items.SpawnedCreature(entry.Key) is { } creature)
+                {
+                    <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(creature.Class)" WikiFiles="@AbioticEditor.Core.Codex.CreatureWikiImages.CandidatesFor(creature.Name)" Alt="@creature.Name" />
+                }
+                else if (WorldThumbnails.KindOfFeature(feature) is { } kind && WorldThumbnails.For(kind, entry.Key) is { } picture)
+                {
+                    <img class="live3d-art" src="@picture" alt="@entry.Label" data-zoom />
+                }
+                <FeatureEntryEditor Session="_features" FeatureId="@feature" EntryKey="@entry.Key" OnChanged="RefreshSceneAsync" />
+            }
+            else if (Bases.Deployables.FirstOrDefault(o => o.Id == _selected) is { } piece)
+            {
+                <h3>@piece.DisplayName</h3>
+                @if (WorldThumbnails.ForPlaced(piece.ClassName) is { } picture) { <img class="live3d-art" src="@picture" alt="@piece.DisplayName" data-zoom /> }
+                <label>@L.Resource("PlayerPets_Name")<input class="wt-input" value="@piece.CustomName" @onchange="e => RenameAsync(piece.Id, e.Value?.ToString())" /></label>
+            }
+            else { <p class="wt-muted">@L.Resource("World3D_NothingSelected")</p> }
+            @if (_error is not null) { <p class="error-text" role="alert">@_error</p> }
+        </aside>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public LiveBasesSession Bases { get; set; } = null!;
+    [Parameter] public IWorldVehiclesSession? Vehicles { get; set; }
+    [Parameter] public WorldBase? FocusBase { get; set; }
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
+    [Parameter] public WorldLocateTarget? Locate { get; set; }
+    [Parameter] public EventCallback<string> OnOpenContainer { get; set; }
+    [Parameter, EditorRequired] public Func<string, Task<IWorldFeaturesSession?>> ResolveFeatures { get; set; } = null!;
+    private ElementReference _root, _host;
+    private IJSObjectReference? _module, _view, _fit;
+    private DotNetObjectReference<LiveWorld3DTab>? _self;
+    private WorldLocateTarget? _seenLocate;
+    private WorldBase? _seenBase;
+    private IWorldFeaturesSession? _features;
+    private LiveDeployedCareSession? _gardenCare;
+    private WorldMapEntry? _entry;
+    private string? _featureId, _selected, _vehicleId, _recallStation, _error, _progress;
+    private bool _levelOn = true, _disposed, _refreshing;
+    private LiveBasesSession? _subscribed;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Bases, _subscribed)) return;
+        if (_subscribed is not null) _subscribed.Changed -= Changed;
+        _subscribed = Bases;
+        Bases.Changed += Changed;
+    }
+    private void Changed() => _ = InvokeAsync(async () => { await RefreshSceneAsync(); StateHasChanged(); });
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed) return;
+        if (firstRender)
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
+            _self = DotNetObjectReference.Create(this);
+            _view = await _module.InvokeAsync<IJSObjectReference>("createView", _host, _self);
+            _fit = await _module.InvokeAsync<IJSObjectReference>("fitToWindow", _root);
+            await RefreshSceneAsync();
+            await _view.InvokeVoidAsync("setModelsEnabled", true);
+            if (PlayerPosition is { } player)
+            {
+                var p = PlacedSceneSpace.ToViewer(new PlacedVector(player.X, player.Y, player.Z));
+                await _view.InvokeAsync<bool>("focusPoint", new[] { p.X, p.Y, p.Z }, 9);
+            }
+            else await FrameAsync();
+            await SetLevelAsync(_levelOn);
+        }
+        if (_view is not null && !ReferenceEquals(_seenBase, FocusBase))
+        {
+            _seenBase = FocusBase;
+            if (FocusBase is not null) await _view.InvokeAsync<bool>("frameKeys", (object)FocusBase.Deployables.Select(o => o.Id).ToArray());
+        }
+        if (_view is not null && Locate is { } target && !ReferenceEquals(_seenLocate, target))
+        {
+            _seenLocate = target;
+            await LocateAsync(target);
+        }
+    }
+
+    private async Task RefreshSceneAsync()
+    {
+        if (_view is null || _disposed) return;
+        var objects = Bases.SceneObjects.Where(o => Live.IsActorInCurrentRegion(o.Key)).ToList();
+        if (_gardenCare?.MapFeature("garden-plots") is { } gardens)
+        {
+            foreach (var garden in gardens.Entries)
+            {
+                var fields = garden.Fields;
+                var crops = fields.Where(f => f.Id.StartsWith("crop:", StringComparison.Ordinal) && f.Value is not ("" or "Empty" or "None"))
+                    .Select(f => $"{f.Id[5..]}.{f.Value}.{Stage(fields, f.Id[5..])}");
+                var index = objects.FindIndex(o => o.Key == garden.Key);
+                if (index >= 0) objects[index] = objects[index] with { Variant = (objects[index].Variant ?? "") + "#crops=" + string.Join(',', crops) };
+            }
+        }
+        if (Vehicles is not null)
+            objects.AddRange(Base3DScene.Build([], _ => null, vehicles: Vehicles.Vehicles.Where(v => Live.IsActorInCurrentRegion(v.Id))).Objects);
+        await _view.InvokeVoidAsync("setScene", objects);
+    }
+    private static readonly string[] GrowthStages = ["Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead"];
+    private static int Stage(IReadOnlyList<WorldMapField> fields, string spot)
+        => Math.Max(0, Array.IndexOf(GrowthStages, fields.FirstOrDefault(f => f.Id == "stage:" + spot)?.Value));
+
+    private Task FrameAsync() => _view is null ? Task.CompletedTask : _view.InvokeVoidAsync("frameVisible", true).AsTask();
+    private async Task ReloadAsync()
+    {
+        _refreshing = true;
+        try
+        {
+            await Bases.RefreshAsync();
+            if (Vehicles is LiveVehiclesSession vehicles) await vehicles.RefreshAsync();
+            if (_gardenCare is { } care) await care.RefreshAsync();
+            await RefreshSceneAsync();
+            _error = null;
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, "Refresh the 3D view.", "Try reconnecting."); }
+        finally { _refreshing = false; }
+    }
+    private async Task SetLevelAsync(bool on)
+    {
+        _levelOn = on;
+        if (_view is not null) await _view.InvokeVoidAsync("setLevel", new { enabled = on, region = Live.CurrentRegionToken, radius = 45, cutAbove = 3 });
+    }
+    private async Task RenameAsync(string id, string? name)
+    {
+        try { await Bases.SetCustomNameAsync(id, name); }
+        catch (Exception ex) { _error = Errors.Present(ex, "Rename this object.", "Try reconnecting."); }
+    }
+
+    private static string? FeatureFor(string actor)
+    {
+        if (actor.StartsWith("NPCSpawn", StringComparison.OrdinalIgnoreCase)) return "npc-spawns";
+        if (actor.StartsWith("CharacterCorpse", StringComparison.OrdinalIgnoreCase)) return "corpses";
+        if (actor.StartsWith("Tram", StringComparison.OrdinalIgnoreCase)) return "trams";
+        if (actor.StartsWith("PowerSocket", StringComparison.OrdinalIgnoreCase)) return "power-sockets";
+        if (actor.StartsWith("IceWall", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Destructible", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Webbing", StringComparison.OrdinalIgnoreCase)) return "destructibles";
+        if (actor.StartsWith("Resource", StringComparison.OrdinalIgnoreCase) || WorldThumbnails.For("resource-nodes", actor) is not null) return "resource-nodes";
+        if (actor.StartsWith("Button", StringComparison.OrdinalIgnoreCase)) return "buttons";
+        if (actor.StartsWith("Elevator", StringComparison.OrdinalIgnoreCase)) return "elevators";
+        if (actor.StartsWith("Teleporter", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Portal", StringComparison.OrdinalIgnoreCase) || WorldThumbnails.For("portals", actor) is not null) return "portals";
+        return null;
+    }
+    private async Task PickFeatureAsync(string map, string actor)
+    {
+        await OnPicked(null, false);
+        if (actor.StartsWith("VehicleRecallStation", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("CartRecallButton", StringComparison.OrdinalIgnoreCase))
+        {
+            _recallStation = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor}";
+            StateHasChanged();
+            return;
+        }
+        if (Vehicles?.Vehicles.FirstOrDefault(v => DoorIdParser.Parse(v.VehicleId ?? v.Id) == (map, actor)) is { } vehicle)
+        {
+            await OnPicked(vehicle.Id, false);
+            return;
+        }
+        if (FeatureFor(actor) is not { } feature) return;
+        var session = await ResolveFeatures(feature);
+        var entry = session?.MapFeature(feature)?.Entries.FirstOrDefault(e =>
+        {
+            var parsed = DoorIdParser.Parse(e.Key);
+            return parsed.Map == map && parsed.Actor == actor;
+        });
+        if (entry is null) return;
+        _features = session; _featureId = feature; _entry = entry;
+        _selected = _vehicleId = null;
+        StateHasChanged();
+    }
+    private async Task LocateAsync(WorldLocateTarget target)
+    {
+        if (_view is not { } view) return;
+        await OnPicked(target.Id, false);
+        var point = target.At;
+        if (Bases.Deployables.FirstOrDefault(o => o.Id == target.Id) is { } placed) point = new(placed.X, placed.Y, placed.Z);
+        if (target.Kind == WorldLocateKind.LevelActor)
+        {
+            var pathStart = target.Id.IndexOf("/Game/", StringComparison.Ordinal);
+            var path = pathStart >= 0 ? target.Id[pathStart..] : target.Id;
+            var parsed = DoorIdParser.Parse(target.Id);
+            await PickFeatureAsync(parsed.Map, parsed.Actor);
+            if (_features is not null && _featureId is not null)
+                point = WorldFeaturePositions.Find(_features, _featureId, target.Id) ?? point;
+            if (point is null && await Art.TryGetActorWorldTransformAsync(path) is { } at) point = new(at.X, at.Y, at.Z);
+        }
+        if (point is { } p)
+        {
+            var v = PlacedSceneSpace.ToViewer(p);
+            await view.InvokeAsync<bool>("focusPoint", new[] { v.X, v.Y, v.Z }, 9);
+            await view.InvokeAsync<bool>("followLevel");
+        }
+    }
+    [JSInvokable] public async Task OnPicked(string? key, bool additive)
+    {
+        _selected = key; _entry = null; _features = null; _error = null; _recallStation = null;
+        _vehicleId = Vehicles?.Vehicles.Any(v => v.Id == key) == true ? key : null;
+        if (_view is not null) await _view.InvokeVoidAsync("setSelection", key is null ? Array.Empty<string>() : new[] { key }, key);
+        if (Bases.Deployables.FirstOrDefault(o => o.Id == key) is { ClassName: { } className } && className.Contains("GardenPlot", StringComparison.Ordinal))
+        {
+            _features = await ResolveFeatures("garden-plots"); _featureId = "garden-plots";
+            _gardenCare = _features as LiveDeployedCareSession;
+            _entry = _features?.MapFeature("garden-plots")?.Entries.FirstOrDefault(e => e.Key == key);
+            await RefreshSceneAsync();
+        }
+        StateHasChanged();
+    }
+    private async Task RecallAsync(string station)
+    {
+        if (Vehicles is not LiveVehiclesSession vehicles) return;
+        _refreshing = true;
+        try { await vehicles.RecallStationAsync(station); await Bases.RefreshAsync(); await RefreshSceneAsync(); _error = null; }
+        catch (Exception ex) { _error = Errors.Present(ex, "Recall this vehicle.", "Try reconnecting."); }
+        finally { _refreshing = false; }
+    }
+    [JSInvokable] public async Task OnLevelPicked(string? name, string? actor = null)
+    {
+        if (actor is null) return;
+        var colon = actor.IndexOf(':', StringComparison.Ordinal);
+        if (colon > 0) await PickFeatureAsync(actor[..colon], actor[(colon + 1)..]);
+    }
+    [JSInvokable] public Task OnModelProgress(string kind, int done, int total, string? note) { _progress = total > done ? $"{kind}: {done}/{total}" : null; StateHasChanged(); return Task.CompletedTask; }
+    [JSInvokable] public Task OnWalkEnded() => Task.CompletedTask;
+    [JSInvokable] public Task OnEscapePressed() => OnPicked(null, false);
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_subscribed is not null) _subscribed.Changed -= Changed;
+        try
+        {
+            if (_fit is not null) { await _fit.InvokeVoidAsync("dispose"); await _fit.DisposeAsync(); }
+            if (_view is not null) { await _view.InvokeVoidAsync("dispose"); await _view.DisposeAsync(); }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        _self?.Dispose();
+    }
+}

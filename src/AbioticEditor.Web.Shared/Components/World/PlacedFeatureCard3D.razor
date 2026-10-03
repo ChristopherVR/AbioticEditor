@@ -15,6 +15,10 @@
     var growing = IsCropFeature(feature);
     <div class="b3d-feature-card" data-b3d="placed-feature" data-feature="@feature.Id" @key="cardKey">
         <span class="wt-label">@feature.DisplayName</span>
+        @if (feature.Id == "sconce-lamps")
+        {
+            <LampStatePictures ClassName="@Session.PlacedObjects.FirstOrDefault(o => o.Key == PieceKey)?.ClassName" On="@(entry.Fields.FirstOrDefault(f => f.Id == "on")?.Value == "true")" />
+        }
         @if (growing)
         {
             var spots = Spots(entry);

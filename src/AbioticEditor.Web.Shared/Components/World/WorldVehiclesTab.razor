@@ -11,10 +11,15 @@
    detail editor with wiki image, drivable/wrecked state, move + reset-to-spawn, and a jump
    to the vehicle's on-board storage in the containers tab. *@
 <section class="world-editor world-native-tab" aria-label="@L.Resource("WorldVehicles_VehiclesInThisWorld")">
+    @if (InspectorVehicleId is null)
+    {
     <h2 class="wt-h2">@L.Resource("WorldVehicles_VehiclesInThisWorld")</h2>
     <p class="wt-intro">@L.Resource("WorldVehicles_VehicleListIntro")</p>
+    }
 
-    <div class="wt-md">
+    <div class="@(InspectorVehicleId is null ? "wt-md" : "vehicle-inspector")">
+        @if (InspectorVehicleId is null)
+        {
         <div class="wt-list" role="listbox" aria-label="@L.Resource("WorldVehicles_VehiclesInThisWorld")">
             @if (Session.Vehicles.Count == 0)
             {
@@ -49,6 +54,7 @@
             }
         </div>
 
+        }
         <div class="wt-detail">
             @if (Selected is not { } vehicle)
             {
@@ -58,7 +64,10 @@
             {
                 <h3 class="wt-h3">@vehicle.DisplayName</h3>
                 <p class="wt-status-text">@L.Resource("WorldVehicles_WorldFormat", PlainNames.Area(vehicle.Region))</p>
-                <ShowIn3DButton Target="@WorldLocateTarget.Point(vehicle.Id, vehicle.DisplayName, vehicle.X, vehicle.Y, vehicle.Z)" />
+                @if (InspectorVehicleId is null)
+                {
+                    <ShowIn3DButton Target="@WorldLocateTarget.Point(vehicle.Id, vehicle.DisplayName, vehicle.X, vehicle.Y, vehicle.Z)" />
+                }
                 @if (!IsEditable(vehicle))
                 {
                     <p class="wt-muted">@L.Resource("WorldVehicles_DisplayOnlyNoEditableState")</p>
@@ -151,6 +160,13 @@
     /// <summary>Raised with a vehicle's on-board container id when the user wants to edit its
     /// storage; the host switches to the Containers tab and can pre-filter to this id.</summary>
     [Parameter] public EventCallback<string> OnOpenContainer { get; set; }
+    [Parameter] public string? InspectorVehicleId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (InspectorVehicleId is { } id && Session.Vehicles.FirstOrDefault(v => v.Id == id) is { } vehicle) Select(vehicle);
+    }
 
     private string? _selectedId;
     private ActorTransform? _spawn;
@@ -185,7 +201,7 @@
 
     private async Task LoadSelectionAsync(WorldVehicle vehicle, CancellationTokenSource load)
     {
-        var transform = await Art.TryGetActorTransformAsync(vehicle.VehicleId ?? vehicle.Id);
+        var transform = await Art.TryGetActorWorldTransformAsync(vehicle.VehicleId ?? vehicle.Id);
         if (!load.IsCancellationRequested && _selectedId == vehicle.Id)
         {
             _spawn = transform;
@@ -236,6 +252,7 @@
             await Session.SetVehicleAsync(vehicle.Id, driveable ?? vehicle.Driveable, destroyed ?? vehicle.Destroyed,
                 x ?? vehicle.X, y ?? vehicle.Y, z ?? vehicle.Z);
             if (!Session.AppliesImmediately) Workspace.NotifyEdited();
+            await OnChanged.InvokeAsync();
         }
         catch (Exception exception)
         {

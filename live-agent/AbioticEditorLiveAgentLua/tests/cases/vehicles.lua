@@ -78,8 +78,15 @@ return function(H)
     local afterWrite = H.ok(H.dispatch("vehicles.list")).vehicles[1]
     H.eq(afterWrite.inventoryItemCount, 2, "vehicles.list reflects the container write with no vehicle-specific code")
 
+    local station = H.world.add(H.object("VehicleRecallStation_C", {}, { TryVehicleRecall = function(_, active) H.eq(active, true, "recall activates station") end }))
+    local stationId = station:GetFullName():gsub("^%S+ ", "")
+    H.ok(H.dispatch("vehicles.recall", { id = stationId }), "recall station accepts actor path")
+    H.eq(H.calls(station, "TryVehicleRecall"), 1, "recall uses the game's event once")
+    H.fails(H.dispatch("vehicles.recall", { id = "missing" }), "not found", "missing recall station fails")
+
     -- Non-host refusal.
     H.clientSession()
     H.world.add(forklift)
     H.fails(H.dispatch("vehicles.set", { id = id, driveable = true }), "only the host", "client cannot edit vehicles")
+    H.fails(H.dispatch("vehicles.recall", { id = stationId }), "only the host", "client cannot recall vehicles")
 end

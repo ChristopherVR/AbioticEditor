@@ -137,18 +137,26 @@ public static class WorldAreaCatalog
             return null;
         }
         var rest = actorPath[(idx + marker.Length)..];
-        // The token ends at the first of '.', ':' or '/'.
-        var end = rest.Length;
-        foreach (var ch in new[] { '.', ':', '/' })
+        return NormalizeLevelToken(rest);
+    }
+
+    /// <summary>The bare map name from a package path, streaming-level path or editor-play name.</summary>
+    public static string? NormalizeLevelToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        var t = token.Trim();
+        var colon = t.IndexOf(':', StringComparison.Ordinal);
+        if (colon >= 0) t = t[..colon];
+        var slash = t.LastIndexOf('/');
+        if (slash >= 0) t = t[(slash + 1)..];
+        var dot = t.LastIndexOf('.');
+        if (dot >= 0) t = t[(dot + 1)..];
+        if (t.StartsWith("UEDPIE_", StringComparison.OrdinalIgnoreCase))
         {
-            var p = rest.IndexOf(ch);
-            if (p >= 0 && p < end)
-            {
-                end = p;
-            }
+            var end = t.IndexOf('_', "UEDPIE_".Length);
+            if (end >= 0) t = t[(end + 1)..];
         }
-        var token = rest[..end];
-        return token.Length == 0 ? null : token;
+        return t.Length == 0 ? null : t;
     }
 
     /// <summary>

@@ -593,6 +593,18 @@ public sealed partial class GameAssetProvider : IDisposable
         }
     }
 
+    /// <summary>The spawn actor linked to a cooked vehicle recall station, when present.</summary>
+    public string? TryGetVehicleRecallSpawner(string actorObjectPath)
+    {
+        if (_disposed) return null;
+        try
+        {
+            using (ProviderLock())
+                return LoadActorKeepingLevel(actorObjectPath)?.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("LinkedSpawner")?.GetPathName();
+        }
+        catch { return null; }
+    }
+
     private readonly Dictionary<string, System.Numerics.Matrix4x4?> _levelPlacements = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>

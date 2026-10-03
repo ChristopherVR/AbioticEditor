@@ -126,6 +126,11 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         var plain = state.LiquidLevel is { } liquid
             ? DescribeFilled(classPath, state.PaintColor, liquid, state.LiquidType)
             : state.PaintColor is { } paint ? DescribeClass(classPath, paint) : DescribeClass(classPath);
+        if (plain is not null && state.LampOn == false)
+            plain = plain with { Parts = plain.Parts.Select(part => part with
+            {
+                Materials = part.Materials.Select(m => m.Emissive ? m with { Emissive = false } : m).ToArray(),
+            }).ToArray() };
         if (state.Crops is not { Count: > 0 } crops || plain is null) return plain;
         var key = $"{classPath}#paint={state.PaintColor}#liquid={state.LiquidLevel}#fluid={state.LiquidType}#crops={string.Join(',', crops.OrderBy(c => c.Spot).Select(c => $"{c.Spot}.{c.Row}.{c.Stage}"))}";
         var cacheFile = CachePath(ClassesFolder, key, ".json");

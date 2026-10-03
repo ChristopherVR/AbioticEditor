@@ -29,6 +29,10 @@ public sealed class LiveVehiclesChannel(ILiveGameChannel channel)
         CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("vehicles.set", new SetWire(id, driveable, wrecked, x, y, z), cancellationToken);
 
+    /// <summary>Presses this loaded recall station through the game's own recall event. Host only.</summary>
+    public Task RecallStationAsync(string id, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("vehicles.recall", new { id }, cancellationToken);
+
     private sealed record DirectoryWire(IReadOnlyList<VehicleWire>? Vehicles, bool IsHost, bool SupportsWreckedState);
     private sealed record VehicleWire(string Id, string? VehicleId, string? VehicleClass, bool Driveable, bool Wrecked,
         double X, double Y, double Z, string? ContainerId = null, bool HasInventory = false, int InventoryItemCount = 0);

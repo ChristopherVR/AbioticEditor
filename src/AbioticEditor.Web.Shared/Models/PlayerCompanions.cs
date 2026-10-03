@@ -55,4 +55,6 @@ public interface IPlayerCompanionsSession
     /// does - see that member's remarks for why a concrete-type check on <c>Session</c> silently
     /// no-ops through this facade instead.</summary>
     Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    Task AddPetAsync(string itemRow, AbioticEditor.Core.PlayerSaves.PetSlotKind kind, string? name, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("Adding pets is unavailable in this session.");
 }

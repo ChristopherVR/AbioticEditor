@@ -1,5 +1,48 @@
 # Abiotic Editor - Session history
 
+## Round-157: inspector controls, live 3D, pet adds, region filtering and state pictures (2026-10-03)
+
+- Vehicles now draw their saved model and rotation in the offline scene and open their settings
+  inside its inspector. Recall stations resolve their cooked `LinkedSpawner` reference to the
+  matching vehicle. Reset-to-spawn uses world coordinates, including streaming-level placement.
+  Live stations offer Recall through the game's `TryVehicleRecall(true)` event, including the
+  cart station's override. Live vehicle cargo links open the shared Containers tab.
+- Breakables, NPC spawners, resource nodes and wall sockets open their controls inside the 3D
+  inspector. Default-state level actors omitted from the save can be read; changing a default
+  breakable creates an entry from a same-save donor without changing that donor. Staged map edits
+  invalidate the scene census, so garden seed and lamp changes reach the scene immediately.
+- Sconce lamps show separate On and Off pictures. The off model suppresses emissive lighting,
+  and the on instance contributes a warm glow and light to the shared light pool. Rendered posed
+  corpse pictures and a child-socket picture from the installed game's models; unknown buttons
+  and socket variants use a family picture. Corpse pictures use level actors rather than class
+  defaults so they do not stand in a rest pose.
+- Live Bases offers Map and 3D, drawing deployable class paths, rotations, vehicle models and the
+  cooked surroundings. Selecting a garden opens its live fields and updates its crop models.
+  Show in 3D opens feature settings and prefers game-reported positions, including runtime NPC
+  spawners and resource nodes. Refresh explicitly rereads live scene state; no recurring large
+  deployable scan was added. Teleporters and elevators have readable numbered names.
+- Live world-feature lists and scene objects filter actor paths to the current normalized region.
+  The sidebar uses the current world-info region for the local player, preventing a stale player
+  directory from marking both DF_Central and DarkFusion as the local player's location.
+- Live player Pets supports Add pet in an empty companion or hotbar slot. `requireEmpty` is checked
+  again on the game thread and prevents overwriting an item added since the editor's read.
+- Broken live IceWalls are read-only with a concise offline-repair hint. Field refusals stay in
+  the relevant inspector and clear on entry changes; world-tab changes clear page errors. Live
+  messages decode HTML whitespace and strip the handler prefix and trailing slash/newline junk.
+  Mixing still uses the game's recipe and power checks; invalid input recipes remain refused.
+- Windows desktop startup sets the Abiotic Editor app identity and both native icon sizes after
+  the Photino window exists, covering developer launches through dotnet as well as the executable.
+- Verified: final host build with zero warnings/errors; 112 focused .NET tests; 1,337 Lua harness
+  checks. The earlier full suite returned 2,188 passed, one skipped and two failures: the old
+  live-has-no-3D assertion is updated and passes, and the parallel memory-measurement test passed
+  in isolation. Rendered and inspected corpse and On/Off lamp pictures using the loopback host.
+  No user host was stopped and no user save was changed. Actual live game interactions and the
+  native taskbar appearance have not been exercised in this session.
+- Remaining game-data limitation: some offline Peccary spawners have runtime actor names, no
+  cooked actor and no saved coordinates. Their settings open, but an exact 3D position cannot be
+  recovered offline. Live mode uses their reported position. Broken IceWalls cannot be repaired
+  live because the game does not restore their intact mesh/collision when the flag is reset.
+
 ## Round-156: corpses no longer stand in a T-pose (2026-10-02)
 
 - **Cause.** `CharacterCorpse_ParentBP`'s construction script copies the actor variable `DeathPose`

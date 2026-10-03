@@ -88,6 +88,8 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
         CompanionsSession?.RemovePetAsync(pet, cancellationToken) ?? Task.CompletedTask;
     public Task RefreshAsync(CancellationToken cancellationToken = default) =>
         CompanionsSession?.RefreshAsync(cancellationToken) ?? Task.CompletedTask;
+    public Task AddPetAsync(string itemRow, PetSlotKind kind, string? name, CancellationToken cancellationToken = default)
+        => CompanionsSession?.AddPetAsync(itemRow, kind, name, cancellationToken) ?? Task.CompletedTask;
 
     // ---- IPlayerInventorySession / IPlayerTransmogSession ----
     public IReadOnlyList<PlayerInventorySlotEdit> Equipment => InventorySession?.Equipment ?? [];

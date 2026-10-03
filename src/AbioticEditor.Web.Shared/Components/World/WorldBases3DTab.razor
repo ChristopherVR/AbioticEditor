@@ -751,7 +751,13 @@
                     </div>
                 }
 
-                @if (SelectedObject is not null || SelectedCopy is not null || (SelectedDoor is null && SelectedNpc is null && _pickedMarker is null && _levelPicked is null))
+                @if (_selectedKey is { } vehicleKey && Session.Vehicles.Any(v => v.Id == vehicleKey))
+                {
+                    <div class="wt-card b3d-panel" data-b3d="vehicle-card">
+                        <WorldVehiclesTab Session="Session" InspectorVehicleId="@vehicleKey" OnOpenContainer="OpenVehicleContainerAsync" OnChanged="ThingChangedAsync" />
+                    </div>
+                }
+                @if (SelectedObject is not null || SelectedCopy is not null || (_selectedKey is null && SelectedDoor is null && SelectedNpc is null && _pickedMarker is null && _levelPicked is null))
                 {
                     <div class="wt-card b3d-panel" data-b3d="inspector">
                         <div class="b3d-panel-head">
@@ -1277,7 +1283,7 @@
         _basePreview = Session.HasStagedBaseEdits ? Session.PreviewBaseEdits() : null;
         _preview = _basePreview?.Transforms ?? [];
         _scene = Base3DScene.Build(source, Session.CurrentPlacedTransform,
-            Session.StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal), CopiesToDraw());
+            Session.StagedPlacedDeletions.Keys.ToHashSet(StringComparer.Ordinal), CopiesToDraw(), Session.Vehicles);
         _visible = _scene.Apply(_filter);
         _pushScene = true;
         PruneSelection();

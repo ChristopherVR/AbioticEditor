@@ -285,6 +285,13 @@ public sealed class GameArtService : IDisposable
         return _actorWorldTransforms.GetOrAdd(actorObjectPath, static (path, service) => new Lazy<Task<ActorTransform?>>(() => service.ReadActorAsync(path)), this).Value;
     }
 
+    /// <summary>Resolves the vehicle spawn linked to a recall station from the game's cooked level.</summary>
+    public Task<string?> TryGetVehicleRecallSpawnerAsync(string actorObjectPath) => Task.Run(() =>
+    {
+        try { return _provider.Value?.TryGetVehicleRecallSpawner(actorObjectPath); }
+        catch { return null; }
+    });
+
     /// <summary>
     /// Several level actors' world transforms at once, read grouped by level file so each file is
     /// opened once (one at a time, they were read in mixed order and kept re-opening the same big

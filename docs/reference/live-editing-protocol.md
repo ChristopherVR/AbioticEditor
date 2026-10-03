@@ -317,6 +317,10 @@ value 12, is never sent). `bases.set` takes `{"id","customName"?,"upgradeRow"?,
 "upgradeInstalled"?,"paintColor"?}` and renames the object, installs or removes a bench upgrade,
 and/or sets its paint colour immediately. Host only, like `containers.set`/`doors.set`.
 
+The rows also include optional `classPath` and `quatX`, `quatY`, `quatZ`, `quatW` from the actor's
+class and transform for the live 3D view. Older agents without these fields draw position boxes
+with an identity rotation. World-list buttons and the 3D view filter map paths to the current region.
+
 **Custom name field fixed.** `customName` used to read/write
 `AbioticDeployed_ParentBP_C`'s `AlternativeObjectName` (`FTextProperty`, "Edit | BlueprintVisible |
 DisableEditOnInstance" - no `Net` flag at all), which is why a bench renamed in-game never showed a
@@ -420,6 +424,12 @@ Opening a bench or crate's contents inline (the file editor's slot grid) is stil
 shares the CONTAINERS tab's staged slot model; use the CONTAINERS tab for live slot editing.
 
 ## `vehicles.list` / `vehicles.set`
+
+`vehicles.recall` takes `{"id"}` for a loaded vehicle recall station (full actor name or object
+path). Host only. It invokes `VehicleRecallStation_C.TryVehicleRecall(true)`; `CartRecallButton_C`
+overrides that event to recover carts. The editor refreshes the vehicle and deployable lists after
+the request. Missing or unloaded stations are refused. The station's `LinkedSpawner` reference
+and this event's `Activated:bool` parameter were confirmed by `InspectorPicturesProbe`.
 
 `vehicles.list` returns `{"vehicles":[{"id","vehicleId","vehicleClass","driveable","wrecked",
 "x","y","z","containerId"?,"hasInventory","inventoryItemCount"}],"isHost":bool,
@@ -1238,10 +1248,14 @@ which rows are actually pets (`PetItemCatalog.IsPetItem`, or the Companion equip
 the .NET side, in `LivePlayerCompanionsSession`.
 
 `companions.set` takes one pet row at a time: `{"kind","slotIndex","clear"?,"itemId"?,"name"?,
-"health"?,"maxHealth"?,"xp"?,"mutationProgress"?,"petMutation"?,"playerId"?}`. Applying happens
+"health"?,"maxHealth"?,"xp"?,"mutationProgress"?,"petMutation"?,"playerId"?,"requireEmpty"?}`. Applying happens
 immediately, one pet at a time - there is no batch form. `clear` empties the slot and ignores every
 other field, exactly like `inventory.set`'s `clear`, and replies `{"despawnedFollower":bool}` - see
 the round-78 fix below.
+
+Add pet uses `requireEmpty:true` and a stack of one. The editor chooses an empty companion slot
+or hotbar slot; the agent checks that it is still empty before writing, so an item placed there
+between the read and the write is never overwritten. A full inventory refuses the add.
 
 `clear` used to only ever write the inventory slot struct back to
 `Empty` - a plain field write, like every other edit in this file - which for the Companion slot

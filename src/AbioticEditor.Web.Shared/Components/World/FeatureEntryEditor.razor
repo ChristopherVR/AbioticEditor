@@ -77,8 +77,17 @@
     private static string BoolText(object? value) => value is true ? "true" : "false";
 
     private readonly Dictionary<string, string> _errors = new(StringComparer.Ordinal);
+    private (IWorldFeaturesSession? Session, string Feature, string Key) _seen;
+    protected override void OnParametersSet()
+    {
+        var current = (Session, FeatureId, EntryKey);
+        if (_seen == current) return;
+        _seen = current;
+        _errors.Clear();
+    }
 
-    private WorldMapEntry? Entry => Session.MapFeature(FeatureId)?.Entries.FirstOrDefault(e => string.Equals(e.Key, EntryKey, StringComparison.Ordinal));
+    private WorldMapEntry? Entry => Session is WorldSaveSession file ? file.MapActorEntry(FeatureId, EntryKey)
+        : Session.MapFeature(FeatureId)?.Entries.FirstOrDefault(e => string.Equals(e.Key, EntryKey, StringComparison.Ordinal));
 
     private async Task SetAsync(string entryKey, string fieldId, string? value)
     {
@@ -90,7 +99,7 @@
         }
         if (result.IsError)
         {
-            _errors[fieldId] = result.Error is { Length: > 0 } reason ? reason : L.Resource("WorldFeature_ChangeRefused");
+            _errors[fieldId] = result.Error is { Length: > 0 } reason ? AbioticEditor.Core.LiveEditing.LiveAgentException.CleanMessage(reason) : L.Resource("WorldFeature_ChangeRefused");
             return;
         }
         _errors.Remove(fieldId);

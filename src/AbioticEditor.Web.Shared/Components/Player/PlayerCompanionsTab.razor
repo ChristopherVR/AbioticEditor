@@ -25,7 +25,7 @@
     <p class="muted companions-help">@L.Resource("PlayerPets_IntroHelp")</p>
     <small class="muted">@L.Resource("Slot_ImageAbioticfactorWikiGg")</small>
     @if (Session.Status is not null) { <p class="status-text">@Session.Status</p> }
-    @if (Session is PlayerSaveSession fileSession)
+    @if (Session is PlayerSaveSession || Session.AppliesImmediately)
     {
         <div class="pet-add-panel">
             <strong>@L.Resource("PlayerPets_AddTitle")</strong>
@@ -37,7 +37,7 @@
                 <option value="@PetSlotKind.Equipment">@L.Resource("PlayerPets_CompanionSlot")</option>
                 <option value="@PetSlotKind.Hotbar">@L.Resource("PlayerPets_SlotKind_Hotbar")</option>
             </select>
-            <button class="heal-all-button" type="button" @onclick="() => AddPet(fileSession)">@L.Resource("PlayerPets_Add")</button>
+            <button class="heal-all-button" type="button" disabled="@_addingPet" @onclick="AddPetAsync">@L.Resource("PlayerPets_Add")</button>
         </div>
     }
 
@@ -196,6 +196,25 @@
             await OnChanged.InvokeAsync();
         }
         else ReportMoveFailed(message);
+    }
+
+    private bool _addingPet;
+    private async Task AddPetAsync()
+    {
+        if (_addingPet) return;
+        if (Session is PlayerSaveSession file) { await AddPet(file); return; }
+        _addingPet = true;
+        try
+        {
+            await Session.AddPetAsync(_addItemRow, _addKind, _addName);
+            _addName = null;
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (IsLiveTransportException(ex) || ex is ArgumentException)
+        {
+            ReportMoveFailed(Errors.Present(ex, "Add this pet.", "Free an inventory slot and try again."));
+        }
+        finally { _addingPet = false; }
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
 # World list pictures
 
 The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes, Power
-Sockets, Teleporter Pads, Sconce lamps and Containers lists show a picture of each kind of thing, drawn on its own with the game's own models. The pictures are
+Sockets, Teleporter Pads, Sconce lamps, Corpses and Containers lists show a picture of each kind of thing, drawn on its own with the game's own models. The pictures are
 rendered once by a maintainer, checked in under `src/AbioticEditor.Web.Shared/wwwroot/thumbs`, and
 ship with the editor; nothing is rendered or downloaded while the editor runs. Re-render after a game
 update that changes these models, or to cover kinds from a world the list did not include.
@@ -50,6 +50,12 @@ update that changes these models, or to cover kinds from a world the list did no
    It writes `wwwroot/thumbs/<kind>/<class>.webp` and regenerates
    `src/AbioticEditor.Web.Shared/Services/WorldThumbnails.Index.g.cs`, which tells the editor which
    pictures exist. Commit both.
+
+For the sconce's On and Off pictures and child power sockets, set `INSPECTOR_PICTURES_OUT` and run
+`InspectorPicturesProbe.Write_inspector_picture_targets`, then render that file. For corpses, set
+`INSPECTOR_LEVEL_PICTURES_OUT` and run `InspectorPicturesProbe.Write_posed_corpse_picture_targets`.
+Render that file separately: corpse pictures must use a posed actor from a level, because rendering
+the blueprint alone can show the body in its rest pose.
 
 ## Where each one is
 

@@ -491,9 +491,16 @@ function buildView(host, dotnet) {
         for (const light of [...pointPool, ...spotPool]) { light.intensity = 0; light.userData.intensity = 0; }
     }
 
+    let levelLamps = [];
     function setLamps(list) {
+        levelLamps = list ?? [];
+        refreshLamps();
+    }
+    function refreshLamps() {
         clearLamps();
-        const lamps = list ?? [];
+        const lamps = [...levelLamps, ...objects.filter(o => o.lampOn === true && visible.includes(keyToIndex.get(o.key)))
+            .map(o => ({ position: lampPosition(o), color: [1, 0.8, 0.55], brightness: 1, rangeMetres: 6 }))]
+            .sort((a, b) => new THREE.Vector3(...a.position).distanceToSquared(controls.target) - new THREE.Vector3(...b.position).distanceToSquared(controls.target));
         let points = 0, spots = 0;
         lamps.forEach(l => {
             const colour = new THREE.Color(l.color[0], l.color[1], l.color[2]);
@@ -523,6 +530,14 @@ function buildView(host, dotnet) {
         });
         applyLampsOn();
         updateLevelCut();
+    }
+
+    function lampPosition(o) {
+        const box = classModels.get(modelKey(o))?.box;
+        const local = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3(0, 0.3, 0);
+        if (box) local.y = box.max.y - 0.08;
+        local.multiply(new THREE.Vector3(...o.s)).applyQuaternion(new THREE.Quaternion(...o.q)).add(new THREE.Vector3(...o.p));
+        return local.toArray();
     }
 
     /** Lamps on or off: lights dimmed to nothing and glows hidden (the light count never changes). */
@@ -2517,6 +2532,7 @@ function buildView(host, dotnet) {
             buildMeshes();
             updateGrid();
             visible = list.map((_, i) => i);
+            refreshLamps();
             rebuildInstances();
             setSelection([...selectedKeys], selectedKey);
             attachGizmo();
@@ -2567,6 +2583,7 @@ function buildView(host, dotnet) {
         setVisible(indices) {
             visible = indices;
             rebuildInstances();
+            refreshLamps();
         },
         /** Updates one object's transform in place (after a staged edit or a revert). */
         setObjectTransform(key, p, q) {
@@ -2820,6 +2837,18 @@ function buildView(host, dotnet) {
             if (!group.children.length || box.isEmpty()) return null;
             await texturesReady(materials, true);
             // A placed object's front faces along its own +X (the save's forward axis).
+            if (cls.includes("#lamp=1")) {
+                const at = box.getCenter(new THREE.Vector3());
+                at.y = box.max.y - 0.08;
+                const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture, color: 0xffcc88,
+                    blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.8 }));
+                glow.position.copy(at);
+                glow.scale.set(0.28, 0.28, 1);
+                group.add(glow);
+                const light = new THREE.PointLight(0xffcc88, LAMP_CANDELA, 6, 2);
+                light.position.copy(at);
+                group.add(light);
+            }
             return shootSquare(group, box, size, [1, 0, 0]);
         },
         /**

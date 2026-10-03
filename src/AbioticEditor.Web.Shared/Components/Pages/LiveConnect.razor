@@ -111,6 +111,7 @@ else
                awkward unification. The heading below is the same one and the same resource string
                the file editor's own world section uses (see SaveEditorSurface.razor's
                world-summary-heading). *@
+            <CascadingValue Value="LiveLocator">
             <section class="world-editor-summary">
                 <header class="world-summary-heading">
                     <h2>@L.Resource("LiveWorld_Title")</h2>
@@ -200,7 +201,7 @@ else
             }
             else if (_worldTab == "bases" && _bases is not null)
             {
-                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" PlayerPosition="_spawn?.LivePosition" />
+                <WorldBasesTab Session="_bases" Title="@L.Resource("WorldBases_BaseManager")" OnError="ShowWorldAreaError" PlayerPosition="_spawn?.LivePosition" ThreeDView="LiveThreeDView" Locate="_liveLocate" />
             }
             else if (_worldTab == "vehicles" && _vehicles is not null)
             {
@@ -356,6 +357,7 @@ else
                 }
             }
             </AppErrorBoundary>
+            </CascadingValue>
         }
         @if (_error is not null)
         {
@@ -365,6 +367,33 @@ else
 }
 
 @code {
+    private WorldLocateTarget? _liveLocate;
+    private WorldLocator? _liveLocator;
+    private WorldLocator LiveLocator => _liveLocator ??= new(LocateLiveAsync);
+    private async Task LocateLiveAsync(WorldLocateTarget target)
+    {
+        _liveLocate = target;
+        _worldTab = "bases";
+        await EnsureAreaConnectedAsync("bases");
+    }
+    private RenderFragment<WorldBase?> LiveThreeDView => focus => @<LiveWorld3DTab Bases="_bases!" Vehicles="_vehicles" FocusBase="focus" PlayerPosition="_spawn?.LivePosition" Locate="_liveLocate" ResolveFeatures="ResolveLiveFeaturesAsync" OnOpenContainer="OpenCareContainerAsync" />;
+
+    private async Task<IWorldFeaturesSession?> ResolveLiveFeaturesAsync(string feature)
+    {
+        if (feature is "garden-plots" or "power-chairs" or "chemistry-benches")
+        {
+            if (!_care.TryGetValue(feature, out var care) && _channel is { } channel)
+                _care[feature] = care = await LiveDeployedCareSession.ConnectAsync(new LiveDeployedCareChannel(channel), feature);
+            return care;
+        }
+        await EnsureAreaConnectedAsync(feature switch { "resource-nodes" => "resourcenodes", "power-sockets" => "powersockets", _ => feature });
+        return feature switch
+        {
+            "buttons" => _buttons, "destructibles" => _destructibles, "resource-nodes" => _resourceNodes,
+            "npc-spawns" => _npcSpawns, "power-sockets" => _powerSockets, "elevators" => _elevators,
+            "portals" => _portals, "trams" => _trams, "corpses" => _corpses, _ => null,
+        };
+    }
     private string? _error;
     // Which player tab PlayerEditor currently has open, mirrored here via OnTabActivated - used
     // to know which area to lazily connect next, and (for vitals/skills) which session an edit
@@ -678,6 +707,8 @@ else
 
     private async Task SelectWorldTabAsync(string tab)
     {
+        _error = null;
+        _lastWorldAreaError = null;
         _worldTab = tab;
         await EnsureAreaConnectedAsync(tab);
     }
@@ -776,6 +807,12 @@ else
                     break;
                 case "bases":
                     _bases ??= await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
+                    _vehicles ??= await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
+                    if (_spawn is null)
+                    {
+                        try { _spawn = await LivePlayerSpawnSession.ConnectAsync(new LiveSpawnChannel(channel), _selectedPlayerId); _playerFacade.SpawnSession = _spawn; }
+                        catch (Exception) { }
+                    }
                     break;
                 case "vehicles":
                     _vehicles ??= await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
@@ -1010,7 +1047,7 @@ else
             // the moment the game's own region token actually changes, so the next tab visit
             // re-fetches fresh - world-wide state (story/flags/traders/containment/entitlements)
             // is untouched, since that is not region-scoped at all.
-            if (previousToken is not null && !string.Equals(previousToken, info.LevelToken, StringComparison.OrdinalIgnoreCase))
+            if (previousToken is not null && !string.Equals(previousToken, LiveSession.CurrentRegionToken, StringComparison.OrdinalIgnoreCase))
             {
                 ResetRegionScopedWorldSessions();
             }

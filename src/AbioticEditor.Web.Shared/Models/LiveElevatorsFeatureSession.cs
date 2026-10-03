@@ -71,9 +71,9 @@ public sealed class LiveElevatorsFeatureSession : IWorldFeaturesSession
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
         if (!string.Equals(featureId, ElevatorsFeatureId, StringComparison.Ordinal)) return null;
-        var entries = Elevators.Select(e => new WorldMapEntry(
+        var entries = Elevators.Select((e, index) => new WorldMapEntry(
             e.Id,
-            e.Label,
+            $"Elevator {index + 1}",
             e.Controllable
                 ? new[]
                 {

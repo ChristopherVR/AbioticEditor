@@ -49,6 +49,12 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
     public ValueTask SaveAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     public void Revert() { }
 
+    public async Task AddPetAsync(string itemRow, PetSlotKind kind, string? name, CancellationToken cancellationToken = default)
+    {
+        await _channel.AddAsync(itemRow, kind, name, _playerId, cancellationToken).ConfigureAwait(false);
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Raised after <see cref="RefreshAsync"/> re-reads the running game, and after every
     /// mutation below applies - lets a bound UI (the COMPANIONS tab) redraw without polling this
     /// object itself.</summary>

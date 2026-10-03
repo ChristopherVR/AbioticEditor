@@ -22,6 +22,22 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
 {
     private readonly ILiveGameChannel _channel = channel ?? throw new ArgumentNullException(nameof(channel));
 
+    public async Task AddAsync(string itemRow, PetSlotKind preferred, string? name, string? playerId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (WorldSaves.PetItemCatalog.ForRow(itemRow) is not { IsWeaponForm: false })
+            throw new ArgumentException("Choose a held pet.", nameof(itemRow));
+        var slots = await new LiveInventoryChannel(_channel).GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        var target = preferred == PetSlotKind.Equipment ? slots.FirstOrDefault(s => s.Kind == "equip" && s.SlotIndex == 12 && s.IsEmpty) : null;
+        target ??= slots.FirstOrDefault(s => s.Kind == "hotbar" && s.IsEmpty);
+        if (target is null) throw new LiveAgentException("The companion slot and hotbar are full. Free a slot and try again.");
+        await _channel.RequestAsync<object?>("companions.set",
+            new SetWire(target.Kind, target.SlotIndex, false, itemRow, name,
+                WorldSaves.PetItemCatalog.DefaultMaxHealth, WorldSaves.PetItemCatalog.DefaultMaxHealth,
+                0, 0, 0, playerId, ItemTableIndex.TableRefFor(itemRow), RequireEmpty: true),
+            cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Every occupied backpack/equip/hotbar slot for <paramref name="playerId"/> (or the
     /// local player when omitted), before pet filtering (done by the caller, see this class's own
     /// summary).</summary>
@@ -83,7 +99,8 @@ public sealed class LiveCompanionsChannel(ILiveGameChannel channel)
     private sealed record RowWire(string Kind, int SlotIndex, string ItemId, string? Name,
         double Health, double MaxHealth, int Xp, int MutationProgress, int PetMutation);
     private sealed record SetWire(string Kind, int SlotIndex, bool? Clear, string? ItemId, string? Name,
-        double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId, string? DataTable);
+        double? Health, double? MaxHealth, int? Xp, int? MutationProgress, int? PetMutation, string? PlayerId, string? DataTable,
+        bool RequireEmpty = false);
     private sealed record ClearResultWire(bool? DespawnedFollower);
 }
 

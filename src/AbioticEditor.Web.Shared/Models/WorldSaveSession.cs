@@ -248,6 +248,16 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
             feature.RemoveActionLabel,
             feature.Read(ReadableFeatureRaw));
     }
+    public PlacedVector? MapEntryPosition(string featureId, string key)
+    {
+        var feature = WorldMapFeatures.Find(featureId);
+        if (feature is null || WorldMapAccessor.FindEntry(ReadableFeatureRaw, feature.MapName, key) is not { } props) return null;
+        return WorldMapAccessor.GetVector(props, "CurrentPosition_") is { } at ? new(at.X, at.Y, at.Z) : null;
+    }
+
+    public WorldMapEntry? MapActorEntry(string featureId, string actorPath)
+        => WorldMapFeatures.Find(featureId) is WorldMapFeatureBase feature
+            ? feature.ReadActor(ReadableFeatureRaw, actorPath) : null;
     public bool IsDirty => !_originalFlags.SetEquals(Flags) || GlobalRecipesAreDirty() || DoorsAreDirty() || ContainersAreDirty() || NpcsAreDirty() || PetsAreDirty() || _pendingPetPlacements.Count > 0 || DroppedItemsAreDirty() || VehiclesAreDirty() || DeployablesAreDirty() || StoryIsDirty() || WorldTimeIsDirty() || ContainmentsAreDirty() || _featureOperations.Count > 0 || _benchUpgradeOperations.Count > 0 || _rawEdits.Count > 0 || _stagedWorldUnlocks.Count > 0 || HasStagedBaseEdits;
     public string? Status { get; private set; }
 
@@ -676,6 +686,7 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         if (_vehicles.TryGetValue(id, out var vehicle))
         {
             _vehicles[id] = vehicle with { Driveable = driveable, Destroyed = destroyed, X = x, Y = y, Z = z };
+            PlacedTransformsRevision++;
             UpdateStatus();
         }
     }
@@ -1177,6 +1188,9 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         if (result.Changed)
         {
             _featureOperations.Add(WorldMapFeatureOperation.Set(featureId, entryKey, fieldId, value));
+            _placedObjects = null;
+            _placedByKey = null;
+            PlacedTransformsRevision++;
             UpdateStatus();
         }
         return result;
@@ -1191,6 +1205,9 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         if (result.Changed)
         {
             _featureOperations.Add(WorldMapFeatureOperation.Remove(featureId, entryKey));
+            _placedObjects = null;
+            _placedByKey = null;
+            PlacedTransformsRevision++;
             UpdateStatus();
         }
         return result;
@@ -1449,6 +1466,8 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         ReleaseOtherSaves();
         _featureData = null;
         Status = "Changes reverted.";
+        _placedObjects = null;
+        _placedByKey = null;
     }
 
     private bool GlobalRecipesAreDirty() => !_originalGlobalRecipes.SetEquals(GlobalRecipes);

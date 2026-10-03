@@ -39,6 +39,7 @@ public sealed class DesktopWindowHost(ILogger<DesktopWindowHost> logger)
         ArgumentException.ThrowIfNullOrWhiteSpace(localUrl);
 
         DesktopWindowOpening(logger, null);
+        if (OperatingSystem.IsWindows()) WindowsTaskbarIcon.SetAppIdentity();
         var window = new PhotinoWindow
         {
             Centered = true,
@@ -46,7 +47,16 @@ public sealed class DesktopWindowHost(ILogger<DesktopWindowHost> logger)
         };
 
         window.SetTitle("Abiotic Editor");
-        if (ResolveIconFile() is { } iconFile) window.SetIconFile(iconFile);
+        using var taskbarIcon = new WindowsTaskbarIcon();
+        if (ResolveIconFile() is { } iconFile)
+        {
+            window.SetIconFile(iconFile);
+            if (OperatingSystem.IsWindows())
+            window.RegisterWindowCreatedHandler((_, _) =>
+            {
+                if (OperatingSystem.IsWindows()) taskbarIcon.Apply(window.WindowHandle, iconFile);
+            });
+        }
         window
             .SetUseOsDefaultSize(false)
             .SetSize(1440, 900)

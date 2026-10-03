@@ -1,0 +1,16 @@
+@namespace AbioticEditor.Web.Components.World
+<div class="lamp-state-pictures" aria-label="Lamp switch states">
+    @foreach (var state in States)
+    {
+        if (WorldThumbnails.ForLampState(ClassName, state) is not { } picture) continue;
+        <figure class="lamp-state @(On == state ? "current" : null)">
+            <img src="@picture" alt="@(state ? "Lamp on" : "Lamp off")" data-zoom />
+            <figcaption>@(state ? "On" : "Off")@(On == state ? " · Current" : null)</figcaption>
+        </figure>
+    }
+</div>
+@code {
+    [Parameter] public string? ClassName { get; set; }
+    [Parameter] public bool On { get; set; }
+    private static readonly bool[] States = [false, true];
+}

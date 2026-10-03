@@ -1,0 +1,8 @@
+.live3d-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.live3d-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; }
+.b3d-stage { min-width: 0; }
+.live3d-canvas { position: relative; height: var(--b3d-fit, 65vh); min-height: 420px; background: #101418; overflow: hidden; }
+.live3d-canvas ::deep canvas { display: block; width: 100%; height: 100%; }
+.live3d-inspector { height: var(--b3d-fit, 65vh); overflow: auto; border: 1px solid var(--line); padding: 12px; }
+.live3d-art { display: block; width: 100%; max-height: 240px; object-fit: contain; }
+@media (max-width: 1000px) { .live3d-layout { grid-template-columns: minmax(0, 1fr) 280px; } }

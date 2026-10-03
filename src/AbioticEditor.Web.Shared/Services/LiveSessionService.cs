@@ -47,6 +47,13 @@ public sealed class LiveSessionService
     /// lands or when no local controller is loaded (main menu).</summary>
     public string? CurrentRegionToken { get; private set; }
 
+    public bool IsActorInCurrentRegion(string path)
+    {
+        var map = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
+        if (map is null || CurrentRegionToken is null) return true;
+        return string.Equals(map, CurrentRegionToken, StringComparison.OrdinalIgnoreCase);
+    }
+
     public event Action? Changed;
 
     /// <summary>Records which world folder this connection's saves live in - a no-op when nothing
@@ -62,6 +69,7 @@ public sealed class LiveSessionService
     /// reasoning as <see cref="SetWorldFolder"/>.</summary>
     public void SetCurrentRegion(string? levelToken)
     {
+        levelToken = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.NormalizeLevelToken(levelToken);
         if (string.Equals(CurrentRegionToken, levelToken, StringComparison.OrdinalIgnoreCase)) return;
         CurrentRegionToken = levelToken;
         Changed?.Invoke();

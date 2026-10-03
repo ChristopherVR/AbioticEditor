@@ -115,4 +115,12 @@ return function(H)
     H.eq(H.calls(skinkFollower, "K2_DestroyActor"), 1, "the Skink follower actor was destroyed")
     H.eq(skinkFollower:IsValid(), false, "the Skink follower is gone")
     H.eq(strangerSkink:IsValid(), true, "a different player's Skink follower is left alone")
+
+    H.ok(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, itemId = "pet_skink",
+        requireEmpty = true, name = "Sprout", health = 100, maxHealth = 100 }), "add pet to an empty companion slot")
+    H.eq(companionSlot2.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "pet_skink", "new pet row is stored")
+    H.eq(companionSlot2.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313.CurrentStack_9_D443B69044D640B0989FD8A629801A49, 1, "new pet has one item in its stack")
+    H.fails(H.dispatch("companions.set", { kind = "equip", slotIndex = 12, itemId = "pet_pest", requireEmpty = true }),
+        "now occupied", "a slot occupied since the directory read cannot be overwritten")
+    H.eq(companionSlot2.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString(), "pet_skink", "rejected add preserves the existing pet")
 end

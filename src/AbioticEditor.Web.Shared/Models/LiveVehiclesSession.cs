@@ -35,6 +35,12 @@ public sealed class LiveVehiclesSession : IWorldVehiclesSession
 
     public IReadOnlyList<WorldVehicle> Vehicles { get; private set; } = [];
     public bool IsHost { get; private set; }
+
+    public async Task RecallStationAsync(string id)
+    {
+        await _channel.RecallStationAsync(id).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
+    }
     public string? Status { get; private set; }
 
     /// <summary>Always false: a vehicle edit already reached the running game by the time it

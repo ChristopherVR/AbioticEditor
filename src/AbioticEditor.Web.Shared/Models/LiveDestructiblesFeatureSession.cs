@@ -84,11 +84,8 @@ public sealed class LiveDestructiblesFeatureSession : IWorldFeaturesSession
             new[]
             {
                 d.Broken is { } known
-                    ? WorldMapField.Bool("broken", "Broken", known,
-                        hint: "true = destroyed/broken. Applies live immediately using the game's own break "
-                            + "path (mesh, collision, and effects). Setting this back to false is refused: no "
-                            + "live game function restores the intact mesh/collision once broken (edit the "
-                            + "save file instead to repair it offline).")
+                    ? known ? WorldMapField.ReadOnly("broken", "Broken", "true", hint: "Close the game and repair this object in its save file.")
+                        : WorldMapField.Bool("broken", "Broken", false, hint: "Break this object immediately.")
                     : WorldMapField.ReadOnly("broken", "Broken", "not available live",
                         hint: "Could not read this property off this object right now (it may have just "
                             + "unloaded). Try again after the next refresh, or edit it in the save file instead."),
@@ -123,9 +120,7 @@ public sealed class LiveDestructiblesFeatureSession : IWorldFeaturesSession
         // trip would only come back with the exact same refusal.
         if (!wanted)
         {
-            return WorldEditResult.Failure("this object cannot be repaired live - the game's own OnRep_Broken "
-                + "does nothing once Broken is set back to false, and no other live function restores the "
-                + "intact mesh/collision once it has broken (edit the save file directly for that).");
+            return WorldEditResult.Failure("Close the game and repair this object in its save file.");
         }
 
         // A null current value means "could not read this property off this actor right now" (see

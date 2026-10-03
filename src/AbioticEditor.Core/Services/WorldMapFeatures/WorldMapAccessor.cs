@@ -142,6 +142,18 @@ public static class WorldMapAccessor
         return true;
     }
 
+    public static bool SetSoftObjectPath(IList<FPropertyTag> props, string prefix, string path)
+    {
+        if (GetSoftObjectPathValue(props, prefix) is not { } sop) return false;
+        var colon = path.IndexOf(':', StringComparison.Ordinal);
+        var dot = path.IndexOf('.', path.LastIndexOf('/') + 1);
+        if (dot < 0 || colon <= dot) return false;
+        sop.PackageName = new FString(path[..dot]);
+        sop.AssetName = new FString(path[(dot + 1)..colon]);
+        sop.SubPathString = new FString(path[(colon + 1)..]);
+        return true;
+    }
+
     private static UeSaveGame.DataTypes.SoftObjectPath? GetSoftObjectPathValue(
         IList<FPropertyTag> props, string prefix)
     {

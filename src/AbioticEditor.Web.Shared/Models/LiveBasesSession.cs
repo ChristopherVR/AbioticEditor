@@ -31,6 +31,22 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     public IReadOnlyList<WorldDeployable> Deployables { get; private set; } = [];
     public bool IsHost { get; private set; }
+    public IReadOnlyList<Base3DObject> SceneObjects
+    {
+        get
+        {
+            var labels = Deployables.ToDictionary(d => d.Id, d => d.DisplayName, StringComparer.Ordinal);
+            return _byId.Values.Select(d =>
+            {
+                var p = PlacedSceneSpace.ToViewer(new PlacedVector(d.X, d.Y, d.Z));
+                var q = PlacedSceneSpace.ToViewer(PlacedSceneSpace.Normalize(new PlacedQuaternion(d.QuatX, d.QuatY, d.QuatZ, d.QuatW)));
+                return new Base3DObject(d.Id, (int)PlacedObjectCategoryCatalog.Classify(d.ClassName, d.HasInventory),
+                    [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [1, 1, 1], true,
+                    labels[d.Id], Cls: d.ClassPath, Paint: d.PaintColor,
+                    Variant: d.PaintColor is { } paint ? "#paint=" + paint.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+            }).ToArray();
+        }
+    }
     private bool _supportsBenchUpgrades;
     private bool _supportsBenchUpgradeRemoval;
     public string? Status { get; private set; }

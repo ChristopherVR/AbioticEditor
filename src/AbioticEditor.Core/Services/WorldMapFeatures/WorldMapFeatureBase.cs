@@ -1,4 +1,5 @@
 using UeSaveGame;
+using UeSaveGame.PropertyTypes;
 
 namespace AbioticEditor.Core.WorldSaves.Features;
 
@@ -61,11 +62,56 @@ public abstract class WorldMapFeatureBase : IWorldMapFeature
     {
         ArgumentNullException.ThrowIfNull(save);
         var props = WorldMapAccessor.FindEntry(save, MapName, entryKey);
+        if (props is null && CanReadDefaultActor(entryKey))
+        {
+            var pair = DefaultActorPair(save, entryKey);
+            if (pair is not { Value: StructProperty { Value: UeSaveGame.StructData.PropertiesStruct fresh } })
+                return WorldEditResult.Failure("This area's save has no template for this object yet. Use it in the game first.");
+            var result = ApplyField(save, fresh.Properties, fieldId, value);
+            if (result.Changed) WorldMapAccessor.GetPairs(save, MapName)!.Add(pair.Value);
+            return result;
+        }
         if (props is null || !IncludesEntry(props))
         {
             return WorldEditResult.Failure($"no entry '{entryKey}' in {MapName}.");
         }
         return ApplyField(save, props, fieldId, value);
+    }
+
+    /// <summary>A level actor may still be at its default and therefore absent from the save.</summary>
+    public WorldMapEntry? ReadActor(SaveGame save, string key)
+        => Read(save).FirstOrDefault(e => e.Key == key)
+            ?? (CanReadDefaultActor(key) ? new WorldMapEntry(key, LabelFor(1, key, []), ReadFields([])) : null);
+
+    private bool CanReadDefaultActor(string key)
+        => MapName is "DestructibleMap" or "ResourceNodeMap" or "NPCSpawnMap"
+           && key.StartsWith("/Game/Maps/", StringComparison.Ordinal) && key.Contains(":PersistentLevel.", StringComparison.Ordinal);
+
+    private KeyValuePair<FProperty, FProperty>? DefaultActorPair(SaveGame save, string key)
+    {
+        var donor = WorldMapAccessor.Entries(save, MapName).FirstOrDefault();
+        if (donor.Props is null) return null;
+        var copy = PlacedObjectCloner.CreateDonor(save, new Dictionary<string, IReadOnlySet<string>?>
+        {
+            [MapName] = new HashSet<string>(StringComparer.Ordinal) { donor.Key },
+        });
+        var pair = WorldMapAccessor.GetPairs(copy, MapName)!.First();
+        pair.Key.Value = new UeSaveGame.FString(key);
+        var props = ((UeSaveGame.StructData.PropertiesStruct)((UeSaveGame.PropertyTypes.StructProperty)pair.Value).Value!).Properties;
+        foreach (var tag in props.ToList())
+        {
+            if (tag.Name?.Value.StartsWith("ActorPath_", StringComparison.Ordinal) == true
+                && WorldMapAccessor.SetSoftObjectPath(props, "ActorPath_", key)) continue;
+            switch (tag.Property)
+            {
+                case UeSaveGame.PropertyTypes.BoolProperty boolean: boolean.Value = false; break;
+                case UeSaveGame.PropertyTypes.IntProperty integer: integer.Value = 0; break;
+                case UeSaveGame.PropertyTypes.DoubleProperty number: number.Value = 0d; break;
+                default: props.Remove(tag); break;
+            }
+        }
+        // Optional position members are omitted rather than carrying the donor's location.
+        return pair;
     }
 
     /// <inheritdoc/>

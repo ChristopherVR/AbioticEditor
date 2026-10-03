@@ -96,10 +96,12 @@ return function(ctx)
                     local okDrive, driveable = pcall(function() return obj.VehicleDriveable == true end)
                     local okWrecked, wrecked = pcall(function() return obj.PendingDestroy == true end)
                     local containerId, hasInventory, inventoryItemCount = vehicleStorage(obj)
+                    local vehicleClass = ctx.classLabel(name)
+                    pcall(function() vehicleClass = obj:GetClass():GetFullName():gsub("^%S+ ", "") end)
                     table.insert(result, {
                         id = name,
                         vehicleId = (okId and vehicleId ~= "") and vehicleId or nil,
-                        vehicleClass = ctx.classLabel(name),
+                        vehicleClass = vehicleClass,
                         driveable = okDrive and driveable or false,
                         wrecked = okWrecked and wrecked or false,
                         x = x, y = y, z = z,
@@ -116,6 +118,25 @@ return function(ctx)
     ctx.handlers["vehicles.list"] = function(_, respond)
         ctx.runOnGameThread(function()
             return { vehicles = vehicleRows(), isHost = ctx.isHost(), supportsWreckedState = true }
+        end, respond)
+    end
+
+    -- VehicleRecallStation.LinkedSpawner and TryVehicleRecall(Activated:bool) are confirmed
+    -- by InspectorPicturesProbe. CartRecallButton overrides that event to recover all carts.
+    ctx.handlers["vehicles.recall"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            if not ctx.isHost() then error("only the host can recall vehicles") end
+            local station
+            for _, class in ipairs({ "VehicleRecallStation_C", "CartRecallButton_C" }) do
+                for _, candidate in ipairs(ctx.findAll(class)) do
+                    local name = candidate:IsValid() and ctx.fullName(candidate)
+                    if name and (name == payload.id or name:gsub("^%S+ ", "") == payload.id) then station = candidate; break end
+                end
+                if station then break end
+            end
+            if not station then error("recall station not found; refresh and try again") end
+            station:TryVehicleRecall(true)
+            return { ok = true }
         end, respond)
     end
 

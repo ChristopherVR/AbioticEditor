@@ -50,7 +50,17 @@ public static partial class WorldThumbnails
         }
         if (!Available.TryGetValue(kind, out var classes)) return null;
         var cls = ClassOf(actorPath);
-        return classes.Contains(cls) ? $"{Root}/{kind}/{cls}.webp" : null;
+        if (classes.Contains(cls)) return $"{Root}/{kind}/{cls}.webp";
+        var fallback = kind switch
+        {
+            "power-sockets" => "PowerSocket_ParentBP_C",
+            "buttons" when cls.Contains("Keypad", StringComparison.OrdinalIgnoreCase) => "Button_Keypad_C",
+            "buttons" when cls.Contains("Light", StringComparison.OrdinalIgnoreCase) => "Button_LightSwitch_C",
+            "buttons" => "Button_Generic_C",
+            "corpses" => "CharacterCorpse_Human_BP_C",
+            _ => null,
+        };
+        return fallback is not null && classes.Contains(fallback) ? $"{Root}/{kind}/{fallback}.webp" : null;
     }
 
     /// <summary>
@@ -64,6 +74,10 @@ public static partial class WorldThumbnails
         var cls = className[(className.LastIndexOf('.') + 1)..];
         return For("deployables", cls) ?? For("containers", cls);
     }
+
+    /// <summary>The sconce lamp in its selected switch state.</summary>
+    public static string? ForLampState(string? className, bool on)
+        => className is null ? null : For("lamp-states", ClassOf(className) + (on ? "_on" : "_off"));
 
     /// <summary>
     /// The placed device a power outlet belongs to: an outlet on a player-built device (a plug strip,
@@ -96,7 +110,7 @@ public static partial class WorldThumbnails
     /// <summary>The picture folder for a world-map feature id, or null for lists without pictures.</summary>
     public static string? KindOfFeature(string featureId) => featureId switch
     {
-        "buttons" or "destructibles" or "elevators" or "trams" or "portals" or "resource-nodes" or "power-sockets" => featureId,
+        "buttons" or "destructibles" or "elevators" or "trams" or "portals" or "resource-nodes" or "power-sockets" or "corpses" => featureId,
         _ => null,
     };
 

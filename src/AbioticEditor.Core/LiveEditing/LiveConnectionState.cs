@@ -18,4 +18,13 @@ public sealed record LiveConnectionInfo(string Host, int Port, string Token);
 
 /// <summary>Thrown when the live agent rejects a request (bad token, unknown command, or the
 /// command's own reported failure) rather than the transport itself failing.</summary>
-public sealed class LiveAgentException(string message) : Exception(message);
+public sealed class LiveAgentException(string message) : Exception(CleanMessage(message))
+{
+    public static string CleanMessage(string message)
+    {
+        var text = System.Net.WebUtility.HtmlDecode(message).Trim();
+        const string prefix = "handler error: ";
+        if (text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) text = text[prefix.Length..];
+        return text.TrimEnd(' ', '\r', '\n', '\\');
+    }
+}

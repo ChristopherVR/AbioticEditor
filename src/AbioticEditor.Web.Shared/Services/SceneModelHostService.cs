@@ -322,11 +322,13 @@ public sealed class SceneModelHostService
         if (at <= 0) return (key, null);
         int? paint = null;
         int? liquid = null;
+        bool? lampOn = null;
         string? fluid = null;
         List<SceneCrop>? crops = null;
         foreach (var part in key[(at + 1)..].Split('#', StringSplitOptions.RemoveEmptyEntries))
         {
-            if (part.StartsWith(PaintPart, StringComparison.Ordinal) && TryNumber(part[PaintPart.Length..], out var p))
+            if (part is "lamp=0" or "lamp=1") lampOn = part == "lamp=1";
+            else if (part.StartsWith(PaintPart, StringComparison.Ordinal) && TryNumber(part[PaintPart.Length..], out var p))
             {
                 paint = p;
             }
@@ -357,7 +359,7 @@ public sealed class SceneModelHostService
                 return (key, null);
             }
         }
-        return (key[..at], new SceneObjectState(paint, crops, liquid, fluid));
+        return (key[..at], new SceneObjectState(paint, crops, liquid, fluid) { LampOn = lampOn });
     }
 
     private static bool TryNumber(string text, out int value)

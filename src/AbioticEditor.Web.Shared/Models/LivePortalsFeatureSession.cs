@@ -71,9 +71,9 @@ public sealed class LivePortalsFeatureSession : IWorldFeaturesSession
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
         if (!string.Equals(featureId, PortalsFeatureId, StringComparison.Ordinal)) return null;
-        var entries = Portals.Select(p => new WorldMapEntry(
+        var entries = Portals.Select((p, index) => new WorldMapEntry(
             p.Id,
-            p.Label,
+            $"World Teleporter {index + 1}",
             new[]
             {
                 WorldMapField.Bool("active", "Active", p.Active,

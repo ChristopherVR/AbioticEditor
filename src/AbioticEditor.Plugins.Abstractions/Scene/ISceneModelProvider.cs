@@ -128,7 +128,11 @@ public sealed record SceneTerrainLayer(string? Texture, float[] Color, float Rep
 /// <param name="Crops">What grows in each spot of a garden plot, or null.</param>
 /// <param name="LiquidLevel">How much a liquid container holds, in the save's own units, or null when it is not one.</param>
 /// <param name="LiquidType">Which liquid it holds: the save's enum value name (<c>NewEnumerator16</c>), or null.</param>
-public sealed record SceneObjectState(int? PaintColor = null, IReadOnlyList<SceneCrop>? Crops = null, int? LiquidLevel = null, string? LiquidType = null);
+public sealed record SceneObjectState(int? PaintColor = null, IReadOnlyList<SceneCrop>? Crops = null, int? LiquidLevel = null, string? LiquidType = null)
+{
+    /// <summary>A saved lamp switch; false turns off its glowing materials.</summary>
+    public bool? LampOn { get; init; }
+}
 
 /// <summary>One planted spot: the spot index, the crop's item row (<c>Plant_Corn</c>) and its growth stage (0 Sprout to 7 Dead).</summary>
 public sealed record SceneCrop(int Spot, string Row, int Stage);

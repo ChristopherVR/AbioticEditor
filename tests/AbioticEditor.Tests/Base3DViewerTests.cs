@@ -441,9 +441,9 @@ public sealed class Base3DViewerTests
         Assert.Contains("@if (ThreeDView is not null)", bases, StringComparison.Ordinal);
         Assert.Contains("data-b3d=\"view-3d\"", bases, StringComparison.Ordinal);
 
-        // The live host renders the Bases tab without a 3D view (no staged file session there).
+        // Live editing supplies a view using the game's current positions.
         var live = UiSource.ReadAllText("Components", "Pages", "LiveConnect.razor");
-        Assert.DoesNotContain("ThreeDView", live, StringComparison.Ordinal);
+        Assert.Contains("ThreeDView=\"LiveThreeDView\"", live, StringComparison.Ordinal);
     }
 
     [Fact]

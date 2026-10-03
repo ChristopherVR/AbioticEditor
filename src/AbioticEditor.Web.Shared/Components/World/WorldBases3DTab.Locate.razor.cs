@@ -107,16 +107,18 @@ public partial class WorldBases3DTab
                     _locateNote = L.Resource("World3D_LocateNoLevelFormat", target.Label);
                     return false;
                 }
-                var level = await Art.TryGetActorWorldTransformAsync(target.Id);
-                var shown = await LocatePointAsync(target, level is { } t ? new PlacedVector(t.X, t.Y, t.Z) : target.At);
+                var at = target.At;
+                if (at is null && await Art.TryGetActorWorldTransformAsync(target.Id) is { } t) at = new(t.X, t.Y, t.Z);
+                var shown = await LocatePointAsync(target, at);
                 // A breakable wall, button, resource node... opens its card too, so what can be done
                 // with it is right there (not only a pin).
                 var (actorMap, actorName) = DoorIdParser.Parse(target.Id);
-                if (shown && actorMap.Length > 0)
+                if (actorMap.Length > 0)
                     await PickLevelActorAsync($"{actorMap[(actorMap.LastIndexOf('/') + 1)..]}:{actorName[(actorName.LastIndexOf('.') + 1)..]}");
                 return shown;
 
             default:
+                if (Session.Vehicles.Any(v => v.Id == target.Id) && await LocatePlacedAsync(target.Id)) return true;
                 return await LocatePointAsync(target, target.At);
         }
     }

@@ -43,9 +43,9 @@ public sealed partial class WorldSaveSession
     private IReadOnlyList<PlacedObjectSummary>? _placedObjects;
     private Dictionary<string, PlacedObjectSummary>? _placedByKey;
 
-    /// <summary>Every object in this region's <c>DeployedObjectMap</c> as saved (staged edits are not reflected).</summary>
+    /// <summary>Every object in this region's <c>DeployedObjectMap</c>, including staged feature edits.</summary>
     public IReadOnlyList<PlacedObjectSummary> PlacedObjects
-        => _placedObjects ??= PlacedObjectCensus.Build(_data, _path, includeObjects: true).Objects ?? [];
+        => _placedObjects ??= PlacedObjectCensus.Build(_featureData ?? _data, _path, includeObjects: true).Objects ?? [];
 
     /// <summary>One placed object by its map key, or null.</summary>
     public PlacedObjectSummary? FindPlacedObject(string key)

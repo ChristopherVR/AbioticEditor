@@ -182,6 +182,12 @@ return function(ctx)
                 if name and not seen[name] then
                     seen[name] = true
                     local x, y, z = ctx.actorLocation(obj)
+                    local classPath, qx, qy, qz, qw = nil, 0, 0, 0, 1
+                    pcall(function() classPath = obj:GetClass():GetFullName():gsub("^%S+ ", "") end)
+                    pcall(function()
+                        local rotation = obj:K2_GetActorTransform().Rotation
+                        qx, qy, qz, qw = rotation.X, rotation.Y, rotation.Z, rotation.W
+                    end)
                     local inv = ctx.containerInventory(obj)
                     local hasInventory = inv ~= nil and inv.CurrentInventory ~= nil
                     local stored = 0
@@ -196,6 +202,7 @@ return function(ctx)
                     table.insert(result, {
                         id = name,
                         className = ctx.classLabel(name),
+                        classPath = classPath, quatX = qx, quatY = qy, quatZ = qz, quatW = qw,
                         x = x, y = y, z = z,
                         customName = deployableCustomName(obj),
                         hasInventory = hasInventory,

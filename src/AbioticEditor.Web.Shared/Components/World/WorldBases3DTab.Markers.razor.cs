@@ -14,8 +14,13 @@ namespace AbioticEditor.Web.Components.World;
 /// </summary>
 public partial class WorldBases3DTab
 {
+    private async Task OpenVehicleContainerAsync(string id)
+    {
+        await OnOpenContainer.InvokeAsync(id);
+    }
     /// <summary>World lists keyed by level actors, which the view can place from the game files.</summary>
     private static readonly string[] ThingFeatures = ["buttons", "destructibles", "resource-nodes", "elevators", "npc-spawns", "portals", "trams", "power-sockets"];
+    private static readonly string[] DefaultActorFeatures = ["destructibles", "resource-nodes"];
 
     private const int MaxThings = 4000;
     private const int ThingBatch = 400;
@@ -77,13 +82,16 @@ public partial class WorldBases3DTab
                 if (queue.Count > 0) wanted.Add(queue.Dequeue());
             }
         }
-        var things = new Dictionary<string, ThingInfo>(StringComparer.Ordinal);
+        var things = _pickedMarker is ("thing", var picked) && _things.TryGetValue(picked, out var kept)
+            ? new Dictionary<string, ThingInfo>(StringComparer.Ordinal) { [picked] = kept }
+            : new Dictionary<string, ThingInfo>(StringComparer.Ordinal);
         var markers = new List<object>();
         for (var start = 0; start < wanted.Count; start += ThingBatch)
         {
             var batch = wanted.Skip(start).Take(ThingBatch).ToList();
             var places = await Art.TryGetActorWorldTransformsAsync(batch.Select(w => w.Entry.Key));
-            var found = batch.Select(w => (w.Feature, w.Entry, At: places.GetValueOrDefault(w.Entry.Key))).ToList();
+            var found = batch.Select(w => (w.Feature, w.Entry, At: Session.MapEntryPosition(w.Feature.Id, w.Entry.Key)
+                ?? (places.GetValueOrDefault(w.Entry.Key) is { } p ? new PlacedVector(p.X, p.Y, p.Z) : (PlacedVector?)null))).ToList();
             if (token != _markersToken || _disposed || _view is null) return;
             foreach (var (feature, entry, at) in found)
             {
@@ -133,6 +141,10 @@ public partial class WorldBases3DTab
     {
         if (_pickedMarker is { } old && _view is not null && old.Kind != kind) await _view.InvokeVoidAsync("setMarkerSelection", old.Kind, (string?)null);
         _pickedMarker = (kind, id);
+        await SetSelectionAsync([], null, false);
+        _selectedDoorId = null;
+        _selectedNpcId = null;
+        _levelPicked = null;
         ShowInspector();
         if (_view is not null) await _view.InvokeVoidAsync("setMarkerSelection", kind, id);
         StateHasChanged();
@@ -152,6 +164,7 @@ public partial class WorldBases3DTab
     /// <summary>A level thing's setting changed in its card: its marker and the scene are refreshed.</summary>
     private Task ThingChangedAsync()
     {
+        SyncFromSession();
         _markersDirty = true;
         StateHasChanged();
         return Task.CompletedTask;
@@ -179,6 +192,20 @@ public partial class WorldBases3DTab
             await OnDoorPicked(door.Id);
             return true;
         }
+        if (Session.Vehicles.FirstOrDefault(v => Same(v.VehicleId ?? v.Id)) is { } vehicle)
+        {
+            await SelectAsync(vehicle.Id, frame: false);
+            StateHasChanged();
+            return true;
+        }
+        if (actor.StartsWith("VehicleRecallStation", StringComparison.OrdinalIgnoreCase)
+            && await Art.TryGetVehicleRecallSpawnerAsync($"/Game/Maps/{map}.{map}:PersistentLevel.{actor}") is { } spawner
+            && Session.Vehicles.FirstOrDefault(v => string.Equals(v.VehicleId ?? v.Id, spawner, StringComparison.OrdinalIgnoreCase)) is { } linkedVehicle)
+        {
+            await SelectAsync(linkedVehicle.Id, frame: false);
+            StateHasChanged();
+            return true;
+        }
         foreach (var featureId in ThingFeatures)
         {
             if (Session.MapFeature(featureId) is not { } feature) continue;
@@ -193,6 +220,21 @@ public partial class WorldBases3DTab
             }
             await OnMarkerPicked("thing", entry.Key);
             return true;
+        }
+        var inferred = actor.StartsWith("NPCSpawn_", StringComparison.OrdinalIgnoreCase) ? "npc-spawns"
+            : actor.StartsWith("IceWall", StringComparison.OrdinalIgnoreCase) ? "destructibles"
+            : DefaultActorFeatures.FirstOrDefault(f => WorldThumbnails.For(f, actor) is not null);
+        if (inferred is not null)
+        {
+            var key = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor}";
+            if (Session.MapActorEntry(inferred, key) is { } entry)
+            {
+                var at = await Art.TryGetActorWorldTransformAsync(key);
+                _things[key] = new ThingInfo(inferred, WorldMapFeatures.Find(inferred)!.DisplayName, key, entry.Label,
+                    at is { } t ? new PlacedVector(t.X, t.Y, t.Z) : new PlacedVector(0, 0, 0));
+                await OnMarkerPicked("thing", key);
+                return true;
+            }
         }
         // A wall socket nobody has used yet has no entry in any list, but it can still be plugged
         // into: it opens as a power socket (the save writes its entry when something is plugged in).

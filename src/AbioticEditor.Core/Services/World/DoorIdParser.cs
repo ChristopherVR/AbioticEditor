@@ -43,7 +43,7 @@ public static class DoorIdParser
             var dot = after.IndexOf('.');
             if (dot > 0)
             {
-                map = after[..dot];
+                map = WorldAreaCatalog.NormalizeLevelToken(after[..dot]) ?? string.Empty;
             }
         }
 

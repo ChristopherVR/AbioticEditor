@@ -642,20 +642,7 @@
     /// a full package path (<c>/Game/Maps/Facility_MFWest.Facility_MFWest</c>), with a streaming
     /// suffix (<c>:PersistentLevel</c>) or an editor-play prefix; the save file is always the bare
     /// name, so every comparison happens on that.</summary>
-    private static string? NormalizeLevelToken(string? token)
-    {
-        if (string.IsNullOrWhiteSpace(token)) return null;
-        var t = token.Trim();
-        var colon = t.IndexOf(':');
-        if (colon >= 0) t = t[..colon];
-        var slash = t.LastIndexOf('/');
-        if (slash >= 0) t = t[(slash + 1)..];
-        var dot = t.LastIndexOf('.');
-        if (dot >= 0) t = t[(dot + 1)..];
-        const string editorPlayPrefix = "UEDPIE_0_";
-        if (t.StartsWith(editorPlayPrefix, StringComparison.OrdinalIgnoreCase)) t = t[editorPlayPrefix.Length..];
-        return t.Length == 0 ? null : t;
-    }
+    private static string? NormalizeLevelToken(string? token) => WorldAreaCatalog.NormalizeLevelToken(token);
 
     /// <summary>
     /// Every connected player whose OWN reported region matches <paramref name="token"/> - not
@@ -669,7 +656,7 @@
     private IReadOnlyList<AbioticEditor.Core.LiveEditing.Player.LivePlayerSummary> PlayersInRegionToken(string? token)
     {
         if (string.IsNullOrEmpty(token) || Live.Directory is not { } directory) return [];
-        return directory.Players.Where(player => string.Equals(NormalizeLevelToken(player.Region), token, StringComparison.OrdinalIgnoreCase)).ToArray();
+        return directory.Players.Where(player => string.Equals(NormalizeLevelToken(player.IsLocal ? Live.CurrentRegionToken : player.Region), token, StringComparison.OrdinalIgnoreCase)).ToArray();
     }
 
     private IReadOnlyList<AbioticEditor.Core.LiveEditing.Player.LivePlayerSummary> PlayersInRegion(WorkspaceSave save)

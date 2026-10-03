@@ -185,6 +185,12 @@ return function(ctx)
             if not slot then error("slot not found") end
 
             local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+            if payload.requireEmpty then
+                local row = ctx.slotRowName(slot)
+                if row ~= "Empty" and row ~= "None" and row ~= "" then
+                    error("this slot is now occupied; refresh and try again")
+                end
+            end
             if payload.clear then
                 -- "Empty" (confirmed live in round 74's inventory.set), not NAME_None.
                 slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName = FName("Empty", EFindName.FNAME_Find)
@@ -200,7 +206,8 @@ return function(ctx)
                 return { despawnedFollower = despawnedFollower }
             end
 
-            ctx.writeSlot(slot, { itemId = payload.itemId, dataTable = payload.dataTable })
+            ctx.writeSlot(slot, { itemId = payload.itemId, dataTable = payload.dataTable,
+                stack = payload.requireEmpty and 1 or nil })
             if payload.health ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = payload.health end
             if payload.maxHealth ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = payload.maxHealth end
             if payload.name ~= nil then
