@@ -4,10 +4,16 @@ using Xunit.Abstractions;
 
 namespace AbioticEditor.Tests;
 
+[CollectionDefinition("Save tree memory", DisableParallelization = true)]
+public sealed class SaveTreeMemoryFixture;
+
 /// <summary>
 /// The loaded save shares its repeated names (<c>SaveTreeCompactor</c>): it must still write back
 /// byte for byte, and it must take noticeably less memory than the library's own tree.
 /// </summary>
+// GC.GetTotalMemory measures the entire process, so other tests must not load or release
+// saves between the baseline and retained-tree measurements.
+[Collection("Save tree memory")]
 public sealed class SaveTreeCompactorTests(ITestOutputHelper output)
 {
     private static string? Facility() => Fixtures.ClientWorldSaves("WorldSave_Facility.sav")

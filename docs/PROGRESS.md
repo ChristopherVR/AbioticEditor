@@ -1,5 +1,17 @@
 # Abiotic Editor - Session history
 
+## Round-158: isolate the save-memory regression check (2026-10-03)
+
+- Release run `37086198816` failed only the save-tree memory check: its process-wide
+  heap samples overlapped other test classes loading and releasing saves. The other
+  2,200 tests passed and the Lua harness was skipped.
+- Put `SaveTreeCompactorTests` in an xUnit collection with parallelization disabled,
+  so its heap measurements run without other test collections. Kept the requirement
+  for at least 25% less retained memory and the byte-for-byte save round-trip check.
+- Verified: the full CI command, `dotnet test tests/AbioticEditor.Tests -f net10.0
+  -c Release`, passed locally: 2,201 passed, one skipped, zero failures. Both
+  save-tree compaction tests passed. No application or save-writing code changed.
+
 ## Round-157: inspector controls, live 3D, pet adds, region filtering and state pictures (2026-10-03)
 
 - Vehicles now draw their saved model and rotation in the offline scene and open their settings
