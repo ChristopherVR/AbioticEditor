@@ -10,6 +10,39 @@ namespace AbioticEditor.Tests;
 public sealed class InspectorPicturesProbe
 {
     [Fact]
+    public void Write_all_fixed_location_targets()
+    {
+        var output = Environment.GetEnvironmentVariable("LOCATION_PICTURES_OUT");
+        if (string.IsNullOrEmpty(output)) return;
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        Assert.NotNull(assets);
+        var provider = (CUE4Parse.FileProvider.DefaultFileProvider)typeof(GameAssetProvider)
+            .GetField("_provider", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(assets)!;
+        var targets = new List<object>();
+        foreach (var path in assets!.AssetPaths.Where(p => p.StartsWith("AbioticFactor/Content/Maps/", StringComparison.Ordinal)
+            && p.EndsWith(".umap", StringComparison.OrdinalIgnoreCase)))
+        {
+            var map = Path.GetFileNameWithoutExtension(path);
+            foreach (var lazy in provider.LoadPackage(path).ExportsLazy)
+            {
+                CUE4Parse.UE4.Assets.Exports.UObject actor;
+                try { actor = lazy.Value; } catch { continue; }
+                var cls = actor.Class?.Name.Text;
+                if (cls is null || actor.Outer?.Name.Text != "PersistentLevel") continue;
+                var kind = cls.StartsWith("Button_", StringComparison.Ordinal) ? "buttons"
+                    : cls.StartsWith("PowerSocket", StringComparison.Ordinal) ? "power-sockets"
+                    : cls.StartsWith("ResourceNode_", StringComparison.Ordinal) ? "resource-nodes"
+                    : cls.StartsWith("CharacterCorpse_", StringComparison.Ordinal) ? "corpses"
+                    : cls.StartsWith("BP_Teleporter", StringComparison.Ordinal) ? "portals" : null;
+                if (kind is null) continue;
+                var key = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor.Name}";
+                targets.Add(new { kind, cls, region = map, actor = key });
+            }
+        }
+        File.WriteAllText(output, JsonSerializer.Serialize(targets));
+    }
+
+    [Fact]
     public void Inspect_vehicle_recall_links()
     {
         var output = Environment.GetEnvironmentVariable("INSPECTOR_RECALL_OUT");

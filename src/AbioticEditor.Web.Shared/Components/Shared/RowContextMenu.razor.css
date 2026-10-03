@@ -1,0 +1,5 @@
+.row-menu-backdrop{position:fixed;inset:0;z-index:40}
+.row-context-menu{position:fixed;z-index:41;min-width:180px;max-width:calc(100vw - 16px);padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--panel);box-shadow:0 8px 24px rgb(0 0 0 / .45);transform:translateX(-4px)}
+.row-context-menu ::deep button{display:block;width:100%;padding:8px 12px;border:0;border-radius:4px;background:none;color:var(--ink);font:inherit;text-transform:none;letter-spacing:normal;text-align:left;cursor:pointer}
+.row-context-menu ::deep button:hover,.row-context-menu ::deep button:focus-visible{background:var(--hover)}
+.row-context-menu ::deep button:disabled{opacity:.5;cursor:not-allowed}

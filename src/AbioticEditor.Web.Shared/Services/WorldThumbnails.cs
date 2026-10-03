@@ -48,6 +48,7 @@ public static partial class WorldThumbnails
             }
             if (each.Contains(name)) return $"{Root}/{kind}-each/{name}.webp";
         }
+        if (kind == "portals" && PlaceOf(actorPath) is { } portalPlace) return portalPlace;
         if (!Available.TryGetValue(kind, out var classes)) return null;
         var cls = ClassOf(actorPath);
         if (classes.Contains(cls)) return $"{Root}/{kind}/{cls}.webp";

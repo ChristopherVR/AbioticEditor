@@ -165,5 +165,5 @@ public sealed class LiveDroppedItemsSession : IWorldDroppedItemsSession
             new InventoryItemSlot(0, i.ItemId, i.Stack, Durability: 0, MaxDurability: 0,
                 AmmoInMagazine: 0, LiquidLevel: 0, LiquidType: null, DynamicState: false,
                 PlayerMadeString: null, AssetId: null),
-            NoDespawn: false, i.X, i.Y, i.Z)).ToArray();
+            NoDespawn: false, i.X, i.Y, i.Z, i.Region)).ToArray();
 }

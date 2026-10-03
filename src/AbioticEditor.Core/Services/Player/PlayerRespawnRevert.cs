@@ -22,7 +22,7 @@ public static class PlayerRespawnRevert
     /// <summary>Applies a planned move to an already-read player save (caller writes it back).</summary>
     public static void Apply(PlayerSaveData player, RespawnTerminal terminal)
     {
-        PlayerSaveWriter.ApplyRespawn(player, terminal.X, terminal.Y, terminal.Z);
+        PlayerSaveWriter.ApplyRespawn(player, terminal.SpawnPosition.X, terminal.SpawnPosition.Y, terminal.SpawnPosition.Z);
         PlayerSaveWriter.ApplyRespawnTerminal(player, terminal.TerminalGuid);
     }
 
@@ -51,7 +51,7 @@ public static class PlayerRespawnRevert
         foreach (var playerPath in Directory.EnumerateFiles(playerDir, "Player_*.sav"))
         {
             var data = PlayerSaveReader.ReadFromFile(playerPath);
-            PlayerSaveWriter.ApplyRespawn(data, terminal.X, terminal.Y, terminal.Z);
+            PlayerSaveWriter.ApplyRespawn(data, terminal.SpawnPosition.X, terminal.SpawnPosition.Y, terminal.SpawnPosition.Z);
             PlayerSaveWriter.ApplyRespawnTerminal(data, terminal.TerminalGuid);
             PlayerSaveWriter.WriteToFile(data, playerPath);
             moved++;

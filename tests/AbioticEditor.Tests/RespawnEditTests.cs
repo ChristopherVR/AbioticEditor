@@ -122,9 +122,9 @@ public class RespawnEditTests
             foreach (var f in Directory.GetFiles(playerDataDir.FullName, "Player_*.sav"))
             {
                 var after = PlayerSaveReader.ReadFromFile(f);
-                Assert.Equal(terminal.X, after.RespawnX, 1);
-                Assert.Equal(terminal.Y, after.RespawnY, 1);
-                Assert.Equal(terminal.Z, after.RespawnZ, 1);
+                Assert.Equal(terminal.SpawnPosition.X, after.RespawnX, 1);
+                Assert.Equal(terminal.SpawnPosition.Y, after.RespawnY, 1);
+                Assert.Equal(terminal.SpawnPosition.Z, after.RespawnZ, 1);
                 Assert.Equal(terminal.TerminalGuid, after.TerminalRespawnId, ignoreCase: true);
                 // LastSafeWorldGUID_ is deliberately left untouched.
                 Assert.Equal(before[Path.GetFileName(f)], after.RespawnLevelGuid, ignoreCase: true);

@@ -91,6 +91,13 @@
     private PetCareDefinition? Care => _care.FirstOrDefault(c => ItemRow is not null && c.ItemRow.Equals(ItemRow, StringComparison.OrdinalIgnoreCase)
         || ClassPath is not null && string.Equals(c.ClassPath, ClassPath, StringComparison.OrdinalIgnoreCase));
     private string FoodNames(IReadOnlyList<string> foods) => string.Join(", ", foods.Select(id => Items.Find(id)?.DisplayName ?? id.Replace('_', ' ')));
+    private string? _loadedRow;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.Equals(_loadedRow, ItemRow, StringComparison.OrdinalIgnoreCase)) return;
+        _loadedRow = ItemRow;
+        MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow) : [];
+    }
     private async Task Load()
     {
         if (_loaded || _loading) return;

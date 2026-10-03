@@ -344,6 +344,12 @@ return function(ctx)
         return failed
     end
 
+    local function actorAvailable(npc)
+        if not npc:IsValid() then return false end
+        local ok, destroying = pcall(function() return npc:IsActorBeingDestroyed() end)
+        return not (ok and destroying == true)
+    end
+
     local function guidOf(npc)
         local ok, guid = pcall(function() return npc.Guid:ToString() end)
         if ok and guid and guid ~= "" then return guid end
@@ -352,7 +358,7 @@ return function(ctx)
 
     local function findPestByGuid(id)
         for _, candidate in ipairs(ctx.findAll(PET_FAMILY_CLASS)) do
-            if candidate:IsValid() and guidOf(candidate) == id then return candidate end
+            if actorAvailable(candidate) and guidOf(candidate) == id then return candidate end
         end
         return nil
     end
@@ -365,7 +371,7 @@ return function(ctx)
     -- besides its identity.
     local function findUnmatchedByFullName(id)
         for _, candidate in ipairs(ctx.findAll(ALL_NPC_CLASS)) do
-            if candidate:IsValid() and guidOf(candidate) == nil and ctx.fullName(candidate) == id then
+            if actorAvailable(candidate) and guidOf(candidate) == nil and ctx.fullName(candidate) == id then
                 return candidate
             end
         end
@@ -406,7 +412,7 @@ return function(ctx)
             -- actor loaded in the world - one actor in an unusual state should skip only itself,
             -- not fail the whole PETS tab listing with an uncaught Lua error.
             pcall(function()
-                if not npc:IsValid() then return end
+                if not actorAvailable(npc) then return end
                 local guid = guidOf(npc)
                 if not guid then return end
                 local x, y, z = ctx.actorLocation(npc)
@@ -438,7 +444,7 @@ return function(ctx)
         local result = { __forceArray = true }
         for _, npc in ipairs(ctx.findAll(ALL_NPC_CLASS)) do
             pcall(function()
-                if not npc:IsValid() then return end
+                if not actorAvailable(npc) then return end
                 if guidOf(npc) then return end
                 if not isTamedPet(npc, lib) then return end
                 local fullName = ctx.fullName(npc)

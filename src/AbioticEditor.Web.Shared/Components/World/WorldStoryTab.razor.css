@@ -1,0 +1,9 @@
+.world-meta-panel{min-width:0}
+.ws-minutes-row{grid-template-columns:auto minmax(80px,180px) auto;gap:10px}
+.ws-last-played{grid-column:1/-1;justify-self:start;white-space:normal}
+.ws-chapter-list{min-width:0}
+.ws-chapter-row{grid-template-columns:26px 10px minmax(0,1fr) auto auto auto;gap:8px}
+.ws-chapter-text small{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.ws-chapter-set{min-height:30px;padding:5px 10px}
+.ws-chapter-current,.ws-chapter-status{white-space:nowrap}
+@container(max-width:620px){.ws-minutes-row{grid-template-columns:minmax(0,1fr)}.ws-chapter-row{grid-template-columns:26px 10px minmax(0,1fr);align-items:start}.ws-chapter-status{grid-column:3}.ws-chapter-current,.ws-chapter-set{grid-column:3;justify-self:start}.ws-chapters-head{flex-wrap:wrap}}

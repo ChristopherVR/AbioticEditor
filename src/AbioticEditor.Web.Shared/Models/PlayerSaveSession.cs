@@ -944,6 +944,7 @@ public sealed class CarriedPetEdit
     public CarriedPet ToCarriedPet() => new(Slot, Index, ItemRow, string.IsNullOrWhiteSpace(Name) ? null : Name, Math.Max(0, Health), Math.Max(0, MaxHealth), Math.Max(0, Xp), Math.Max(0, MutationProgress), PetMutation);
     public void Heal() => Health = MaxHealth > 0 ? MaxHealth : PetItemCatalog.DefaultMaxHealth;
     public void AcceptCurrentAsBaseline() { _original = ToCarriedPet(); IsDeleted = false; IsNew = false; }
+    public void LoadReadback(CarriedPet source) { _original = source; Load(source); IsDeleted = false; IsNew = false; }
     public void Revert() { IsDeleted = false; Load(_original); }
     private void Load(CarriedPet source) { ItemRow = source.ItemRow; Name = source.Name; Health = source.Health; MaxHealth = source.MaxHealth; Xp = source.Xp; MutationProgress = source.MutationProgress; PetMutation = source.PetMutation; }
 }

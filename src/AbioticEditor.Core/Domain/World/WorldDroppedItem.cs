@@ -11,7 +11,7 @@ namespace AbioticEditor.Core.WorldSaves;
 /// <param name="X">World position (from <c>ItemLocation_</c>; 0 when absent).</param>
 public sealed record WorldDroppedItem(
     string Id, InventoryItemSlot Slot, bool NoDespawn,
-    double X = 0, double Y = 0, double Z = 0)
+    double X = 0, double Y = 0, double Z = 0, string? Region = null)
 {
     /// <summary>Straight-line distance to a point (player position), in UE units (cm).</summary>
     public double DistanceTo(double x, double y, double z)

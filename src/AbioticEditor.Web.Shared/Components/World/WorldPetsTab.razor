@@ -43,7 +43,7 @@
                 {
                     <button type="button" role="option" aria-selected="@(_selectedId == row.Id ? "true" : "false")"
                             class="wt-row pet-row-item @(_selectedId == row.Id ? "selected" : null)" @key="petRenderKey"
-                            @onclick="() => _selectedId = row.Id">
+                            @onclick="() => _selectedId = row.Id" @oncontextmenu="args => OpenPetMenu(row, args)" @oncontextmenu:preventDefault>
                         <span class="pet-avatar" aria-hidden="true">
                             <span class="pet-avatar-letter">@Avatar(row)</span>
                             <GameArtImage GameRefs="@PetCatalog.CompendiumTextureRefs(row.NpcClass)" WikiFiles="@CreatureWikiImages.CandidatesFor(PetCatalog.FriendlyName(row.NpcClass))" Alt="" Class="pet-avatar-img" />
@@ -179,18 +179,6 @@
                     <hr class="wt-divider" />
                 }
 
-                @if (Session.SupportsRemoval)
-                {
-                    @if (!IsDeleted(pet))
-                    {
-                        <button type="button" class="wt-btn wt-red wide" @onclick="() => Delete(pet)">@L.Resource("WorldPets_DeletePetFromWorld")</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="wt-btn wt-yellow wide" @onclick="() => UndoDelete(pet)">@L.Resource("WorldPets_UndoDelete")</button>
-                    }
-                }
-
                 @if (editable && PlayerSession is not null && !pet.Id.StartsWith("pending-", StringComparison.Ordinal))
                 {
                     <hr class="wt-divider" />
@@ -212,6 +200,15 @@
         </div>
     </div>
     }
+    @if (_contextPet is { } contextPet)
+    {
+        <RowContextMenu Style="@_menuStyle" Close="ClosePetMenu">
+            @if (IsDeleted(contextPet))
+            { <button type="button" role="menuitem" @onclick="() => UndoDelete(contextPet)">@L.Resource("WorldPets_UndoDelete")</button> }
+            else
+            { <button type="button" role="menuitem" @onclick="() => Delete(contextPet)">Remove from World</button> }
+        </RowContextMenu>
+    }
 </section>
 
 @code {
@@ -225,6 +222,16 @@
     [Parameter] public EventCallback<string?> OnError { get; set; }
 
     private string? _selectedId;
+    private WorldPet? _contextPet;
+    private string? _menuStyle;
+    private void ClosePetMenu() => _contextPet = null;
+    private void OpenPetMenu(WorldPet pet, MouseEventArgs args)
+    {
+        if (!Session.SupportsRemoval || PetCatalog.IsSummon(pet.NpcClass)) return;
+        _selectedId = pet.Id;
+        _contextPet = pet;
+        _menuStyle = FormattableString.Invariant($"left:min({args.ClientX}px,calc(100vw - 200px));top:min({args.ClientY}px,calc(100vh - 70px));");
+    }
     private bool _sendToCompanion;
     private string? _petMoveStatus;
     // Deleted pets stay listed (native parity: "WILL BE DELETED" + UNDO) until SAVE.
@@ -357,7 +364,11 @@
     }
 
     private Task SetName(WorldPet pet, string? value) => Apply(pet, name: value);
-    private Task SetClass(WorldPet pet, string? value) => Apply(pet, npcClass: value);
+    private async Task SetClass(WorldPet pet, string? value)
+    {
+        await Apply(pet, npcClass: value);
+        _healBaselines.Remove(pet.Id);
+    }
     private Task SetDead(WorldPet pet, bool value) => Apply(pet, dead: value);
     private Task SetXp(WorldPet pet, string? value) => int.TryParse(value, out var xp) ? Apply(pet, xp: xp) : Task.CompletedTask;
     private Task SetLevel(WorldPet pet, string? value)
@@ -392,6 +403,7 @@
 
     private async Task Delete(WorldPet pet)
     {
+        ClosePetMenu();
         try
         {
             _deleted[pet.Id] = pet;
@@ -406,6 +418,7 @@
 
     private async Task UndoDelete(WorldPet pet)
     {
+        ClosePetMenu();
         try
         {
             if (await Session.RestorePetAsync(pet))

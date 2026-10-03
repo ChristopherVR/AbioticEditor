@@ -109,13 +109,15 @@ else
                         {
                             <figure class="world-thumb-art">
                                 <img src="@picture" alt="@selected.Label" loading="lazy" data-zoom />
+                                @if (FeatureId == "portals" && picture == WorldThumbnails.PlaceOf(selected.Key))
+                                { <figcaption>@L.Resource("WorldFeature_WhereItIs")</figcaption> }
                                 @if (StateBadge(selected) is { } badge)
                                 {
                                     <figcaption class="world-state-badge @(badge.On ? "on" : "off")" data-feature="state-badge">@badge.Text</figcaption>
                                 }
                             </figure>
                         }
-                        @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place)
+                        @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place && (FeatureId != "portals" || WorldThumbnails.For("portals", selected.Key) != place))
                         {
                             <figure class="world-place-art">
                                 <img src="@place" alt="@selected.Label" loading="lazy" data-zoom />
@@ -124,10 +126,10 @@ else
                         }
                     </div>
                     <ShowIn3DButton Target="@WorldFeaturePositions.Target(Session, FeatureId, selected.Key, selected.Label)" />
-                    @if (FeatureId is "buttons" or "decals" or "power-sockets")
+                    @if (WorldThumbnails.KindOfFeature(FeatureId) is not null || FeatureId == "decals")
                     {
                         <p class="world-feature-hint" style="overflow-wrap:anywhere">@selected.Key</p>
-                        <p class="world-feature-hint">@_actorLocationText</p>
+                        <p class="world-feature-hint"><strong>@L.Resource("WorldFeature_WhereItIs")</strong>: @_actorLocationText</p>
                     }
                     @if (!_singleArea && AreaFor(selected) is { Length: > 0 } area)
                     {
@@ -439,8 +441,8 @@ else
     {
         _snapshot = Session.MapFeature(FeatureId);
         if (Session is not WorldSaveSession && LiveSession.CurrentRegionToken is not null && _snapshot is { } snapshot)
-            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key)
-                || (FeatureId is "portals" or "trams"
+            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key, WorldFeaturePositions.Region(Session, e.Key))
+                || (FeatureId is "portals"
                     && WorldAreaCatalog.TokenFromActorPath(e.Key) == "Facility"
                     && LiveSession.CurrentRegionToken.StartsWith("Facility_", StringComparison.OrdinalIgnoreCase))).ToArray() };
         _allRows = _snapshot is null
@@ -486,7 +488,7 @@ else
     {
         _selectedKey = key;
         _actorLocationText = string.Empty;
-        if (FeatureId is not ("buttons" or "decals" or "power-sockets")) return;
+        if (WorldThumbnails.KindOfFeature(FeatureId) is null && FeatureId != "decals") return;
         if (WorldFeaturePositions.Find(Session, FeatureId, key) is { } livePosition)
         {
             _actorLocationText = $"X {livePosition.X:F0}, Y {livePosition.Y:F0}, Z {livePosition.Z:F0} (world coordinates)";

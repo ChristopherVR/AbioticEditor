@@ -22,6 +22,9 @@ public static class WorldFeaturePositions
             _ => null,
         };
 
+    public static string? Region(IWorldFeaturesSession session, string key)
+        => session is LiveTramsFeatureSession trams ? trams.Trams.FirstOrDefault(t => t.Id == key)?.Region : null;
+
     public static WorldLocateTarget? Target(IWorldFeaturesSession session, string featureId, string key, string label)
         => WorldLocateTarget.ForMapKey(key, label) is { } target
             ? target with { At = Find(session, featureId, key) } : null;

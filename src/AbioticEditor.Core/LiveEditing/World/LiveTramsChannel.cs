@@ -42,7 +42,7 @@ public sealed class LiveTramsChannel(ILiveGameChannel channel)
         var trams = (wire.Trams ?? [])
             .Select(t => new LiveTram(t.Id, t.Label, t.PreviousStation, t.TargetStation, t.Moving,
                 t.PositiveDirection, t.IsAtStation, t.HasPassengers, t.Containers,
-                t.RecallStations ?? [], t.X, t.Y, t.Z))
+                t.RecallStations ?? [], t.X, t.Y, t.Z, t.Region))
             .ToList();
         return new LiveTramDirectory(trams, wire.IsHost);
     }
@@ -60,7 +60,7 @@ public sealed class LiveTramsChannel(ILiveGameChannel channel)
     private sealed record DirectoryWire(IReadOnlyList<TramWire>? Trams, bool IsHost);
     private sealed record TramWire(string Id, string Label, string? PreviousStation, string? TargetStation,
         bool? Moving, bool? PositiveDirection, bool? IsAtStation, bool? HasPassengers, int Containers,
-        IReadOnlyList<string>? RecallStations, double X, double Y, double Z);
+        IReadOnlyList<string>? RecallStations, double X, double Y, double Z, string? Region = null);
     private sealed record SetWire(IReadOnlyList<EditWire> Trams);
     private sealed record EditWire(string Id, string? TargetStation);
 }
@@ -77,7 +77,7 @@ public sealed class LiveTramsChannel(ILiveGameChannel channel)
 /// <c>GetTramContainers()</c> function.</summary>
 public sealed record LiveTram(string Id, string Label, string? PreviousStation, string? TargetStation,
     bool? Moving, bool? PositiveDirection, bool? IsAtStation, bool? HasPassengers, int Containers,
-    IReadOnlyList<string> RecallStations, double X, double Y, double Z);
+    IReadOnlyList<string> RecallStations, double X, double Y, double Z, string? Region = null);
 
 /// <summary>Every loaded tram plus whether this process has host authority to recall one.</summary>
 public sealed record LiveTramDirectory(IReadOnlyList<LiveTram> Trams, bool IsHost);

@@ -2032,6 +2032,24 @@ end
 -- reference mod's own "destroy all dropped items" command, verbatim (CommandsManager.lua:1464-
 -- 1478, host-only there too). ItemDataRow/ChangeableData are on the blueprint class layout.
 
+-- UpdateActorToWorldSave calls GetActorLevelName(Self, Actor). Native inspection confirms
+-- that this reads outer-level ownership; persistent runtime actors can report Facility.
+-- A positional streaming-volume resolver is still needed for their standing section.
+local function actorRegion(actor)
+    local ok, region = pcall(function()
+        local helper = StaticFindObject("/Script/AbioticFactor.Default__LevelStreamingCustom")
+        if not helper or not helper:IsValid() then return nil end
+        return helper:GetActorLevelName(actor, actor)
+    end)
+    if not ok or region == nil then return nil end
+    if type(region) ~= "string" then
+        local converted, text = pcall(function() return region:ToString() end)
+        if not converted then return nil end
+        region = text
+    end
+    return region ~= "" and region or nil
+end
+
 handlers["dropped.list"] = function(_, respond)
     runOnGameThread(function()
         local result = { __forceArray = true }
@@ -2053,7 +2071,7 @@ handlers["dropped.list"] = function(_, respond)
                         id = name,
                         itemId = (okRow and rowName) or classLabel(name),
                         stack = (okStack and stack) or 1,
-                        x = x, y = y, z = z,
+                        x = x, y = y, z = z, region = actorRegion(item),
                     })
                 end
             end
@@ -2273,24 +2291,6 @@ end
 -- skipped - one broken area never takes the whole mod down.
 handlers["containers.setfull"] = handlers["containers.set"]
 handlers["containers.setcomplete"] = handlers["containers.set"]
-
--- The game chooses an actor's save section through this native function, rather than its
--- UObject outer (runtime pets and furniture often belong to the persistent level).
--- Confirmed by UpdateActorToWorldSave bytecode: GetActorLevelName(Self, Actor).
-local function actorRegion(actor)
-    local ok, region = pcall(function()
-        local helper = StaticFindObject("/Script/AbioticFactor.Default__LevelStreamingCustom")
-        if not helper or not helper:IsValid() then return nil end
-        return helper:GetActorLevelName(actor, actor)
-    end)
-    if not ok or region == nil then return nil end
-    if type(region) ~= "string" then
-        local converted, text = pcall(function() return region:ToString() end)
-        if not converted then return nil end
-        region = text
-    end
-    return region ~= "" and region or nil
-end
 
 local ctx = {
     handlers = handlers,

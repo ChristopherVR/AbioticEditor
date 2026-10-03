@@ -4,8 +4,10 @@ using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
+using CUE4Parse.UE4.Assets.Exports.Engine;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Versions;
 using Xunit.Abstractions;
 
@@ -18,6 +20,38 @@ namespace AbioticEditor.Tests;
 /// </summary>
 public class TerminalGuidProbeTests
 {
+    [Fact]
+    public void Dump_RespawnAndRechargeDetails()
+    {
+        var output = Environment.GetEnvironmentVariable("RESPAWN_RECHARGE_PROBE_OUT");
+        if (string.IsNullOrEmpty(output)) return;
+        using var provider = CreateProvider();
+        if (provider is null) return;
+        provider.ReadScriptData = true;
+        using var writer = new StreamWriter(output);
+        foreach (var key in provider.Files.Keys.Where(k => k.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+            && (k.Contains("PunchCardTerminal", StringComparison.OrdinalIgnoreCase)
+                || k.Contains("Abiotic_Survival_GameMode.", StringComparison.OrdinalIgnoreCase)
+                || k.Contains("ItemTable_Global.", StringComparison.OrdinalIgnoreCase))))
+        {
+            foreach (var obj in provider.LoadPackage(key).GetExports())
+            {
+                if (obj is UFunction f && f.Name != "FindRespawnPointForPlayer" && !key.Contains("PunchCardTerminal", StringComparison.OrdinalIgnoreCase)) continue;
+                writer.WriteLine(key + " :: " + obj.Name);
+                writer.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented));
+            }
+        }
+        var map = provider.LoadPackage("AbioticFactor/Content/Maps/Facility.umap");
+        foreach (var obj in map.GetExports().Where(o => o.Class?.Name.Text.StartsWith("Deployed_PunchCardTerminal", StringComparison.OrdinalIgnoreCase) == true
+            || o.Outer?.Name.Text.StartsWith("Deployed_PunchCardTerminal", StringComparison.OrdinalIgnoreCase) == true
+            || o.Class?.Name.Text == "AbioticLevelStreamingVolume"
+            || o.Outer?.Name.Text.StartsWith("AbioticLevelStreamingVolume", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            writer.WriteLine("Facility :: " + obj.Name);
+            writer.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented));
+        }
+    }
+
     private readonly ITestOutputHelper _output;
 
     public TerminalGuidProbeTests(ITestOutputHelper output)

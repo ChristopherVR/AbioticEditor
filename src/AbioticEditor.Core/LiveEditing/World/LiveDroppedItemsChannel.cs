@@ -18,7 +18,7 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<DirectoryWire>("dropped.list", payload: null, cancellationToken)
             .ConfigureAwait(false);
         return new LiveDroppedItemDirectory(
-            (wire.Items ?? []).Select(i => new LiveDroppedItem(i.Id, i.ItemId, i.Stack, i.X, i.Y, i.Z)).ToList(),
+            (wire.Items ?? []).Select(i => new LiveDroppedItem(i.Id, i.ItemId, i.Stack, i.X, i.Y, i.Z, i.Region)).ToList(),
             wire.IsHost);
     }
 
@@ -51,7 +51,7 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
         => _channel.RequestAsync<object?>("dropped.add", new AddWire(itemId, stack, ItemTableIndex.TableRefFor(itemId), x, y, z), cancellationToken);
 
     private sealed record DirectoryWire(IReadOnlyList<ItemWire>? Items, bool IsHost);
-    private sealed record ItemWire(string Id, string ItemId, int Stack, double X, double Y, double Z);
+    private sealed record ItemWire(string Id, string ItemId, int Stack, double X, double Y, double Z, string? Region = null);
     private sealed record RemoveWire(IReadOnlyList<string> Ids);
     // Stuck is absent (0) from a Lua bundle older than round 91, which only ever counted Removed.
     private sealed record RemovedWire(int Removed, int Stuck = 0);
@@ -60,7 +60,7 @@ public sealed class LiveDroppedItemsChannel(ILiveGameChannel channel)
 
 /// <summary>One loose item in the world. <paramref name="Id"/> is the game's full object name
 /// for this exact actor; <paramref name="ItemId"/> is its item row (e.g. <c>scrap_metal</c>).</summary>
-public sealed record LiveDroppedItem(string Id, string ItemId, int Stack, double X, double Y, double Z);
+public sealed record LiveDroppedItem(string Id, string ItemId, int Stack, double X, double Y, double Z, string? Region = null);
 
 /// <summary>What one <c>dropped.remove</c> did. <paramref name="Removed"/> items were found and
 /// are now being destroyed by the engine. <paramref name="Stuck"/> items ran their despawn without

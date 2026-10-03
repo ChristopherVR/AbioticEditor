@@ -89,6 +89,17 @@ public sealed class InspectorEditingTests
         Assert.False(live.IsActorInCurrentRegion("/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.Button_C_1"));
     }
 
+    [Fact]
+    public void Broad_facility_ownership_preserves_a_vehicles_explicit_dam_spawner_section()
+    {
+        var live = new LiveSessionService();
+        live.SetCurrentRegion("Facility_Dam");
+        const string path = "/Game/Maps/Facility_Dam.Facility_Dam:PersistentLevel.VehicleSpawner_C_1";
+        Assert.True(live.IsActorInCurrentRegion(path, "Facility"));
+        live.SetCurrentRegion("Facility_Office1");
+        Assert.False(live.IsActorInCurrentRegion(path, "Facility"));
+    }
+
     [Theory]
     [InlineData("NarrativeNPC_UnlostMage_C_1", "Mage_of_the_Unlost.png")]
     [InlineData("NarrativeNPC_HammeringHank_C_1", "T_Compendium_Hank.png")]

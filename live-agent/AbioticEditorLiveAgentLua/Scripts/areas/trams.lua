@@ -201,7 +201,7 @@ return function(ctx)
                         hasPassengers = boolOrNil(okPassengers, passengers),
                         containers = (okContainers and containers) and #containers or 0,
                         recallStations = recallStationLabelsFor(name),
-                        x = x, y = y, z = z,
+                        x = x, y = y, z = z, region = ctx.actorRegion(tram),
                     })
                 end
             end

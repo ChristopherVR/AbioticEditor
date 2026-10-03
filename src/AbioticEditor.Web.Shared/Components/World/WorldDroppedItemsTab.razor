@@ -1,3 +1,4 @@
+@inject AbioticEditor.Web.Services.LiveSessionService LiveRegion
 @namespace AbioticEditor.Web.Components.World
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
@@ -234,11 +235,12 @@
     /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.
     /// Sorted nearest-first when <see cref="PlayerPosition"/> is known, so the cap drops distant
     /// items instead of whatever the world happened to enumerate first.</summary>
+    private IEnumerable<WorldDroppedItem> RegionItems => Session.DroppedItems.Where(i => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(i.Id, i.Region));
     private List<WorldDroppedItem> Visible
     {
         get
         {
-            IEnumerable<WorldDroppedItem> items = Session.DroppedItems
+            IEnumerable<WorldDroppedItem> items = RegionItems
                 .Where(item => string.IsNullOrWhiteSpace(_filter)
                     || DisplayName(item).Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
                     || (item.Slot.ItemId?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
@@ -257,7 +259,7 @@
         get
         {
             PruneRestored();
-            var count = Session.DroppedItems.Count;
+            var count = RegionItems.Count();
             return _removed.Count == 0
                 ? L.Resource("WorldEditor_DroppedSummaryFormat", count)
                 : L.Resource("WorldEditor_DroppedSummaryWithDeletionsFormat", count, _removed.Count);

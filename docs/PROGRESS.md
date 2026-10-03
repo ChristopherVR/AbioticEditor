@@ -1,5 +1,33 @@
 # Abiotic Editor - Session history
 
+## Round-161: respawn anchors, pet controls and inspector pictures (2026-10-03)
+
+- Respawn-station relocation now uses the game's rotated SitSpots component position rather
+  than the terminal root, avoiding relocation inside the station. The offset and terminal
+  rotations were verified against the installed game's cooked blueprint and Facility map.
+- Pet removal uses a right-click dropdown with inventory removal/drop and world removal.
+  Live carried-pet edits refresh from game readback while retaining selected row identity;
+  variant changes invalidate cached world-pet health, and destroyed actors are excluded.
+- Battery-powered items, including the jetpack backpack, expose charge and Recharge to full.
+  Feeding/mutation controls, metadata story rows and containment images have layout fixes.
+- Added fixed-location picture generation for corpses and expanded pictures for buttons,
+  resource nodes, sockets and teleporters (4,306 new pictures, 9,700 total location pictures).
+  Teleporters use their location picture when their
+  VFX-only blueprint has no standalone mesh. Feature inspectors show available coordinates.
+- Live doors and ground items now use the selected-region filter; ground items and trams
+  carry actor-region metadata. Explicit spawner map names take priority over broad Facility
+  ownership. IMPORTANT: native GetActorLevelName reports actor outer-level ownership, not
+  spatial section membership. Persistent runtime pets, vehicles, dropped items and trams
+  still need a verified positional resolver using the game's streaming volumes. This remains
+  open, and these changes do not establish complete live region filtering.
+- Verification: Web build passed with zero warnings/errors; Lua harness passed all 1,365
+  checks; 93 final Release checks passed, including shipped pictures, respawn edits, live
+  companion contracts and the Facility_Dam spawner regression. Full Debug run: 2,215 passed,
+  one skipped, one failed. Its sole failure was the picture-index check running during image
+  generation against the unfinished index; that check passed in the final Release verification
+  after all images and their index were written. Git whitespace verification passed.
+  User requested commit and push. No user saves or installed game files were changed.
+
 ## Round-160: live pet inventory, world lists and 3D stability (2026-10-03)
 
 - Live pet adds now initialize unique item identity and dynamic state, including reflected

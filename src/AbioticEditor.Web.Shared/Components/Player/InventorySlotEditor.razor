@@ -1,4 +1,4 @@
-﻿@namespace AbioticEditor.Web.Components.Player
+@namespace AbioticEditor.Web.Components.Player
 @using AbioticEditor.Web.Models
 @using AbioticEditor.Web.Services
 @using AbioticEditor.Core.Items
@@ -177,7 +177,9 @@
                 }
                 @if ((selectedEntry?.MaxLiquid ?? 0) > 0)
                 {
-                    <label>@L.Inventory("liquid")<input type="number" min="0" max="@selectedEntry!.MaxLiquid" @bind="selected.LiquidLevel" @bind:after="Changed" /></label>
+                    <label>@(selectedEntry!.AllowedLiquidList.Contains(8) ? "Charge" : L.Inventory("liquid"))<input type="number" min="0" max="@selectedEntry.MaxLiquid" @bind="selected.LiquidLevel" @bind:after="Changed" /></label>
+                    @if (selectedEntry.AllowedLiquidList.Contains(8))
+                    { <button class="secondary" type="button" @onclick="Recharge">Recharge to full</button> }
                     @if (selection.SupportsLiquidTypeEdits)
                     {
                         <label>@L.Resource("Slot_LiquidTypeWhatThisItemIsAllowedToHold")
@@ -567,6 +569,13 @@
 
     // ---------- native field-visibility rules (InventorySlotViewModel) ----------
 
+    private async Task Recharge()
+    {
+        if (Selection.Current is not { } current || Catalog.Find(current.Slot.ItemId) is not { MaxLiquid: > 0 } entry || !entry.AllowedLiquidList.Contains(8)) return;
+        current.Slot.LiquidLevel = entry.MaxLiquid;
+        if (current.SupportsLiquidTypeEdits) current.Slot.LiquidType = "E_LiquidType::NewEnumerator8";
+        await Changed();
+    }
     /// <summary>Durability shows only when the item actually has one (native ShowDurability).</summary>
     private static bool ShowDurability(PlayerInventorySlotEdit slot) => slot.MaxDurability > 0 && !slot.IsEmpty;
 

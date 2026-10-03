@@ -46,7 +46,7 @@
             @if (Session.CarriedPets.Count == 0 && PendingPets.Count == 0) { <p class="muted pet-empty">@L.Resource("PlayerPets_NoPets")</p> }
             @foreach (var row in Session.CarriedPets)
             {
-                <button type="button" class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row ? "true" : "false")" @onclick="() => _selected = row" @oncontextmenu="() => { _selected = row; _contextPet = row; }" @oncontextmenu:preventDefault>
+                <button type="button" class="pet-row @(_selected == row ? "selected" : null) @(StillInInventory(row) ? null : "pet-row-pending")" role="option" aria-selected="@(_selected == row ? "true" : "false")" @onclick="() => _selected = row" @oncontextmenu="args => OpenPetMenu(row, args)" @oncontextmenu:preventDefault>
                     <span class="pet-row-text"><strong>@row.DisplayName</strong><small>@SlotText(row)</small></span>
                     <span class="pet-row-status">@(StillInInventory(row) ? StatusText(row) : L.Resource("PlayerPets_StatusTakenOutPending"))</span>
                 </button>
@@ -69,13 +69,6 @@
         </div>
 
         <div class="pet-detail">
-            @if (_contextPet is { } contextPet)
-            {
-                <div class="editor-actions" role="menu" aria-label="Remove pet">
-                    <button type="button" role="menuitem" class="accent-alert" @onclick="() => ToggleDeleted(contextPet)">Remove entirely</button>
-                    <button type="button" @onclick="() => _contextPet = null">Cancel</button>
-                </div>
-            }
             @if (_selected is not { } pet)
             {
                 <p class="muted">@L.Resource("PlayerPets_SelectAPet")</p>
@@ -131,8 +124,6 @@
                 <PetCareGuide ItemRow="@pet.ItemRow" MutationProgress="@pet.MutationProgress" MutationProgressChanged="@(value => SetMutationProgress(pet, value))"
                               PetMutation="@pet.PetMutation" PetMutationChanged="@(value => SetPetMutation(pet, value))" />
                 <hr class="af-divider" />
-                @if (!pet.IsDeleted) { <button class="accent-alert" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_RemoveFromInventory")</button> }
-                else { <button class="accent-hazard" type="button" @onclick="() => ToggleDeleted(pet)">@L.Resource("PlayerPets_UndoRemove")</button> }
 
                 @if (SiblingWorldOptions.Count > 0)
                 {
@@ -164,6 +155,19 @@
             }
         </div>
     </div>
+    @if (_contextPet is { } contextPet)
+    {
+        <RowContextMenu Style="@_menuStyle" Close="ClosePetMenu">
+            @if (contextPet.IsDeleted)
+            { <button type="button" role="menuitem" @onclick="() => ToggleDeleted(contextPet)">@L.Resource("PlayerPets_UndoRemove")</button> }
+            else
+            {
+                <button type="button" role="menuitem" @onclick="() => ToggleDeleted(contextPet)">Remove from Inventory</button>
+                @if (Session is IPlayerInventorySession inventory && (inventory.SupportsLiveDrop || WorldSession is not null))
+                { <button type="button" role="menuitem" @onclick="() => DropPet(contextPet)">Drop</button> }
+            }
+        </RowContextMenu>
+    }
 </section>
 
 @code {
@@ -232,6 +236,9 @@
 
     protected override void OnParametersSet()
     {
+        if (Session.AppliesImmediately && _selected is { } selected)
+            _selected = Session.CarriedPets.FirstOrDefault(p => p.Slot == selected.Slot && p.Index == selected.Index);
+        if (_contextPet is { } context && !Session.CarriedPets.Contains(context)) ClosePetMenu();
         if (string.Equals(_scannedPlayerPath, Session.SessionKey, StringComparison.OrdinalIgnoreCase)) return;
         _scannedPlayerPath = Session.SessionKey;
         _transferStatus = null;
@@ -426,6 +433,37 @@
     private Task SetPetMutation(CarriedPetEdit pet, int value) { pet.PetMutation = value; return CommitAsync(pet); }
 
     private CarriedPetEdit? _contextPet;
+    private string? _menuStyle;
+    private void ClosePetMenu() => _contextPet = null;
+    private void OpenPetMenu(CarriedPetEdit pet, MouseEventArgs args)
+    {
+        _selected = pet;
+        _contextPet = pet;
+        _menuStyle = FormattableString.Invariant($"left:min({args.ClientX}px,calc(100vw - 200px));top:min({args.ClientY}px,calc(100vh - 110px));");
+    }
+    private async Task DropPet(CarriedPetEdit pet)
+    {
+        ClosePetMenu();
+        if (Session is not IPlayerInventorySession inventory) return;
+        var area = pet.Slot switch { PetSlotKind.Equipment => PlayerInventoryArea.Equipment, PetSlotKind.Hotbar => PlayerInventoryArea.Hotbar, _ => PlayerInventoryArea.Backpack };
+        try
+        {
+            if (inventory.SupportsLiveDrop)
+            {
+                if (!await inventory.TryDropSlotLiveAsync(area, pet.Index)) return;
+                await Session.RefreshAsync();
+                _selected = null;
+            }
+            else if (WorldSession is { } world && InventoryTransferService.TryDropPlayerSlot(inventory, area, pet.Index, world,
+                inventory.Respawn.X, inventory.Respawn.Y, inventory.Respawn.Z, out _))
+            {
+                pet.IsDeleted = true;
+                Workspace.NotifyEdited();
+            }
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (IsLiveTransportException(ex)) { ReportMoveFailed(Errors.Present(ex, "Drop this pet.", "Try refreshing.")); }
+    }
 
     /// <summary>Removes (file: stages, reversible) or clears (live: immediate, no undo - see
     /// <see cref="IPlayerCompanionsSession.RemovePetAsync"/>) a carried pet.</summary>

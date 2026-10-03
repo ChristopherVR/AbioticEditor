@@ -1,0 +1,11 @@
+@namespace AbioticEditor.Web.Components.Shared
+<div class="row-menu-backdrop" role="presentation" @onclick="Close" @oncontextmenu="Close" @oncontextmenu:preventDefault></div>
+<div class="row-context-menu" role="menu" style="@Style" @onkeydown="KeyDown">
+    @ChildContent
+</div>
+@code {
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback Close { get; set; }
+    private Task KeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? Close.InvokeAsync() : Task.CompletedTask;
+}

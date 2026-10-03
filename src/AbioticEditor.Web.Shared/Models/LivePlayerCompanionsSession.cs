@@ -71,12 +71,18 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var rows = await _channel.ListAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        var existing = _pets.ToDictionary(p => (p.Slot, p.Index));
         _pets = rows
             .Where(row => PetItemCatalog.IsPetItem(row.ItemId) || (row.Kind == "equip" && row.SlotIndex == 12))
-            .Select(row => new CarriedPetEdit(new CarriedPet(
-                LiveCompanionsChannel.FromWireKind(row.Kind), row.SlotIndex, row.ItemId,
-                string.IsNullOrEmpty(row.Name) ? null : row.Name, row.Health, row.MaxHealth,
-                row.Xp, row.MutationProgress, row.PetMutation)))
+            .Select(row =>
+            {
+                var source = new CarriedPet(LiveCompanionsChannel.FromWireKind(row.Kind), row.SlotIndex, row.ItemId,
+                    string.IsNullOrEmpty(row.Name) ? null : row.Name, row.Health, row.MaxHealth,
+                    row.Xp, row.MutationProgress, row.PetMutation);
+                if (!existing.TryGetValue((source.Slot, source.Index), out var pet)) return new CarriedPetEdit(source);
+                pet.LoadReadback(source);
+                return pet;
+            })
             .ToList();
         Status = null;
         Changed?.Invoke();
@@ -88,9 +94,7 @@ public sealed class LivePlayerCompanionsSession : IPlayerCompanionsSession
         ArgumentNullException.ThrowIfNull(pet);
         await _channel.SetAsync(LiveCompanionsChannel.ToWireKind(pet.Slot), pet.Index, pet.ToCarriedPet(), _playerId, cancellationToken)
             .ConfigureAwait(false);
-        pet.AcceptCurrentAsBaseline();
-        Status = null;
-        Changed?.Invoke();
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Clears <paramref name="pet"/>'s slot immediately and drops it from

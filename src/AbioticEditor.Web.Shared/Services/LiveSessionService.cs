@@ -49,8 +49,12 @@ public sealed class LiveSessionService
 
     public bool IsActorInCurrentRegion(string path, string? region = null)
     {
-        var map = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.NormalizeLevelToken(region)
-            ?? AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
+        var saved = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.NormalizeLevelToken(region);
+        var actorMap = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
+        // A persistent-level outer is not a specific section. A placed spawner's explicit
+        // section is useful when the native lookup only reports the Facility parent.
+        var map = saved is null || saved.Equals("Facility", StringComparison.OrdinalIgnoreCase)
+            ? actorMap ?? saved : saved;
         if (map is null || CurrentRegionToken is null) return true;
         return string.Equals(map, CurrentRegionToken, StringComparison.OrdinalIgnoreCase);
     }

@@ -4,9 +4,15 @@ namespace AbioticEditor.Core.PlayerSaves;
 
 /// <summary>
 /// One static respawn (punch-card) terminal baked into the Facility level, with its
-/// root-component world position (a guaranteed-walkable spawn anchor).
+/// root-component world position and rotation, plus the game's separate respawn anchor.
 /// </summary>
-public sealed record RespawnTerminal(string TerminalGuid, string LocationName, double X, double Y, double Z);
+public sealed record RespawnTerminal(string TerminalGuid, string LocationName, double X, double Y, double Z, double Yaw = 0)
+{
+    // FindRespawnPointForPlayer uses SitSpots, not the terminal root. The component's local
+    // transform is (126.23555, 0, 130.56107) in Deployed_PunchCardTerminal's cooked blueprint.
+    public PlacedVector SpawnPosition => new(X + 126.23555 * Math.Cos(Yaw * Math.PI / 180),
+        Y + 126.23555 * Math.Sin(Yaw * Math.PI / 180), Z + 130.56107);
+}
 
 /// <summary>
 /// The player save's <c>TerminalRespawnID_</c> is the <c>SpawnedAssetID</c> of a static
@@ -19,16 +25,16 @@ public static class RespawnTerminalCatalog
 {
     public static readonly IReadOnlyList<RespawnTerminal> All =
     [
-        new("AFB31D8E4DFBB5BE74BEAAADD681A636", "Manufacturing West", -4352, 24123, 810),
-        new("95CAED254C17360B69B3738E468CD49C", "Hydroplant", -27352, -2498, 529),
-        new("E57CB02C4853F46D2BB7CA80303EB6A3", "Cascade Laboratories", 9173, 9599, -1181),
-        new("35DCF84F4AC366B8DCBB61A93D9C83C0", "Security Sector", -3660, -3650, 534),
-        new("7CCB5D3A4072BAE875ECA2A05F35AF0F", "Power Services", -29671, -544, -9812),
-        new("7996635040409DC197A441922A831284", "The Office Sector", -15691, 20611, 2510),
-        new("AC917C804463D66ABBBB3FB89A0174AB", "The Reactors", -13238, 21451, -16451),
-        new("35BDEE3649830558D65FCDBDC194C725", "The Mines", 7510, 44947, 755),
-        new("601B417D44683BA9E7D422AF8AE457D8", "Residence Sector", -22764, 25001, 135),
-        new("476CCD1247914D2A067353BCF0DCC849", "Shopping District", -34192, 55638, -987),
+        new("AFB31D8E4DFBB5BE74BEAAADD681A636", "Manufacturing West", -4352, 24123, 810, -135),
+        new("95CAED254C17360B69B3738E468CD49C", "Hydroplant", -27352, -2498, 529, -120.9375),
+        new("E57CB02C4853F46D2BB7CA80303EB6A3", "Cascade Laboratories", 9173, 9599, -1181, 148.02182),
+        new("35DCF84F4AC366B8DCBB61A93D9C83C0", "Security Sector", -3660, -3650, 534, -29.999897),
+        new("7CCB5D3A4072BAE875ECA2A05F35AF0F", "Power Services", -29671, -544, -9812, 34.999992),
+        new("7996635040409DC197A441922A831284", "The Office Sector", -15691, 20611, 2510, -90.00015),
+        new("AC917C804463D66ABBBB3FB89A0174AB", "The Reactors", -13238, 21451, -16451, 37.87588),
+        new("35BDEE3649830558D65FCDBDC194C725", "The Mines", 7510, 44947, 755, -105),
+        new("601B417D44683BA9E7D422AF8AE457D8", "Residence Sector", -22764, 25001, 135, -42.38995),
+        new("476CCD1247914D2A067353BCF0DCC849", "Shopping District", -34192, 55638, -987, 30.212671),
     ];
 
     /// <summary>Location name for a terminal GUID, or null when unknown.</summary>
