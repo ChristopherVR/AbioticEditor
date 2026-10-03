@@ -1,5 +1,38 @@
 # Abiotic Editor - Session history
 
+## Round-159: Windows Nexus package review triggers (2026-10-03)
+
+- Investigated v2.25.1: the exact Windows Nexus ZIP matched its release checksum and
+  VirusTotal reported 0 detections from 61 engines. Nexus still quarantined it. Their
+  published policy lists self-extracting executables and nested archives as review triggers.
+  The Windows package had an unsigned executable and a nested UE4SS ZIP; Linux had no
+  UE4SS ZIP or Windows helper. No exact Nexus internal reason was available, and older
+  quarantines predate UE4SS bundling.
+- Windows Nexus builds now leave native DLLs beside the executable and ship only the
+  needed UE4SS runtime/support files unpacked. Their manifest records a checksum per file.
+  Live setup verifies a snapshot before touching the game, uses the existing installation
+  allow-list, activates the loader last, and preserves existing mod-loader installations.
+  Other builds retain the original archive layout. Windows Nexus layout checks reject
+  nested ZIP/7z/RAR files and require the unpacked runtime and native window libraries.
+- Release Defender checks now cover both complete Windows publish folders and their final
+  ZIPs before the Nexus artifact is uploaded. VirusTotal uploads are followed by bounded
+  polling for completed verdicts, with detection, timeout and unsupported-engine counts in
+  release notes. A detected threat fails the scan job. This remains a post-publication report,
+  not a pre-publication VirusTotal gate. Missing keys or pending analyses never imply clean.
+- Verified: Windows Nexus publish; layout, health, static assets, loopback-only endpoint and
+  native window smoke checks; no files extracted at startup into a fresh bundle directory;
+  no updater markers; 25 focused .NET installation tests; the full Release suite (2,208
+  passed, one skipped, zero failures); five Python verdict-report tests;
+  workflow YAML and PowerShell parsing. Defender signatures updated, then both the complete
+  local folder and final ZIP returned no threats. Smoke launchers run hidden and enumerate
+  their own process's window so verification does not require showing it on the desktop.
+- Local test package: artifacts/AbioticEditor-desktop-win-x64-v2.25.1-nexus-safety-test.zip.
+  Scan evidence: artifacts/nexus-defender/RESULT.txt. Uses the locally available UE4SS
+  v3.0.1-1136-g35d1795d; CI still fetches upstream's current experimental build.
+- No user save or installed game was changed. No upload, push, signing, or Nexus moderator
+  contact was performed. Nexus acceptance and the new live VirusTotal polling remain to be
+  verified on a future release; a local scan cannot confirm Nexus's internal review outcome.
+
 ## Round-158: isolate the save-memory regression check (2026-10-03)
 
 - Release run `37086198816` failed only the save-tree memory check: its process-wide

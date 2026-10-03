@@ -13,16 +13,17 @@ public sealed record Ue4ssRuntimeManifest(
     string Sha256,
     long Size,
     string License,
-    string Source);
+    string Source)
+{
+    /// <summary>Checksums of unpacked runtime files, relative to the bundle's files folder.</summary>
+    public Dictionary<string, string>? Files { get; init; }
+}
 
 /// <summary>
 /// Installs the UE4SS package this Windows release bundles, once the player has consented.
-/// Unlike the download-from-GitHub approach this replaced, the package ships inside the editor's
-/// own release archive (<c>live-agent/ue4ss/UE4SS.zip</c> next to its pin manifest), so installing
-/// it needs no network access at runtime: nothing is fetched, only the SHA-256 the editor's own
-/// release process already verified is checked again here before any file is touched. That keeps
-/// this in line with the rest of the app, which never talks to the network to edit a save, and
-/// means live setup works the same offline as it does connected.
+/// GitHub packages carry the original archive; Windows Nexus packages carry unpacked files with
+/// individual SHA-256 checksums in the manifest. Both install without network access and
+/// verify their contents before touching the game folder.
 ///
 /// <para>Only the runtime itself and its shared support files are installed
 /// (<c>ue4ss/Mods/shared/**</c> and <c>ue4ss/UE4SS_SDK_Backends/**</c>); the sample/cheat mods the
@@ -45,10 +46,11 @@ public sealed class Ue4ssBundledRuntime
     }
 
     public Ue4ssRuntimeManifest Manifest { get; }
+    /// <summary>Path to the original archive or the unpacked runtime files directory.</summary>
     public string PackagePath { get; }
 
     /// <summary>
-    /// Returns the bundled runtime described by <c>runtime.json</c> and <c>UE4SS.zip</c> in
+    /// Returns the bundled runtime described by <c>runtime.json</c> and either <c>UE4SS.zip</c> or <c>files/</c> in
     /// <paramref name="bundleDirectory"/>, or null when either file is missing (a dev build of the
     /// editor itself, or a platform this release never bundles UE4SS for) or the manifest cannot
     /// be parsed. Never touches the package's contents; call <see cref="InstallAsync"/> to verify
@@ -58,12 +60,16 @@ public sealed class Ue4ssBundledRuntime
     {
         var manifestPath = Path.Combine(bundleDirectory, "runtime.json");
         var packagePath = Path.Combine(bundleDirectory, "UE4SS.zip");
-        if (!File.Exists(manifestPath) || !File.Exists(packagePath)) return null;
+        if (!File.Exists(manifestPath)) return null;
 
         try
         {
             var manifest = JsonSerializer.Deserialize<Ue4ssRuntimeManifest>(File.ReadAllText(manifestPath), JsonOptions);
-            return manifest is null ? null : new Ue4ssBundledRuntime(manifest, packagePath);
+            if (manifest is null) return null;
+            if (manifest.Files is not null)
+                return Directory.Exists(Path.Combine(bundleDirectory, "files"))
+                    ? new Ue4ssBundledRuntime(manifest, Path.Combine(bundleDirectory, "files")) : null;
+            return File.Exists(packagePath) ? new Ue4ssBundledRuntime(manifest, packagePath) : null;
         }
         catch (JsonException)
         {
@@ -77,7 +83,7 @@ public sealed class Ue4ssBundledRuntime
 
     /// <summary>
     /// Installs the bundled package into <paramref name="win64"/>. No-ops if UE4SS is already
-    /// installed. Verifies the bundled ZIP's size and SHA-256 against <see cref="Manifest"/>
+    /// installed. Verifies the archive size and SHA-256, or each unpacked file checksum, against <see cref="Manifest"/>
     /// before writing anything to <paramref name="win64"/>, so a corrupted or tampered release
     /// download is caught (<see cref="InvalidDataException"/>) without leaving the game folder in
     /// a partial state. Never overwrites an existing mod-loader install; see
@@ -90,13 +96,70 @@ public sealed class Ue4ssBundledRuntime
         {
             if (IsInstalled(win64)) return;
             EnsureEmptyTarget(win64);
-            await VerifyPackageAsync(cancellationToken).ConfigureAwait(false);
-            await using var package = File.OpenRead(PackagePath);
-            await InstallPackageAsync(package, win64, cancellationToken).ConfigureAwait(false);
+            if (Manifest.Files is not null)
+            {
+                // Build a verified in-memory snapshot before touching the game. Installation uses
+                // the same allow-list and activation order as the original archive layout.
+                using var snapshot = await SnapshotFilesAsync(cancellationToken).ConfigureAwait(false);
+                await InstallPackageAsync(snapshot, win64, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await VerifyPackageAsync(cancellationToken).ConfigureAwait(false);
+                await using var package = File.OpenRead(PackagePath);
+                await InstallPackageAsync(package, win64, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
             InstallGate.Release();
+        }
+    }
+
+    private async Task<MemoryStream> SnapshotFilesAsync(CancellationToken cancellationToken)
+    {
+        var files = Manifest.Files!;
+        if (files.Count is 0 or > 1000)
+            throw new InvalidDataException("Unexpected bundled UE4SS file count.");
+        var snapshot = new MemoryStream();
+        try
+        {
+            using (var archive = new ZipArchive(snapshot, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                long total = 0;
+                foreach (var (name, expectedHash) in files)
+                {
+                    if (string.IsNullOrWhiteSpace(name) || name.Contains('\\') || name.Contains(':')
+                        || name.StartsWith('/') || name.Split('/').Any(part => part is ".." or "." or ""))
+                        throw new InvalidDataException("Invalid path in bundled UE4SS manifest.");
+                    var source = Path.Combine(PackagePath, name);
+                    for (var current = source; current is not null; current = Path.GetDirectoryName(current))
+                    {
+                        if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                            throw new InvalidDataException("Linked files are not allowed in the bundled UE4SS runtime.");
+                        if (current.Equals(PackagePath, StringComparison.OrdinalIgnoreCase)) break;
+                    }
+                    await using var input = File.OpenRead(source);
+                    total += input.Length;
+                    if (total > 200 * 1024 * 1024)
+                        throw new InvalidDataException("Unexpected bundled UE4SS package size.");
+                    using var content = new MemoryStream();
+                    await input.CopyToAsync(content, cancellationToken).ConfigureAwait(false);
+                    var hash = Convert.ToHexString(SHA256.HashData(content.GetBuffer().AsSpan(0, (int)content.Length)));
+                    if (!hash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("A bundled UE4SS file did not match its expected checksum. Reinstall the editor and try again.");
+                    content.Position = 0;
+                    await using var output = archive.CreateEntry(name, CompressionLevel.NoCompression).Open();
+                    await content.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            snapshot.Position = 0;
+            return snapshot;
+        }
+        catch
+        {
+            snapshot.Dispose();
+            throw;
         }
     }
 

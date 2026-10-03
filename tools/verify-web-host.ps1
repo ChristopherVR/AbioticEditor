@@ -6,16 +6,16 @@ param(
     # Set by release CI's Windows builds, which always bundle the live-editing in-game side. A
     # plain local build (or a non-release CI job) has no reason to fail this check over files that
     # need the one-time native helper build and tools/fetch-ue4ss.ps1 to exist.
-    [switch]$RequireLiveSupport
+    [switch]$RequireLiveSupport,
+    [switch]$NexusLayout
 )
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($PublishDir)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Publish directory does not exist: $root" }
 
-# The host ships as a single executable: every managed assembly and the native
-# Photino/WebView2 libraries live inside it. Only the data the editor reads at run time is
-# expected beside it, so this list deliberately no longer names any DLL.
+# Managed assemblies ship in one executable. The standard package also embeds native
+# libraries; the Nexus package keeps those beside it to avoid extraction at startup.
 $required = @(
     'AbioticEditor.Web.exe',
     'THIRD-PARTY-NOTICES.txt',
@@ -34,15 +34,21 @@ $required = @(
 )
 if ($RequireLiveSupport) {
     $required += @(
-        'live-agent\ue4ss\UE4SS.zip',
         'live-agent\ue4ss\runtime.json',
         'live-agent\Lua\Scripts\main.lua',
         'live-agent\AbioticEditorLiveAgentHelper.exe'
     )
+    if ($NexusLayout) { $required += 'live-agent\ue4ss\files\dwmapi.dll', 'live-agent\ue4ss\files\ue4ss\UE4SS.dll' }
+    else { $required += 'live-agent\ue4ss\UE4SS.zip' }
 }
 # Loose assemblies beside the exe mean single-file publishing silently regressed.
 $strayDlls = Get-ChildItem -LiteralPath $root -Filter *.dll -File -ErrorAction SilentlyContinue
-if ($strayDlls) { throw "Expected a single-file publish, found $($strayDlls.Count) loose DLL(s), e.g. $($strayDlls[0].Name)." }
+if (-not $NexusLayout -and $strayDlls) { throw "Expected a single-file publish, found $($strayDlls.Count) loose DLL(s), e.g. $($strayDlls[0].Name)." }
+if ($NexusLayout) {
+    $required += 'Photino.Native.dll', 'WebView2Loader.dll', 'libSkiaSharp.dll'
+    $nested = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object Extension -In '.zip', '.7z', '.rar'
+    if ($nested) { throw "Nexus package contains a nested archive: $($nested[0].FullName)" }
+}
 foreach ($relative in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Published Windows host is missing '$relative'." }
 }
@@ -63,10 +69,43 @@ finally { $exe.Dispose() }
 
 if ($SkipSmoke) { Write-Host "Windows host publish layout verified: $root"; return }
 
+# Process.MainWindowHandle ignores hidden windows. The smoke test intentionally starts
+# without showing UI on the user's desktop, but still verifies Photino created its window.
+if (-not ('AbioticPublishSmoke.NativeWindows' -as [type])) {
+    Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+namespace AbioticPublishSmoke {
+    public static class NativeWindows {
+        private delegate bool EnumCallback(IntPtr window, IntPtr parameter);
+        [DllImport("user32.dll")] private static extern bool EnumWindows(EnumCallback callback, IntPtr parameter);
+        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder title, int count);
+        public static bool HasWindow(int processId, string expectedTitle) {
+            bool found = false;
+            EnumWindows((window, parameter) => {
+                uint owner;
+                GetWindowThreadProcessId(window, out owner);
+                if (owner != processId) return true;
+                var title = new StringBuilder(256);
+                GetWindowText(window, title, title.Capacity);
+                found = title.ToString() == expectedTitle;
+                return !found;
+            }, IntPtr.Zero);
+            return found;
+        }
+    }
+}
+'@
+}
+
 $port = 37261
 $url = "http://127.0.0.1:$port"
 $oldUrl = $env:ABIOTIC_EDITOR_URL
 $oldNoDesktop = $env:ABIOTIC_EDITOR_NO_DESKTOP
+$oldExtractBase = $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
+$extractBase = Join-Path ([IO.Path]::GetTempPath()) ('abiotic-editor-nexus-smoke-' + [guid]::NewGuid().ToString('N'))
 $log = Join-Path ([IO.Path]::GetTempPath()) "abiotic-editor-web-smoke-$PID.log"
 $errorLog = "$log.err"
 $unsafeLog = "$log.unsafe"
@@ -75,9 +114,10 @@ $desktopErrorLog = "$desktopLog.err"
 $process = $null
 $desktopProcess = $null
 try {
+    if ($NexusLayout) { $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $extractBase }
     $env:ABIOTIC_EDITOR_URL = 'http://0.0.0.0:37246'
     $env:ABIOTIC_EDITOR_NO_DESKTOP = '1'
-    $unsafeProcess = Start-Process -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory $root `
+    $unsafeProcess = Start-Process -WindowStyle Hidden -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory $root `
         -RedirectStandardOutput $unsafeLog -RedirectStandardError "$unsafeLog.err" -PassThru -Wait
     $unsafeOutput = Get-Content -LiteralPath $unsafeLog,"$unsafeLog.err" -Raw -ErrorAction SilentlyContinue
     if ($unsafeProcess.ExitCode -eq 0 -or $unsafeOutput -notmatch 'loopback URL') {
@@ -88,7 +128,7 @@ try {
     $env:ABIOTIC_EDITOR_NO_DESKTOP = '1'
     # Launch from outside the publish directory, matching shortcuts and app launchers.
     # Static assets must resolve beside the executable, not from the caller's cwd.
-    $process = Start-Process -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory ([IO.Path]::GetTempPath()) `
+    $process = Start-Process -WindowStyle Hidden -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory ([IO.Path]::GetTempPath()) `
         -RedirectStandardOutput $log -RedirectStandardError $errorLog -PassThru
     $healthy = $false
     for ($attempt = 0; $attempt -lt 100; $attempt++) {
@@ -133,7 +173,7 @@ try {
     $desktopUrl = 'http://127.0.0.1:37264'
     $env:ABIOTIC_EDITOR_URL = $desktopUrl
     Remove-Item Env:ABIOTIC_EDITOR_NO_DESKTOP -ErrorAction SilentlyContinue
-    $desktopProcess = Start-Process -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory ([IO.Path]::GetTempPath()) `
+    $desktopProcess = Start-Process -WindowStyle Hidden -FilePath (Join-Path $root 'AbioticEditor.Web.exe') -WorkingDirectory ([IO.Path]::GetTempPath()) `
         -RedirectStandardOutput $desktopLog -RedirectStandardError $desktopErrorLog -PassThru
     $windowReady = $false
     for ($attempt = 0; $attempt -lt 150; $attempt++) {
@@ -144,8 +184,7 @@ try {
         try {
             $desktopHealth = Invoke-RestMethod -Uri "$desktopUrl/healthz" -TimeoutSec 1
             $windowReady = $desktopHealth.status -eq 'ok' -and
-                $desktopProcess.MainWindowHandle -ne [IntPtr]::Zero -and
-                $desktopProcess.MainWindowTitle -eq 'Abiotic Editor'
+                [AbioticPublishSmoke.NativeWindows]::HasWindow($desktopProcess.Id, 'Abiotic Editor')
             if ($windowReady) { break }
         }
         catch { }
@@ -154,6 +193,10 @@ try {
     if (-not $windowReady) {
         throw "Published Windows desktop did not map an 'Abiotic Editor' window within 15 seconds.`n$(Get-Content -LiteralPath $desktopLog,$desktopErrorLog -Raw -ErrorAction SilentlyContinue)"
     }
+    if ($NexusLayout -and (Test-Path -LiteralPath $extractBase) -and
+        @(Get-ChildItem -LiteralPath $extractBase -Recurse -File).Count -gt 0) {
+        throw 'Nexus executable extracted files at startup instead of using its loose native libraries.'
+    }
     Write-Host "Windows host publish layout, health, UI assets, and native window smoke tests passed: $root"
 }
 finally {
@@ -161,6 +204,10 @@ finally {
     if ($null -ne $desktopProcess -and -not $desktopProcess.HasExited) { Stop-Process -Id $desktopProcess.Id -Force }
     if ($null -eq $oldUrl) { Remove-Item Env:ABIOTIC_EDITOR_URL -ErrorAction SilentlyContinue } else { $env:ABIOTIC_EDITOR_URL = $oldUrl }
     if ($null -eq $oldNoDesktop) { Remove-Item Env:ABIOTIC_EDITOR_NO_DESKTOP -ErrorAction SilentlyContinue } else { $env:ABIOTIC_EDITOR_NO_DESKTOP = $oldNoDesktop }
+    if ($NexusLayout) {
+        if ($null -eq $oldExtractBase) { Remove-Item Env:DOTNET_BUNDLE_EXTRACT_BASE_DIR -ErrorAction SilentlyContinue }
+        else { $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $oldExtractBase }
+    }
     Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $errorLog -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $unsafeLog -Force -ErrorAction SilentlyContinue

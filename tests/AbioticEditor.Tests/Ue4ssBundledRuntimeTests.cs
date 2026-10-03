@@ -7,6 +7,7 @@ namespace AbioticEditor.Tests;
 
 public sealed class Ue4ssBundledRuntimeTests : IDisposable
 {
+    private static readonly JsonSerializerOptions ManifestOptions = new() { PropertyNameCaseInsensitive = true };
     private readonly string _root = Path.Combine(Path.GetTempPath(), "abiotic-ue4ss-win64-" + Guid.NewGuid().ToString("N"));
     private readonly string _bundleDir = Path.Combine(Path.GetTempPath(), "abiotic-ue4ss-bundle-" + Guid.NewGuid().ToString("N"));
 
@@ -132,6 +133,77 @@ public sealed class Ue4ssBundledRuntimeTests : IDisposable
         var runtime = Ue4ssBundledRuntime.TryLoad(_bundleDir);
         Assert.NotNull(runtime);
         return runtime!;
+    }
+
+    [Fact]
+    public async Task Unpacked_runtime_installs_without_sample_mods()
+    {
+        var runtime = WriteUnpackedBundle();
+        await runtime.InstallAsync(_root);
+        Assert.True(Ue4ssBundledRuntime.IsInstalled(_root));
+        Assert.Empty(File.ReadAllText(Path.Combine(_root, "ue4ss", "Mods", "mods.txt")));
+        Assert.False(Directory.Exists(Path.Combine(_root, "ue4ss", "Mods", "ConsoleEnablerMod")));
+        Assert.Empty(Directory.GetDirectories(_root, ".abiotic-live-setup-*"));
+    }
+
+    [Fact]
+    public async Task Tampered_unpacked_file_leaves_game_untouched()
+    {
+        var runtime = WriteUnpackedBundle();
+        File.WriteAllText(Path.Combine(runtime.PackagePath, "ue4ss", "UE4SS.dll"), "changed");
+        await Assert.ThrowsAsync<InvalidDataException>(() => runtime.InstallAsync(_root));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(_root));
+    }
+
+    [Fact]
+    public async Task Missing_unpacked_file_leaves_game_untouched()
+    {
+        var runtime = WriteUnpackedBundle();
+        File.Delete(Path.Combine(runtime.PackagePath, "dwmapi.dll"));
+        await Assert.ThrowsAsync<FileNotFoundException>(() => runtime.InstallAsync(_root));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(_root));
+    }
+
+    [Theory]
+    [InlineData("../outside.dll")]
+    [InlineData("C:/outside.dll")]
+    [InlineData("ue4ss\\UE4SS.dll")]
+    public async Task Unsafe_unpacked_manifest_paths_leave_game_untouched(string path)
+    {
+        var runtime = WriteUnpackedBundle();
+        runtime.Manifest.Files!.Add(path, new string('0', 64));
+        await Assert.ThrowsAsync<InvalidDataException>(() => runtime.InstallAsync(_root));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(_root));
+    }
+
+    [Fact]
+    public async Task Unpacked_runtime_preserves_existing_mod_loader()
+    {
+        var runtime = WriteUnpackedBundle();
+        File.WriteAllText(Path.Combine(_root, "dwmapi.dll"), "existing loader");
+        await Assert.ThrowsAsync<IOException>(() => runtime.InstallAsync(_root));
+        Assert.Equal("existing loader", File.ReadAllText(Path.Combine(_root, "dwmapi.dll")));
+        Assert.Single(Directory.EnumerateFileSystemEntries(_root));
+    }
+
+    private Ue4ssBundledRuntime WriteUnpackedBundle()
+    {
+        var package = Package();
+        var directory = Path.Combine(_bundleDir, "files");
+        using var buffer = new MemoryStream(package);
+        using var zip = new ZipArchive(buffer);
+        var files = new Dictionary<string, string>();
+        foreach (var entry in zip.Entries)
+        {
+            var target = Path.Combine(directory, entry.FullName);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            entry.ExtractToFile(target);
+            files.Add(entry.FullName, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(target))));
+        }
+        var manifest = JsonSerializer.Deserialize<Ue4ssRuntimeManifest>(ManifestJson(package.Length,
+            Convert.ToHexString(SHA256.HashData(package))), ManifestOptions)!;
+        File.WriteAllText(Path.Combine(_bundleDir, "runtime.json"), JsonSerializer.Serialize(manifest with { Files = files }));
+        return Ue4ssBundledRuntime.TryLoad(_bundleDir)!;
     }
 
     private static string ManifestJson(long size, string sha256) => JsonSerializer.Serialize(new

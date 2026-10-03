@@ -59,6 +59,9 @@
        drop the update page so nothing can reach the removed service. -->
   <PropertyGroup Condition="'$(NexusMods)' == 'true'">
     <DefineConstants>$(DefineConstants);NEXUSMODS</DefineConstants>
+    <!-- Keep managed assemblies bundled, but native DLLs beside the executable so
+         the Nexus download does not extract executable files into TEMP at startup. -->
+    <IncludeNativeLibrariesForSelfExtract Condition="$(RuntimeIdentifier.StartsWith('win'))">false</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
   <ItemGroup Condition="'$(NexusMods)' == 'true'">
     <Content Remove="Components\Pages\Updates.razor" />
@@ -117,6 +120,10 @@
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="UnpackNexusUe4ssBundle" AfterTargets="Publish"
+          Condition="'$(NexusMods)' == 'true' and $(RuntimeIdentifier.StartsWith('win'))">
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildProjectDirectory)/../../tools/unpack-ue4ss-bundle.ps1&quot; -BundleDir &quot;$(PublishDir)live-agent/ue4ss&quot;" />
+  </Target>
   <!-- Referenced projects emit their own .pdb regardless of this project's settings, and the
        blanket switch that would drop them (AllowedReferenceRelatedFileExtensions) also strips
        wwwroot/_framework. Dropping them from the publish list directly keeps the shipped folder

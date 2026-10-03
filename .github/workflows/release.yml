@@ -15,11 +15,11 @@ name: Release
 #      and pushes a vX.Y.Z tag on that commit.
 #   4. build jobs publish the release artifacts off the new tag.
 #   5. `publish` attaches them to a GitHub Release.
-#   6. `build-web-win` scans the live-editing bundle (the native helper + Lua mod + UE4SS
-#      package it installs into a player's game folder) with Windows Defender before zipping -
+#   6. `build-web-win` scans both complete Windows publish folders and final ZIPs
+#      with Windows Defender before the Nexus artifact is made available -
 #      no secret needed, always runs, fails the release on an actual detection. `scan` then
 #      posts that result to the release body, plus a VirusTotal multi-engine scan of every
-#      published zip with per-file permalinks (needs the VT_API_KEY secret; that half is
+#      published zip with completed verdicts and per-file permalinks (needs VT_API_KEY; that half is
 #      skipped, not failed, when the secret is absent).
 #   7. `nexus` and `nexus-proton` upload the Windows and Linux/Steam Deck Razor hosts
 #      to the NexusMods page as separate player-facing files and archive their previous
@@ -709,67 +709,6 @@ jobs:
         shell: pwsh
         run: ./tools/verify-web-host.ps1 -PublishDir out -RequireLiveSupport
 
-      # Baseline scan of the live-editing bundle (the native helper + Lua mod + UE4SS package,
-      # all under out/live-agent - see the csproj's own Content includes above "Live editing's
-      # in-game side") with the antivirus engine already on every windows-latest runner. This
-      # needs no secret and always runs, unlike the multi-engine VirusTotal scan in the `scan`
-      # job below (which only runs when VT_API_KEY is configured) - so a release always carries
-      # at least one independent "this was checked" result for the one piece of this app that
-      # downloads a native executable into a player's actual game install folder. Fails the job
-      # (not continue-on-error) on an actual detection: unlike VirusTotal's own known upload
-      # flakiness, a Defender detection on our own freshly built binary is not the kind of failure
-      # a release should ship through silently.
-      - name: Scan live-editing bundle with Windows Defender
-        id: defender
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $target = "out/live-agent"
-          if (-not (Test-Path $target)) { throw "out/live-agent is missing - the live-editing bundle did not publish." }
-          $mpCmdRun = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
-          if (-not (Test-Path $mpCmdRun)) { throw "MpCmdRun.exe not found at '$mpCmdRun' - this runner image may have changed." }
-
-          Write-Host "Updating Defender signatures..."
-          & $mpCmdRun -SignatureUpdate | Write-Host
-
-          Write-Host "Scanning $target ..."
-          & $mpCmdRun -Scan -ScanType 3 -File (Resolve-Path $target).Path -DisableRemediation 2>&1 | Tee-Object -Variable scanOutput | Out-Null
-          $exitCode = $LASTEXITCODE
-          $scanText = $scanOutput -join "`n"
-          Write-Host $scanText
-
-          # MpCmdRun's own scan summary line is the authoritative signal, not just the exit
-          # code (which some Defender builds also use for non-detection conditions like a
-          # pending restart) - look for its "N threats detected" wording either way and treat
-          # anything other than a confirmed zero as a failure.
-          $threatsFound = $true
-          if ($scanText -match '(?im)^\s*Threats:\s*(\d+)\s*$') {
-            $threatsFound = [int]$Matches[1] -gt 0
-          } elseif ($exitCode -eq 0) {
-            $threatsFound = $false
-          }
-
-          $resultDir = "defender-scan"
-          New-Item -ItemType Directory -Force -Path $resultDir | Out-Null
-          if ($threatsFound) {
-            "Windows Defender flagged the live-editing bundle (exit code $exitCode). See the workflow log for this run." |
-              Out-File -FilePath "$resultDir/RESULT.txt" -Encoding utf8
-            Write-Host "----- Full Defender output -----"
-            Write-Host $scanText
-            throw "Windows Defender reported a possible threat in the live-editing bundle (out/live-agent). Failing the release - see the log above."
-          }
-
-          "Scanned with Windows Defender (windows-latest runner, signatures updated same run): 0 threats detected in the live-editing helper, Lua mod, and bundled UE4SS package." |
-            Out-File -FilePath "$resultDir/RESULT.txt" -Encoding utf8
-          Write-Host "Defender scan clean."
-
-      - name: Upload Defender scan result
-        uses: actions/upload-artifact@v7
-        with:
-          name: defender-scan-result
-          path: defender-scan/RESULT.txt
-          if-no-files-found: error
-
       - name: Zip local Razor host (Windows)
         shell: pwsh
         run: Compress-Archive -Path out/* -DestinationPath "$env:ASSET_BASENAME.zip"
@@ -799,7 +738,7 @@ jobs:
       - name: Verify Nexus build carries no updater
         shell: pwsh
         run: |
-          ./tools/verify-web-host.ps1 -PublishDir out-nexus -SkipSmoke -RequireLiveSupport
+          ./tools/verify-web-host.ps1 -PublishDir out-nexus -RequireLiveSupport -NexusLayout
           $exe = 'out-nexus/AbioticEditor.Web.exe'
           $bytes = [IO.File]::ReadAllBytes($exe)
           $text = [Text.Encoding]::ASCII.GetString($bytes)
@@ -811,6 +750,18 @@ jobs:
       - name: Zip local Razor host (Windows, Nexus Mods build)
         shell: pwsh
         run: Compress-Archive -Path out-nexus/* -DestinationPath "$env:ASSET_BASENAME-nexus.zip"
+
+      - name: Scan complete Windows packages with Windows Defender
+        shell: pwsh
+        run: |
+          ./tools/scan-release-windows.ps1 -Targets out, out-nexus, "$env:ASSET_BASENAME.zip", "$env:ASSET_BASENAME-nexus.zip"
+
+      - name: Upload Defender scan result
+        uses: actions/upload-artifact@v7
+        with:
+          name: defender-scan-result
+          path: defender-scan/RESULT.txt
+          if-no-files-found: error
 
       - name: Upload artifact (Nexus Mods build)
         uses: actions/upload-artifact@v7
@@ -997,8 +948,7 @@ jobs:
           echo "::warning::Could not push Scoop manifest bump after 3 attempts."
 
   # Posts TWO security scan results to the GitHub Release body:
-  #   1. The Windows Defender result build-web-win already produced scanning the live-editing
-  #      bundle (the native helper + Lua mod + UE4SS package - see that job's own scan step).
+  #   1. The Windows Defender result for both complete publish folders and final ZIPs.
   #      Unconditional: no secret needed, so it is always present.
   #   2. Every published zip uploaded to VirusTotal, with the per-file scan permalinks appended
   #      so users can verify an unsigned download against 70+ engines before running it. Needs
@@ -1018,6 +968,14 @@ jobs:
       group: release-scan
       cancel-in-progress: false
     steps:
+      - name: Checkout scan tooling
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+
+      - name: Test scan verdict reporting
+        run: python3 -m unittest discover -s tools/tests -v
+
       # Gate the rest of the job on the secret being present. `if:` cannot read
       # secrets directly, so surface it as a step output the later steps key on.
       - name: Check for VirusTotal API key
@@ -1034,8 +992,7 @@ jobs:
           fi
 
       # Unconditional (no secret needed): the Windows Defender result build-web-win produced
-      # while building the release (see that job's own "Scan live-editing bundle with Windows
-      # Defender" step). Posted first so it is always present in the release body even when
+      # while building the release (see its complete Windows package scan step). Posted first so it is always present in the release body even when
       # VT_API_KEY is not configured - see this job's own header comment. Runs before the
       # VirusTotal steps below: each one strips everything from ITS OWN heading onward before
       # re-appending, so the fixed order (Defender section, then VirusTotal section) is what
@@ -1058,7 +1015,7 @@ jobs:
             echo
             echo "This release bundles a small helper program and game mod that let the editor"
             echo "read and write your character/world while the game is actually running (see"
-            echo "the live-editing guide). Before every release, that bundle is checked with"
+            echo "the live-editing guide). Both complete Windows packages, including their final ZIPs, are checked with"
             echo "Windows Defender:"
             echo
             cat defender-scan/RESULT.txt
@@ -1135,6 +1092,13 @@ jobs:
           echo "analysis=$(paste -sd, vt_results.txt)" >> "$GITHUB_OUTPUT"
           echo "missing=$(paste -sd, vt_missing.txt)" >> "$GITHUB_OUTPUT"
 
+      - name: Wait for VirusTotal verdicts
+        if: steps.gate.outputs.enabled == 'true' && steps.vt.outputs.analysis != ''
+        timeout-minutes: 55
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: python3 tools/virustotal-results.py
+
       - name: Append VirusTotal results to the release body
         # Skipped when the scan produced nothing, so a failed scan leaves the notes alone
         # instead of appending an empty section.
@@ -1170,6 +1134,7 @@ jobs:
                 echo "- \`$(basename "$item")\`"
               done
             fi
+            if [ -f vt_verdicts.md ]; then cat vt_verdicts.md; fi
           } > vt_section.md
           echo "----- vt_section.md -----"
           cat vt_section.md
@@ -1183,6 +1148,14 @@ jobs:
           printf '\n' >> body.md
           cat vt_section.md >> body.md
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file body.md
+
+      - name: Fail scan job on a detected threat
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          if [ -f vt_detected.txt ] && [ "$(cat vt_detected.txt)" = true ]; then
+            echo '::error::VirusTotal reported malicious or suspicious detections. See the release scan results.'
+            exit 1
+          fi
 
   # Publish the Windows Razor host zip to the NexusMods page (mods/244) as a new version
   # and archive the previous one, via the official Nexus-Mods/upload-action.
