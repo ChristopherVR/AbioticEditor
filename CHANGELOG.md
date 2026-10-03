@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.1] - 2026-10-03
+
+### Bug Fixes
+- Keep world inspectors and live editing in sync
+
+
+### Testing
+- Make save memory checks reliable
+
+
 ## [2.25.0] - 2026-10-02
 
 ### Features
