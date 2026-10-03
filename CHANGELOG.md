@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [2.25.5] - 2026-10-03
+
+### Bug Fixes
+- Keep Nexus publishing working without a session cookie
+- Archive older Nexus downloads after publishing
+- Make Windows the primary Nexus download
+
+
 ## [2.25.4] - 2026-10-03
 
 ### Bug Fixes
