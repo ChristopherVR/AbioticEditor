@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.26.0] - 2026-10-03
+
+### Features
+- Load 3D scenery as you explore
+
+
 ## [2.25.6] - 2026-10-03
 
 ### Bug Fixes
