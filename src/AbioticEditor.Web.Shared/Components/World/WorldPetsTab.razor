@@ -270,7 +270,7 @@
     public void Dispose() => CloseAddPet();
 
     private List<WorldPet> AllPets => Session.Pets
-        .Where(p => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(p.ActorPath ?? p.Id, p.Region))
+        .Where(p => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(p.ActorPath ?? p.Id, p.Region, new(p.X, p.Y, p.Z)))
         .Concat(_deleted.Values.Where(pet => !Session.Pets.Any(live => live.Id == pet.Id)))
         .OrderBy(pet => pet.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();

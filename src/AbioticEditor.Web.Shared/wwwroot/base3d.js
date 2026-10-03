@@ -2951,6 +2951,7 @@ function buildView(host, dotnet) {
                 postJson(`${MODEL_BASE}/level`, query(radius)),
                 postJson(`${MODEL_BASE}/level`, { ...query(radius), onlyActors: [actor] }),
             ]);
+            if ((around?.pendingMaps ?? 0) > 0 || (own?.pendingMaps ?? 0) > 0) return { pending: true };
             const build = async (slice, group, box, materials) => {
                 const instance = new THREE.Matrix4();
                 for (const batch of slice?.batches ?? []) {
@@ -2973,7 +2974,9 @@ function buildView(host, dotnet) {
             };
             const group = new THREE.Group(), materials = [], ownBox = new THREE.Box3();
             await build(around, group, null, materials);
-            await build(own, new THREE.Group(), ownBox, []);
+            const ownGroup = new THREE.Group();
+            await build(own, ownGroup, ownBox, []);
+            for (const mesh of ownGroup.children) mesh.dispose();
             if (!group.children.length) return null;
             await texturesReady(materials);
 
@@ -3022,6 +3025,20 @@ function buildView(host, dotnet) {
             renderer.render(stage, shot);
             const pixels = new Uint8Array(width * height * 4);
             renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+            // A ceiling cut can hide every nearby surface. Retry without that cut before
+            // returning a picture consisting only of the orange marker and background.
+            let surfaces = 0;
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+                const background = Math.abs(r - 16) + Math.abs(g - 20) + Math.abs(b - 24) < 15;
+                const marker = r > 200 && g > 70 && g < 190 && b < 100;
+                if (!background && !marker) surfaces++;
+            }
+            if (surfaces < 200) {
+                levelClip.constant = 1e7;
+                renderer.render(stage, shot);
+                renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+            }
             renderer.setRenderTarget(oldTarget);
             levelClip.constant = savedCut;
             target.dispose();
@@ -3182,4 +3199,25 @@ function buildView(host, dotnet) {
     // The latest view, for UI tests driving the page (lookAt, screenPositionOf).
     globalThis.__abioticBase3d = api;
     return api;
+}
+
+/** Location context for generated live actors that have no fixed thumbnail name. */
+export async function locationPicture(options) {
+    const previousView = globalThis.__abioticBase3d;
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:-10000px;top:0;width:400px;height:300px;pointer-events:none";
+    document.body.appendChild(host);
+    let view;
+    try {
+        view = createView(host, { invokeMethodAsync: async () => {} });
+        for (let attempt = 0; attempt < 240; attempt++) {
+            const result = await view.locationShot(options);
+            if (result?.image || !result?.pending) return result;
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+        return null;
+    } finally {
+        view?.dispose(); host.remove();
+        if (globalThis.__abioticBase3d === view) globalThis.__abioticBase3d = previousView;
+    }
 }

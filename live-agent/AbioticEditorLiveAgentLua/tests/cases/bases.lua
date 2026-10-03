@@ -209,8 +209,51 @@ return function(H)
     H.check(otherRegionRow ~= nil,
         "a deployable from a different sub-level still appears - this module does not filter by region")
 
+    -- New placement starts from class defaults, never a copied donor inventory or identity.
+    local spawned, failSave, blocked
+    local gameWorld = H.object("World", {}, { SpawnActor = function(_, cls, position, rotation)
+        H.eq(cls, "locker-class", "spawn uses the donor's class")
+        spawned = H.world.add(H.object("Deployed_Locker_ParentBP_C", {
+            __bases = { "AbioticDeployed_ParentBP_C" }, ChangeableData = {},
+            ConstructionLevel_Max = 100, ContainerInventory = {},
+        }, {
+            OnRep_DeployedByPlayer = function() end,
+            OnRep_ConstructionLevel_Current = function() end,
+            OnRep_ConstructionModeActive = function() end,
+            ForceNetUpdate = function() end,
+            SaveDeployable = function(_, remove) if failSave and not remove then error("save rejected") end end,
+            K2_DestroyActor = function(obj) rawset(obj, "__valid", false) end,
+            K2_GetActorRotation = function() return H.rotator(0, 0, 0) end,
+            K2_TeleportTo = function(_, point) return not blocked end,
+        }))
+        return spawned
+    end })
+    local donor = H.world.add(H.object("Deployed_Locker_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" }, DeployedByPlayer = true, ContainerInventory = containerInv,
+    }, { GetWorld = function() return gameWorld end, GetClass = function() return "locker-class" end }))
+    local payload = { donorId = donor:GetFullName(), assetId = string.rep("a", 32), x = 100, y = 200, z = 300 }
+    H.ok(H.dispatch("bases.spawn", payload), "place fresh object")
+    H.eq(spawned.SpawnedAssetID, payload.assetId, "new identity assigned")
+    H.check(spawned.ContainerInventory ~= donor.ContainerInventory, "donor inventory not copied")
+    H.eq(spawned.ConstructionLevel_Current, 100, "construction completed")
+    H.eq(H.calls(spawned, "SaveDeployable"), 1, "new actor saved")
+    H.fails(H.dispatch("bases.spawn", payload), "already exists", "duplicate identity refused")
+    H.fails(H.dispatch("bases.spawn", { donorId = donor:GetFullName(), assetId = string.rep("b", 32), x = 0/0, y = 0, z = 0 }), "coordinates", "NaN refused")
+    H.fails(H.dispatch("bases.move", { id = benchId, x = 0, y = 0, z = 0 }), "player-built", "map object cannot be moved")
+    H.ok(H.dispatch("bases.move", { id = spawned:GetFullName(), x = 0, y = 0, z = 0 }), "move built object")
+    blocked = true
+    local saves = H.calls(spawned, "SaveDeployable")
+    H.fails(H.dispatch("bases.move", { id = spawned:GetFullName(), x = 0, y = 0, z = 0 }), "blocked", "failed teleport reported")
+    H.eq(H.calls(spawned, "SaveDeployable"), saves, "blocked move not saved")
+    failSave = true
+    payload.assetId = string.rep("c", 32)
+    H.fails(H.dispatch("bases.spawn", payload), "save rejected", "failed initialization reported")
+    H.eq(H.calls(spawned, "K2_DestroyActor"), 1, "partial spawn rolled back")
+
     -- Non-host refusal.
     H.clientSession()
     H.world.add(locker)
     H.fails(H.dispatch("bases.set", { id = lockerId, customName = "Y" }), "only the host", "client cannot rename deployables")
+    H.fails(H.dispatch("bases.spawn", payload), "only the host", "client cannot spawn")
+    H.fails(H.dispatch("bases.move", { id = donor:GetFullName(), x = 0, y = 0, z = 0 }), "only the host", "client cannot move")
 end

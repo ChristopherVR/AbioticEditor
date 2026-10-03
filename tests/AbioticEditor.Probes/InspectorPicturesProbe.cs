@@ -10,6 +10,62 @@ namespace AbioticEditor.Tests;
 public sealed class InspectorPicturesProbe
 {
     [Fact]
+    public void Write_attached_recall_button_picture_targets()
+    {
+        var output = Environment.GetEnvironmentVariable("RECALL_BUTTON_PICTURES_OUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        Assert.NotNull(assets);
+        var provider = (CUE4Parse.FileProvider.DefaultFileProvider)typeof(GameAssetProvider)
+            .GetField("_provider", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(assets)!;
+        var targets = new List<object>();
+        foreach (var map in new[] { "Facility", "Facility_Dam" })
+            foreach (var actor in provider.LoadPackage("AbioticFactor/Content/Maps/" + map + ".umap").GetExports())
+            {
+                if (actor.Class?.Name.Text != "Button_VehicleRecall_C") continue;
+                var key = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor.Name}";
+                if (assets!.TryGetActorWorldTransform(key) is not { } at) continue;
+                var p = PlacedSceneSpace.ToViewer(new PlacedVector(at.X, at.Y, at.Z));
+                targets.Add(new { kind = "buttons", cls = "Button_VehicleRecall_C", region = map, actor = key, center = new[] { p.X, p.Y, p.Z } });
+            }
+        File.WriteAllText(output, JsonSerializer.Serialize(targets));
+    }
+    [Fact]
+    public void Inspect_live_scene_gaps()
+    {
+        var output = Environment.GetEnvironmentVariable("LIVE_SCENE_GAPS_OUT");
+        if (string.IsNullOrEmpty(output)) return;
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        Assert.NotNull(assets);
+        assets!.UseFileProvider(provider =>
+        {
+            provider.ReadScriptData = true;
+            using var writer = new StreamWriter(output);
+            foreach (var path in assets.AssetPaths.Where(p => p.EndsWith("/AbioticDeployed_ParentBP.uasset", StringComparison.Ordinal)
+                || p.EndsWith("/Abiotic_Survival_GameMode.uasset", StringComparison.Ordinal)
+                || p.EndsWith("/Facility_Dam.umap", StringComparison.Ordinal)
+                || p.EndsWith("/Facility.umap", StringComparison.Ordinal)))
+            {
+                foreach (var lazy in provider.LoadPackage(path).ExportsLazy)
+                {
+                    CUE4Parse.UE4.Assets.Exports.UObject obj;
+                    try { obj = lazy.Value; } catch { continue; }
+                    if (path.EndsWith(".umap", StringComparison.Ordinal))
+                    {
+                        if (!obj.Name.Contains("Recall", StringComparison.Ordinal) && !obj.Name.Contains("WaterPipe", StringComparison.Ordinal)
+                            && obj.Outer?.Name.Text.Contains("Recall", StringComparison.Ordinal) != true
+                            && obj.Outer?.Name.Text.Contains("WaterPipe", StringComparison.Ordinal) != true) continue;
+                    }
+                    else if (obj is CUE4Parse.UE4.Objects.UObject.UFunction && !obj.Name.Contains("Deploy", StringComparison.Ordinal)
+                        && !obj.Name.Contains("Spawn", StringComparison.Ordinal) && !obj.Name.Contains("Construct", StringComparison.Ordinal)) continue;
+                    writer.WriteLine(path + " :: " + obj.Name);
+                    writer.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented));
+                }
+            }
+            return true;
+        });
+    }
+    [Fact]
     public void Write_all_fixed_location_targets()
     {
         var output = Environment.GetEnvironmentVariable("LOCATION_PICTURES_OUT");
@@ -33,7 +89,7 @@ public sealed class InspectorPicturesProbe
                     : cls.StartsWith("PowerSocket", StringComparison.Ordinal) ? "power-sockets"
                     : cls.StartsWith("ResourceNode_", StringComparison.Ordinal) ? "resource-nodes"
                     : cls.StartsWith("CharacterCorpse_", StringComparison.Ordinal) ? "corpses"
-                    : cls.StartsWith("BP_Teleporter", StringComparison.Ordinal) ? "portals" : null;
+                    : cls.StartsWith("BP_Teleporter", StringComparison.Ordinal) || cls.StartsWith("Teleporter", StringComparison.Ordinal) ? "portals" : null;
                 if (kind is null) continue;
                 var key = $"/Game/Maps/{map}.{map}:PersistentLevel.{actor.Name}";
                 targets.Add(new { kind, cls, region = map, actor = key });

@@ -31,6 +31,23 @@ public sealed class LiveBasesSession : IWorldBasesSession
 
     public IReadOnlyList<WorldDeployable> Deployables { get; private set; } = [];
     public bool IsHost { get; private set; }
+    public bool SupportsPlacement { get; private set; }
+    public bool IsPlayerBuilt(string id) => _byId.GetValueOrDefault(id)?.DeployedByPlayer == true;
+    public IReadOnlyList<WorldDeployable> PlacementDonors => Deployables.Where(d => IsPlayerBuilt(d.Id)).GroupBy(d => d.ClassName).Select(g => g.First()).OrderBy(d => d.DisplayName).ToArray();
+    public async Task<string> PlaceAsync(string donorId, double x, double y, double z, double yaw, CancellationToken cancellationToken = default)
+    {
+        if (!IsHost || !SupportsPlacement || !IsPlayerBuilt(donorId)) throw new NotSupportedException("Select a player-built object and connect the updated host agent to place objects.");
+        var id = await _channel.PlaceAsync(donorId, x, y, z, yaw, cancellationToken).ConfigureAwait(false);
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        return id;
+    }
+    public async Task MoveAsync(string id, double x, double y, double z, double? yaw = null, CancellationToken cancellationToken = default)
+    {
+        if (!IsHost || !SupportsPlacement || !IsPlayerBuilt(id)) throw new NotSupportedException("Only player-built objects can be moved by the updated host agent.");
+        await _channel.MoveAsync(id, x, y, z, yaw, cancellationToken).ConfigureAwait(false);
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+    }
+    public PlacedVector? PositionFor(string id) => _byId.GetValueOrDefault(id) is { } d ? new(d.X, d.Y, d.Z) : null;
     public string? RegionFor(string id) => _byId.GetValueOrDefault(id)?.Region;
     public IReadOnlyList<Base3DObject> SceneObjects
     {
@@ -42,7 +59,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
                 var p = PlacedSceneSpace.ToViewer(new PlacedVector(d.X, d.Y, d.Z));
                 var q = PlacedSceneSpace.ToViewer(PlacedSceneSpace.Normalize(new PlacedQuaternion(d.QuatX, d.QuatY, d.QuatZ, d.QuatW)));
                 return new Base3DObject(d.Id, (int)PlacedObjectCategoryCatalog.Classify(d.ClassName, d.HasInventory),
-                    [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [1, 1, 1], true,
+                    [p.X, p.Y, p.Z], [q.X, q.Y, q.Z, q.W], [1, 1, 1], d.DeployedByPlayer,
                     labels[d.Id], Cls: d.ClassPath, Paint: d.PaintColor,
                     Variant: d.PaintColor is { } paint ? "#paint=" + paint.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
             }).ToArray();
@@ -76,6 +93,7 @@ public sealed class LiveBasesSession : IWorldBasesSession
                 d.InstalledUpgrades.Count > 0 ? d.InstalledUpgrades : null, d.PaintColor))
             .ToList();
         IsHost = directory.IsHost;
+        SupportsPlacement = directory.SupportsPlacement;
         _supportsBenchUpgrades = directory.SupportsBenchUpgrades;
         _supportsBenchUpgradeRemoval = directory.SupportsBenchUpgradeRemoval;
         Changed?.Invoke();

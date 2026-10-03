@@ -134,7 +134,7 @@
     /// <summary>True while the area map is open full screen.</summary>
     private bool _mapEnlarged;
     private readonly Dictionary<string, IReadOnlyDictionary<string, DoorStoryGate>> _gatesByMap = new(StringComparer.OrdinalIgnoreCase);
-    private IEnumerable<WorldDoor> RegionDoors => Session.Doors.Where(d => Session is not LiveDoorsSession || LiveRegion.IsActorInCurrentRegion(d.Id));
+    private IEnumerable<WorldDoor> RegionDoors => Session.Doors.Where(d => Session is not LiveDoorsSession || LiveRegion.IsActorInCurrentRegion(d.Id, at: d.X is { } x && d.Y is { } y && d.Z is { } z ? new(x, y, z) : null));
     private List<WorldDoor> VisibleDoors => RegionDoors.Where(MatchesFilter).ToList();
 
     /// <summary>One door's spot on a drawn sector map, as fractions of the image.</summary>

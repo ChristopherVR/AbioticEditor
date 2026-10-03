@@ -58,9 +58,12 @@ let written = 0;
 const started = Date.now();
 for (const t of todo.slice(0, limit)) {
     const result = await page.evaluate(async t => {
-        const at = await fetch(`/scene-models/actor?path=${encodeURIComponent(t.actor)}`);
-        if (!at.ok) return { error: `no position (${at.status})` };
-        const { p: center, front } = await at.json();
+        let center = t.center, front = t.front;
+        if (!center) {
+            const at = await fetch(`/scene-models/actor?path=${encodeURIComponent(t.actor)}`);
+            if (!at.ok) return { error: `no position (${at.status})` };
+            ({ p: center, front } = await at.json());
+        }
         try { return await window.__shotView.locationShot({ region: t.region, actor: t.actor, center, front }); }
         catch (e) { return { error: String(e) }; }
     }, t);

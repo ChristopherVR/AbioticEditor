@@ -6,3 +6,9 @@
 .live3d-inspector { height: var(--b3d-fit, 65vh); overflow: auto; border: 1px solid var(--line); padding: 12px; }
 .live3d-art { display: block; width: 100%; max-height: 240px; object-fit: contain; }
 @media (max-width: 1000px) { .live3d-layout { grid-template-columns: minmax(0, 1fr) 280px; } }
+
+.live3d-tools { flex-wrap:wrap; }
+.live3d-coordinates { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0; }
+.live3d-inspector label { display:grid;gap:4px;margin-bottom:8px; }
+.live3d-inspector .wt-check { display:flex;align-items:center;gap:8px; }
+.live3d-coordinates input { min-width:0;width:100%; }

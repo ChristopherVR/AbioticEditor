@@ -104,8 +104,24 @@ public sealed class InspectorEditingTests
     [InlineData("NarrativeNPC_UnlostMage_C_1", "Mage_of_the_Unlost.png")]
     [InlineData("NarrativeNPC_HammeringHank_C_1", "T_Compendium_Hank.png")]
     [InlineData("NarrativeNPC_Exor_ParentBP_C_1", "Exor.png")]
+    [InlineData("Isaiah Deal", "T_Compendium_IsaiahDeal.png")]
     public void Runtime_narrative_instances_have_portraits_even_without_a_cooked_name(string actor, string picture)
         => Assert.Equal(picture, Assert.Single(HologramPortraitCatalog.CandidatesFor(actor)));
+
+    [Fact]
+    public void Cooked_child_recall_button_follows_its_station_attachment_instead_of_level_origin()
+    {
+        using var assets = AbioticEditor.Core.Assets.GameAssetProvider.CreateForLocalInstall();
+        if (assets is null) return;
+        const string map = "/Game/Maps/Facility_Dam.Facility_Dam:PersistentLevel.";
+        var station = assets.TryGetActorWorldTransform(map + "VehicleRecallStation_C_3");
+        var button = assets.TryGetActorWorldTransform(map + "RecallButton_GEN_VARIABLE_Button_VehicleRecall_C_CAT_389");
+        Assert.NotNull(station);
+        Assert.NotNull(button);
+        var distance = Math.Sqrt(Math.Pow(station.Value.X - button.Value.X, 2) + Math.Pow(station.Value.Y - button.Value.Y, 2) + Math.Pow(station.Value.Z - button.Value.Z, 2));
+        Assert.InRange(distance, 0, 300);
+        Assert.True(Math.Abs(button.Value.Z) > 100);
+    }
 
     [Fact]
     public void Runtime_actors_use_the_game_reported_section_instead_of_the_persistent_outer()

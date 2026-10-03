@@ -170,7 +170,7 @@
     }
 
     private IEnumerable<WorldVehicle> RegionVehicles => Session.Vehicles.Where(v =>
-        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion));
+        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion, new(v.X, v.Y, v.Z)));
 
     private string? _selectedId;
     private ActorTransform? _spawn;

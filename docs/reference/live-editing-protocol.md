@@ -319,7 +319,23 @@ and/or sets its paint colour immediately. Host only, like `containers.set`/`door
 
 The rows also include optional `classPath` and `quatX`, `quatY`, `quatZ`, `quatW` from the actor's
 class and transform for the live 3D view. Older agents without these fields draw position boxes
-with an identity rotation. World-list buttons and the 3D view filter map paths to the current region.
+with an identity rotation. Rows include `deployedByPlayer`, and the directory includes
+`supportsPlacement` (both false when omitted by an older agent). Persistent Facility actors use
+position membership in the cooked streaming brushes for the selected section; explicit actor or
+spawner sections retain priority over the broad Facility outer.
+
+`bases.spawn` takes `{"donorId","assetId","x","y","z","yaw"?}` and returns `{"id"}`.
+`donorId` must identify an existing player-built deployable. Only its class is reused; the new
+actor starts with class defaults and a fresh 32-digit hexadecimal asset identity. Inventory,
+wiring and donor state are not copied. Duplicate identities and non-finite coordinates fail.
+The actor is initialized as fully constructed, marked for replication and saved through the
+game's SaveDeployable routine. Initialization failure removes the partial spawn.
+
+`bases.move` takes `{"id","x","y","z","yaw"?}`. It only moves player-built objects and
+preserves pitch/roll; omitted yaw preserves the current rotation. A blocked K2_TeleportTo fails
+without saving a new position. Both commands are host-only and require the updated agent.
+Native behavior, save persistence and multiplayer replication still require an in-game check;
+see [section and placement research](research/research-live-section-and-placement.md).
 
 **Custom name field fixed.** `customName` used to read/write
 `AbioticDeployed_ParentBP_C`'s `AlternativeObjectName` (`FTextProperty`, "Edit | BlueprintVisible |

@@ -8,19 +8,39 @@
 @inject GameArtService Art
 @inject LiveSessionService Live
 @inject ItemCatalogService Items
+@inject GameClassFactsService ClassFacts
 
 <div class="live3d" @ref="_root">
     <div class="live3d-tools">
+        <button class="wt-btn" disabled="@(!Bases.IsHost || !Bases.SupportsPlacement || _refreshing)" title="@(Bases.SupportsPlacement ? null : "Connect the updated live agent to place objects")" @onclick="OpenAddAsync">Add object</button>
         <button class="wt-btn" @onclick="FrameAsync">@L.Resource("World3D_FrameAll")</button>
         <button class="wt-btn" disabled="@_refreshing" @onclick="ReloadAsync">@L.Resource("LiveNpcs_Refresh")</button>
         <label class="wt-check"><input type="checkbox" checked="@_levelOn" @onchange="e => SetLevelAsync(e.Value is true)" />@L.Resource("World3D_LevelShow")</label>
         <small class="wt-muted">@_progress</small>
     </div>
-    @if (_loading) { <p class="wt-muted" role="status">Loading the 3D view...</p> }
+    @if (_loading || _loadingTarget is not null) { <p class="wt-muted" role="status">Loading @(_loadingTarget ?? Locate?.Label ?? "the 3D view")...</p> }
     <div class="live3d-layout">
         <div class="b3d-stage"><div class="live3d-canvas" data-b3d="canvas" @ref="_host"></div></div>
         <aside class="live3d-inspector" data-b3d="inspect-pane">
-            @if (_recallStation is { } station && Vehicles is LiveVehiclesSession liveVehicles)
+            @if (_adding)
+            {
+                <h3>Add object</h3>
+                <label class="wt-field">Object type<select class="wt-input" @bind="_donorId">
+                    <option value="">Choose a type</option>
+                    @foreach (var donor in Bases.PlacementDonors) { <option value="@donor.Id">@donor.DisplayName</option> }
+                </select></label>
+                @if (Bases.PlacementDonors.Count == 0) { <p class="wt-muted">Build an object in this world first to make its type available here.</p> }
+                <div class="live3d-coordinates">
+                    <label>X<input class="wt-input" type="number" @bind="_placeX" /></label>
+                    <label>Y<input class="wt-input" type="number" @bind="_placeY" /></label>
+                    <label>Z<input class="wt-input" type="number" @bind="_placeZ" /></label>
+                    <label>Turn<input class="wt-input" type="number" @bind="_placeYaw" /></label>
+                </div>
+                <button class="wt-btn" @onclick="UseViewPointAsync">Use view centre</button>
+                <button class="wt-btn wt-yellow" disabled="@(string.IsNullOrEmpty(_donorId) || _refreshing)" @onclick="PlaceAsync">Place object</button>
+                <button class="wt-btn" @onclick="() => _adding = false">Cancel</button>
+            }
+            else if (_recallStation is { } station && Vehicles is LiveVehiclesSession liveVehicles)
             {
                 <h3>Recall station</h3>
                 <button class="wt-btn wt-yellow" disabled="@(!liveVehicles.IsHost || _refreshing)" @onclick="() => RecallAsync(station)">Recall</button>
@@ -46,7 +66,37 @@
             {
                 <h3>@piece.DisplayName</h3>
                 @if (WorldThumbnails.ForPlaced(piece.ClassName) is { } picture) { <img class="live3d-art" src="@picture" alt="@piece.DisplayName" data-zoom /> }
-                <label>@L.Resource("PlayerPets_Name")<input class="wt-input" value="@piece.CustomName" @onchange="e => RenameAsync(piece.Id, e.Value?.ToString())" /></label>
+                <label>@L.Resource("PlayerPets_Name")<input class="wt-input" value="@piece.CustomName" disabled="@(!Bases.IsHost || _refreshing)" @onchange="e => RenameAsync(piece.Id, e.Value?.ToString())" /></label>
+                <p class="wt-muted">X @piece.X.ToString("F0"), Y @piece.Y.ToString("F0"), Z @piece.Z.ToString("F0")</p>
+                @if (Bases.IsPlayerBuilt(piece.Id) && Bases.SupportsPlacement)
+                {
+                    <div class="editor-actions">
+                        <button class="wt-btn" disabled="@(!Bases.IsHost || _refreshing)" @onclick='() => SetToolAsync("translate")'>Move</button>
+                        <button class="wt-btn" disabled="@(!Bases.IsHost || _refreshing)" @onclick='() => SetToolAsync("rotate")'>Rotate</button>
+                        <button class="wt-btn" @onclick="() => SetToolAsync(null)">Select</button>
+                    </div>
+                }
+                @if (piece.HasInventory)
+                { <button class="wt-btn" @onclick="() => OnOpenContainer.InvokeAsync(piece.Id)">Open inventory</button> }
+                @if (piece.SupportsPaint)
+                {
+                    <label class="wt-field">Paint colour
+                        <select class="wt-input" value="@(piece.PaintColorValue?.ToString() ?? "")" disabled="@(!Bases.IsHost)" @onchange="e => PaintAsync(piece.Id, e.Value?.ToString())">
+                            <option value="">Unpainted</option>
+                            @foreach (var colour in DeployablePaintCatalog.Colors) { <option value="@colour.Value">@colour.DisplayName</option> }
+                        </select>
+                    </label>
+                }
+                @if (((IWorldBasesSession)Bases).BenchHasUpgradeSlot(piece.Id))
+                {
+                    <h4>Bench upgrades</h4>
+                    @foreach (var upgrade in ClassFacts.BenchUpgradesFor(piece))
+                    {
+                        <label class="wt-check"><input type="checkbox" checked="@BenchUpgradeCatalog.IsInstalled(piece.InstalledUpgrades, upgrade.Row)"
+                            disabled="@(!((IWorldBasesSession)Bases).BenchSupportsUpgrades(piece.Id))" @onchange="e => UpgradeAsync(piece.Id, upgrade.Row, e.Value is true)" />@upgrade.DisplayName</label>
+                    }
+                }
+
             }
             else { <p class="wt-muted">@L.Resource("World3D_NothingSelected")</p> }
             @if (_error is not null) { <p class="error-text" role="alert">@_error</p> }
@@ -70,9 +120,56 @@
     private IWorldFeaturesSession? _features;
     private LiveDeployedCareSession? _gardenCare;
     private WorldMapEntry? _entry;
-    private string? _featureId, _selected, _vehicleId, _recallStation, _error, _progress;
+    private string? _featureId, _selected, _vehicleId, _recallStation, _error, _progress, _loadingTarget;
     private bool _levelOn = true, _disposed, _refreshing, _loading = true;
     private LiveBasesSession? _subscribed;
+    private bool _adding;
+    private string? _donorId;
+    private double _placeX, _placeY, _placeZ, _placeYaw;
+    private async Task OpenAddAsync()
+    {
+        _adding = true;
+        await UseViewPointAsync();
+    }
+    private async Task UseViewPointAsync()
+    {
+        if (_view is null) return;
+        var point = await _view.InvokeAsync<double[]>("placementPoint");
+        if (point.Length != 3) return;
+        var p = PlacedSceneSpace.FromViewer(new PlacedVector(point[0], point[1], point[2]));
+        _placeX = p.X; _placeY = p.Y; _placeZ = p.Z;
+    }
+    private async Task PlaceAsync()
+    {
+        if (string.IsNullOrEmpty(_donorId)) return;
+        _refreshing = true;
+        try
+        {
+            var id = await Bases.PlaceAsync(_donorId, _placeX, _placeY, _placeZ, _placeYaw);
+            _adding = false;
+            await RefreshSceneAsync();
+            await OnPicked(id, false);
+            _error = null;
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, "Place this object.", "Try refreshing."); }
+        finally { _refreshing = false; }
+    }
+    private Task SetToolAsync(string? mode) => _view is null ? Task.CompletedTask : _view.InvokeVoidAsync("setGizmo", mode).AsTask();
+    [JSInvokable] public async Task OnGizmoCommitted(string key, string mode, double[] position, double[] rotation)
+    {
+        if (position.Length != 3 || rotation.Length != 4) return;
+        _refreshing = true;
+        try
+        {
+            var p = PlacedSceneSpace.FromViewer(new PlacedVector(position[0], position[1], position[2]));
+            var q = PlacedSceneSpace.FromViewer(new PlacedQuaternion(rotation[0], rotation[1], rotation[2], rotation[3]));
+            await Bases.MoveAsync(key, p.X, p.Y, p.Z, mode == "rotate" ? q.YawDegrees : null);
+            _error = null;
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, "Move this object.", "Try refreshing."); }
+        finally { _refreshing = false; await RefreshSceneAsync(); StateHasChanged(); }
+    }
+
 
     protected override void OnParametersSet()
     {
@@ -128,7 +225,7 @@
     private async Task RefreshSceneAsync()
     {
         if (_view is null || _disposed) return;
-        var objects = Bases.SceneObjects.Where(o => Live.IsActorInCurrentRegion(o.Key, Bases.RegionFor(o.Key))).ToList();
+        var objects = Bases.SceneObjects.Where(o => Live.IsActorInCurrentRegion(o.Key, Bases.RegionFor(o.Key), Bases.PositionFor(o.Key))).ToList();
         if (_gardenCare?.MapFeature("garden-plots") is { } gardens)
         {
             foreach (var garden in gardens.Entries)
@@ -141,7 +238,7 @@
             }
         }
         if (Vehicles is not null)
-            objects.AddRange(Base3DScene.Build([], _ => null, vehicles: Vehicles.Vehicles.Where(v => Live.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion))).Objects);
+            objects.AddRange(Base3DScene.Build([], _ => null, vehicles: Vehicles.Vehicles.Where(v => Live.IsActorInCurrentRegion(v.VehicleId ?? v.Id, v.SavedRegion, new(v.X, v.Y, v.Z)))).Objects);
         await _view.InvokeVoidAsync("setScene", objects);
     }
     private static readonly string[] GrowthStages = ["Sprout", "Budding", "Juvenile", "Flowering", "Grown", "Harvested", "Regrowing", "Dead"];
@@ -174,6 +271,17 @@
         catch (Exception ex) { _error = Errors.Present(ex, "Rename this object.", "Try reconnecting."); }
     }
 
+    private async Task PaintAsync(string id, string? value)
+    {
+        try { await ((IWorldBasesSession)Bases).SetPaintColorAsync(id, int.TryParse(value, out var colour) ? colour : null); }
+        catch (Exception ex) { _error = Errors.Present(ex, "Paint this object.", "Try refreshing."); }
+    }
+    private async Task UpgradeAsync(string id, string row, bool installed)
+    {
+        try { await ((IWorldBasesSession)Bases).SetBenchUpgradeAsync(id, row, installed, CancellationToken.None); }
+        catch (Exception ex) { _error = Errors.Present(ex, "Change this bench upgrade.", "Try refreshing."); }
+    }
+
     private static string? FeatureFor(string actor)
     {
         if (actor.StartsWith("NPCSpawn", StringComparison.OrdinalIgnoreCase)) return "npc-spawns";
@@ -184,10 +292,10 @@
         if (actor.StartsWith("Resource", StringComparison.OrdinalIgnoreCase) || WorldThumbnails.For("resource-nodes", actor) is not null) return "resource-nodes";
         if (actor.StartsWith("Button", StringComparison.OrdinalIgnoreCase)) return "buttons";
         if (actor.StartsWith("Elevator", StringComparison.OrdinalIgnoreCase)) return "elevators";
-        if (actor.StartsWith("Teleporter", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Portal", StringComparison.OrdinalIgnoreCase) || WorldThumbnails.For("portals", actor) is not null) return "portals";
+        if (actor.StartsWith("BP_Teleporter", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Teleporter", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("Portal", StringComparison.OrdinalIgnoreCase) || WorldThumbnails.For("portals", actor) is not null) return "portals";
         return null;
     }
-    private async Task PickFeatureAsync(string map, string actor)
+    private async Task PickFeatureAsync(string map, string actor, string? requestedFeature = null)
     {
         await OnPicked(null, false);
         if (actor.StartsWith("VehicleRecallStation", StringComparison.OrdinalIgnoreCase) || actor.StartsWith("CartRecallButton", StringComparison.OrdinalIgnoreCase))
@@ -201,7 +309,7 @@
             await OnPicked(vehicle.Id, false);
             return;
         }
-        if (FeatureFor(actor) is not { } feature) return;
+        if ((requestedFeature ?? FeatureFor(actor)) is not { } feature) return;
         var session = await ResolveFeatures(feature);
         var entry = session?.MapFeature(feature)?.Entries.FirstOrDefault(e =>
         {
@@ -216,6 +324,9 @@
     private async Task LocateAsync(WorldLocateTarget target)
     {
         if (_view is not { } view) return;
+        _loadingTarget = target.Label;
+        StateHasChanged();
+        await Task.Yield();
         await OnPicked(target.Id, false);
         var point = target.At;
         if (Bases.Deployables.FirstOrDefault(o => o.Id == target.Id) is { } placed) point = new(placed.X, placed.Y, placed.Z);
@@ -224,7 +335,7 @@
             var pathStart = target.Id.IndexOf("/Game/", StringComparison.Ordinal);
             var path = pathStart >= 0 ? target.Id[pathStart..] : target.Id;
             var parsed = DoorIdParser.Parse(target.Id);
-            await PickFeatureAsync(parsed.Map, parsed.Actor);
+            await PickFeatureAsync(parsed.Map, parsed.Actor, target.FeatureId);
             if (_features is not null && _featureId is not null)
                 point = WorldFeaturePositions.Find(_features, _featureId, target.Id) ?? point;
             if (point is null && await Art.TryGetActorWorldTransformAsync(path) is { } at) point = new(at.X, at.Y, at.Z);
@@ -233,14 +344,20 @@
         {
             var v = PlacedSceneSpace.ToViewer(p);
             await view.InvokeAsync<bool>("focusPoint", new[] { v.X, v.Y, v.Z }, 9);
-            await view.InvokeAsync<bool>("followLevel");
+            if (!await view.InvokeAsync<bool>("followLevel")) _loadingTarget = null;
         }
+        else { _error = "The position of this object could not be resolved."; _loadingTarget = null; }
     }
     [JSInvokable] public async Task OnPicked(string? key, bool additive)
     {
+        _adding = false;
         _selected = key; _entry = null; _features = null; _error = null; _recallStation = null;
         _vehicleId = Vehicles?.Vehicles.Any(v => v.Id == key) == true ? key : null;
-        if (_view is not null) await _view.InvokeVoidAsync("setSelection", key is null ? Array.Empty<string>() : new[] { key }, key);
+        if (_view is not null)
+        {
+            await _view.InvokeVoidAsync("setSelection", key is null ? Array.Empty<string>() : new[] { key }, key);
+            await SetToolAsync(null);
+        }
         if (Bases.Deployables.FirstOrDefault(o => o.Id == key) is { ClassName: { } className } && className.Contains("GardenPlot", StringComparison.Ordinal))
         {
             _features = await ResolveFeatures("garden-plots"); _featureId = "garden-plots";
@@ -267,6 +384,7 @@
     [JSInvokable] public Task OnModelProgress(string kind, int done, int total, string? note)
     {
         if (_disposed) return Task.CompletedTask;
+        if (kind == "level" && (note is "none" or "error" || (note is null && total == 0))) _loadingTarget = null;
         _progress = kind == "level" ? note switch
         {
             "query" => L.Resource("World3D_LevelQuerying"),

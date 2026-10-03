@@ -116,7 +116,7 @@
                    decimal at most and keep the save value exactly what the player types. *@
                 <div class="pet-health-row">
                     <label>@L.Resource("PlayerPets_Hp")</label><input aria-label="@L.Resource("PlayerPets_Health")" type="number" min="0" step="any" @bind:get="Math.Round(pet.Health, 1)" @bind:set="value => SetHealth(pet, value)" />
-                    <label>@L.Resource("PlayerPets_Max")</label><input aria-label="@L.Resource("PlayerUi_MaxPetHealth")" type="number" min="0" step="any" @bind:get="Math.Round(pet.MaxHealth, 1)" @bind:set="value => SetMaxHealth(pet, value)" />
+                    <label>@L.Resource("PlayerPets_Max")</label><output aria-label="@L.Resource("PlayerUi_MaxPetHealth")">@Math.Round(pet.MaxHealth, 1)</output>
                     <button class="heal-all-button" type="button" @onclick="() => Heal(pet)">@L.Resource("PlayerPets_Heal")</button>
                 </div>
 
@@ -426,7 +426,6 @@
     }
 
     private Task SetHealth(CarriedPetEdit pet, double value) { pet.Health = value; return CommitAsync(pet); }
-    private Task SetMaxHealth(CarriedPetEdit pet, double value) { pet.MaxHealth = value; return CommitAsync(pet); }
     private async Task Heal(CarriedPetEdit pet) { pet.Heal(); await CommitAsync(pet); }
     private async Task StepLevel(CarriedPetEdit pet, int delta) { pet.Level = pet.Level + delta; await CommitAsync(pet); }
     private Task SetMutationProgress(CarriedPetEdit pet, int value) { pet.MutationProgress = value; return CommitAsync(pet); }

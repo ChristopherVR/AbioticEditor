@@ -61,7 +61,8 @@ public sealed partial class GameAssetProvider
             : _provider.TryLoadPackageObject(objectPath, out var fallback) ? fallback : null;
     }
 
-    private string ActorPositionsFile => Path.Combine(_cacheDir, "actors", "positions-" + GameFilesStamp() + ".json");
+    // v2 includes component attachments and template offsets, which old cached origins omitted.
+    private string ActorPositionsFile => Path.Combine(_cacheDir, "actors", "positions-v2-" + GameFilesStamp() + ".json");
 
     private bool TryGetKnownActorPosition(string actorPath, out ActorTransform? position)
     {

@@ -1,0 +1,61 @@
+@namespace AbioticEditor.Web.Components.World
+@using AbioticEditor.Core.WorldSaves
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
+@implements IDisposable
+
+@if (_image is { } picture)
+{
+    <figure class="world-place-art">
+        <img src="@picture" alt="@Label" loading="lazy" data-zoom style="width:100%;object-fit:contain" />
+        <figcaption>@L.Resource("WorldFeature_WhereItIs")</figcaption>
+    </figure>
+}
+else if (_loading) { <p role="status">Loading location picture...</p> }
+
+@code {
+    [Parameter] public string? PreRendered { get; set; }
+    [Parameter] public string ActorPath { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Region { get; set; }
+    [Parameter] public PlacedVector? Position { get; set; }
+    private string? _image;
+    private (string Actor, string? Region, PlacedVector? Position)? _request;
+    private bool _loading, _disposed;
+    private (string Actor, string? Region, PlacedVector? Position)? _started;
+
+    protected override void OnParametersSet()
+    {
+        var request = (ActorPath, Region, Position);
+        if (_request == request) return;
+        _request = request;
+        _image = PreRendered;
+        _loading = PreRendered is null && Position is not null && Region is not null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loading || _disposed || _started == _request || Position is not { } point) return;
+        var request = _request;
+        _started = request;
+        IJSObjectReference? module = null;
+        try
+        {
+            module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
+            var p = PlacedSceneSpace.ToViewer(point);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var result = await module.InvokeAsync<Picture?>("locationPicture", timeout.Token, new { region = Region, actor = ActorPath, center = new[] { p.X, p.Y, p.Z } });
+            if (!_disposed && request == _request) _image = result?.Image;
+        }
+        catch (Exception ex) when (ex is JSException or TaskCanceledException or InvalidOperationException) { }
+        finally
+        {
+            if (module is not null)
+                try { await module.DisposeAsync(); } catch (JSDisconnectedException) { }
+            if (request == _request) _loading = false;
+            if (!_disposed) StateHasChanged();
+        }
+    }
+    private sealed record Picture(string? Image);
+    public void Dispose() => _disposed = true;
+}

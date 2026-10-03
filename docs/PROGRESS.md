@@ -1,5 +1,33 @@
 # Abiotic Editor - Session history
 
+## Round-165: live section boundaries, location pictures and 3D tools (2026-10-03)
+
+- Pet maximum health is read-only. GATEPal reapplies its game vocabulary when the late live
+  codex session arrives, restoring email/note details. Isaiah has a bundled character portrait.
+- Persistent Facility actors now use 223 cooked streaming brushes for the selected section.
+  Doors, ground items, pets, vehicles, chemistry benches, world features and live 3D share the
+  positional resolver. Explicit actor/spawner sections still take priority; overlapping brushes
+  can include an actor in more than one section. Data has a reproducible export tool.
+- Added 16 fixed location pictures, including water-pipe teleporters, for 9,716 total. Three
+  recall-button pictures were regenerated after fixing attached component positions and template
+  offsets. The position cache was versioned so old origin results cannot override the correction.
+  Generated live actors can render nearby scenery when no fixed picture exists; empty ceiling
+  cuts retry without the cut. The reported Dam recall-button picture was visually checked.
+- Live 3D shows the inspected object's loading label and opens explicit feature inspectors.
+  Deployable inspectors expose container inventory, paint and bench upgrades. Updated host
+  agents support adding a class-default object from an existing player-built type and moving or
+  rotating player-built objects. New placements get unique identities, complete construction,
+  notify replication and use the game's save routine. Failed initialization removes the partial
+  actor; blocked moves fail without saving. Older agents leave placement disabled.
+- Verification: final Web Release build, zero warnings/errors; 118 focused Release checks;
+  Lua harness, 1,382 checks and zero failures; cooked attachment/export probes; exact brush-data
+  reproduction; rendered recall-button and water-pipe pictures; git whitespace verification.
+  Final full Release suite: 2,227 passed, one skipped, zero failures. An earlier run found
+  an unnecessary render key and an unbundled portrait; both were fixed before this clean run.
+- In-game placement/movement, persistence after reload, multiplayer replication, and the complete
+  live roster still need user verification with the updated agent. No user saves or installed game
+  files were edited during this work. User authorized pushing when checks pass.
+
 ## Round-164: optional Nexus archive cleanup (2026-10-03)
 
 - When NEXUSMODS_SESSION_COOKIE is missing or blank, extra archive cleanup now skips

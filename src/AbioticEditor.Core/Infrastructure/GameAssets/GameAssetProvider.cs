@@ -577,9 +577,8 @@ public sealed partial class GameAssetProvider : IDisposable
                     var root = actor.GetOrDefault<CUE4Parse.UE4.Assets.Exports.UObject?>("RootComponent");
                     var holder = root ?? actor;
 
-                    var loc = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FVector>("RelativeLocation");
-                    var rot = holder.GetOrDefault<CUE4Parse.UE4.Objects.Core.Math.FRotator>("RelativeRotation");
-                    var q = rot.Quaternion();
+                    var matrix = ComponentPlacement(holder, new HashSet<CUE4Parse.UE4.Assets.Exports.UObject>());
+                    System.Numerics.Matrix4x4.Decompose(matrix, out _, out var q, out var loc);
                     found = new ActorTransform(loc.X, loc.Y, loc.Z, q.X, q.Y, q.Z, q.W);
                 }
             }
@@ -591,6 +590,32 @@ public sealed partial class GameAssetProvider : IDisposable
             Diagnostics.EditorLog.Warn("Assets", $"Could not resolve spawn transform for {actorObjectPath}: {ex.Message}");
             return null;
         }
+    }
+
+    // Child-actor roots (including recall buttons) attach to another actor's component.
+    // A root with no explicit RelativeLocation is not necessarily at the level origin.
+    // Cooked instance properties also omit component offsets unchanged from their template.
+    private static T ComponentField<T>(CUE4Parse.UE4.Assets.Exports.UObject component, string name, T fallback = default!)
+    {
+        var seen = new HashSet<CUE4Parse.UE4.Assets.Exports.UObject>();
+        for (var current = component; current is not null && seen.Add(current); current = current.Template?.Object?.Value)
+            if (current.TryGet<T>(name, out var value)) return value;
+        return fallback;
+    }
+
+    private static System.Numerics.Matrix4x4 ComponentPlacement(CUE4Parse.UE4.Assets.Exports.UObject component,
+        HashSet<CUE4Parse.UE4.Assets.Exports.UObject> seen)
+    {
+        if (!seen.Add(component)) throw new InvalidDataException("Cyclic component attachment");
+        var loc = ComponentField<CUE4Parse.UE4.Objects.Core.Math.FVector>(component, "RelativeLocation");
+        var rot = ComponentField<CUE4Parse.UE4.Objects.Core.Math.FRotator>(component, "RelativeRotation").Quaternion();
+        var scale = ComponentField(component, "RelativeScale3D", new CUE4Parse.UE4.Objects.Core.Math.FVector(1, 1, 1));
+        var matrix = System.Numerics.Matrix4x4.CreateScale(scale.X, scale.Y, scale.Z)
+            * System.Numerics.Matrix4x4.CreateFromQuaternion(new(rot.X, rot.Y, rot.Z, rot.W))
+            * System.Numerics.Matrix4x4.CreateTranslation(loc.X, loc.Y, loc.Z);
+        if (ComponentField<CUE4Parse.UE4.Assets.Exports.UObject?>(component, "AttachParent") is { } parent)
+            matrix *= ComponentPlacement(parent, seen);
+        return matrix;
     }
 
     /// <summary>The spawn actor linked to a cooked vehicle recall station, when present.</summary>

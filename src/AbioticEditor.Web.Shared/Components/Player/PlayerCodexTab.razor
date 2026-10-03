@@ -177,9 +177,10 @@
     private FishCatchDetails? _catchDetails;
     private readonly Dictionary<string, FishCatchDetail> _catchDetailCache = new(StringComparer.Ordinal);
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    protected override async Task OnParametersSetAsync()
     {
-        Selection.Changed += OnSelectionChanged;
         // Save selection deliberately never scans game paks (see SaveSelectionSchedulingTests),
         // so the whole GATEPal tab loads the codex vocabulary on demand when it opens - the
         // same off-thread pattern the general tab uses - and then re-renders any rows the

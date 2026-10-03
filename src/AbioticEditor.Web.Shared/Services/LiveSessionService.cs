@@ -1,5 +1,6 @@
 using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.Player;
+using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Web.Services;
 
@@ -47,7 +48,7 @@ public sealed class LiveSessionService
     /// lands or when no local controller is loaded (main menu).</summary>
     public string? CurrentRegionToken { get; private set; }
 
-    public bool IsActorInCurrentRegion(string path, string? region = null)
+    public bool IsActorInCurrentRegion(string path, string? region = null, PlacedVector? at = null)
     {
         var saved = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.NormalizeLevelToken(region);
         var actorMap = AbioticEditor.Core.WorldSaves.WorldAreaCatalog.TokenFromActorPath(path);
@@ -56,6 +57,8 @@ public sealed class LiveSessionService
         var map = saved is null || saved.Equals("Facility", StringComparison.OrdinalIgnoreCase)
             ? actorMap ?? saved : saved;
         if (map is null || CurrentRegionToken is null) return true;
+        if (map.Equals("Facility", StringComparison.OrdinalIgnoreCase) && at is { } point && WorldRegionVolumes.HasRegion(CurrentRegionToken))
+            return WorldRegionVolumes.Contains(CurrentRegionToken, point);
         return string.Equals(map, CurrentRegionToken, StringComparison.OrdinalIgnoreCase);
     }
 

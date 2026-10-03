@@ -3,7 +3,8 @@
 The Doors, Buttons, Breakable Objects, Elevators, Trams, World Teleporters, Resource Nodes, Power
 Sockets, Teleporter Pads, Sconce lamps, Corpses and Containers lists show a picture of each kind of thing, drawn on its own with the game's own models. The pictures are
 rendered once by a maintainer, checked in under `src/AbioticEditor.Web.Shared/wwwroot/thumbs`, and
-ship with the editor; nothing is rendered or downloaded while the editor runs. Re-render after a game
+ship with the editor. Generated live actors without a fixed location picture render nearby scenery
+on demand from their live position. Re-render the bundled pictures after a game
 update that changes these models, or to cover kinds from a world the list did not include.
 
 1. Make the target list from a world folder with every region visited (one actor per kind):
@@ -58,6 +59,13 @@ Render that file separately: corpse pictures must use a posed actor from a level
 the blueprint alone can show the body in its rest pose.
 
 ## Where each one is
+
+For attached vehicle-recall buttons, set `RECALL_BUTTON_PICTURES_OUT` and run
+`InspectorPicturesProbe.Write_attached_recall_button_picture_targets`. These targets include a
+viewer-space `center` computed from the complete cooked component attachment chain. `places.mjs`
+uses that supplied center when present, otherwise it asks the running editor for the actor's
+position. Delete the affected picture before regenerating it. This also supports rendering with
+a freshly built position resolver while an older renderer host is still running.
 
 The door card and the detail pane of those lists also show where that particular door, button,
 elevator, tram, teleporter, power socket or breakable wall is: the level around it from above, ceiling cut away,

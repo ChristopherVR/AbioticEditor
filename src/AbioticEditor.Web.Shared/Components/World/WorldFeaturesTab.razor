@@ -117,12 +117,11 @@ else
                                 }
                             </figure>
                         }
-                        @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && WorldThumbnails.PlaceOf(selected.Key) is { } place && (FeatureId != "portals" || WorldThumbnails.For("portals", selected.Key) != place))
+                        @if (WorldThumbnails.KindOfFeature(FeatureId) is not null && (FeatureId != "portals" || WorldThumbnails.PlaceOf(selected.Key) is null || WorldThumbnails.For("portals", selected.Key) != WorldThumbnails.PlaceOf(selected.Key)))
                         {
-                            <figure class="world-place-art">
-                                <img src="@place" alt="@selected.Label" loading="lazy" data-zoom />
-                                <figcaption>@L.Resource("WorldFeature_WhereItIs")</figcaption>
-                            </figure>
+                            <WorldLocationArt ActorPath="@selected.Key" Label="@selected.Label"
+                                Region="@(WorldAreaCatalog.TokenFromActorPath(selected.Key) ?? LiveSession.CurrentRegionToken)"
+                                Position="@WorldFeaturePositions.Find(Session, FeatureId, selected.Key)" PreRendered="@WorldThumbnails.PlaceOf(selected.Key)" />
                         }
                     </div>
                     <ShowIn3DButton Target="@WorldFeaturePositions.Target(Session, FeatureId, selected.Key, selected.Label)" />
@@ -441,10 +440,7 @@ else
     {
         _snapshot = Session.MapFeature(FeatureId);
         if (Session is not WorldSaveSession && LiveSession.CurrentRegionToken is not null && _snapshot is { } snapshot)
-            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key, WorldFeaturePositions.Region(Session, e.Key))
-                || (FeatureId is "portals"
-                    && WorldAreaCatalog.TokenFromActorPath(e.Key) == "Facility"
-                    && LiveSession.CurrentRegionToken.StartsWith("Facility_", StringComparison.OrdinalIgnoreCase))).ToArray() };
+            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key, WorldFeaturePositions.Region(Session, e.Key), WorldFeaturePositions.Find(Session, FeatureId, e.Key))).ToArray() };
         _allRows = _snapshot is null
             ? []
             : RenderKeys.With(_snapshot.Entries, entry => entry.Key)
@@ -627,7 +623,17 @@ else
     private WorldMapEntry? SelectedEntry(WorldMapFeatureSnapshot feature)
         => _selectedKey is null ? null : feature.Entries.FirstOrDefault(entry => string.Equals(entry.Key, _selectedKey, StringComparison.Ordinal));
 
-    private string? AreaFor(WorldMapEntry entry) => WorldAreaCatalog.FriendlyNameFor(entry.Key, Session.Path);
+    private string? AreaFor(WorldMapEntry entry)
+    {
+        if (Session is not WorldSaveSession && WorldAreaCatalog.TokenFromActorPath(entry.Key) == "Facility"
+            && WorldFeaturePositions.Find(Session, FeatureId, entry.Key) is { } point)
+        {
+            var region = LiveSession.CurrentRegionToken is { } current && WorldRegionVolumes.Contains(current, point)
+                ? current : WorldRegionVolumes.RegionAt(point);
+            if (region is not null) return WorldAreaCatalog.FriendlyNameFor($"/Game/Maps/{region}.{region}:PersistentLevel.Actor", Session.Path);
+        }
+        return WorldAreaCatalog.FriendlyNameFor(entry.Key, Session.Path);
+    }
 
     /// <summary>
     /// The line under an entry's name. It used to be a run of internal settings written as

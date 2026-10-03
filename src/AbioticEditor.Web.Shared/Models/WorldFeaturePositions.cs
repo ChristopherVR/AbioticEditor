@@ -27,5 +27,5 @@ public static class WorldFeaturePositions
 
     public static WorldLocateTarget? Target(IWorldFeaturesSession session, string featureId, string key, string label)
         => WorldLocateTarget.ForMapKey(key, label) is { } target
-            ? target with { At = Find(session, featureId, key) } : null;
+            ? target with { At = Find(session, featureId, key), FeatureId = featureId } : null;
 }

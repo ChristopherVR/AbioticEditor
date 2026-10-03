@@ -374,6 +374,8 @@ else
     {
         _liveLocate = target;
         _worldTab = "bases";
+        StateHasChanged();
+        await Task.Yield();
         await EnsureAreaConnectedAsync("bases");
     }
     private RenderFragment<WorldBase?> LiveThreeDView => focus => @<LiveWorld3DTab Bases="_bases!" Vehicles="_vehicles" FocusBase="focus" PlayerPosition="_spawn?.LivePosition" Locate="_liveLocate" ResolveFeatures="ResolveLiveFeaturesAsync" OnOpenContainer="OpenCareContainerAsync" />;

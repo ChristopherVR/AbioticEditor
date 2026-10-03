@@ -28,6 +28,7 @@ public static class HologramPortraitCatalog
         ("Dr. Houston", ["T_Compendium_Houston.png"]),
         ("Dr. Newman", ["T_Compendium_Newman.png"]),
         ("Dr. Pendleton", ["T_Compendium_Pendleton.png"]),
+        ("Isaiah", ["T_Compendium_IsaiahDeal.png"]),
         ("Jimmy", ["T_Compendium_Jimmy.png"]),
         ("Jonas", ["T_Compendium_JonasConti.png"]),
         ("Kylie", ["T_Compendium_Kylie.png"]),

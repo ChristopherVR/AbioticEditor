@@ -235,7 +235,7 @@
     /// <summary>Capped at 200 rows like native - long-lived worlds accumulate 1000+ ground items.
     /// Sorted nearest-first when <see cref="PlayerPosition"/> is known, so the cap drops distant
     /// items instead of whatever the world happened to enumerate first.</summary>
-    private IEnumerable<WorldDroppedItem> RegionItems => Session.DroppedItems.Where(i => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(i.Id, i.Region));
+    private IEnumerable<WorldDroppedItem> RegionItems => Session.DroppedItems.Where(i => !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(i.Id, i.Region, new(i.X, i.Y, i.Z)));
     private List<WorldDroppedItem> Visible
     {
         get

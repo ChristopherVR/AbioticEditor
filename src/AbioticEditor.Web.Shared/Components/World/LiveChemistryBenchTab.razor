@@ -239,7 +239,7 @@
             : RegionEntries.ToList();
 
     private IEnumerable<LiveCareEntry> RegionEntries => Session.Entries.Where(e =>
-        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(e.Id, e.Region));
+        !Session.AppliesImmediately || LiveRegion.IsActorInCurrentRegion(e.Id, e.Region, new(e.X, e.Y, e.Z)));
 
     private bool _busy;
     private string? _error;

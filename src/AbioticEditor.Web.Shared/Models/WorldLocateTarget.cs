@@ -32,6 +32,7 @@ public sealed record WorldLocateTarget(WorldLocateKind Kind, string Id, string L
     /// is not the open save: "Show in 3D" opens that save first. A trader or containment cell listed in
     /// the story save, for example.
     /// </summary>
+    public string? FeatureId { get; init; }
     public string? SaveFileName { get; init; }
 
     /// <summary>

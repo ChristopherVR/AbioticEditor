@@ -32,9 +32,9 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
         var deployables = (wire.Deployables ?? [])
             .Select(d => new LiveDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.CustomName, d.HasInventory,
                 d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades,
-                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW, d.Region))
+                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW, d.Region, d.DeployedByPlayer))
             .ToList();
-        return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval);
+        return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval, wire.SupportsPlacement);
     }
 
     /// <summary>Renames one deployable immediately. Host only.</summary>
@@ -57,11 +57,19 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
     public Task SetPaintColorAsync(string deployableId, int colorValue, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("bases.set", new SetWire(deployableId, null, null, null, colorValue), cancellationToken);
 
-    private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval);
+    public async Task<string> PlaceAsync(string donorId, double x, double y, double z, double yaw, CancellationToken cancellationToken = default)
+    {
+        var result = await _channel.RequestAsync<PlacedWire>("bases.spawn", new { donorId, assetId = Guid.NewGuid().ToString("N"), x, y, z, yaw }, cancellationToken).ConfigureAwait(false);
+        return result.Id;
+    }
+    public Task MoveAsync(string id, double x, double y, double z, double? yaw = null, CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("bases.move", new { id, x, y, z, yaw }, cancellationToken);
+    private sealed record PlacedWire(string Id);
+    private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval, bool SupportsPlacement = false);
     private sealed record DeployableWire(string Id, string ClassName, double X, double Y, double Z,
         string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
         IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades, int? PaintColor,
-        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null);
+        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false);
     private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled, int? PaintColor);
 }
 
@@ -76,7 +84,7 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
 public sealed record LiveDeployable(string Id, string ClassName, double X, double Y, double Z,
     string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
     IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false, int? PaintColor = null,
-    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null);
+    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false);
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see
@@ -85,4 +93,4 @@ public sealed record LiveDeployable(string Id, string ClassName, double X, doubl
 /// GameplayTag container directly instead of the crash-prone Has Upgrade/AddUpgrade calls, so an
 /// older live agent that predates that change reports it unsupported.</summary>
 public sealed record LiveDeployableDirectory(IReadOnlyList<LiveDeployable> Deployables, bool IsHost,
-    bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval = false);
+    bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval = false, bool SupportsPlacement = false);

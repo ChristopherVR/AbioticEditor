@@ -124,4 +124,7 @@
     </ItemGroup>
   </Target>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Catalogs/World/WorldRegionVolumes.json" LogicalName="WorldRegionVolumes.json" />
+  </ItemGroup>
 </Project>

@@ -212,6 +212,7 @@ return function(ctx)
                         canEditUpgrades = benchSupportsUpgrades(obj) and benchTags.available(obj),
                         installedUpgrades = benchInstalledUpgrades(obj),
                         paintColor = deployablePaintColor(obj),
+                        deployedByPlayer = obj.DeployedByPlayer == true,
                     })
                 end
             end
@@ -224,7 +225,7 @@ return function(ctx)
             local rows, available = deployableRows(), false
             for _, row in ipairs(rows) do if row.canEditUpgrades then available = true break end end
             return { deployables = rows, isHost = ctx.isHost(), supportsBenchUpgrades = available,
-                supportsBenchUpgradeRemoval = available }
+                supportsBenchUpgradeRemoval = available, supportsPlacement = true }
         end, respond)
     end
 
@@ -333,6 +334,78 @@ return function(ctx)
                 end)
                 if not ok then error("could not set this object's paint colour on this game build: " .. tostring(err)) end
             end
+            return nil
+        end, respond)
+    end
+
+    local function finite(value)
+        return type(value) == "number" and value == value and math.abs(value) < math.huge
+    end
+    local function targetOf(payload)
+        if not finite(payload.x) or not finite(payload.y) or not finite(payload.z)
+            or (payload.yaw ~= nil and not finite(payload.yaw)) then error("invalid placement coordinates") end
+        return { X = payload.x, Y = payload.y, Z = payload.z }
+    end
+    local function builtActor(id)
+        if not ctx.isHost() then error("only the host can place or move objects") end
+        local actor = id and ctx.findByFullName("AbioticDeployed_ParentBP_C", id)
+        if not actor or actor.DeployedByPlayer ~= true then error("select an existing player-built object") end
+        return actor
+    end
+
+    -- UE4SS's documented UWorld:SpawnActor accepts class, FVector and FRotator directly.
+    -- It performs deferred spawn plus FinishSpawningActor. No copied inventory, gameplay
+    -- tags, wiring or save identity is carried from the donor. The cooked parent declares
+    -- these construction fields and SaveDeployable(RemoveFromSave: bool).
+    ctx.handlers["bases.spawn"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            local donor = builtActor(payload.donorId)
+            local position = targetOf(payload)
+            if type(payload.assetId) ~= "string" or #payload.assetId ~= 32 or payload.assetId:find("[^%x]") then
+                error("a new unique object identity is required")
+            end
+            for _, other in ipairs(ctx.findAll("AbioticDeployed_ParentBP_C")) do
+                local identity = textValue(other.SpawnedAssetID)
+                if identity and identity:lower() == payload.assetId:lower() then error("object identity already exists") end
+            end
+            local helper = replication.requireHelper()
+            local actor = donor:GetWorld():SpawnActor(donor:GetClass(), position, { Pitch = 0, Yaw = payload.yaw or 0, Roll = 0 })
+            if not actor or not actor:IsValid() then error("the game could not place this object") end
+            local ok, failure = pcall(function()
+                actor.SpawnedAssetID = payload.assetId
+                actor.ChangeableData.AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB = payload.assetId
+                actor.DeployedByPlayer = true
+                actor.NoSave = false
+                actor.CulledByWorldLoad = false
+                actor.ConstructionLevel_Current = actor.ConstructionLevel_Max
+                actor.ConstructionModeActive = false
+                for _, field in ipairs({ "DeployedByPlayer", "ConstructionLevel_Current", "ConstructionModeActive", "ChangeableData" }) do
+                    replication.mark(helper, actor, field)
+                end
+                actor:OnRep_DeployedByPlayer()
+                actor:OnRep_ConstructionLevel_Current()
+                actor:OnRep_ConstructionModeActive()
+                actor:SaveDeployable(false)
+                actor:ForceNetUpdate()
+            end)
+            if not ok then
+                pcall(function() actor:SaveDeployable(true) end)
+                pcall(function() actor:K2_DestroyActor() end)
+                error("could not finish placing this object: " .. tostring(failure))
+            end
+            return { id = ctx.fullName(actor) }
+        end, respond)
+    end
+
+    ctx.handlers["bases.move"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            local actor = builtActor(payload.id)
+            local position = targetOf(payload)
+            local rotation = actor:K2_GetActorRotation()
+            if payload.yaw ~= nil then rotation = { Pitch = rotation.Pitch, Yaw = payload.yaw, Roll = rotation.Roll } end
+            if not actor:K2_TeleportTo(position, rotation) then error("the game blocked this move") end
+            actor:SaveDeployable(false)
+            actor:ForceNetUpdate()
             return nil
         end, respond)
     end
