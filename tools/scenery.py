@@ -13,6 +13,10 @@ FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "meshes
            "meshes-posed-v2", "meshes-terrain-v3", "textures", "terrain-materials-v1", "texture-alpha-v1"}
 FILE = re.compile(r"[a-z0-9-]+/[a-f0-9]{64}\.(?:json|bin|abm|png)\Z")
 CHUNK_BYTES = 80 * 1024 * 1024
+# Small JSON answers the browser needs before drawing anything: a level asks for about a thousand of
+# them, and fetched one by one they took 20 seconds. All of them are also published together as one
+# descriptions.json per build (2.6 MB, about 330 KB compressed); the separate files stay too.
+DESCRIPTION_FOLDERS = {"meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1"}
 # Extensions browser download managers (IDM, FDM and the like) capture by default. A published
 # scenery file must not end in one, or the browser editor's request for it is taken away.
 CAPTURED_EXTENSIONS = {".7z", ".aac", ".apk", ".arj", ".avi", ".bin", ".bz2", ".cab", ".dmg", ".exe", ".gz",
@@ -123,6 +127,7 @@ def assemble(source, destination):
         output.mkdir(parents=True, exist_ok=True)
         expected = manifest["files"]
         seen = set()
+        descriptions = {}
         for chunk in json.loads((build / "chunks.json").read_text(encoding="utf-8")):
             if not re.fullmatch(r"part-[0-9]{3}\.zip", chunk):
                 raise ValueError("Invalid chunk name")
@@ -141,8 +146,12 @@ def assemble(source, destination):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(data)
                     seen.add(key)
+                    if key.split("/")[0] in DESCRIPTION_FOLDERS:
+                        descriptions[key] = json.loads(data)
         if seen != set(expected):
             raise ValueError("Scenery export is missing assets")
+        (output / "descriptions.json").write_text(
+            json.dumps(dict(sorted(descriptions.items())), separators=(",", ":")) + "\n", encoding="utf-8")
         # The manifest stays in the source packs: the browser needs none, and desktop v2.26.0 downloaded
         # scenery only when it found one, which the desktop must never do.
         builds.append(build.name)

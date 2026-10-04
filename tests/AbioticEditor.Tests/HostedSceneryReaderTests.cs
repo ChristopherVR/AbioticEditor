@@ -117,6 +117,38 @@ public sealed class HostedSceneryReaderTests
         Assert.Equal("meshes/abc.abm", HostedSceneryReader.PublishedPath("meshes/abc.abm"));
     }
 
+    [SkippableFact]
+    public async Task A_first_look_at_an_area_takes_a_handful_of_requests_and_says_how_far_it_got()
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        var slice = await reader.DescribeLevelAsync(new SceneLevelQuery("Facility_Office1", [-40, -20, -40], [40, 20, 40], 25000), TimeSpan.FromMinutes(2));
+        Assert.NotEmpty(slice!.Batches);
+        // index, world, descriptions and the level files: no request per mesh description or material.
+        var asked = site.Requested.Distinct(StringComparer.Ordinal).ToList();
+        Assert.Contains("descriptions.json", asked);
+        Assert.DoesNotContain(asked, p => p.StartsWith("meshinfo/", StringComparison.Ordinal) || p.StartsWith("materials-", StringComparison.Ordinal));
+        Assert.True(asked.Count < 20, string.Join(", ", asked));
+        var progress = reader.Progress();
+        Assert.True(progress[1] > 0);
+        Assert.Equal(progress[1], progress[0]); // everything asked for has arrived
+    }
+
+    [SkippableFact]
+    public async Task The_descriptions_pack_answers_exactly_as_the_separate_files_do()
+    {
+        using var packed = HostedSite.Open();
+        Skip.If(packed is null, "the prepared scenery is not in this checkout");
+        using var separate = HostedSite.Open()!;
+        separate.ServeDescriptions = false;
+        var query = new SceneLevelQuery("Facility_Office1", [-40, -20, -40], [40, 20, 40], 25000);
+        var fromPack = await new HostedSceneryReader(new HttpClient(packed), Root).DescribeLevelAsync(query, TimeSpan.FromMinutes(2));
+        var fromFiles = await new HostedSceneryReader(new HttpClient(separate), Root).DescribeLevelAsync(query, TimeSpan.FromMinutes(2));
+        Assert.Equal(Comparable(fromFiles, separate.Build), Comparable(fromPack, packed.Build));
+        Assert.Contains(separate.Requested, p => p.StartsWith("meshinfo/", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Nothing_is_downloaded_until_the_player_agrees()
     {
@@ -205,6 +237,28 @@ public sealed class HostedSceneryReaderTests
 
         public string Signature { get; }
 
+        /// <summary>Serve the build's descriptions.json (as tools/scenery.py assemble publishes it).</summary>
+        public bool ServeDescriptions { get; set; } = true;
+
+        private byte[]? _descriptions;
+
+        private byte[] Descriptions()
+        {
+            lock (_packs)
+            {
+                if (_descriptions is not null) return _descriptions;
+                var folders = new[] { "meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1" };
+                var pack = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
+                foreach (var (key, entry) in _files)
+                {
+                    if (!folders.Contains(key[..key.IndexOf('/', StringComparison.Ordinal)], StringComparer.Ordinal)) continue;
+                    using var stream = entry.Open();
+                    pack[key] = JsonDocument.Parse(stream).RootElement.Clone();
+                }
+                return _descriptions = JsonSerializer.SerializeToUtf8Bytes(pack);
+            }
+        }
+
         /// <summary>Addresses ending in this are taken by a (pretend) download manager.</summary>
         public string? Captured { get; set; }
 
@@ -224,7 +278,12 @@ public sealed class HostedSceneryReaderTests
         /// <summary>Writes every file asked for so far into a provider's cache folder, under its cache name.</summary>
         public void CopyRequestedTo(string cacheRoot)
         {
-            foreach (var published in Requested.Distinct(StringComparer.Ordinal))
+            // descriptions.json stands for every small description file in it.
+            var asked = Requested.Distinct(StringComparer.Ordinal).ToList();
+            if (asked.Contains("descriptions.json", StringComparer.Ordinal))
+                asked.AddRange(_files.Keys.Where(k => k.StartsWith("meshinfo/", StringComparison.Ordinal) || k.StartsWith("materials-v5/", StringComparison.Ordinal)
+                    || k.StartsWith("texture-alpha-v1/", StringComparison.Ordinal) || k.StartsWith("terrain-materials-v1/", StringComparison.Ordinal)));
+            foreach (var published in asked)
             {
                 var key = published.EndsWith(".ali", StringComparison.Ordinal) ? published[..^4] + ".bin" : published;
                 if (!_files.TryGetValue(key, out var entry)) continue;
@@ -257,7 +316,8 @@ public sealed class HostedSceneryReaderTests
                     : published.EndsWith(".bin", StringComparison.Ordinal) ? "" : published;
                 Requested.Enqueue(published);
                 // No manifest.json: Pages does not publish it (the browser needs none).
-                if (_files.TryGetValue(key, out var entry))
+                if (key == "descriptions.json") data = ServeDescriptions ? Descriptions() : null;
+                else if (_files.TryGetValue(key, out var entry))
                 {
                     lock (_packs)
                     {

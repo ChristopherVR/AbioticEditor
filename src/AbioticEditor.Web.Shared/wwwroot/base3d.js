@@ -47,6 +47,10 @@ const MODEL_TINT_COPY = 0x7ff6f6;
 const MODEL_TINT_LEVEL_PLACED = 0xc4c4c4;
 const MODEL_BASE = "scene-models";
 const MODEL_FETCH_CONCURRENCY = 6;
+// The website's scenery comes over HTTP/2 from a CDN, where six at a time left the first look at an
+// area loading meshes for a minute; many more requests share one connection there.
+const HOSTED_FETCH_CONCURRENCY = 24;
+const PROGRESS_POLL_MS = 400;
 const CLASS_BATCH = 24; // small batches, so models start appearing while the rest are still being read
 const CLASS_REQUESTS = 3; // batches asked for at once
 const LEVEL_MAX_INSTANCES = 25000;
@@ -86,9 +90,26 @@ async function modelStatusRequest() {
     return response.json();
 }
 
-/** The level around a box (see SceneLevelQuery); null when there is none. */
-function levelRequest(query) {
-    return hostedScenery ? hostedScenery.invokeMethodAsync("DescribeLevel", query) : postJson(`${MODEL_BASE}/level`, query);
+/**
+ * The level around a box (see SceneLevelQuery); null when there is none. With hosted scenery the
+ * first look at an area downloads its level files, so onProgress(done, total) hears how many of the
+ * files this query asked for have arrived.
+ */
+async function levelRequest(query, onProgress) {
+    if (!hostedScenery) return postJson(`${MODEL_BASE}/level`, query);
+    const reader = hostedScenery;
+    if (!onProgress) return reader.invokeMethodAsync("DescribeLevel", query);
+    const [doneBefore, askedBefore] = await reader.invokeMethodAsync("Progress");
+    const timer = setInterval(() => {
+        reader.invokeMethodAsync("Progress")
+            .then(([done, asked]) => { if (asked > askedBefore) onProgress(done - doneBefore, asked - askedBefore); })
+            .catch(() => { });
+    }, PROGRESS_POLL_MS);
+    try {
+        return await reader.invokeMethodAsync("DescribeLevel", query);
+    } finally {
+        clearInterval(timer);
+    }
 }
 
 /** How to draw each class path; a class left out stays a box. */
@@ -998,7 +1019,7 @@ function buildView(host, dotnet) {
 
     /** Runs fetches a few at a time so hundreds of meshes do not flood the local host. */
     async function throttled(task) {
-        if (fetchActive >= MODEL_FETCH_CONCURRENCY) await new Promise(resolve => fetchWaiting.push(resolve));
+        if (fetchActive >= (hostedScenery ? HOSTED_FETCH_CONCURRENCY : MODEL_FETCH_CONCURRENCY)) await new Promise(resolve => fetchWaiting.push(resolve));
         fetchActive++;
         try {
             return await task();
@@ -1565,7 +1586,7 @@ function buildView(host, dotnet) {
                 maxInstances: LEVEL_MAX_INSTANCES,
                 excludeActors: levelOptions.excludeActors ?? [],
                 openDoors: levelOptions.openDoors ?? [],
-            });
+            }, (done, total) => { if (token === levelToken && !disposed) report("level", done, total, "download"); });
         } catch {
             if (token === levelToken) report("level", 0, 0, "error");
             return;

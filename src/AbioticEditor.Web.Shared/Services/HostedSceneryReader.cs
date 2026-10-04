@@ -56,6 +56,9 @@ public sealed partial class HostedSceneryReader : IDisposable
     private readonly Uri _root;
     private readonly SemaphoreSlim _downloads = new(16);
     private readonly Lazy<Task<Uri?>> _build;
+    private readonly Lazy<Task<Dictionary<string, JsonElement>?>> _descriptions;
+    private int _filesAsked;
+    private int _filesDone;
     private readonly ConcurrentDictionary<string, Task<World?>> _worlds = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<Level?>> _levels = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<MeshInfo?>> _meshInfo = new(StringComparer.OrdinalIgnoreCase);
@@ -75,7 +78,15 @@ public sealed partial class HostedSceneryReader : IDisposable
         _http = http ?? throw new ArgumentNullException(nameof(http));
         _root = root;
         _build = new Lazy<Task<Uri?>>(FindBuildAsync);
+        _descriptions = new Lazy<Task<Dictionary<string, JsonElement>?>>(ReadDescriptionsAsync);
     }
+
+    /// <summary>
+    /// Files downloaded so far and files asked for, since the page opened: the view shows the
+    /// difference over a level query as its download progress.
+    /// </summary>
+    [JSInvokable]
+    public int[] Progress() => [Volatile.Read(ref _filesDone), Volatile.Read(ref _filesAsked)];
 
     public void Dispose() => _downloads.Dispose();
 
@@ -372,12 +383,44 @@ public sealed partial class HostedSceneryReader : IDisposable
         await ReadJsonAsync<CachedAlpha>(AlphaFolder, id, ".json").ConfigureAwait(false) is { SeeThrough: true });
 
     private async Task<T?> ReadJsonAsync<T>(string folder, string key, string extension) where T : class
-        => await ReadBytesAsync(folder, key, extension).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<T>(bytes, Json) : null;
+    {
+        // The small answers come from the build's one descriptions.json when it has one: a level asks
+        // for about a thousand of them, which fetched one by one took 20 seconds on the website.
+        if (DescriptionFolders.Contains(folder) && await _descriptions.Value.ConfigureAwait(false) is { } pack)
+            return pack.TryGetValue($"{folder}/{Hash(key)}{extension}", out var value) ? value.Deserialize<T>(Json) : null;
+        return await ReadBytesAsync(folder, key, extension).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<T>(bytes, Json) : null;
+    }
+
+    /// <summary>Folders whose files are also published together in descriptions.json (DESCRIPTION_FOLDERS in tools/scenery.py).</summary>
+    private static readonly HashSet<string> DescriptionFolders = new(StringComparer.Ordinal) { "meshinfo", MaterialsFolder, AlphaFolder, TerrainMaterialsFolder };
+
+    /// <summary>The build's descriptions.json as key to value, or null when it has none (each file is then fetched alone).</summary>
+    private async Task<Dictionary<string, JsonElement>?> ReadDescriptionsAsync()
+    {
+        if (await _build.Value.ConfigureAwait(false) is not { } build) return null;
+        Interlocked.Increment(ref _filesAsked);
+        try
+        {
+            using var response = await _http.GetAsync(new Uri(build, "descriptions.json")).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return null;
+            using var document = JsonDocument.Parse(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
+            var pack = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            foreach (var entry in document.RootElement.EnumerateObject()) pack[entry.Name] = entry.Value.Clone();
+            return pack;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            EditorLog.Info("Scene", $"No hosted scenery descriptions; fetching them one by one: {ex.Message}");
+            return null;
+        }
+        finally { Interlocked.Increment(ref _filesDone); }
+    }
 
     /// <summary>One hosted file by its cache key, or null when the website does not have it.</summary>
     private async Task<byte[]?> ReadBytesAsync(string folder, string key, string extension)
     {
         if (await _build.Value.ConfigureAwait(false) is not { } build) return null;
+        Interlocked.Increment(ref _filesAsked);
         await _downloads.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -395,7 +438,11 @@ public sealed partial class HostedSceneryReader : IDisposable
             }
             return bytes;
         }
-        finally { _downloads.Release(); }
+        finally
+        {
+            _downloads.Release();
+            Interlocked.Increment(ref _filesDone);
+        }
     }
 
     private int _capturedWarned;

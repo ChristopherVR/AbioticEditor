@@ -671,7 +671,8 @@ public sealed class Base3DViewerTests
         Assert.Contains("as HostedSceneryReader)?.Allowed == true", backdrop, StringComparison.Ordinal);
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
         Assert.Contains("export function useHostedScenery(reader)", js, StringComparison.Ordinal);
-        Assert.Contains("hostedScenery.invokeMethodAsync(\"DescribeLevel\", query)", js, StringComparison.Ordinal);
+        Assert.Contains("reader.invokeMethodAsync(\"DescribeLevel\", query)", js, StringComparison.Ordinal);
+        Assert.Contains("report(\"level\", done, total, \"download\")", js, StringComparison.Ordinal); // download progress
         Assert.DoesNotContain("postJson(`${MODEL_BASE}/level`, {", js, StringComparison.Ordinal); // every level query can go either way
         var program = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Web.Wasm", "Program.cs"));
         Assert.Contains("new HostedSceneryReader(", program, StringComparison.Ordinal);

@@ -4718,6 +4718,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_TexturesProgressFormat" xml:space="preserve"><value>Loading textures: {0} of {1}</value></data>
   <data name="World3D_LevelTextures" xml:space="preserve"><value>Loading the level's textures...</value></data>
   <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box. The game's own models, the level around them, doors and characters need the desktop app, which reads them from your installed game.</value></data>
+  <data name="World3D_LevelDownloadingFormat" xml:space="preserve"><value>Downloading the level: {0} of {1} files</value></data>
   <data name="World3D_SceneryAskTitle" xml:space="preserve"><value>Download the level around your base?</value></data>
   <data name="World3D_SceneryAskBody" xml:space="preserve"><value>The web version can draw the floors, walls and terrain around your base by downloading them from the editor's website. That is about 40 MB for an area the first time, and more if you widen the view. Your browser may keep a copy, so later visits can be quicker.</value></data>
   <data name="World3D_SceneryAskYes" xml:space="preserve"><value>Download the level</value></data>

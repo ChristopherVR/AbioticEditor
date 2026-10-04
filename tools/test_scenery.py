@@ -41,6 +41,8 @@ class SceneryTests(unittest.TestCase):
         self.assertEqual(len(list(output.rglob("*.ali"))), 1)
         self.assertFalse(list(output.rglob("*.bin")))
         self.assertFalse(list(output.rglob("*.zip")))
+        # The small JSON answers travel together too; this build has none.
+        self.assertEqual(json.loads((output / "descriptions.json").read_text(encoding="utf-8")), {})
         # No manifest on Pages: desktop v2.26.0 downloaded scenery only when it found one.
         self.assertFalse((output / "manifest.json").exists())
         self.assertFalse(list(output.rglob("personal.txt")))
@@ -67,6 +69,17 @@ class SceneryTests(unittest.TestCase):
             self.assertEqual(added.namelist(), [posed])
         scenery.assemble(self.source, self.site)
         self.assertEqual((self.site / "v1" / build.name / posed).read_bytes(), b"a posed character")
+
+    def test_descriptions_are_published_together(self):
+        (self.cache / "meshinfo").mkdir()
+        info = "meshinfo/" + "d" * 64 + ".json"
+        (self.cache / info).write_text('{"materials":["/Game/M.M"],"min":[0,0,0],"max":[1,1,1]}', encoding="utf-8")
+        build = self.export()
+        scenery.assemble(self.source, self.site)
+        output = self.site / "v1" / build.name
+        pack = json.loads((output / "descriptions.json").read_text(encoding="utf-8"))
+        self.assertEqual(pack, {info: {"materials": ["/Game/M.M"], "min": [0, 0, 0], "max": [1, 1, 1]}})
+        self.assertTrue((output / info).exists())  # still published on its own
 
     def test_index_names_the_build_the_browser_editor_draws(self):
         build = self.export()

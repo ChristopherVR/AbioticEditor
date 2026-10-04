@@ -122,12 +122,12 @@
                         <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
                         @if (HostedScenery is not null && LevelRegion is not null)
                         {
-                            <p class="wt-muted" data-b3d="models-offer">@L.Resource("World3D_SceneryOffer")</p>
+                            <small class="wt-muted" data-b3d="models-offer">@L.Resource("World3D_SceneryOffer")</small>
                             <button type="button" class="wt-btn" data-b3d="scenery-start" @onclick="AllowSceneryAsync">@L.Resource("World3D_SceneryAskYes")</button>
                         }
                         else
                         {
-                            <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
+                            <small class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</small>
                         }
                     </div>
                 }
@@ -144,8 +144,7 @@
                             @if (InBrowser)
                             {
                                 @* The website's prepared scenery: the level only, placed objects stay boxes. *@
-                                <p class="wt-muted" data-b3d="models-hosted">@L.Resource("World3D_ModelsBrowserScenery")</p>
-                                <button type="button" class="wt-btn wt-plain" data-b3d="scenery-stop" @onclick="StopSceneryAsync">@L.Resource("World3D_SceneryStop")</button>
+                                <small class="wt-muted" data-b3d="models-hosted">@L.Resource("World3D_ModelsBrowserScenery")</small>
                             }
                             else
                             {
@@ -195,6 +194,10 @@
                                     @if (_levelProgress is not null) { <small class="wt-muted" data-b3d="level-progress">@_levelProgress</small> }
                                     <small class="wt-muted">@L.Resource("World3D_LevelHint")</small>
                                 }
+                            }
+                            @if (InBrowser)
+                            {
+                                <button type="button" class="wt-btn wt-plain" data-b3d="scenery-stop" @onclick="StopSceneryAsync">@L.Resource("World3D_SceneryStop")</button>
                             }
                         }
                     </div>
@@ -1701,10 +1704,13 @@
         else
         {
             // For a finished level load, done is the piece count and total the files still being read.
-            _levelBusy = note is "query" or "meshes" or "textures" || (note is null && total > 0);
+            _levelBusy = note is "query" or "download" or "meshes" or "textures" || (note is null && total > 0);
+            // The browser build downloading an area's level files (the slow part of a first look there).
+            _levelFraction = note == "download" && total > 0 ? Math.Clamp((double)done / total, 0, 1) : null;
             _levelProgress = note switch
             {
                 "query" => L.Resource("World3D_LevelQuerying"),
+                "download" => L.Resource("World3D_LevelDownloadingFormat", done, total),
                 "meshes" => L.Resource("World3D_LevelMeshesFormat", done, total),
                 "textures" => L.Resource("World3D_LevelTextures"),
                 "none" => L.Resource("World3D_LevelNone"),

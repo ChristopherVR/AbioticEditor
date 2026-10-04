@@ -33,6 +33,7 @@ public partial class WorldBases3DTab
     private (int Done, int Total) _modelCounts;
     private (int Done, int Total) _textureCounts;
     private bool _levelBusy;
+    private double? _levelFraction;
 
     /// <summary>What the view is still waiting for; empty once everything has arrived.</summary>
     private List<LoadingLine> LoadingLines()
@@ -43,7 +44,7 @@ public partial class WorldBases3DTab
             lines.Add(new LoadingLine(L.Resource("World3D_ModelsProgressFormat", _modelCounts.Done, _modelCounts.Total), (double)_modelCounts.Done / _modelCounts.Total));
         if (_textureCounts.Total > 0 && _textureCounts.Done < _textureCounts.Total)
             lines.Add(new LoadingLine(L.Resource("World3D_TexturesProgressFormat", _textureCounts.Done, _textureCounts.Total), (double)_textureCounts.Done / _textureCounts.Total));
-        if (_levelOn && _levelBusy && _levelProgress is not null) lines.Add(new LoadingLine(_levelProgress, null));
+        if (_levelOn && _levelBusy && _levelProgress is not null) lines.Add(new LoadingLine(_levelProgress, _levelFraction));
         return lines;
     }
 }

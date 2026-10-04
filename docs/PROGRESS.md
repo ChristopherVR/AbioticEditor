@@ -1,5 +1,22 @@
 # Abiotic Editor - Session history
 
+## Round-169: the browser's first look at an area loads faster and says how far it got (2026-10-04)
+
+- Measured on the live site (Facility_Office1, 40 m): 20 s went on about a thousand tiny
+  description files (440 meshinfo, 560 materials, 38 alpha checks) before the first mesh, then
+  meshes trickled in at about 1 MB/s with six fetches at a time; the loading box only said "Finding
+  the level around the view..." with no count, and the texture count chased its own total.
+- `tools/scenery.py assemble` also publishes `descriptions.json` per build: every meshinfo, material,
+  alpha check and terrain material (2.6 MB, about 330 KB compressed). The reader loads it once and
+  answers from it, falling back to single files when a build has none. A first look at an area is
+  now index, world, descriptions and its level files: well under twenty requests.
+- `base3d.js` fetches up to 24 meshes at once for hosted scenery (six for the desktop's own host),
+  and polls the reader's download counts while a level query runs: the loading box shows
+  "Downloading the level: n of m files" with a bar.
+- The browser panel's texts are small like the rest of the panel, and "Stop downloading the level"
+  moved below the level controls.
+- Verified: pack and single files give identical slices; browser and desktop still identical.
+
 ## Round-168: the desktop never downloads scenery; the browser's is complete and safe from download managers (2026-10-04)
 
 - The desktop never downloads scenery now. Round-166's hosted download path (`HostedSceneryCache`,
