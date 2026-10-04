@@ -68,7 +68,37 @@ async function postJson(url, body) {
     return response.json();
 }
 
+// Where game models come from. The desktop editor answers on its own endpoints (MODEL_BASE), read
+// from the installed game. The browser editor has no game: there a reader in the app answers level
+// queries from the prepared scenery the website hosts (HostedSceneryReader), set by useHostedScenery.
+let hostedScenery = null;
+
+/** The browser editor: level scenery comes from the website's prepared files through this reader. */
+export function useHostedScenery(reader) {
+    hostedScenery = reader ?? null;
+}
+
+/** Whether game models can be shown: {available, installed, title, plugin}. */
+async function modelStatusRequest() {
+    if (hostedScenery) return hostedScenery.invokeMethodAsync("Status");
+    const response = await fetch(`${MODEL_BASE}/status`);
+    if (!response.ok) return { available: false, installed: false };
+    return response.json();
+}
+
+/** The level around a box (see SceneLevelQuery); null when there is none. */
+function levelRequest(query) {
+    return hostedScenery ? hostedScenery.invokeMethodAsync("DescribeLevel", query) : postJson(`${MODEL_BASE}/level`, query);
+}
+
+/** How to draw each class path; a class left out stays a box. */
+function classesRequest(paths) {
+    return hostedScenery ? hostedScenery.invokeMethodAsync("DescribeClasses", paths) : postJson(`${MODEL_BASE}/classes`, paths);
+}
+
 function assetUrl(id) {
+    // Hosted scenery names each mesh and texture by its own address on the website.
+    if (hostedScenery) return id;
     return `${MODEL_BASE}/asset/${id.split("/").map(encodeURIComponent).join("/")}`;
 }
 
@@ -168,7 +198,7 @@ export function fitToWindow(root) {
 let shotView = null;
 export async function mapBackdrop(options) {
     try {
-        const status = await (await fetch(`${MODEL_BASE}/status`)).json();
+        const status = await modelStatusRequest();
         if (!status?.available) return null;
     } catch {
         return null;
@@ -1241,7 +1271,7 @@ function buildView(host, dotnet) {
         const runChunk = async chunk => {
             let answer;
             try {
-                answer = await postJson(`${MODEL_BASE}/classes`, chunk) ?? {};
+                answer = await classesRequest(chunk) ?? {};
             } catch {
                 for (const cls of chunk) classModels.set(cls, { state: "none" });
                 done += chunk.length;
@@ -1528,7 +1558,7 @@ function buildView(host, dotnet) {
         let slice;
         report("level", 0, 0, "query");
         try {
-            slice = await postJson(`${MODEL_BASE}/level`, {
+            slice = await levelRequest({
                 region: levelOptions.region,
                 min: [c.x - r, c.y - r / 2, c.z - r],
                 max: [c.x + r, c.y + r / 2, c.z + r],
@@ -2544,9 +2574,7 @@ function buildView(host, dotnet) {
          */
         async modelStatus() {
             try {
-                const response = await fetch(`${MODEL_BASE}/status`);
-                if (!response.ok) return { available: false, installed: false };
-                return await response.json();
+                return await modelStatusRequest();
             } catch {
                 return { available: false, installed: false };
             }
@@ -2775,7 +2803,7 @@ function buildView(host, dotnet) {
          */
         async thumbnail(options) {
             const { region, actor, center, front, size = 512, radius = 25 } = options ?? {};
-            const slice = await postJson(`${MODEL_BASE}/level`, {
+            const slice = await levelRequest({
                 region,
                 min: [center[0] - radius, center[1] - radius, center[2] - radius],
                 max: [center[0] + radius, center[1] + radius, center[2] + radius],
@@ -2816,7 +2844,7 @@ function buildView(host, dotnet) {
          */
         async classThumbnail(options) {
             const { cls, size = 512 } = options ?? {};
-            const answer = await postJson(`${MODEL_BASE}/classes`, [cls]) ?? {};
+            const answer = await classesRequest([cls]) ?? {};
             const description = answer[cls];
             if (!description?.parts?.length) return null;
             const group = new THREE.Group();
@@ -2866,7 +2894,7 @@ function buildView(host, dotnet) {
             // on disk (other sizes had to be read from the game files again, a minute and more).
             const f = focus ? new THREE.Vector3(...focus) : c;
             const r = Math.max(Math.abs(c.x - f.x) + metresWide / 2, Math.abs(c.z - f.z) + metresHigh / 2) + 2;
-            const slice = await postJson(`${MODEL_BASE}/level`, {
+            const slice = await levelRequest({
                 region, min: [f.x - r, floorY - 4, f.z - r], max: [f.x + r, floorY + cutAbove + 1, f.z + r], maxInstances: 12000,
             });
             // Level files still being read (the first time, or after a game update): the picture would be
@@ -2948,8 +2976,8 @@ function buildView(host, dotnet) {
             const { region, actor, center, front, width = 384, height = 240, radius = 16, cutAbove = 2.6, distance = 12 } = options ?? {};
             const query = r => ({ region, min: [center[0] - r, center[1] - r, center[2] - r], max: [center[0] + r, center[1] + r, center[2] + r], maxInstances: 6000 });
             const [around, own] = await Promise.all([
-                postJson(`${MODEL_BASE}/level`, query(radius)),
-                postJson(`${MODEL_BASE}/level`, { ...query(radius), onlyActors: [actor] }),
+                levelRequest(query(radius)),
+                levelRequest({ ...query(radius), onlyActors: [actor] }),
             ]);
             if ((around?.pendingMaps ?? 0) > 0 || (own?.pendingMaps ?? 0) > 0) return { pending: true };
             const build = async (slice, group, box, materials) => {

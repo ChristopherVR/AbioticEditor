@@ -1,10 +1,14 @@
 # Desktop scenery on GitHub Pages
 
 This directory is a Pages-only data source. It is never linked into a desktop, CLI or
-browser editor project. The desktop GameModels3D provider downloads matching files from
-`https://christophervr.github.io/AbioticEditor/scenery/v1/` into its ordinary user cache.
-The browser editor continues to use boxes. The desktop publish target rejects any
-attempt to include this directory in the app package.
+browser editor project. Its main reader is the browser editor, which cannot read an installed
+game: `HostedSceneryReader` (Web.Shared) answers the 3D view's level queries from
+`https://christophervr.github.io/AbioticEditor/scenery/v1/`, beside `/app/`, exactly as the
+desktop provider answers them from a full cache. It draws the build `v1/index.json` names as
+`latest`. The desktop GameModels3D provider also downloads files from here, but only when its
+installed game's signature matches a hosted build exactly; after a game update it reads the
+game itself. The desktop publish target rejects any attempt to include this directory in the
+app package.
 
 Each build directory is named for a portable signature of the installed base game's
 archive indexes, archive sizes and mappings. Pak footers and complete IoStore tables
@@ -41,7 +45,8 @@ chunks deliberately. Commit the complete export with its manifests. Do not place
 personal saves or user settings here.
 
 `docs.yml` verifies and extracts every source chunk into the combined Pages artifact,
-outside `/app/`. It fails on missing files, duplicate names, unsafe paths, incorrect
+outside `/app/`, and writes `v1/index.json`. With more than one build here, put the newest
+build's signature in `latest.txt` so the browser editor draws it. It fails on missing files, duplicate names, unsafe paths, incorrect
 sizes/hashes or a combined site larger than 900 MiB. Old build exports must be removed
 when necessary to keep the site within this budget; desktop clients retain downloaded
 data and can fall back to their own game files.

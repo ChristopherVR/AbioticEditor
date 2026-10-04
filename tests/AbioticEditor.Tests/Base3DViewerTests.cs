@@ -653,13 +653,22 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
-    public void The_browser_build_offers_the_3D_view_with_boxes_and_never_asks_for_models()
+    public void The_browser_build_draws_its_objects_as_boxes_inside_the_hosted_scenery()
     {
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("private bool ThreeDViewAvailable => IsBrowserHost || GameModelsAvailable;", surface, StringComparison.Ordinal);
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
-        Assert.Contains("if (_view is null || InBrowser) return;", tab, StringComparison.Ordinal); // no model status request
-        Assert.Contains("World3D_ModelsBrowser", tab, StringComparison.Ordinal);
+        // The level comes from the website's prepared scenery; placed objects keep their boxes.
+        Assert.Contains("await _module.InvokeVoidAsync(\"useHostedScenery\", _hostedScenery);", tab, StringComparison.Ordinal);
+        Assert.Contains("_modelsOn = _modelStatus.Available && !InBrowser", tab, StringComparison.Ordinal);
+        Assert.Contains("World3D_ModelsBrowserScenery", tab, StringComparison.Ordinal);
+        Assert.Contains("World3D_ModelsBrowser\"", tab, StringComparison.Ordinal); // no scenery on this site
+        var js = UiSource.ReadAllText("wwwroot", "base3d.js");
+        Assert.Contains("export function useHostedScenery(reader)", js, StringComparison.Ordinal);
+        Assert.Contains("hostedScenery.invokeMethodAsync(\"DescribeLevel\", query)", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("postJson(`${MODEL_BASE}/level`, {", js, StringComparison.Ordinal); // every level query can go either way
+        var program = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Web.Wasm", "Program.cs"));
+        Assert.Contains("new HostedSceneryReader(", program, StringComparison.Ordinal);
     }
 
     [Fact]

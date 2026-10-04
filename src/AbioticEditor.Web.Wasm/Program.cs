@@ -82,6 +82,9 @@ builder.Services.AddScoped<IBrowserHostMarker, BrowserHostMarker>();
 // The browser build cannot see the player's installed game or its mods, so every save open here
 // gets a disclaimer first - see BrowserModDisclaimerGate. The desktop host registers a no-op.
 builder.Services.AddScoped<IModDisclaimerGate, BrowserModDisclaimerGate>();
+// The level around a base in the 3D view, from the prepared scenery the website hosts beside this
+// app (a browser cannot read the installed game). Absent from the desktop host, which reads its game.
+builder.Services.AddScoped(sp => new HostedSceneryReader(sp.GetRequiredService<HttpClient>()));
 
 var host = builder.Build();
 UseBrowserStorageForPreferences(host.Services);

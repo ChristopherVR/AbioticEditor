@@ -95,6 +95,7 @@ def export(cache, paks, mappings, destination):
 
 
 def assemble(source, destination):
+    builds = []
     for build in sorted(source.iterdir()):
         if not build.is_dir() or not re.fullmatch(r"[a-f0-9]{64}", build.name):
             continue
@@ -126,10 +127,24 @@ def assemble(source, destination):
         if seen != set(expected):
             raise ValueError("Scenery export is missing assets")
         shutil.copyfile(build / "manifest.json", output / "manifest.json")
+        builds.append(build.name)
         print(f"Assembled {len(seen)} verified scenery assets for {build.name}")
+    write_index(source, destination, builds)
     total = sum(p.stat().st_size for p in destination.parent.rglob("*") if p.is_file())
     if total > 900 * 1024 * 1024:
         raise ValueError("Combined Pages site exceeds the 900 MiB publishing budget")
+
+
+def write_index(source, destination, builds):
+    """Names the build the browser editor draws (it cannot fingerprint an installed game)."""
+    if not builds:
+        raise ValueError("No scenery builds to publish")
+    marker = source / "latest.txt"
+    latest = marker.read_text(encoding="utf-8").strip() if marker.exists() else (builds[0] if len(builds) == 1 else None)
+    if latest not in builds:
+        raise ValueError("Several scenery builds: name the newest in assets/scenery/latest.txt")
+    index = {"format": 1, "latest": latest, "builds": builds}
+    (destination / "v1" / "index.json").write_text(json.dumps(index, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

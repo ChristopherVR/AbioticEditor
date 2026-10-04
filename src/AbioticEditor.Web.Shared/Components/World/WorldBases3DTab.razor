@@ -69,7 +69,7 @@
                             {
                                 <label class="b3d-menu-check"><input type="checkbox" checked="@_thingsOn" data-b3d="things-toggle" @onchange="e => SetThingsVisibleAsync(e.Value is true)" /> @L.Resource("World3D_ThingsToggle")</label>
                             }
-                            @if (!InBrowser && _modelStatus is { Available: true } && LevelRegion is not null)
+                            @if (_modelStatus is { Available: true } && LevelRegion is not null)
                             {
                                 <label class="b3d-menu-check"><input type="checkbox" checked="@_levelOn" data-b3d="level-quick" @onchange="e => SetLevelAsync(e.Value is true)" /> @L.Resource("World3D_LevelQuick")</label>
                             }
@@ -103,7 +103,7 @@
                 </div>
                             </section>
                             <section class="b3d-menu-section" data-b3d="display-section">
-                @if (InBrowser)
+                @if (InBrowser && _modelStatus is not { Available: true })
                 {
                     <div class="wt-card b3d-panel" data-b3d="models">
                         <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
@@ -120,10 +120,18 @@
                         }
                         else
                         {
-                            <label class="wt-check">
-                                <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
-                                @L.Resource("World3D_ModelsShow")
-                            </label>
+                            @if (InBrowser)
+                            {
+                                @* The website's prepared scenery: the level only, placed objects stay boxes. *@
+                                <p class="wt-muted" data-b3d="models-hosted">@L.Resource("World3D_ModelsBrowserScenery")</p>
+                            }
+                            else
+                            {
+                                <label class="wt-check">
+                                    <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
+                                    @L.Resource("World3D_ModelsShow")
+                                </label>
+                            }
                             @if (!string.IsNullOrEmpty(ms.Plugin)) { <small class="wt-muted">@L.Resource("World3D_ModelsFromFormat", ms.Plugin)</small> }
                             @if (_modelsOn && _modelProgress is not null) { <small class="wt-muted" data-b3d="models-progress">@_modelProgress</small> }
 
@@ -1473,8 +1481,13 @@
     /// <summary>The region this save covers, which names the game level to draw (null for a non-region save).</summary>
     private string? LevelRegion => Base3DScene.RegionOf(Session.Path);
 
-    /// <summary>The browser build: no game files and no model endpoints, so every piece is a box.</summary>
+    /// <summary>
+    /// The browser build: no game files and no model endpoints, so every piece is a box. The level
+    /// around it can still come from the website's prepared scenery (<see cref="HostedSceneryReader"/>).
+    /// </summary>
     private bool InBrowser => Services.GetService(typeof(IBrowserHostMarker)) is not null;
+
+    private DotNetObjectReference<HostedSceneryReader>? _hostedScenery;
 
     /// <summary>
     /// Game models and the level around the view are on by default whenever the game files can be
@@ -1482,11 +1495,19 @@
     /// </summary>
     private async Task InitModelsAsync()
     {
-        if (_view is null || InBrowser) return;
+        if (_view is null) return;
         try
         {
+            if (InBrowser)
+            {
+                // No game here: the level comes from the website's prepared scenery, when this host has a reader for it.
+                if (_module is null || Services.GetService(typeof(HostedSceneryReader)) is not HostedSceneryReader hosted) return;
+                _hostedScenery ??= DotNetObjectReference.Create(hosted);
+                await _module.InvokeVoidAsync("useHostedScenery", _hostedScenery);
+            }
             _modelStatus = await _view.InvokeAsync<ModelStatus>("modelStatus");
-            _modelsOn = _modelStatus.Available && (_keptModelsOn ?? true);
+            // Only level scenery is hosted, so in the browser placed objects keep their boxes.
+            _modelsOn = _modelStatus.Available && !InBrowser && (_keptModelsOn ?? true);
             if (_modelsOn) await _view.InvokeVoidAsync("setModelsEnabled", true);
             // The level waits for this answer: without the game files there is no level to draw.
             if (_levelOn && _modelStatus.Available) await PushLevelAsync();
@@ -2189,5 +2210,6 @@
         }
         catch (Exception ex) when (ex is JSDisconnectedException or JSException or OperationCanceledException) { }
         _self?.Dispose();
+        _hostedScenery?.Dispose();
     }
 }

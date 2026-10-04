@@ -41,6 +41,26 @@ class SceneryTests(unittest.TestCase):
         self.assertFalse(list(output.rglob("*.zip")))
         self.assertFalse(list(output.rglob("personal.txt")))
 
+    def test_index_names_the_build_the_browser_editor_draws(self):
+        build = self.export()
+        scenery.assemble(self.source, self.site)
+        index = json.loads((self.site / "v1" / "index.json").read_text(encoding="utf-8"))
+        self.assertEqual(index, {"format": 1, "latest": build.name, "builds": [build.name]})
+
+    def test_several_builds_need_the_newest_named(self):
+        build = self.export()
+        (self.paks / "game.utoc").write_bytes(b"index two")
+        self.cache.rename(self.root / scenery.local_stamp(self.paks))
+        self.cache = self.root / scenery.local_stamp(self.paks)
+        newer = self.export()
+        with self.assertRaises(ValueError):
+            scenery.assemble(self.source, self.site)
+        (self.source / "latest.txt").write_text(newer.name + "\n", encoding="utf-8")
+        scenery.assemble(self.source, self.site)
+        index = json.loads((self.site / "v1" / "index.json").read_text(encoding="utf-8"))
+        self.assertEqual(index["latest"], newer.name)
+        self.assertEqual(sorted(index["builds"]), sorted([build.name, newer.name]))
+
     def test_stale_cache_cannot_be_mislabeled_as_a_new_game_build(self):
         (self.paks / "game.pak").write_bytes(b"a new game version")
         with self.assertRaisesRegex(ValueError, "does not match"):

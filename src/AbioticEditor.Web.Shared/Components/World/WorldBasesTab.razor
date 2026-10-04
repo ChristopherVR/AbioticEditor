@@ -385,6 +385,7 @@
     public void Dispose()
     {
         _disposedBackdrop = true;
+        _hostedScenery?.Dispose();
         Selection.Changed -= Refresh;
         // Leaving this tab must not leave the sidebar pointing at slots it can no longer apply.
         if (Selection.Current is { } current && ReferenceEquals(current.Slots, _slotEdits)) Selection.Clear();

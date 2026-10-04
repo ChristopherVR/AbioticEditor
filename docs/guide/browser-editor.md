@@ -45,7 +45,7 @@ The editor remembers recent folders as bookmarks, not copies of your saves. When
 
 ## Jobs that need the desktop app
 
-The browser edition handles ordinary player and world editing: inventory, skills, recipes, GatePal entries, containers, story events, pets, vehicles, story progress, character appearance and the world lists. It has the [3D view](./3d-view) too, with every piece drawn as a box. Use the [desktop app](./desktop-app) for these jobs:
+The browser edition handles ordinary player and world editing: inventory, skills, recipes, GatePal entries, containers, story events, pets, vehicles, story progress, character appearance and the world lists. It has the [3D view](./3d-view) too: the level around your base is downloaded from this website, and your own pieces are drawn as boxes. Use the [desktop app](./desktop-app) for these jobs:
 
 | Job | Why it needs desktop |
 | --- | --- |

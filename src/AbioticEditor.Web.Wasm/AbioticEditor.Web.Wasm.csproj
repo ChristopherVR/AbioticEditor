@@ -39,6 +39,9 @@
          packing up the arguments - before the chooser could even appear, so OPEN APPEARANCE FILE
          reported that the file could not be read when no file had been chosen yet. -->
     <TrimmerRootAssembly Include="AbioticEditor.Ui.Abstractions" />
+    <!-- The 3D view's level queries and answers (SceneLevelQuery, SceneLevelSlice) cross to
+         JavaScript the same way, read and written by the JSON serializer from their constructors. -->
+    <TrimmerRootAssembly Include="AbioticEditor.Plugins.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

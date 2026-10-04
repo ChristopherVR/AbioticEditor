@@ -1,5 +1,6 @@
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
+using AbioticEditor.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -8,13 +9,16 @@ namespace AbioticEditor.Web.Components.World;
 /// <summary>
 /// The Bases map's backdrop: the level under the bases seen straight from above, cut a few metres
 /// over the floor of the base looked at, drawn by the 3D view's renderer (hidden) where the game's
-/// files can be read. It lies exactly under the map's markers. Without the game files (or in the
-/// browser build) the map keeps its plain grid. Pictures are kept for the session, one per map
+/// files can be read, or (in the browser build) from the website's prepared scenery. It lies exactly
+/// under the map's markers. Without either the map keeps its plain grid. Pictures are kept for the session, one per map
 /// framing and floor.
 /// </summary>
 public partial class WorldBasesTab
 {
     [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private IServiceProvider Services { get; set; } = null!;
+
+    private DotNetObjectReference<HostedSceneryReader>? _hostedScenery;
 
     private IJSObjectReference? _viewModule;
     private ElementReference _backdropImage;
@@ -62,7 +66,16 @@ public partial class WorldBasesTab
             var centre = PlacedSceneSpace.ToViewer(new PlacedVector((x0 + x1) / 2, (y0 + y1) / 2, floor));
             var right = Subtract(PlacedSceneSpace.ToViewer(new PlacedVector(x0 + 100, y0, floor)), PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0, floor)));
             var down = Subtract(PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0 + 100, floor)), PlacedSceneSpace.ToViewer(new PlacedVector(x0, y0, floor)));
-            _viewModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
+            if (_viewModule is null)
+            {
+                _viewModule = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/base3d.js");
+                // The browser build draws the level from the website's prepared scenery (only it registers a reader).
+                if (Services.GetService(typeof(HostedSceneryReader)) is HostedSceneryReader hosted)
+                {
+                    _hostedScenery = DotNetObjectReference.Create(hosted);
+                    await _viewModule.InvokeVoidAsync("useHostedScenery", _hostedScenery);
+                }
+            }
             var answer = await _viewModule.InvokeAsync<string>("fillMapBackdrop", _backdropImage, key, new
             {
                 region,

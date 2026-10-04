@@ -157,7 +157,7 @@ public partial class WorldBases3DTab
     /// <summary>Things in the level (doors, characters, buttons) mean little on an empty grid: the level is turned on when it can be.</summary>
     private async Task LevelForContextAsync()
     {
-        if (!_levelOn && !InBrowser && _modelStatus is { Available: true } && LevelRegion is not null) await SetLevelAsync(true);
+        if (!_levelOn && _modelStatus is { Available: true } && LevelRegion is not null) await SetLevelAsync(true);
     }
 
     private bool NotPlaced(WorldLocateTarget target)

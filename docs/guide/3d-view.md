@@ -12,7 +12,7 @@ The desktop app draws everything with the game's own models and textures. Prepar
 
 The editor still needs **your installed copy of Abiotic Factor** to identify the matching scenery and read anything that is not available online: the same setting that shows item pictures (**Settings ▸ Game data**, see [Game data](./game-data)). Offline, after an unsupported game update, or when game asset mods are loaded, it reads your game files instead. Scenery already cached on your computer remains available offline.
 
-The [browser version](./browser-editor) has the 3D view too. It cannot read game files, so every piece is drawn as a box. Moving, copying, placing and wiring work the same way.
+The [browser version](./browser-editor) has the 3D view too. It cannot read game files, so it downloads the same prepared floors, walls, terrain and level details from this website as you look around. Your own pieces are drawn as boxes there, and doors and characters need the desktop app. Moving, copying, placing and wiring work the same way.
 
 ## Get the 3D view ready
 

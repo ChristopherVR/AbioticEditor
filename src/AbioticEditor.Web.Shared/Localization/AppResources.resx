@@ -4718,6 +4718,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_TexturesProgressFormat" xml:space="preserve"><value>Loading textures: {0} of {1}</value></data>
   <data name="World3D_LevelTextures" xml:space="preserve"><value>Loading the level's textures...</value></data>
   <data name="World3D_ModelsBrowser" xml:space="preserve"><value>In the browser every piece is drawn as a box. The game's own models, the level around them, doors and characters need the desktop app, which reads them from your installed game.</value></data>
+  <data name="World3D_ModelsBrowserScenery" xml:space="preserve"><value>The level around your base is downloaded from the editor's website as you look around. Your own things are still drawn as boxes: their game models, doors and characters need the desktop app.</value></data>
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>appears when: {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>leaves when: {0}</value></data>

@@ -1,5 +1,26 @@
 # Abiotic Editor - Session history
 
+## Round-167: the browser editor draws the hosted scenery (2026-10-04)
+
+- Round-166 published the prepared scenery on Pages but wired it only into the desktop provider,
+  so the browser 3D view still drew bare boxes. The browser is the main reader now:
+  `HostedSceneryReader` (Web.Shared, registered by the WASM host only) answers level queries
+  from `/scenery/v1/<build>/` beside `/app/`, porting `PakSceneModelProvider.DescribeLevel`, the
+  level index format and the material rules over async downloads. Mesh and texture ids in its
+  answers are the hosted files' own addresses, so `base3d.js` fetches them straight from Pages.
+- `base3d.js` routes status, class and level requests through `useHostedScenery(reader)` when
+  set (the desktop endpoints otherwise). In the browser the level, lamps and level controls show;
+  placed objects stay boxes (no `classes-v4` is hosted), and doors, characters and level things
+  still need the desktop. The browser panel says so (`World3D_ModelsBrowserScenery`).
+- `tools/scenery.py assemble` writes `v1/index.json` naming the build the browser draws (it cannot
+  fingerprint a game); several builds need `assets/scenery/latest.txt`.
+- Desktop behaviour is unchanged: it only uses hosted files when its installed game's signature
+  matches a hosted build exactly, and reads the game itself after an update.
+- Verified: `HostedSceneryReaderTests` serves the committed source packs to both the browser
+  reader and the desktop provider and requires identical slices (Facility_Office1 and Facility,
+  with doors open and actors excluded); every mesh and texture address it returns exists in the
+  build. Python packaging tests cover the index.
+
 ## Round-166: Pages-only scenery downloads for the desktop app (2026-10-03)
 
 - The desktop Game Models provider downloads matching prepared scenery into its normal
