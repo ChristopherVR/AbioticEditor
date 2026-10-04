@@ -369,11 +369,33 @@ public sealed partial class HostedSceneryReader : IDisposable
         await _downloads.WaitAsync().ConfigureAwait(false);
         try
         {
-            using var response = await _http.GetAsync(new Uri(build, $"{folder}/{Hash(key)}{extension}")).ConfigureAwait(false);
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false) : null;
+            using var response = await _http.GetAsync(new Uri(build, PublishedPath($"{folder}/{Hash(key)}{extension}"))).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return null;
+            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            // Every hosted file has content. An empty answer ("204 No Content") is what a browser download
+            // manager leaves behind when it takes a request for itself: counted as missing, never retried
+            // (each retry could ask the player to save the file again), and said once in the log.
+            if (bytes.Length == 0)
+            {
+                if (Interlocked.Exchange(ref _capturedWarned, 1) == 0)
+                    EditorLog.Warn("Scene", $"Hosted scenery came back empty ({(int)response.StatusCode}); a download manager may be capturing the website's files.");
+                return null;
+            }
+            return bytes;
         }
         finally { _downloads.Release(); }
     }
+
+    private int _capturedWarned;
+
+    /// <summary>
+    /// Where a cache file is published: level indexes are cached as <c>.bin</c> but published as
+    /// <c>.ali</c>, as download managers capture every <c>.bin</c> address (see
+    /// <c>HostedSceneryCache.PublishedPath</c> in the GameModels3D plugin and <c>published_name</c> in
+    /// <c>tools/scenery.py</c>).
+    /// </summary>
+    public static string PublishedPath(string key)
+        => key.EndsWith(".bin", StringComparison.Ordinal) ? key[..^4] + ".ali" : key;
 
     /// <summary>The prepared build the website offers (its <c>index.json</c> names the newest), or null.</summary>
     private async Task<Uri?> FindBuildAsync()

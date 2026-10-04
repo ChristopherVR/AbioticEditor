@@ -36,10 +36,19 @@ class SceneryTests(unittest.TestCase):
         build = self.export()
         scenery.assemble(self.source, self.site)
         output = self.site / "v1" / build.name
-        self.assertEqual((output / self.key).read_bytes(), b"prepared level")
-        self.assertEqual(len(list(output.rglob("*.bin"))), 1)
+        # Level indexes are published as .ali: download managers capture any .bin address.
+        self.assertEqual((output / scenery.published_name(self.key)).read_bytes(), b"prepared level")
+        self.assertEqual(len(list(output.rglob("*.ali"))), 1)
+        self.assertFalse(list(output.rglob("*.bin")))
         self.assertFalse(list(output.rglob("*.zip")))
         self.assertFalse(list(output.rglob("personal.txt")))
+
+    def test_published_names_avoid_extensions_download_managers_capture(self):
+        self.assertEqual(scenery.published_name("levels/" + "b" * 64 + ".bin"), "levels/" + "b" * 64 + ".ali")
+        self.assertEqual(scenery.published_name("meshes/" + "b" * 64 + ".abm"), "meshes/" + "b" * 64 + ".abm")
+        for key in ["textures/x.zip", "levels/x.gz", "meshes/x.exe"]:
+            with self.assertRaises(ValueError):
+                scenery.published_name(key)
 
     def test_index_names_the_build_the_browser_editor_draws(self):
         build = self.export()

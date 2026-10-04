@@ -87,7 +87,7 @@ internal sealed partial class HostedSceneryCache
         try
         {
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            using var response = _client.GetAsync(new Uri(_root, key), HttpCompletionOption.ResponseHeadersRead, deadline.Token).GetAwaiter().GetResult();
+            using var response = _client.GetAsync(new Uri(_root, PublishedPath(key)), HttpCompletionOption.ResponseHeadersRead, deadline.Token).GetAwaiter().GetResult();
             response.EnsureSuccessStatusCode();
             using var stream = response.Content.ReadAsStream();
             var bytes = ReadLimited(stream, (int)entry.Size, deadline.Token);
@@ -125,6 +125,15 @@ internal sealed partial class HostedSceneryCache
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
+
+    /// <summary>
+    /// Where a cache file is published. Level indexes are cached as <c>.bin</c> but published as
+    /// <c>.ali</c> (their <c>ALI1</c> header): browser download managers capture every <c>.bin</c> address,
+    /// even a page's own background request, which emptied the browser editor's levels and could pop up a
+    /// download prompt per file. Matches <c>published_name</c> in <c>tools/scenery.py</c>.
+    /// </summary>
+    internal static string PublishedPath(string key)
+        => key.EndsWith(".bin", StringComparison.Ordinal) ? key[..^4] + ".ali" : key;
 
     [GeneratedRegex("^[a-z0-9-]+/[a-f0-9]{64}\\.(json|bin|abm|png)$", RegexOptions.CultureInvariant)]
     private static partial Regex CacheFile();

@@ -11,6 +11,11 @@ FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "meshes
            "meshes-posed-v2", "meshes-terrain-v3", "textures", "terrain-materials-v1", "texture-alpha-v1"}
 FILE = re.compile(r"[a-z0-9-]+/[a-f0-9]{64}\.(?:json|bin|abm|png)\Z")
 CHUNK_BYTES = 80 * 1024 * 1024
+# Extensions browser download managers (IDM, FDM and the like) capture by default. A published
+# scenery file must not end in one, or the browser editor's request for it is taken away.
+CAPTURED_EXTENSIONS = {".7z", ".aac", ".apk", ".arj", ".avi", ".bin", ".bz2", ".cab", ".dmg", ".exe", ".gz",
+                       ".gzip", ".img", ".iso", ".lzh", ".m4a", ".mkv", ".mov", ".mp3", ".mp4", ".mpg", ".msi",
+                       ".ogg", ".pdf", ".rar", ".tar", ".tgz", ".wav", ".wma", ".wmv", ".xz", ".z", ".zip"}
 
 
 def digest(data):
@@ -120,7 +125,7 @@ def assemble(source, destination):
                     data = archive.read(item)
                     if digest(data) != entry["sha256"]:
                         raise ValueError(f"Incorrect scenery hash: {key}")
-                    target = output / key
+                    target = output / published_name(key)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(data)
                     seen.add(key)
@@ -133,6 +138,19 @@ def assemble(source, destination):
     total = sum(p.stat().st_size for p in destination.parent.rglob("*") if p.is_file())
     if total > 900 * 1024 * 1024:
         raise ValueError("Combined Pages site exceeds the 900 MiB publishing budget")
+
+
+def published_name(key):
+    """Where a cache file is published (HostedSceneryCache.PublishedPath).
+
+    Browser download managers capture requests by the address's file extension, even a page's
+    own background requests, and .bin is on their lists: level indexes (cached as .bin) are
+    published as .ali, after their ALI1 header. Every other name is kept.
+    """
+    name = key[:-4] + ".ali" if key.endswith(".bin") else key
+    if Path(name).suffix.lower() in CAPTURED_EXTENSIONS:
+        raise ValueError(f"Download managers would capture this published file: {name}")
+    return name
 
 
 def write_index(source, destination, builds):

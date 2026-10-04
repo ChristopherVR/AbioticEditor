@@ -28,6 +28,17 @@ public sealed class HostedSceneryCacheTests
     }
 
     [Fact]
+    public void Level_indexes_are_downloaded_from_their_published_ali_name()
+    {
+        var level = Filename.Replace(".abm", ".bin", StringComparison.Ordinal);
+        using var fixture = new Fixture(cacheKey: "levels/" + level);
+        var target = Path.Combine(fixture.Directory, level);
+        Assert.True(fixture.Cache.Fetch("levels", level, target));
+        Assert.EndsWith("/levels/" + level.Replace(".bin", ".ali", StringComparison.Ordinal), fixture.Paths[^1], StringComparison.Ordinal);
+        Assert.Equal(fixture.Bytes, File.ReadAllBytes(target)); // kept in the cache under its own .bin name
+    }
+
+    [Fact]
     public void Verified_download_is_reused_without_another_request()
     {
         using var fixture = new Fixture();
@@ -95,6 +106,7 @@ public sealed class HostedSceneryCacheTests
         public string Target => Path.Combine(Directory, Filename);
         public byte[] Bytes { get; }
         public int Requests { get; private set; }
+        public List<string> Paths { get; } = [];
         public HostedSceneryCache Cache { get; }
         private readonly string? _fault;
         private readonly HttpClient _client;
@@ -113,6 +125,7 @@ public sealed class HostedSceneryCacheTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests++;
+            Paths.Add(request.RequestUri!.AbsolutePath);
             if (_fault == "offline") throw new HttpRequestException("Offline");
             if (_fault == "missing") return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             var manifest = new HostedSceneryCache.Manifest(_fault == "format" ? 2 : 1, _fault == "signature" ? "wrong" : Signature,

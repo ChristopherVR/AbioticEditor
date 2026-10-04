@@ -75,6 +75,47 @@ public sealed class HostedSceneryReaderTests
         }
     }
 
+    [SkippableFact]
+    public async Task Level_files_are_fetched_under_a_name_download_managers_leave_alone()
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        var slice = await reader.DescribeLevelAsync(new SceneLevelQuery("Facility_Office1", [-20, -10, -20], [20, 10, 20], 500), TimeSpan.FromMinutes(2));
+        Assert.NotEmpty(slice!.Batches);
+        Assert.Contains(site.Requested, p => p.StartsWith("levels/", StringComparison.Ordinal) && p.EndsWith(".ali", StringComparison.Ordinal));
+        Assert.DoesNotContain(site.Requested, p => p.EndsWith(".bin", StringComparison.Ordinal) || p.EndsWith(".zip", StringComparison.Ordinal));
+    }
+
+    [SkippableFact]
+    public async Task A_captured_level_file_is_left_out_and_not_asked_for_again()
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        site.Captured = ".ali";
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        var query = new SceneLevelQuery("Facility_Office1", [-20, -10, -20], [20, 10, 20], 500);
+        var first = await reader.DescribeLevelAsync(query, TimeSpan.FromMinutes(2));
+        var asked = site.Requested.Count(p => p.EndsWith(".ali", StringComparison.Ordinal));
+        var second = await reader.DescribeLevelAsync(query, TimeSpan.FromMinutes(2));
+        Assert.NotNull(first);
+        Assert.Empty(first.Batches);
+        Assert.Equal(0, first.PendingMaps);
+        Assert.Empty(second!.Batches);
+        Assert.True(asked > 0);
+        // Asking again would put another "save this file?" prompt in front of the player.
+        Assert.Equal(asked, site.Requested.Count(p => p.EndsWith(".ali", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Level_indexes_are_published_as_ali_and_everything_else_keeps_its_name()
+    {
+        Assert.Equal("levels/abc.ali", HostedSceneryReader.PublishedPath("levels/abc.bin"));
+        Assert.Equal("meshes/abc.abm", HostedSceneryReader.PublishedPath("meshes/abc.abm"));
+        Assert.Equal(HostedSceneryReader.PublishedPath("levels/abc.bin"), HostedSceneryCache.PublishedPath("levels/abc.bin"));
+        Assert.Equal(HostedSceneryReader.PublishedPath("textures/abc.png"), HostedSceneryCache.PublishedPath("textures/abc.png"));
+    }
+
     [Fact]
     public async Task Without_hosted_scenery_the_browser_keeps_its_boxes()
     {
@@ -135,6 +176,9 @@ public sealed class HostedSceneryReaderTests
 
         public string Signature { get; }
 
+        /// <summary>Addresses ending in this are taken by a (pretend) download manager.</summary>
+        public string? Captured { get; set; }
+
         public Uri Build { get; }
 
         public static HostedSite? Open()
@@ -148,15 +192,28 @@ public sealed class HostedSceneryReaderTests
 
         public bool Has(string key) => _files.ContainsKey(key);
 
+        /// <summary>Every published path asked for, in order.</summary>
+        public System.Collections.Concurrent.ConcurrentQueue<string> Requested { get; } = new();
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.AbsoluteUri;
+            // A download manager taking the request for itself leaves the page an empty "204 No Content".
+            if (Captured is { } captured && path.EndsWith(captured, StringComparison.Ordinal))
+            {
+                Requested.Enqueue(path[Build.AbsoluteUri.Length..]);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { Content = new ByteArrayContent([]) });
+            }
             byte[]? data = null;
             if (path == new Uri(Root, "index.json").AbsoluteUri)
                 data = Encoding.UTF8.GetBytes($$"""{"format":1,"latest":"{{Signature}}","builds":["{{Signature}}"]}""");
             else if (path.StartsWith(Build.AbsoluteUri, StringComparison.Ordinal))
             {
-                var key = path[Build.AbsoluteUri.Length..];
+                // As published on Pages: level indexes only under their .ali name (see scenery.py published_name).
+                var published = path[Build.AbsoluteUri.Length..];
+                var key = published.EndsWith(".ali", StringComparison.Ordinal) ? published[..^4] + ".bin"
+                    : published.EndsWith(".bin", StringComparison.Ordinal) ? "" : published;
+                Requested.Enqueue(published);
                 if (key == "manifest.json") data = _manifest;
                 else if (_files.TryGetValue(key, out var entry))
                 {

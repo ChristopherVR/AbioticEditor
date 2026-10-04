@@ -44,6 +44,14 @@ outside this source directory when refreshing the same game build, then replace 
 chunks deliberately. Commit the complete export with its manifests. Do not place raw paks,
 personal saves or user settings here.
 
+Level indexes are cached (and packed here) as `levels/<hash>.bin` but published as
+`levels/<hash>.ali`. Browser download managers such as IDM capture requests by the address's
+file extension, including a page's own background requests, and `.bin` is on their default
+lists: the browser editor's level requests came back empty and could prompt the player to save
+each file. `assemble` refuses to publish any name ending in a commonly captured extension, and
+both downloaders ask for the published name (`HostedSceneryCache.PublishedPath`,
+`HostedSceneryReader.PublishedPath`). The manifest keeps the cache names.
+
 `docs.yml` verifies and extracts every source chunk into the combined Pages artifact,
 outside `/app/`, and writes `v1/index.json`. With more than one build here, put the newest
 build's signature in `latest.txt` so the browser editor draws it. It fails on missing files, duplicate names, unsafe paths, incorrect

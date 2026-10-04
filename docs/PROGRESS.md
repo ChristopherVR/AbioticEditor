@@ -1,5 +1,25 @@
 # Abiotic Editor - Session history
 
+## Round-168: download managers no longer swallow the browser's scenery (2026-10-04)
+
+- With Internet Download Manager's browser extension installed, every hosted level index
+  (`levels/*.bin`) came back as an empty "204 Intercepted by the IDM Advanced Integration", so the
+  browser 3D view drew no level, and each one could prompt the player to save the file.
+- Measured in a browser with IDM: capture depends only on the address's file extension (`.bin`,
+  `.zip`, `.gz`, `.tar`, `.img`, `.iso`, `.pdf`, `.exe` captured at every content type and size;
+  `.abm`, `.png`, `.json`, `.wasm`, `.ali` and other unlisted extensions never). Pages serves `.bin`
+  and `.abm` alike as `application/octet-stream`, so the type was never the trigger.
+- Level indexes are now published as `levels/<hash>.ali` (their `ALI1` header); cache files, source
+  packs and manifest keys keep `.bin`, so nothing was re-exported. `scenery.py` refuses to publish a
+  name ending in a commonly captured extension. Both downloaders ask for the published name.
+- The browser reader counts an empty hosted answer as missing, never retries it (no repeated
+  prompts), and logs once that a download manager may be capturing the files.
+- Released v2.26.0 desktops still ask Pages for `.bin`, get 404, mark hosted scenery offline for
+  the session and read their installed game instead (their documented fallback) until they update.
+- Verified: scenery, 3D and hosted-cache tests (browser and desktop answers still identical through
+  the `.ali` names; a captured level is left out and asked for once); Python packaging tests; and
+  the published browser editor in the IDM browser, where the level now loads with no captures.
+
 ## Round-167: the browser editor draws the hosted scenery (2026-10-04)
 
 - Round-166 published the prepared scenery on Pages but wired it only into the desktop provider,
