@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.26.3] - 2026-10-04
+
+### Bug Fixes
+- The web version's 3D level loads much faster and shows how far it has got
+
+
 ## [2.26.2] - 2026-10-04
 
 ### Bug Fixes
