@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.26.1] - 2026-10-04
+
+### Bug Fixes
+- The browser editor's 3D view now shows the level around your base
+
+
 ## [2.26.0] - 2026-10-03
 
 ### Features
