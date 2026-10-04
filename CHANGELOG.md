@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.26.2] - 2026-10-04
+
+### Bug Fixes
+- The web version asks before downloading 3D scenery, and the desktop app never downloads it
+- Download managers no longer grab the browser editor's 3D scenery
+
+
 ## [2.26.1] - 2026-10-04
 
 ### Bug Fixes
