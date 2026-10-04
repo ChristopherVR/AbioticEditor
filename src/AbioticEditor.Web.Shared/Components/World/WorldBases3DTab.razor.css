@@ -261,3 +261,8 @@
     .b3d-side .b3d-inspect, .b3d-side.picked .b3d-inspect { flex: none; max-height: 75vh; }
     .b3d-side .b3d-tab-body, .b3d-side.picked .b3d-tab-body { flex: none; min-height: 0; max-height: 50vh; }
 }
+
+/* The browser build's "download the level?" card, over the middle of the view. */
+.b3d-scenery-ask { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; width: min(380px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: rgba(8, 17, 25, 0.96); border: 1px solid rgba(255, 255, 255, 0.22); color: #eaf3f8; font-size: 13px; }
+.b3d-scenery-ask p { margin: 0; line-height: 1.45; }
+.b3d-scenery-ask-actions { display: flex; flex-wrap: wrap; gap: 8px; }

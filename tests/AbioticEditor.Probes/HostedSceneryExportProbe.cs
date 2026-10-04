@@ -3,27 +3,37 @@ using AbioticEditor.Plugins;
 using AbioticEditor.Plugins.GameModels3D;
 using Xunit.Abstractions;
 using AbioticEditor.Plugins.Scene;
-using System.Net;
 
 namespace AbioticEditor.Tests;
 
 /// <summary>Explicit maintainer preparation; never runs during the ordinary assertion suite.</summary>
 public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
 {
+    /// <summary>
+    /// An assembled build (<c>ABIOTIC_SCENERY_VERIFY_ROOT</c>, a <c>scenery/v1/&lt;signature&gt;</c> folder)
+    /// draws every checked area with no game files at all, as the browser editor must.
+    /// </summary>
     [Fact]
     public void Pages_export_renders_without_local_extraction()
     {
         if (Environment.GetEnvironmentVariable("ABIOTIC_SCENERY_VERIFY_ROOT") is not { Length: > 0 } root) return;
-        var signature = Path.GetFileName(root);
         var data = Path.Combine(Path.GetTempPath(), "scenery-verify-" + Guid.NewGuid().ToString("N"));
-        using var client = new HttpClient(new ExportFiles(root, signature));
         var previous = PluginHostEnvironment.GameAssets;
         PluginHostEnvironment.GameAssets = static () => throw new InvalidOperationException("Unexpected local game extraction.");
         try
         {
-            var provider = new PakSceneModelProvider(new ExportHost(output, data),
-                new HostedSceneryCache(signature, client, new Uri("https://scenery.test/v1/")));
-            foreach (var region in new[] { "Facility_Office1", "Facility_Dam", "V_Alps", "V_ISLAND", "V_Winter" })
+            var provider = new PakSceneModelProvider(new ExportHost(output, data));
+            // The published files are the provider's own cache, level indexes renamed .bin to .ali.
+            foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            {
+                var key = Path.GetRelativePath(root, file).Replace('\\', '/');
+                if (!key.Contains('/', StringComparison.Ordinal)) continue; // index.json and the like
+                if (key.EndsWith(".ali", StringComparison.Ordinal)) key = key[..^4] + ".bin";
+                var target = Path.Combine(provider.CacheRoot, key.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(file, target);
+            }
+            foreach (var region in new[] { "Facility_Office1", "Facility_Dam", "V_Alps", "V_ISLAND", "V_Winter", "V_FOG" })
             {
                 var query = new SceneLevelQuery(region, [-1000000, -1000000, -1000000], [1000000, 1000000, 1000000], 2000);
                 provider.DescribeLevel(query);
@@ -32,7 +42,7 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
                 Assert.NotNull(slice);
                 Assert.Equal(0, slice.PendingMaps);
                 Assert.NotEmpty(slice.Batches);
-                foreach (var batch in slice.Batches.Take(64))
+                foreach (var batch in slice.Batches)
                 {
                     Assert.NotNull(provider.OpenAsset(batch.Mesh));
                     foreach (var material in batch.Materials)
@@ -52,35 +62,27 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// Prepares every level and what it draws into this install's cache (<c>ABIOTIC_SCENERY_PREPARE=1</c>),
+    /// with CUE4Parse's native decoder loaded from <c>ABIOTIC_NATIVES_DIR</c> so characters keep their poses.
+    /// </summary>
     [Fact]
     public void Prepare_all_levels_for_Pages()
     {
         if (Environment.GetEnvironmentVariable("ABIOTIC_SCENERY_PREPARE") != "1") return;
+        if (!NativeDecoder.TryLoad(Environment.GetEnvironmentVariable("ABIOTIC_NATIVES_DIR")))
+            throw new InvalidOperationException("Set ABIOTIC_NATIVES_DIR to the folder holding CUE4Parse-Natives (see assets/scenery/README.md).");
         using var assets = AbioticEditor.Core.Assets.GameAssetProvider.CreateForLocalInstall(includeMods: false)
             ?? throw new InvalidOperationException("No installed game found.");
         PluginHostEnvironment.GameAssets = () => assets;
         try
         {
-            output.WriteLine("Portable scenery signature: " + HostedSceneryCache.Signature(
-                AbioticEditor.Core.Assets.AfInstallLocator.FindPaksDirectory(),
-                AbioticEditor.Core.Assets.GameAssetProvider.FindConventionalMappings()));
             var host = new ExportHost(output);
             var provider = new PakSceneModelProvider(host);
+            output.WriteLine("Cache: " + provider.CacheRoot);
             provider.PrepareHostedScenery(message => { output.WriteLine(message); Console.WriteLine(message); }, CancellationToken.None);
         }
         finally { PluginHostEnvironment.GameAssets = static () => null; }
-    }
-
-    private sealed class ExportFiles(string root, string signature) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var path = request.RequestUri!.AbsolutePath[("/v1/" + signature + "/").Length..];
-            var file = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar));
-            return Task.FromResult(File.Exists(file)
-                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(File.ReadAllBytes(file)) }
-                : new HttpResponseMessage(HttpStatusCode.NotFound));
-        }
     }
 
     private sealed class ExportHost(ITestOutputHelper output, string? directory = null) : IPluginHost, IPluginLog

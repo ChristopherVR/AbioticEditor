@@ -57,8 +57,8 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     private readonly IPluginHost _host;
     private readonly Lazy<string> _cacheRoot;
-    private readonly Lazy<HostedSceneryCache?> _hostedScenery;
     private ConcurrentDictionary<string, byte>? _exportFiles;
+    private ConcurrentBag<string>? _exportStandIns;
     private readonly ConcurrentDictionary<string, MeshInfo?> _meshInfo = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ResolvedMaterial> _materials = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, LevelIndexData> _levels = new(StringComparer.OrdinalIgnoreCase);
@@ -68,11 +68,10 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
     private readonly ConcurrentDictionary<string, WorldMaps> _worlds = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lazy<Dictionary<string, string>> _mapsByName;
 
-    public PakSceneModelProvider(IPluginHost host, HostedSceneryCache? hostedCache = null)
+    public PakSceneModelProvider(IPluginHost host)
     {
         _host = host;
         _cacheRoot = new Lazy<string>(() => Path.Combine(host.DataDirectory, "cache", InstallStamp()));
-        _hostedScenery = new Lazy<HostedSceneryCache?>(() => hostedCache ?? CreateHostedCache());
         _mapsByName = new Lazy<Dictionary<string, string>>(IndexMapNames);
         _plants = new Lazy<IReadOnlyDictionary<string, CUE4Parse.UE4.Assets.Objects.FStructFallback>>(() => Read(PlantTable.Read));
     }
@@ -927,6 +926,7 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             : BakeTexture(path, Math.Clamp(size, 16, 2048));
         // A stand-in pose (its own animation needs the native decoder) is baked again next run.
         if (keep) WriteBytes(file, data ?? []);
+        else _exportStandIns?.Add(assetId);
         return data is null ? null : new SceneAsset(contentType, data);
     }
 
@@ -1012,28 +1012,17 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     // ---- cache ------------------------------------------------------------------------------
 
-    private HostedSceneryCache? CreateHostedCache()
-    {
-        if (_host.HostKind != "blazor" || OperatingSystem.IsBrowser() || Assets() is not { LoadedMods.Count: 0 }) return null;
-        try
-        {
-            var signature = HostedSceneryCache.Signature(AfInstallLocator.FindPaksDirectory(), GameAssetProvider.FindConventionalMappings());
-            return signature is null ? null : new HostedSceneryCache(signature);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OverflowException)
-        {
-            _host.Log.Warn($"Could not identify hosted scenery; using local game files: {ex.Message}");
-            return null;
-        }
-    }
+    /// <summary>
+    /// This install's cache folder. The desktop only ever fills it from the player's own game; the
+    /// browser editor's scenery is published from a maintainer's copy (see <c>assets/scenery</c>).
+    /// </summary>
+    internal string CacheRoot => _cacheRoot.Value;
 
     private string CachePath(string folder, string key, string extension)
     {
         var name = Hash(key) + extension;
         _exportFiles?.TryAdd(folder + "/" + name, 0);
-        var path = Path.Combine(_cacheRoot.Value, folder, name);
-        if (!File.Exists(path)) _hostedScenery.Value?.Fetch(folder, name, path);
-        return path;
+        return Path.Combine(_cacheRoot.Value, folder, name);
     }
 
     private static string Hash(string text)

@@ -41,6 +41,8 @@ class SceneryTests(unittest.TestCase):
         self.assertEqual(len(list(output.rglob("*.ali"))), 1)
         self.assertFalse(list(output.rglob("*.bin")))
         self.assertFalse(list(output.rglob("*.zip")))
+        # No manifest on Pages: desktop v2.26.0 downloaded scenery only when it found one.
+        self.assertFalse((output / "manifest.json").exists())
         self.assertFalse(list(output.rglob("personal.txt")))
 
     def test_published_names_avoid_extensions_download_managers_capture(self):
@@ -49,6 +51,22 @@ class SceneryTests(unittest.TestCase):
         for key in ["textures/x.zip", "levels/x.gz", "meshes/x.exe"]:
             with self.assertRaises(ValueError):
                 scenery.published_name(key)
+
+    def test_extend_adds_only_what_an_existing_build_lacks(self):
+        build = self.export()
+        with self.assertRaises(ValueError):
+            self.export()
+        (self.cache / "meshes-posed-v2").mkdir()
+        posed = "meshes-posed-v2/" + "c" * 64 + ".abm"
+        (self.cache / posed).write_bytes(b"a posed character")
+        scenery.export(self.cache, self.paks, self.mappings, self.source, extend=True)
+        manifest = json.loads((build / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(manifest["files"]), sorted([self.key, posed]))
+        self.assertEqual(json.loads((build / "chunks.json").read_text(encoding="utf-8")), ["part-000.zip", "part-001.zip"])
+        with zipfile.ZipFile(build / "part-001.zip") as added:
+            self.assertEqual(added.namelist(), [posed])
+        scenery.assemble(self.source, self.site)
+        self.assertEqual((self.site / "v1" / build.name / posed).read_bytes(), b"a posed character")
 
     def test_index_names_the_build_the_browser_editor_draws(self):
         build = self.export()

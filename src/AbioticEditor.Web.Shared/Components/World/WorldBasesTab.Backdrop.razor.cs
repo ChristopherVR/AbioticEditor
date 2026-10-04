@@ -9,7 +9,7 @@ namespace AbioticEditor.Web.Components.World;
 /// <summary>
 /// The Bases map's backdrop: the level under the bases seen straight from above, cut a few metres
 /// over the floor of the base looked at, drawn by the 3D view's renderer (hidden) where the game's
-/// files can be read, or (in the browser build) from the website's prepared scenery. It lies exactly
+/// files can be read, or (in the browser build, once the player agreed) from the website's prepared scenery. It lies exactly
 /// under the map's markers. Without either the map keeps its plain grid. Pictures are kept for the session, one per map
 /// framing and floor.
 /// </summary>
@@ -27,8 +27,13 @@ public partial class WorldBasesTab
     private bool _backdropBusy;
     private bool _disposedBackdrop;
 
-    /// <summary>The map wants a level picture: a save on this computer whose area has a level to draw.</summary>
-    private bool BackdropWanted => !_show3D && Session is WorldSaveSession save && Base3DScene.RegionOf(save.Path) is not null;
+    /// <summary>
+    /// The map wants a level picture: a save on this computer whose area has a level to draw. In the
+    /// browser build only once the player has agreed to download the scenery (the 3D view asks).
+    /// </summary>
+    private bool BackdropWanted => !_show3D && Session is WorldSaveSession save && Base3DScene.RegionOf(save.Path) is not null
+        && (Services.GetService(typeof(IBrowserHostMarker)) is null
+            || (Services.GetService(typeof(HostedSceneryReader)) as HostedSceneryReader)?.Allowed == true);
 
     /// <summary>Above the floor, the level is cut away so the rooms the bases stand in show.</summary>
     private const double BackdropCutMetres = 3;

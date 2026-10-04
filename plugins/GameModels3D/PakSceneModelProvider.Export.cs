@@ -6,7 +6,12 @@ internal sealed partial class PakSceneModelProvider
     internal void PrepareHostedScenery(Action<string> progress, CancellationToken cancellationToken)
     {
         if (!IsAvailable) throw new InvalidOperationException("An installed game and mappings are required.");
+        // Without the native decoder most characters' poses cannot be read; their meshes are then never
+        // cached, so they would be missing from the browser editor's scenery (377 were, in the first export).
+        if (!NativeDecoder.Loaded)
+            throw new InvalidOperationException("Load CUE4Parse-Natives first (NativeDecoder.TryLoad): characters' poses need it.");
         _exportFiles = new(StringComparer.Ordinal);
+        _exportStandIns = [];
         foreach (var name in _mapsByName.Value.Keys.Order(StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -41,6 +46,9 @@ internal sealed partial class PakSceneModelProvider
         }
         WriteJson(Path.Combine(_cacheRoot.Value, "hosted-files.json"), _exportFiles.Keys.Order(StringComparer.Ordinal).ToArray());
         progress($"Prepared {_exportFiles.Count} scenery cache entries for Pages.");
+        foreach (var standIn in _exportStandIns.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            progress($"Not prepared (no exact pose, left out of Pages): {standIn}");
         _exportFiles = null;
+        _exportStandIns = null;
     }
 }

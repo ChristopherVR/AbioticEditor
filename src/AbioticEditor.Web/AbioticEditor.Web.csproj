@@ -192,7 +192,7 @@
                              Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
-  <!-- Pages scenery is downloaded into user data only. Fail publishing if a future
+  <!-- Pages scenery is for the browser editor only; the desktop reads the installed game. Fail publishing if a future
        content glob accidentally tries to put its source packs in a release package. -->
   <Target Name="RejectBundledHostedScenery" AfterTargets="ComputeResolvedFilesToPublishList" BeforeTargets="GenerateSingleFileBundle">
     <ItemGroup>

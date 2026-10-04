@@ -1,9 +1,11 @@
-"""Package the desktop 3D cache for Pages; never place this data in app projects."""
+"""Package a maintainer's 3D cache for the browser editor on Pages; never place this data in app projects.
+
+The desktop app never downloads any of it: it reads the player's installed game.
+"""
 import argparse
 import hashlib
 import json
 import re
-import shutil
 import zipfile
 from pathlib import Path
 
@@ -49,16 +51,26 @@ def local_stamp(paks):
     return digest(value.encode())[:16]
 
 
-def export(cache, paks, mappings, destination):
+def export(cache, paks, mappings, destination, extend=False):
+    """Packs the prepared cache. With extend, adds only what an existing export of this build lacks."""
     if cache.name != local_stamp(paks):
         raise ValueError("Cache does not match this installed game. Prepare the current game's 3D view first.")
     build = signature(paks, mappings)
     output = destination / build
-    if output.exists():
+    if output.exists() and not extend:
         raise ValueError(f"Export already exists: {output}")
-    output.mkdir(parents=True)
-    manifest = {"format": 1, "signature": build, "files": {}}
-    chunks = []
+    if extend:
+        if not output.exists():
+            raise ValueError(f"No export of this build to extend: {output}")
+        manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+        chunks = json.loads((output / "chunks.json").read_text(encoding="utf-8"))
+        if manifest["format"] != 1 or manifest["signature"] != build:
+            raise ValueError("Incompatible scenery manifest")
+    else:
+        output.mkdir(parents=True)
+        manifest = {"format": 1, "signature": build, "files": {}}
+        chunks = []
+    known = len(manifest["files"])
     archive = None
     size = 0
     inventory = cache / "hosted-files.json"
@@ -72,7 +84,7 @@ def export(cache, paks, mappings, destination):
     try:
         for path in paths:
             key = path.relative_to(cache).as_posix()
-            if path.parent.name not in FOLDERS or not FILE.fullmatch(key) or not path.is_file():
+            if path.parent.name not in FOLDERS or not FILE.fullmatch(key) or not path.is_file() or key in manifest["files"]:
                 continue
             data = path.read_bytes()
             if not data:  # failed local extractions are not hosted assets
@@ -96,7 +108,7 @@ def export(cache, paks, mappings, destination):
         raise ValueError("No prepared levels in this cache")
     (output / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")) + "\n", encoding="utf-8")
     (output / "chunks.json").write_text(json.dumps(chunks) + "\n", encoding="utf-8")
-    print(f"Exported {len(manifest['files'])} assets for {build} in {len(chunks)} chunks")
+    print(f"Exported {len(manifest['files']) - known} new assets for {build} ({len(manifest['files'])} in {len(chunks)} chunks)")
 
 
 def assemble(source, destination):
@@ -131,7 +143,8 @@ def assemble(source, destination):
                     seen.add(key)
         if seen != set(expected):
             raise ValueError("Scenery export is missing assets")
-        shutil.copyfile(build / "manifest.json", output / "manifest.json")
+        # The manifest stays in the source packs: the browser needs none, and desktop v2.26.0 downloaded
+        # scenery only when it found one, which the desktop must never do.
         builds.append(build.name)
         print(f"Assembled {len(seen)} verified scenery assets for {build.name}")
     write_index(source, destination, builds)
@@ -141,7 +154,7 @@ def assemble(source, destination):
 
 
 def published_name(key):
-    """Where a cache file is published (HostedSceneryCache.PublishedPath).
+    """Where a cache file is published (HostedSceneryReader.PublishedPath).
 
     Browser download managers capture requests by the address's file extension, even a page's
     own background requests, and .bin is on their lists: level indexes (cached as .bin) are
@@ -173,11 +186,12 @@ if __name__ == "__main__":
     pack.add_argument("--paks", type=Path, required=True)
     pack.add_argument("--mappings", type=Path, required=True)
     pack.add_argument("--destination", type=Path, default=Path("assets/scenery"))
+    pack.add_argument("--extend", action="store_true", help="add what an existing export of this build lacks")
     stage = sub.add_parser("assemble")
     stage.add_argument("--source", type=Path, default=Path("assets/scenery"))
     stage.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "export":
-        export(args.cache, args.paks, args.mappings, args.destination)
+        export(args.cache, args.paks, args.mappings, args.destination, args.extend)
     else:
         assemble(args.source, args.destination)

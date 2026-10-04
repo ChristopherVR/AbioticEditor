@@ -44,7 +44,10 @@ public sealed class HostedSceneryReaderTests
         var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
         {
-            var provider = new PakSceneModelProvider(new TestHost(directory), new HostedSceneryCache(site.Signature, new HttpClient(site), Root));
+            // The desktop never downloads scenery: its cache is filled here with exactly the files the
+            // browser fetched, so any file the desktop would need beyond those shows up as a difference.
+            var provider = new PakSceneModelProvider(new TestHost(directory));
+            site.CopyRequestedTo(provider.CacheRoot);
             var desktop = DescribeSettled(provider, query);
             var desktopOpened = DescribeSettled(provider, opened);
             Assert.Equal(Comparable(desktop, site.Build), Comparable(browser, site.Build));
@@ -112,8 +115,36 @@ public sealed class HostedSceneryReaderTests
     {
         Assert.Equal("levels/abc.ali", HostedSceneryReader.PublishedPath("levels/abc.bin"));
         Assert.Equal("meshes/abc.abm", HostedSceneryReader.PublishedPath("meshes/abc.abm"));
-        Assert.Equal(HostedSceneryReader.PublishedPath("levels/abc.bin"), HostedSceneryCache.PublishedPath("levels/abc.bin"));
-        Assert.Equal(HostedSceneryReader.PublishedPath("textures/abc.png"), HostedSceneryCache.PublishedPath("textures/abc.png"));
+    }
+
+    [Fact]
+    public async Task Nothing_is_downloaded_until_the_player_agrees()
+    {
+        // The answer is a preference; without a browser store installed it is a per-user file.
+        var consent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "hosted-scenery.txt");
+        var had = File.Exists(consent) ? File.ReadAllText(consent) : null;
+        try
+        {
+            if (had is not null) File.Delete(consent);
+            using var handler = new NotFound();
+            var reader = new HostedSceneryReader(new HttpClient(handler), Root);
+            Assert.False(reader.Allowed);
+            Assert.False((await reader.Status()).Available);
+            Assert.Null(await reader.DescribeLevel(new SceneLevelQuery("Facility_Office1", [0, 0, 0], [1, 1, 1], 10)));
+            Assert.Equal(0, handler.Requests); // not even the build index
+
+            reader.SetAllowed(true);
+            Assert.True(reader.Allowed);
+            await reader.Status();
+            Assert.Equal(1, handler.Requests); // now it looks for scenery
+            reader.SetAllowed(false);
+            Assert.False(reader.Allowed);
+        }
+        finally
+        {
+            if (had is null) { if (File.Exists(consent)) File.Delete(consent); }
+            else File.WriteAllText(consent, had);
+        }
     }
 
     [Fact]
@@ -163,13 +194,11 @@ public sealed class HostedSceneryReaderTests
     {
         private readonly List<ZipArchive> _packs;
         private readonly Dictionary<string, ZipArchiveEntry> _files;
-        private readonly byte[] _manifest;
 
         private HostedSite(string directory)
         {
             Signature = Path.GetFileName(directory);
             Build = new Uri(Root, Signature + "/");
-            _manifest = File.ReadAllBytes(Path.Combine(directory, "manifest.json"));
             _packs = Directory.GetFiles(directory, "part-*.zip").Order(StringComparer.Ordinal).Select(ZipFile.OpenRead).ToList();
             _files = _packs.SelectMany(p => p.Entries).ToDictionary(e => e.FullName, StringComparer.Ordinal);
         }
@@ -191,6 +220,19 @@ public sealed class HostedSceneryReaderTests
         }
 
         public bool Has(string key) => _files.ContainsKey(key);
+
+        /// <summary>Writes every file asked for so far into a provider's cache folder, under its cache name.</summary>
+        public void CopyRequestedTo(string cacheRoot)
+        {
+            foreach (var published in Requested.Distinct(StringComparer.Ordinal))
+            {
+                var key = published.EndsWith(".ali", StringComparison.Ordinal) ? published[..^4] + ".bin" : published;
+                if (!_files.TryGetValue(key, out var entry)) continue;
+                var target = Path.Combine(cacheRoot, key.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                lock (_packs) entry.ExtractToFile(target, overwrite: true);
+            }
+        }
 
         /// <summary>Every published path asked for, in order.</summary>
         public System.Collections.Concurrent.ConcurrentQueue<string> Requested { get; } = new();
@@ -214,8 +256,8 @@ public sealed class HostedSceneryReaderTests
                 var key = published.EndsWith(".ali", StringComparison.Ordinal) ? published[..^4] + ".bin"
                     : published.EndsWith(".bin", StringComparison.Ordinal) ? "" : published;
                 Requested.Enqueue(published);
-                if (key == "manifest.json") data = _manifest;
-                else if (_files.TryGetValue(key, out var entry))
+                // No manifest.json: Pages does not publish it (the browser needs none).
+                if (_files.TryGetValue(key, out var entry))
                 {
                     lock (_packs)
                     {
@@ -240,8 +282,13 @@ public sealed class HostedSceneryReaderTests
 
     private sealed class NotFound : HttpMessageHandler
     {
+        public int Requests { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
     }
 
     private sealed class TestHost(string directory) : IPluginHost, IPluginLog

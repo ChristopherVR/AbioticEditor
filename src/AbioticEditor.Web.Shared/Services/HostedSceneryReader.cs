@@ -79,12 +79,24 @@ public sealed partial class HostedSceneryReader : IDisposable
 
     public void Dispose() => _downloads.Dispose();
 
+    // ---- the player's permission -------------------------------------------------------------
+
+    /// <summary>
+    /// The player agreed to download the scenery (tens of megabytes an area). Nothing is fetched until
+    /// then, not even the build index: the 3D view asks first, and the answer is kept in this browser.
+    /// </summary>
+    public bool Allowed => HostPreferenceStore.Read(HostPreferenceStore.Keys.HostedScenery, "hosted-scenery.txt") == "yes";
+
+    /// <summary>Records the player's answer: true allows downloads from now on, false forgets an earlier yes.</summary>
+    public void SetAllowed(bool allowed)
+        => HostPreferenceStore.Write(HostPreferenceStore.Keys.HostedScenery, "hosted-scenery.txt", allowed ? "yes" : null);
+
     // ---- what the view asks -------------------------------------------------------------------
 
-    /// <summary>Whether scenery is on offer (the website has a prepared build), in the view's status shape.</summary>
+    /// <summary>Whether scenery is on offer (allowed, and the website has a prepared build), in the view's status shape.</summary>
     [JSInvokable]
     public async Task<SceneModelStatus> Status()
-        => await _build.Value.ConfigureAwait(false) is null
+        => !Allowed || await _build.Value.ConfigureAwait(false) is null
             ? new SceneModelStatus(false, false, null, null)
             : new SceneModelStatus(true, true, "Game scenery", null);
 
@@ -98,7 +110,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     public async Task<SceneLevelSlice?> DescribeLevel(SceneLevelQuery query)
     {
         ArgumentNullException.ThrowIfNull(query);
-        if (string.IsNullOrWhiteSpace(query.Region) || query.Min is not { Length: 3 } || query.Max is not { Length: 3 }) return null;
+        if (!Allowed || string.IsNullOrWhiteSpace(query.Region) || query.Min is not { Length: 3 } || query.Max is not { Length: 3 }) return null;
         try
         {
             return await DescribeLevelAsync(query with { MaxInstances = Math.Clamp(query.MaxInstances, 1, 200_000) }, LevelWait).ConfigureAwait(false);
@@ -391,8 +403,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     /// <summary>
     /// Where a cache file is published: level indexes are cached as <c>.bin</c> but published as
     /// <c>.ali</c>, as download managers capture every <c>.bin</c> address (see
-    /// <c>HostedSceneryCache.PublishedPath</c> in the GameModels3D plugin and <c>published_name</c> in
-    /// <c>tools/scenery.py</c>).
+    /// <c>published_name</c> in <c>tools/scenery.py</c>).
     /// </summary>
     public static string PublishedPath(string key)
         => key.EndsWith(".bin", StringComparison.Ordinal) ? key[..^4] + ".ali" : key;

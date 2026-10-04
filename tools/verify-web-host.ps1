@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($PublishDir)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Publish directory does not exist: $root" }
 
-# Prepared scenery belongs to Pages and the user's download cache only.
+# Prepared scenery belongs to Pages (the browser editor) only; the desktop reads the installed game.
 $sceneryPacks = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object {
     $_.FullName -match '[\\/]scenery[\\/]' -or $_.Extension -eq '.abm' -or $_.Name -match '^part-\d{3}\.zip$'
 }

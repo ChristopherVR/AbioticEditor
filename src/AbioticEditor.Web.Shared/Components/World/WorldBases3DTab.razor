@@ -28,6 +28,19 @@
             <div class="b3d-viewport" @ref="_viewport" @ondragover:preventDefault="true" @ondrop="DropOnViewAsync">
                 <div @ref="_host" class="b3d-canvas" role="img" aria-label="@L.Resource("World3D_ViewLabel")" data-b3d="canvas"></div>
 
+                @* The browser build asks before downloading its scenery (tens of megabytes an area). *@
+                @if (_askScenery)
+                {
+                    <div class="b3d-scenery-ask" role="dialog" aria-labelledby="b3d-scenery-ask-title" data-b3d="scenery-ask">
+                        <strong id="b3d-scenery-ask-title">@L.Resource("World3D_SceneryAskTitle")</strong>
+                        <p>@L.Resource("World3D_SceneryAskBody")</p>
+                        <div class="b3d-scenery-ask-actions">
+                            <button type="button" class="wt-btn" data-b3d="scenery-yes" @onclick="AllowSceneryAsync">@L.Resource("World3D_SceneryAskYes")</button>
+                            <button type="button" class="wt-btn wt-plain" data-b3d="scenery-no" @onclick="() => _askScenery = false">@L.Resource("World3D_SceneryAskNo")</button>
+                        </div>
+                    </div>
+                }
+
                 @* View controls float over the top of the view, so the view itself can take the height. *@
                 <div class="b3d-hud b3d-hud-top" data-b3d="hud">
                     <button type="button" class="b3d-hud-btn @(_fullscreen ? "on" : null)" data-b3d="fullscreen" aria-pressed="@(_fullscreen ? "true" : "false")"
@@ -107,7 +120,15 @@
                 {
                     <div class="wt-card b3d-panel" data-b3d="models">
                         <span class="wt-label accent-orange-text">@L.Resource("World3D_ModelsTitle")</span>
-                        <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
+                        @if (HostedScenery is not null && LevelRegion is not null)
+                        {
+                            <p class="wt-muted" data-b3d="models-offer">@L.Resource("World3D_SceneryOffer")</p>
+                            <button type="button" class="wt-btn" data-b3d="scenery-start" @onclick="AllowSceneryAsync">@L.Resource("World3D_SceneryAskYes")</button>
+                        }
+                        else
+                        {
+                            <p class="wt-muted" data-b3d="models-browser">@L.Resource("World3D_ModelsBrowser")</p>
+                        }
                     </div>
                 }
                 else if (_modelStatus is { } ms)
@@ -124,6 +145,7 @@
                             {
                                 @* The website's prepared scenery: the level only, placed objects stay boxes. *@
                                 <p class="wt-muted" data-b3d="models-hosted">@L.Resource("World3D_ModelsBrowserScenery")</p>
+                                <button type="button" class="wt-btn wt-plain" data-b3d="scenery-stop" @onclick="StopSceneryAsync">@L.Resource("World3D_SceneryStop")</button>
                             }
                             else
                             {
@@ -1489,6 +1511,31 @@
 
     private DotNetObjectReference<HostedSceneryReader>? _hostedScenery;
 
+    /// <summary>The browser build's scenery reader (null on the desktop, which reads its game).</summary>
+    private HostedSceneryReader? HostedScenery => InBrowser ? Services.GetService(typeof(HostedSceneryReader)) as HostedSceneryReader : null;
+
+    /// <summary>The "download the level?" card is up. Shown each time the view opens until the player says yes.</summary>
+    private bool _askScenery;
+
+    /// <summary>The player agreed: remembered in this browser, then the level loads.</summary>
+    private async Task AllowSceneryAsync()
+    {
+        HostedScenery?.SetAllowed(true);
+        _askScenery = false;
+        await InitModelsAsync();
+    }
+
+    /// <summary>Forgets the agreement and goes back to boxes; nothing more is downloaded.</summary>
+    private async Task StopSceneryAsync()
+    {
+        HostedScenery?.SetAllowed(false);
+        _modelStatus = null;
+        _levelProgress = null;
+        if (_module is not null) await _module.InvokeVoidAsync("useHostedScenery", (object?)null);
+        await PushLevelAsync();
+        StateHasChanged();
+    }
+
     /// <summary>
     /// Game models and the level around the view are on by default whenever the game files can be
     /// read; both load in the background. A failure here only leaves the boxes.
@@ -1500,8 +1547,15 @@
         {
             if (InBrowser)
             {
-                // No game here: the level comes from the website's prepared scenery, when this host has a reader for it.
-                if (_module is null || Services.GetService(typeof(HostedSceneryReader)) is not HostedSceneryReader hosted) return;
+                // No game here: the level comes from the website's prepared scenery, when this host has a reader for
+                // it and the player has agreed to the download (asked here, each time, until they do).
+                if (_module is null || HostedScenery is not { } hosted || LevelRegion is null) return;
+                if (!hosted.Allowed)
+                {
+                    _askScenery = true;
+                    StateHasChanged();
+                    return;
+                }
                 _hostedScenery ??= DotNetObjectReference.Create(hosted);
                 await _module.InvokeVoidAsync("useHostedScenery", _hostedScenery);
             }

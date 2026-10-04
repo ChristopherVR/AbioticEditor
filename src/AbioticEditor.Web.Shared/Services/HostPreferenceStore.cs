@@ -95,5 +95,7 @@ public static class HostPreferenceStore
         public const string Theme = "abiotic.theme";
         public const string Accent = "abiotic.accent";
         public const string GameDataLanguage = "abiotic.gamedatalanguage";
+        /// <summary>"yes" once the player agreed to download the browser editor's 3D scenery.</summary>
+        public const string HostedScenery = "abiotic.hostedscenery";
     }
 }

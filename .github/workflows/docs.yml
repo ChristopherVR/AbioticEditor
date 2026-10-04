@@ -102,9 +102,9 @@ jobs:
           # assemblies; without this the editor loads an empty shell with no app inside.
           touch docs/.vitepress/dist/.nojekyll
 
-      # Desktop-only 3D downloads live outside /app/. Neither release project includes
+      # The browser editor's 3D scenery lives outside /app/. Neither release project includes
       # assets/scenery, and these archives are unpacked only into the Pages artifact.
-      - name: Assemble desktop scenery downloads
+      - name: Assemble browser editor scenery
         run: |
           python3 -m unittest discover -s tools -p test_scenery.py -q
           python3 tools/scenery.py assemble --destination docs/.vitepress/dist/scenery

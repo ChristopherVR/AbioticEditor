@@ -663,6 +663,12 @@ public sealed class Base3DViewerTests
         Assert.Contains("_modelsOn = _modelStatus.Available && !InBrowser", tab, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowserScenery", tab, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowser\"", tab, StringComparison.Ordinal); // no scenery on this site
+        // Nothing downloads until the player agrees: the view asks each time it opens, until they do.
+        Assert.Contains("if (!hosted.Allowed)", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"scenery-ask\"", tab, StringComparison.Ordinal);
+        Assert.Contains("data-b3d=\"scenery-stop\"", tab, StringComparison.Ordinal);
+        var backdrop = UiSource.ReadAllText("Components", "World", "WorldBasesTab.Backdrop.razor.cs");
+        Assert.Contains("as HostedSceneryReader)?.Allowed == true", backdrop, StringComparison.Ordinal);
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
         Assert.Contains("export function useHostedScenery(reader)", js, StringComparison.Ordinal);
         Assert.Contains("hostedScenery.invokeMethodAsync(\"DescribeLevel\", query)", js, StringComparison.Ordinal);

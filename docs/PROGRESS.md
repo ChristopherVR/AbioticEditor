@@ -1,24 +1,36 @@
 # Abiotic Editor - Session history
 
-## Round-168: download managers no longer swallow the browser's scenery (2026-10-04)
+## Round-168: the desktop never downloads scenery; the browser's is complete and safe from download managers (2026-10-04)
 
-- With Internet Download Manager's browser extension installed, every hosted level index
-  (`levels/*.bin`) came back as an empty "204 Intercepted by the IDM Advanced Integration", so the
-  browser 3D view drew no level, and each one could prompt the player to save the file.
-- Measured in a browser with IDM: capture depends only on the address's file extension (`.bin`,
-  `.zip`, `.gz`, `.tar`, `.img`, `.iso`, `.pdf`, `.exe` captured at every content type and size;
-  `.abm`, `.png`, `.json`, `.wasm`, `.ali` and other unlisted extensions never). Pages serves `.bin`
-  and `.abm` alike as `application/octet-stream`, so the type was never the trigger.
-- Level indexes are now published as `levels/<hash>.ali` (their `ALI1` header); cache files, source
-  packs and manifest keys keep `.bin`, so nothing was re-exported. `scenery.py` refuses to publish a
-  name ending in a commonly captured extension. Both downloaders ask for the published name.
-- The browser reader counts an empty hosted answer as missing, never retries it (no repeated
-  prompts), and logs once that a download manager may be capturing the files.
-- Released v2.26.0 desktops still ask Pages for `.bin`, get 404, mark hosted scenery offline for
-  the session and read their installed game instead (their documented fallback) until they update.
-- Verified: scenery, 3D and hosted-cache tests (browser and desktop answers still identical through
-  the `.ali` names; a captured level is left out and asked for once); Python packaging tests; and
-  the published browser editor in the IDM browser, where the level now loads with no captures.
+- The desktop never downloads scenery now. Round-166's hosted download path (`HostedSceneryCache`,
+  wired into `PakSceneModelProvider.CachePath`) is removed: the desktop reads only the player's
+  installed game, as before v2.26.0. The prepared scenery exists for the browser editor alone.
+  Bundling it into the desktop (about 530 MiB) was not wanted; the publish guards against it stay.
+- Pages no longer publishes `manifest.json` (it stays in the source packs and is checked on
+  assembly). Desktop v2.26.0 fetched it before downloading anything, so released desktops stop
+  downloading too and read their game, their built-in fallback.
+- Download managers: with Internet Download Manager's browser extension installed, every hosted
+  level index (`levels/*.bin`) came back as an empty "204 Intercepted by the IDM Advanced
+  Integration", so the browser 3D view drew no level, and each one could prompt the player to save
+  the file. Measured in a browser with IDM: capture depends only on the address's file extension
+  (`.bin`, `.zip`, `.gz`, `.tar`, `.img`, `.iso`, `.pdf`, `.exe` captured at every content type and
+  size; `.abm`, `.png`, `.json`, `.wasm`, `.ali` never). Level indexes are now published as
+  `levels/<hash>.ali` (their `ALI1` header); cache files, source packs and manifest keys keep `.bin`.
+  `scenery.py` refuses to publish a name ending in a commonly captured extension. The browser reader
+  counts an empty hosted answer as missing, never retries it (no repeated prompts) and logs once.
+- 377 posed character meshes were missing from the hosted build: the first preparation ran without
+  CUE4Parse's native decoder, so their poses were stand-ins, which are never cached and so never
+  exported. Preparation now refuses to run without the decoder (`ABIOTIC_NATIVES_DIR`) and lists any
+  pose it still cannot bake; `scenery.py export --extend` adds only what an existing build lacks.
+  Re-prepared here with the decoder: 376 poses added as `part-007.zip` (10 MB). One V_Intro pose
+  bakes to nothing from the game data itself, so the desktop cannot draw it either.
+- The browser asks before downloading: the 3D view shows "Download the level around your base?"
+  (about 40 MB an area, measured at the default 40 m view: 33 MB of meshes and textures and 6-7 MB
+  of level data) each time it opens until the player agrees. The answer is kept in the browser
+  (`abiotic.hostedscenery`); Show offers "Stop downloading the level". Until then the reader
+  fetches nothing, not even `index.json`, and the Bases map draws no level picture.
+- Verified: the assembled build draws Facility_Office1, Facility_Dam, V_Alps, V_ISLAND, V_Winter and
+  V_FOG with no game files; browser and desktop answers stay identical from the same files.
 
 ## Round-167: the browser editor draws the hosted scenery (2026-10-04)
 
