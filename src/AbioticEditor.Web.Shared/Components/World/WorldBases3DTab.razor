@@ -141,17 +141,14 @@
                         }
                         else
                         {
+                            <label class="wt-check">
+                                <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
+                                @L.Resource("World3D_ModelsShow")
+                            </label>
                             @if (InBrowser)
                             {
-                                @* The website's prepared scenery: the level only, placed objects stay boxes. *@
+                                @* The website's prepared scenery and object models. *@
                                 <small class="wt-muted" data-b3d="models-hosted">@L.Resource("World3D_ModelsBrowserScenery")</small>
-                            }
-                            else
-                            {
-                                <label class="wt-check">
-                                    <input type="checkbox" checked="@_modelsOn" data-b3d="models-toggle" @onchange="e => SetModelsAsync(e.Value is true)" />
-                                    @L.Resource("World3D_ModelsShow")
-                                </label>
                             }
                             @if (!string.IsNullOrEmpty(ms.Plugin)) { <small class="wt-muted">@L.Resource("World3D_ModelsFromFormat", ms.Plugin)</small> }
                             @if (_modelsOn && _modelProgress is not null) { <small class="wt-muted" data-b3d="models-progress">@_modelProgress</small> }
@@ -1563,8 +1560,8 @@
                 await _module.InvokeVoidAsync("useHostedScenery", _hostedScenery);
             }
             _modelStatus = await _view.InvokeAsync<ModelStatus>("modelStatus");
-            // Only level scenery is hosted, so in the browser placed objects keep their boxes.
-            _modelsOn = _modelStatus.Available && !InBrowser && (_keptModelsOn ?? true);
+            // The browser draws placed objects, crops, tanks and ground items from the website's hosted models too.
+            _modelsOn = _modelStatus.Available && (_keptModelsOn ?? true);
             if (_modelsOn) await _view.InvokeVoidAsync("setModelsEnabled", true);
             // The level waits for this answer: without the game files there is no level to draw.
             if (_levelOn && _modelStatus.Available) await PushLevelAsync();

@@ -653,14 +653,16 @@ public sealed class Base3DViewerTests
     }
 
     [Fact]
-    public void The_browser_build_draws_its_objects_as_boxes_inside_the_hosted_scenery()
+    public void The_browser_build_draws_objects_and_ground_items_with_the_hosted_models()
     {
         var surface = UiSource.ReadAllText("Components", "Pages", "SaveEditorSurface.razor");
         Assert.Contains("private bool ThreeDViewAvailable => IsBrowserHost || GameModelsAvailable;", surface, StringComparison.Ordinal);
         var tab = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.razor");
-        // The level comes from the website's prepared scenery; placed objects keep their boxes.
+        // The level and the models of placed objects, crops, tanks and ground items come from the website's prepared scenery.
         Assert.Contains("await _module.InvokeVoidAsync(\"useHostedScenery\", _hostedScenery);", tab, StringComparison.Ordinal);
-        Assert.Contains("_modelsOn = _modelStatus.Available && !InBrowser", tab, StringComparison.Ordinal);
+        Assert.Contains("_modelsOn = _modelStatus.Available && (_keptModelsOn ?? true);", tab, StringComparison.Ordinal);
+        Assert.DoesNotContain("_modelStatus.Available && !InBrowser", tab, StringComparison.Ordinal); // models are on in the browser too
+        Assert.Contains("data-b3d=\"models-toggle\"", tab, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowserScenery", tab, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowser\"", tab, StringComparison.Ordinal); // no scenery on this site
         // Nothing downloads until the player agrees: the view asks each time it opens, until they do.
@@ -672,6 +674,7 @@ public sealed class Base3DViewerTests
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
         Assert.Contains("export function useHostedScenery(reader)", js, StringComparison.Ordinal);
         Assert.Contains("reader.invokeMethodAsync(\"DescribeLevel\", query)", js, StringComparison.Ordinal);
+        Assert.Contains("hostedScenery.invokeMethodAsync(\"DescribeClasses\", paths)", js, StringComparison.Ordinal);
         Assert.Contains("report(\"level\", done, total, \"download\")", js, StringComparison.Ordinal); // download progress
         Assert.DoesNotContain("postJson(`${MODEL_BASE}/level`, {", js, StringComparison.Ordinal); // every level query can go either way
         var program = File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Web.Wasm", "Program.cs"));
