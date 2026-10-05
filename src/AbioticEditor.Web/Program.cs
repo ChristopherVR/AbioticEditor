@@ -135,6 +135,9 @@ public static class Program
         // for a file that briefly did not exist, got nothing, and stayed completely unstyled
         // until it was reloaded by hand. Manifest URLs carry a content stamp, so a rebuild
         // produces a new address instead of breaking the old one.
+        // Refuse requests from other web pages (forged cross-site posts, DNS rebinding): only the
+        // editor's own window, which always uses its loopback address, may talk to it.
+        app.UseLocalRequestGuard(new Uri(localUrl).Port);
         app.MapStaticAssets(StaticAssetManifest.ResolvePath());
         app.UseAntiforgery();
         app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
@@ -179,14 +182,17 @@ public static class Program
                 return Results.Content(WebToolHostService.InjectBridge(File.ReadAllText(path), key), "text/html; charset=utf-8");
             return Results.File(path);
         });
+        const long MaxPluginBody = 8 * 1024 * 1024;
         app.MapPost("/plugin-tools/{key}/request", async (string key, HttpRequest request, WebToolHostService tools, CancellationToken cancellationToken) =>
         {
+            if (request.ContentLength > MaxPluginBody) return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
             using var reader = new StreamReader(request.Body, Encoding.UTF8);
             var reply = await tools.RequestAsync(key, await reader.ReadToEndAsync(cancellationToken), cancellationToken);
             return Results.Text(reply ?? string.Empty, "application/json; charset=utf-8");
         });
         app.MapPost("/plugin-tools/{key}/log", async (string key, HttpRequest request, WebToolHostService tools, CancellationToken cancellationToken) =>
         {
+            if (request.ContentLength > 64 * 1024) return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
             using var reader = new StreamReader(request.Body, Encoding.UTF8);
             tools.Log(key, await reader.ReadToEndAsync(cancellationToken));
             return Results.NoContent();
@@ -197,6 +203,7 @@ public static class Program
         app.MapGet("/scene-models/status", (SceneModelHostService scene) => Results.Json(scene.Status()));
         app.MapPost("/scene-models/classes", async (HttpRequest request, SceneModelHostService scene, CancellationToken cancellationToken) =>
         {
+            if (request.ContentLength > 4 * 1024 * 1024) return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
             string[] paths;
             try { paths = await request.ReadFromJsonAsync<string[]>(cancellationToken) ?? []; }
             catch (System.Text.Json.JsonException) { return Results.BadRequest(); }

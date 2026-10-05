@@ -112,6 +112,15 @@ public sealed class GitHubReleaseClient
         return list;
     }
 
+    /// <summary>Reads GitHub's <c>sha256:&lt;hex&gt;</c> digest; null for anything else.</summary>
+    public static string? ParseSha256Digest(string? digest)
+    {
+        const string prefix = "sha256:";
+        if (digest is null || !digest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
+        var hex = digest[prefix.Length..].Trim();
+        return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
+    }
+
     private static GitHubRelease ParseRelease(JsonElement e)
     {
         var assets = new List<ReleaseAsset>();
@@ -131,6 +140,7 @@ public sealed class GitHubReleaseClient
                     Name = name,
                     DownloadUrl = url,
                     Size = a.TryGetProperty("size", out var size) && size.TryGetInt64(out var s) ? s : 0,
+                    Sha256 = ParseSha256Digest(GetString(a, "digest")),
                 });
             }
         }

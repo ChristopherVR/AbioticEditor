@@ -11,6 +11,12 @@ public sealed class ReleaseAsset
     /// <summary>Size in bytes (0 when GitHub omitted it).</summary>
     public long Size { get; init; }
 
+    /// <summary>
+    /// Lowercase hex SHA-256 of the file as GitHub recorded it at upload (the release JSON's
+    /// <c>digest</c> field), or null when GitHub did not supply one.
+    /// </summary>
+    public string? Sha256 { get; init; }
+
     public override string ToString() => Name;
 }
 

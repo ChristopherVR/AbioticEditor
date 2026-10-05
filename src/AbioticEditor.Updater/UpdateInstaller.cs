@@ -43,11 +43,14 @@ public sealed class UpdateInstaller
         {
             throw new UpdaterException($"release asset has an invalid name: '{asset.Name}'.");
         }
+        EnsureTrustedDownloadUrl(asset.DownloadUrl);
         var downloadPath = Path.Combine(workingDir, safeName);
 
         _log.Info($"Downloading {safeName} -> {downloadPath}");
         await DownloadFileAsync(asset.DownloadUrl, downloadPath, asset.Size, progress, cancellationToken)
             .ConfigureAwait(false);
+
+        VerifyDigest(asset, downloadPath);
 
         var stagedDir = Path.Combine(workingDir, "staged");
         if (Directory.Exists(stagedDir))
@@ -197,6 +200,42 @@ public sealed class UpdateInstaller
         }
 
         progress?.Report(1.0);
+    }
+
+    /// <summary>
+    /// Only https downloads from GitHub's own hosts are accepted, so a tampered release feed
+    /// cannot point the updater at an arbitrary server.
+    /// </summary>
+    public static void EnsureTrustedDownloadUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !(uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+                 || uri.Host.EndsWith(".github.com", StringComparison.OrdinalIgnoreCase)
+                 || uri.Host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new UpdaterException($"Refusing to download an update from an untrusted address: '{url}'.");
+        }
+    }
+
+    /// <summary>Checks the file against the SHA-256 GitHub recorded; deletes it on a mismatch.</summary>
+    private void VerifyDigest(ReleaseAsset asset, string downloadPath)
+    {
+        if (asset.Sha256 is null)
+        {
+            _log.Warn($"No checksum published for {asset.Name}; skipping integrity check.");
+            return;
+        }
+        string actual;
+        using (var stream = File.OpenRead(downloadPath))
+        {
+            actual = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(stream));
+        }
+        if (!string.Equals(actual, asset.Sha256, StringComparison.OrdinalIgnoreCase))
+        {
+            TryDelete(downloadPath);
+            throw new UpdaterException($"The downloaded update does not match its published checksum ({asset.Name}).");
+        }
     }
 
     private static void TryDelete(string path)
