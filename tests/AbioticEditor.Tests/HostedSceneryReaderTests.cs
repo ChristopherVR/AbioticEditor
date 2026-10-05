@@ -106,6 +106,34 @@ public sealed class HostedSceneryReaderTests
     }
 
     [SkippableFact]
+    public async Task A_garden_plot_shows_the_crops_it_holds_and_a_barrel_its_fill()
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        const string Plot = "/Game/Blueprints/DeployedObjects/Farming/GardenPlot_Medium.GardenPlot_Medium_C";
+        const string Barrel = "/Game/Blueprints/DeployedObjects/Furniture/Deployed_LiquidContainer_Barrel.Deployed_LiquidContainer_Barrel_C";
+        var answer = await reader.DescribeClassesAsync([
+            Plot, Plot + "#crops=1.Plant_Corn.4,2.Plant_Corn.0",
+            Barrel + "#liquid=0", Barrel + "#liquid=1000", Barrel + "#liquid=10000"]);
+
+        var bare = answer[Plot]!;
+        var planted = answer[Plot + "#crops=1.Plant_Corn.4,2.Plant_Corn.0"]!;
+        Assert.DoesNotContain(bare.Parts, p => p.Name?.StartsWith("Plot", StringComparison.Ordinal) == true && p.Name.Contains("Plant_", StringComparison.Ordinal));
+        var grown = planted.Parts.Where(p => p.Name?.StartsWith("Plot2/Plant_Corn", StringComparison.Ordinal) == true).ToList();
+        Assert.Equal(4, grown.Count); // the plant and its three ears, as the desktop draws it
+        Assert.Contains(planted.Parts, p => p.Name == "Plot3/Plant_Corn");
+        foreach (var part in grown) Assert.True(site.Has(part.Mesh[site.Build.AbsoluteUri.Length..]), part.Mesh);
+
+        Assert.DoesNotContain(answer[Barrel + "#liquid=0"]!.Parts, p => p.Name == "WaterLevel");
+        var low = answer[Barrel + "#liquid=1000"]!.Parts.Single(p => p.Name == "WaterLevel").Matrix[13];
+        var full = answer[Barrel + "#liquid=10000"]!.Parts.Single(p => p.Name == "WaterLevel").Matrix[13];
+        // The surface runs from 1 cm to 97 cm of the barrel (viewer Y is up, in metres), as the desktop's own test checks.
+        Assert.InRange(full, 0.95f, 0.99f);
+        Assert.InRange(low, 0.09f, 0.12f);
+    }
+
+    [SkippableFact]
     public async Task Level_files_are_fetched_under_a_name_download_managers_leave_alone()
     {
         using var site = HostedSite.Open();
@@ -275,7 +303,7 @@ public sealed class HostedSceneryReaderTests
 
         private byte[] Descriptions() => Pack(ref _descriptions, "meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1");
 
-        private byte[] Classes() => Pack(ref _classes, "classes-v4");
+        private byte[] Classes() => Pack(ref _classes, "classes-v4", "liquids-v1");
 
         private byte[] Pack(ref byte[]? cached, params string[] folders)
         {

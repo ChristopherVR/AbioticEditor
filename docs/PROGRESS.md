@@ -12,11 +12,18 @@
   with nothing to draw). `export --extend` added 1,986 files to the hosted build (53 MB packed).
 - `tools/scenery.py assemble` also publishes `classes.json` per build (987 KB, 136 KB compressed).
   The reader loads it once, falls back to single files when a build has none, and answers a painted
-  or lamp-off object from the plain model plus the paint variant. Crops and liquid levels draw as the
-  plain model in the browser. A class the build lacks stays a box.
+  or lamp-off object from the plain model plus the paint variant. A class the build lacks stays a box.
 - The Pages budget in `scenery.py` moved from 900 to 980 MiB: the site was 883.6 MiB and the objects
   add about 65 MiB, and GitHub Pages refuses 1 GiB.
-- Not covered: ground items and anything that is not a `Deployed_*` or vehicle blueprint.
+- Garden crops and tank fill levels now draw in the browser too. Preparation also writes, per garden
+  plot class, one small model per spot, crop and growth stage (3,720, from `CropParts`), and per liquid
+  container (`liquids-v1`, 19 classes) the surface part empty and full plus each liquid's surface
+  material. The reader adds the saved crops to the plot's model and blends the surface between empty
+  and full for any saved level (hidden when empty). The class scan now takes every blueprint under
+  `DeployedObjects` (garden plots are named `GardenPlot_*`), giving 528 models of 583 classes.
+- Pages size: the site is about 979 MiB by estimate, just under the 980 MiB budget and 1 GiB limit.
+  Trim the app or scenery before adding more.
+- Not covered: ground items and anything outside `DeployedObjects`, `Deployed_*` and vehicle blueprints.
 - Verified: `HostedSceneryReaderTests` (12) serve the committed packs to the reader, with and without
   `classes.json`, and check every mesh and texture address exists; the Python packaging tests pass.
   No push or deployment; the live site shows the models after the next Pages publish.

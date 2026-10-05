@@ -44,7 +44,7 @@ python tools/scenery.py assemble --destination artifacts/scenery-preview/scenery
 ```
 
 Placed objects (furniture, benches, containers, vehicles) are prepared by a second probe, which
-needs no native decoder. It finds every `Deployed_*` and `ABF_Vehicle*` blueprint by name (never
+needs no native decoder. It finds every blueprint under `DeployedObjects`, and every `Deployed_*` and `ABF_Vehicle*` one, by name (never
 a list of classes, so a game update's new objects are included), describes each plain and in
 each paint colour it can wear, and adds the answers and the meshes and textures they name to
 `hosted-files.json`. Add them to an existing export with `--extend`:
@@ -58,7 +58,8 @@ python tools/scenery.py export --extend --cache '<plugin-data>/cache/<current in
 
 `assemble` publishes the answers together as `classes.json` per build (about 1 MB, 140 KB
 compressed), which the browser loads once; the single files stay as a fallback. A garden's crops
-and a tank's liquid level need the game, so those objects draw as their plain model.
+(one entry per spot, crop and stage) and a tank's liquid level (surface empty and full, plus each
+liquid's material, in `liquids-v1`) are prepared too; the browser combines them for each saved object.
 
 The export command checks that the cache stamp matches the current installed game. The
 preparation probe records the files needed by level scenery in `hosted-files.json`; the export

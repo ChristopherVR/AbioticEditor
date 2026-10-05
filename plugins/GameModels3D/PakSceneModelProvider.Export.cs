@@ -1,3 +1,4 @@
+using System.Numerics;
 using AbioticEditor.Plugins.Scene;
 
 namespace AbioticEditor.Plugins.GameModels3D;
@@ -100,9 +101,12 @@ internal sealed partial class PakSceneModelProvider
                 progress($"No model for {classPath}: {ex.Message}");
             }
         }
+        PrepareGardenCrops(classes, progress, cancellationToken);
+        PrepareLiquidContainers(classes, progress, cancellationToken);
         // Only what the browser asks for: the answers and the files they name.
         var keys = _exportFiles.Keys
-            .Where(k => k.StartsWith(ClassesFolder + "/", StringComparison.Ordinal) || k.StartsWith("meshes", StringComparison.Ordinal) || k.StartsWith("textures/", StringComparison.Ordinal))
+            .Where(k => k.StartsWith(ClassesFolder + "/", StringComparison.Ordinal) || k.StartsWith(LiquidsFolder + "/", StringComparison.Ordinal)
+                || k.StartsWith("meshes", StringComparison.Ordinal) || k.StartsWith("textures/", StringComparison.Ordinal))
             .ToHashSet(StringComparer.Ordinal);
         var inventory = Path.Combine(_cacheRoot.Value, "hosted-files.json");
         if (TryReadJson<string[]>(inventory) is { } before) keys.UnionWith(before);
@@ -111,9 +115,100 @@ internal sealed partial class PakSceneModelProvider
         _exportFiles = null;
     }
 
+    private const string LiquidsFolder = "liquids-v1";
+
+    /// <summary>How a liquid container's surface moves with its fill, and how each liquid looks on it (the browser works out any fill level from these).</summary>
+    private sealed record LiquidInfo(int Max, float[] Empty, float[] Full, Dictionary<string, SceneMaterial[]> Fluids);
+
+    /// <summary>Opens the meshes and textures a part names, so they are cached (and so listed for the export).</summary>
+    private void OpenPartAssets(IEnumerable<ScenePart> parts)
+    {
+        foreach (var part in parts)
+        {
+            OpenAsset(part.Mesh);
+            foreach (var material in part.Materials)
+            {
+                if (material.Texture is { } texture) OpenAsset(texture);
+                foreach (var layer in material.Layers ?? [])
+                    if (layer.Texture is { } layerTexture) OpenAsset(layerTexture);
+            }
+        }
+    }
+
+    /// <summary>
+    /// What a garden plot shows for every spot, crop and growth stage: the crop parts alone, so the
+    /// browser adds the ones a save holds to the plot's own model (see <see cref="CropParts"/>).
+    /// </summary>
+    private void PrepareGardenCrops(List<string> classes, Action<string> progress, CancellationToken cancellationToken)
+    {
+        var rows = _plants.Value.Values.Select(r => RowName(r, "PlantItem")).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var written = 0;
+        foreach (var classPath in classes)
+        {
+            var anchors = Read(p => ClassModelResolver.Anchors(p, classPath));
+            var spots = 0;
+            while (anchors.ContainsKey($"Plot{spots + 1}/PlantLocation") || anchors.ContainsKey($"Plot{spots + 1}")) spots++;
+            if (spots == 0) continue;
+            progress($"Preparing crops for {classPath} ({spots} spots, {rows.Count} crops)");
+            foreach (var row in rows)
+            for (var stage = 0; stage < StageNames.Length; stage++)
+            for (var spot = 0; spot < spots; spot++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var made = CropParts(classPath, [new SceneCrop(spot, row, stage)]).ToList();
+                if (made.Count == 0) continue;
+                var min = new Vector3(float.MaxValue);
+                var max = new Vector3(float.MinValue);
+                foreach (var (_, local, info) in made) SceneMath.Encapsulate(ref min, ref max, info.BoundsMin, info.BoundsMax, local);
+                var parts = made.Select(m => m.Part).ToList();
+                OpenPartAssets(parts);
+                WriteJson(CachePath(ClassesFolder, $"{classPath}#crop={spot}.{row}.{stage}", ".json"),
+                    new CachedClass(new SceneClassModel(parts, [min.X, min.Y, min.Z], [max.X, max.Y, max.Z])));
+                written++;
+            }
+        }
+        progress($"Prepared {written} crop models.");
+    }
+
+    /// <summary>
+    /// For each liquid container: its surface part empty and full (the browser blends between them
+    /// for any saved level) and the surface material of every liquid (see <see cref="LiquidFill"/>).
+    /// </summary>
+    private void PrepareLiquidContainers(List<string> classes, Action<string> progress, CancellationToken cancellationToken)
+    {
+        var fluids = Read(LiquidFill.FluidNames);
+        var written = 0;
+        foreach (var classPath in classes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Read(p => LiquidFill.Limits(p, classPath)) is not { } limits) continue;
+            ScenePart? SurfaceAt(Vector3 location, string? material)
+                => BuildClass(classPath, null,
+                        new Dictionary<string, CUE4Parse.UE4.Objects.Core.Math.FVector?> { [LiquidFill.SurfaceComponent] = new(location.X, location.Y, location.Z) },
+                        material is null ? null : new Dictionary<string, string> { [LiquidFill.SurfaceComponent] = material })
+                    ?.Parts.FirstOrDefault(p => p.Name == LiquidFill.SurfaceComponent);
+            var empty = SurfaceAt(new Vector3(limits.Empty.X, limits.Empty.Y, limits.Empty.Z), null);
+            var full = SurfaceAt(new Vector3(limits.Full.X, limits.Full.Y, limits.Full.Z), null);
+            if (empty is null || full is null) continue;
+            var byFluid = new Dictionary<string, SceneMaterial[]>(StringComparer.Ordinal);
+            var parts = new List<ScenePart> { empty, full };
+            foreach (var fluid in fluids)
+            {
+                if (Read(p => LiquidFill.SurfaceMaterial(p, classPath, fluid)) is not { } material) continue;
+                if (SurfaceAt(new Vector3(limits.Full.X, limits.Full.Y, limits.Full.Z), material) is not { } surface) continue;
+                byFluid[fluid] = surface.Materials.ToArray();
+                parts.Add(surface);
+            }
+            OpenPartAssets(parts);
+            WriteJson(CachePath(LiquidsFolder, classPath, ".json"), new LiquidInfo(limits.Max, empty.Matrix, full.Matrix, byFluid));
+            written++;
+        }
+        progress($"Prepared {written} liquid containers.");
+    }
+
     /// <summary>
     /// Class paths of everything the editor draws as a placed object: blueprints under the game's
-    /// Blueprints folder named <c>Deployed_*</c> or <c>ABF_Vehicle*</c>, as a save writes them
+    /// Blueprints folder that live in <c>DeployedObjects</c> or are named <c>Deployed_*</c> or <c>ABF_Vehicle*</c>, as a save writes them
     /// (<c>/Game/Blueprints/.../Deployed_X.Deployed_X_C</c>).
     /// </summary>
     private static List<string> PlaceableClassPaths()
@@ -128,7 +223,8 @@ internal sealed partial class PakSceneModelProvider
             var package = "/Game/" + asset[(at + marker.Length)..^".uasset".Length];
             if (!package.StartsWith("/Game/Blueprints/", StringComparison.OrdinalIgnoreCase)) continue;
             var name = package[(package.LastIndexOf('/') + 1)..];
-            if (name.StartsWith("Deployed_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("ABF_Vehicle", StringComparison.OrdinalIgnoreCase))
+            if (package.Contains("/DeployedObjects/", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Deployed_", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("ABF_Vehicle", StringComparison.OrdinalIgnoreCase))
                 result.Add($"{package}.{name}_C");
         }
         return result.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();

@@ -9,7 +9,7 @@ import re
 import zipfile
 from pathlib import Path
 
-FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "meshes",
+FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "liquids-v1", "meshes",
            "meshes-posed-v2", "meshes-terrain-v3", "textures", "terrain-materials-v1", "texture-alpha-v1"}
 FILE = re.compile(r"[a-z0-9-]+/[a-f0-9]{64}\.(?:json|bin|abm|png)\Z")
 CHUNK_BYTES = 80 * 1024 * 1024
@@ -22,7 +22,7 @@ PAGES_BUDGET_MIB = 980
 DESCRIPTION_FOLDERS = {"meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1"}
 # How each placed object looks (a few hundred answers, 2-3 MB): published together as classes.json, which
 # the browser loads once when a scene holds objects, so the view needs no request per class.
-CLASS_FOLDERS = {"classes-v4"}
+CLASS_FOLDERS = {"classes-v4", "liquids-v1"}
 # Extensions browser download managers (IDM, FDM and the like) capture by default. A published
 # scenery file must not end in one, or the browser editor's request for it is taken away.
 CAPTURED_EXTENSIONS = {".7z", ".aac", ".apk", ".arj", ".avi", ".bin", ".bz2", ".cab", ".dmg", ".exe", ".gz",

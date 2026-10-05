@@ -39,6 +39,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     private const string TerrainMaterialsFolder = "terrain-materials-v1";
     private const string AlphaFolder = "texture-alpha-v1";
     private const string ClassesFolder = "classes-v4";
+    private const string LiquidsFolder = "liquids-v1";
     private const int LevelTextureSize = 512;
     private const int LevelLod = 1;
     private const float LevelMarginCm = 300f;
@@ -160,11 +161,14 @@ public sealed partial class HostedSceneryReader : IDisposable
             && await ClassOf($"{classPath}#paint={paint}").ConfigureAwait(false) is { } painted)
             model = painted;
         if (model is null) return null;
+        if (state?.LiquidLevel is { } level && await LiquidOf(classPath).ConfigureAwait(false) is { } liquid)
+            model = Filled(model, liquid, level, state.LiquidType);
         if (state?.LampOn == false)
             model = model with { Parts = model.Parts.Select(part => part with
             {
                 Materials = part.Materials.Select(m => m.Emissive ? m with { Emissive = false } : m).ToArray(),
             }).ToArray() };
+        if (state?.Crops is { Count: > 0 } crops) model = await Planted(model, classPath, crops).ConfigureAwait(false);
         return model with
         {
             Parts = model.Parts.Select(part => part with
@@ -434,6 +438,54 @@ public sealed partial class HostedSceneryReader : IDisposable
             ? info with { Materials = info.Materials ?? [] }
             : null);
 
+    private const string SurfacePart = "WaterLevel";
+
+    /// <summary>
+    /// A liquid container with its surface where the saved fill puts it: the game moves the surface
+    /// from its empty to its full position in proportion to the fill, and hides it when empty.
+    /// </summary>
+    private static SceneClassModel Filled(SceneClassModel model, LiquidInfo liquid, int level, string? fluid)
+    {
+        if (liquid.Max <= 0 || liquid.Empty is not { Length: 16 } empty || liquid.Full is not { Length: 16 } full) return model;
+        var t = Math.Clamp(level / (float)liquid.Max, 0f, 1f);
+        var matrix = new float[16];
+        for (var i = 0; i < 16; i++) matrix[i] = empty[i] + ((full[i] - empty[i]) * t);
+        var materials = fluid is not null && liquid.Fluids is not null && liquid.Fluids.TryGetValue(fluid, out var own) ? own : null;
+        return model with
+        {
+            Parts = model.Parts
+                .Where(part => level > 0 || part.Name != SurfacePart)
+                .Select(part => part.Name == SurfacePart ? part with { Matrix = matrix, Materials = materials ?? part.Materials } : part)
+                .ToArray(),
+        };
+    }
+
+    /// <summary>A garden plot with the crops its save holds, each at its spot and growth stage.</summary>
+    private async Task<SceneClassModel> Planted(SceneClassModel model, string classPath, IReadOnlyList<SceneCrop> crops)
+    {
+        var parts = model.Parts.ToList();
+        var min = model.BoundsMin.ToArray();
+        var max = model.BoundsMax.ToArray();
+        foreach (var crop in crops.OrderBy(c => c.Spot))
+        {
+            if (await ClassOf($"{classPath}#crop={crop.Spot}.{crop.Row}.{crop.Stage}").ConfigureAwait(false) is not { } planted) continue;
+            parts.AddRange(planted.Parts);
+            for (var axis = 0; axis < 3; axis++)
+            {
+                min[axis] = Math.Min(min[axis], planted.BoundsMin[axis]);
+                max[axis] = Math.Max(max[axis], planted.BoundsMax[axis]);
+            }
+        }
+        return new SceneClassModel(parts, min, max);
+    }
+
+    private readonly ConcurrentDictionary<string, Task<LiquidInfo?>> _liquids = new(StringComparer.Ordinal);
+
+    private Task<LiquidInfo?> LiquidOf(string classPath) => Once(_liquids, classPath, k => ReadJsonAsync<LiquidInfo>(LiquidsFolder, k, ".json"));
+
+    /// <summary>A liquid container's surface empty and full, and each liquid's look on it (<c>LiquidInfo</c> in the GameModels3D plugin).</summary>
+    private sealed record LiquidInfo(int Max, float[]? Empty, float[]? Full, Dictionary<string, SceneMaterial[]>? Fluids);
+
     private readonly ConcurrentDictionary<string, Task<SceneClassModel?>> _classes = new(StringComparer.Ordinal);
 
     private Task<SceneClassModel?> ClassOf(string key) => Once(_classes, key, async k =>
@@ -453,7 +505,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     {
         // The small answers come from the build's one descriptions.json when it has one: a level asks
         // for about a thousand of them, which fetched one by one took 20 seconds on the website.
-        var packed = DescriptionFolders.Contains(folder) ? _descriptions : folder == ClassesFolder ? _classPack : null;
+        var packed = DescriptionFolders.Contains(folder) ? _descriptions : folder is ClassesFolder or LiquidsFolder ? _classPack : null;
         if (packed is not null && await packed.Value.ConfigureAwait(false) is { } pack)
             return pack.TryGetValue($"{folder}/{Hash(key)}{extension}", out var value) ? value.Deserialize<T>(Json) : null;
         return await ReadBytesAsync(folder, key, extension).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<T>(bytes, Json) : null;

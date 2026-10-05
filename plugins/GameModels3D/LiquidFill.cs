@@ -147,6 +147,24 @@ internal static class LiquidFill
         }
     }
 
+    /// <summary>A liquid container's full fill and where its surface sits empty and full; null when the class is not one.</summary>
+    public static (int Max, FVector Empty, FVector Full)? Limits(IFileProvider provider, string classPath)
+    {
+        if (!provider.TryLoadPackageObject(classPath, out var obj) || obj is not UStruct cls) return null;
+        if (Default<int>(cls, "Liquid_MaxFill") is not { } max || max <= 0) return null;
+        var min = Default<FVector>(cls, "Liquid_FillLocationMin") ?? FVector.ZeroVector;
+        return (max, min, Default<FVector>(cls, "Liquid_FillLocationMax") ?? min);
+    }
+
+    /// <summary>The names of the liquids a save can hold (the game's <c>E_LiquidType</c> values, as a save writes them).</summary>
+    public static IReadOnlyList<string> FluidNames(IFileProvider provider)
+    {
+        var path = provider.Files.Keys.FirstOrDefault(k => k.EndsWith("/E_LiquidType.uasset", StringComparison.OrdinalIgnoreCase));
+        if (path is null || !provider.TryLoadPackage(path, out var package)) return [];
+        var uenum = package.GetExports().OfType<UEnum>().FirstOrDefault();
+        return (uenum?.Names ?? []).Select(n => n.Item1.Text[(n.Item1.Text.LastIndexOf(':') + 1)..]).Distinct(StringComparer.Ordinal).ToList();
+    }
+
     private static T? Default<T>(UStruct cls, string name) where T : struct
     {
         for (UStruct? current = cls; current is not null; current = current.SuperStruct?.Load<UStruct>())
