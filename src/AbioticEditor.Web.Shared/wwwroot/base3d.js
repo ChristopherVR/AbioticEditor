@@ -414,8 +414,9 @@ function buildView(host, dotnet) {
                     child.geometry.dispose();
                 }
                 group.visible = layer.on;
-                const items = layer.items;
-                if (!items.length) return;
+                if (layer === itemLayer) itemModelGroup.visible = layer.on;
+                const items = layer.items.filter(d => !d.hasModel);
+                if (!items.length && !layer.items.some(d => d.id === layer.selected)) return;
                 const pos = new Float32Array(items.length * 3), col = new Float32Array(items.length * 3);
                 const c = new THREE.Color();
                 items.forEach((d, i) => {
@@ -430,7 +431,7 @@ function buildView(host, dotnet) {
                 points.renderOrder = 12;
                 points.frustumCulled = false;
                 group.add(points);
-                const sel = items.find(d => d.id === layer.selected);
+                const sel = layer.items.find(d => d.id === layer.selected);
                 if (sel) {
                     const sg = new THREE.BufferGeometry();
                     sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array([sel.p[0], sel.p[1] + lift, sel.p[2]]), 3));
@@ -884,8 +885,54 @@ function buildView(host, dotnet) {
 
     function rebuildModelInstances() {
         disposeModelMeshes();
+        rebuildItemModels();
         if (!modelsOn) return;
         buildClassInstances(visibleByClass(false));
+    }
+
+    /**
+     * Items lying on the ground, drawn with their own models at their saved place and turn (the
+     * item markers carry {cls, q}). Each item with a ready model hides its marker dot but stays
+     * pickable through it; one without a model keeps the dot.
+     */
+    const itemModelGroup = new THREE.Group();
+    scene.add(itemModelGroup);
+    function rebuildItemModels() {
+        for (const m of [...itemModelGroup.children]) {
+            itemModelGroup.remove(m);
+            m.dispose(); // geometry and materials are shared through the caches
+        }
+        let changed = false;
+        for (const d of itemLayer.items) {
+            const had = d.hasModel;
+            d.hasModel = modelsOn && !!d.cls && classModels.get(d.cls)?.state === "ready";
+            if (d.hasModel !== had) changed = true;
+        }
+        const byClass = new Map();
+        for (const d of itemLayer.items) {
+            if (!d.hasModel) continue;
+            if (!byClass.has(d.cls)) byClass.set(d.cls, []);
+            byClass.get(d.cls).push(d);
+        }
+        const place = new THREE.Matrix4(), full = new THREE.Matrix4(), quat = new THREE.Quaternion();
+        const one = new THREE.Vector3(1, 1, 1), at = new THREE.Vector3();
+        const built = [];
+        for (const [cls, list] of byClass) {
+            for (const part of classModels.get(cls).parts) {
+                const mesh = new THREE.InstancedMesh(part.geometry, part.materials, list.length);
+                list.forEach((d, i) => {
+                    quat.set(...(d.q ?? [0, 0, 0, 1]));
+                    place.compose(at.set(d.p[0], d.p[1], d.p[2]), quat, one);
+                    mesh.setMatrixAt(i, full.multiplyMatrices(place, part.matrix));
+                });
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.computeBoundingSphere();
+                built.push(mesh);
+            }
+        }
+        addWhenCompiled(built, itemModelGroup, mesh => !disposed && modelsOn);
+        if (changed) itemLayer.rebuild();
+        requestRender();
     }
 
     /**
@@ -893,6 +940,7 @@ function buildView(host, dotnet) {
      * time a batch arrived threw away and recreated hundreds of meshes dozens of times per load.
      */
     function addArrivedModels() {
+        rebuildItemModels();
         if (!modelsOn) return;
         buildClassInstances(visibleByClass(true));
         rebuildBoxes();
@@ -1280,7 +1328,7 @@ function buildView(host, dotnet) {
 
     /** Asks for every class in the scene not asked about yet, and swaps boxes for models as they arrive. */
     async function loadClassModels() {
-        const wanted = [...new Set(objects.map(modelKey).filter(c => c && !classModels.has(c)))];
+        const wanted = [...new Set([...objects.map(modelKey), ...itemLayer.items.map(d => d.cls)].filter(c => c && !classModels.has(c)))];
         if (!modelsOn || wanted.length === 0) return;
         for (const cls of wanted) classModels.set(cls, { state: "pending" });
         let done = 0;
@@ -2807,7 +2855,17 @@ function buildView(host, dotnet) {
             return true;
         },
         /** Ground items ("item") or level things ("thing") as markers: each {id, p:[x,y,z] (viewer space), color}. */
-        setMarkers(kind, list) { const layer = markerLayers[kind]; if (!layer) return; layer.items = list ?? []; layer.rebuild(); requestRender(); },
+        setMarkers(kind, list) {
+            const layer = markerLayers[kind];
+            if (!layer) return;
+            layer.items = list ?? [];
+            layer.rebuild();
+            if (kind === "item") {
+                rebuildItemModels();
+                if (modelsOn) loadClassModels();
+            }
+            requestRender();
+        },
         /** Shows or hides one kind of marker. */
         setMarkersVisible(kind, on) { const layer = markerLayers[kind]; if (!layer) return; layer.on = !!on; layer.rebuild(); requestRender(); },
         /** Rings one marker of a kind (null clears it). */

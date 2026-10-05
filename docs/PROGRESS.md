@@ -21,9 +21,25 @@
   material. The reader adds the saved crops to the plot's model and blends the surface between empty
   and full for any saved level (hidden when empty). The class scan now takes every blueprint under
   `DeployedObjects` (garden plots are named `GardenPlot_*`), giving 528 models of 583 classes.
-- Pages size: the site is about 979 MiB by estimate, just under the 980 MiB budget and 1 GiB limit.
-  Trim the app or scenery before adding more.
-- Not covered: ground items and anything outside `DeployedObjects`, `Deployed_*` and vehicle blueprints.
+- Not covered: anything outside `DeployedObjects`, `Deployed_*` and vehicle blueprints.
+
+## Round-171: ground items are drawn with their own models (2026-10-06)
+
+- Items lying on the ground were only small triangle markers. Each now shows the mesh its `ItemTable_Global` row names
+  (`WorldStaticMesh_`, else `WorldSkeletalMesh_`, at the row's `Scale_WorldMesh`), at the saved place and turn.
+  `WorldDroppedItem` gained `Pitch/Yaw/Roll` (the save's `ItemRotation_` is a rotator in degrees) and
+  `PlacedSceneSpace.FromRotator` turns it into the viewer quaternion.
+- An item is a model key `item:<row>` answered by the same provider path as a placed class, so the desktop and
+  the browser (hosted `classes.json`, 1,621 item models) share it. `base3d.js` draws them as instanced meshes
+  (`rebuildItemModels`), hides the marker dot of an item whose model is ready and keeps it clickable through the
+  marker, and keeps the dot for an item with no model. Rows with a generic mesh show the game's own item box.
+- Texture variants (a painted or skinned item) are not applied to ground items: they draw with the row's default look.
+- Pages size: the objects, crops, liquids and items took the site past 1 GiB (about 1,029 MiB estimated), so
+  `tools/scenery.py assemble` now publishes textures as WebP (quality 90, alpha kept; Pillow, installed by the
+  docs workflow). The source packs and the desktop cache stay PNG. Textures went from 286 MiB to about 70 MiB;
+  the site is about 812 MiB, and the budget is back at 900 MiB.
+- Verified: provider and hosted tests for `item:Plant_Corn`, rotator test, 129 focused 3D tests, the Python tests
+  (WebP keeps alpha), and the assembled build drawing all six checked areas with no game files.
 - Verified: `HostedSceneryReaderTests` (12) serve the committed packs to the reader, with and without
   `classes.json`, and check every mesh and texture address exists; the Python packaging tests pass.
   No push or deployment; the live site shows the models after the next Pages publish.

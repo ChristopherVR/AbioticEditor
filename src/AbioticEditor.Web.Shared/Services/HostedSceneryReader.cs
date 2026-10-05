@@ -601,8 +601,11 @@ public sealed partial class HostedSceneryReader : IDisposable
         return new Uri(build, $"{folder}/{Hash(assetId)}.abm").AbsoluteUri;
     }
 
-    /// <summary>A texture id as the address of its hosted file.</summary>
-    public static string TextureUrl(Uri build, string assetId) => new Uri(build, $"textures/{Hash(assetId)}.png").AbsoluteUri;
+    /// <summary>
+    /// A texture id as the address of its hosted file. The website serves each texture as WebP (the
+    /// cache's PNG converted when the site is assembled, see <c>transcode_texture</c> in tools/scenery.py).
+    /// </summary>
+    public static string TextureUrl(Uri build, string assetId) => new Uri(build, $"textures/{Hash(assetId)}.webp").AbsoluteUri;
 
     private static SceneMaterial Hosted(Uri build, SceneMaterial m) => m with
     {

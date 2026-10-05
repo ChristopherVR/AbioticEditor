@@ -9,9 +9,11 @@ namespace AbioticEditor.Core.WorldSaves;
 /// <param name="Slot">The single item (same slot struct as inventories, under <c>ItemData_</c>).</param>
 /// <param name="NoDespawn">Whether the game's despawn timer is disabled for it.</param>
 /// <param name="X">World position (from <c>ItemLocation_</c>; 0 when absent).</param>
+/// <param name="Pitch">Rotation in degrees (from <c>ItemRotation_</c>, a rotator stored as pitch, yaw, roll).</param>
 public sealed record WorldDroppedItem(
     string Id, InventoryItemSlot Slot, bool NoDespawn,
-    double X = 0, double Y = 0, double Z = 0, string? Region = null)
+    double X = 0, double Y = 0, double Z = 0, string? Region = null,
+    double Pitch = 0, double Yaw = 0, double Roll = 0)
 {
     /// <summary>Straight-line distance to a point (player position), in UE units (cm).</summary>
     public double DistanceTo(double x, double y, double z)

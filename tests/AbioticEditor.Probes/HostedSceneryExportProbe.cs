@@ -29,6 +29,7 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
                 var key = Path.GetRelativePath(root, file).Replace('\\', '/');
                 if (!key.Contains('/', StringComparison.Ordinal)) continue; // index.json and the like
                 if (key.EndsWith(".ali", StringComparison.Ordinal)) key = key[..^4] + ".bin";
+                if (key.StartsWith("textures/", StringComparison.Ordinal)) continue; // published as .webp; checked by address below
                 var target = Path.Combine(provider.CacheRoot, key.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Copy(file, target);
@@ -47,9 +48,9 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
                     Assert.NotNull(provider.OpenAsset(batch.Mesh));
                     foreach (var material in batch.Materials)
                     {
-                        if (material.Texture is { } texture) Assert.NotNull(provider.OpenAsset(texture));
+                        if (material.Texture is { } texture) Assert.True(File.Exists(Path.Combine(root, PublishedTexture(texture))), texture);
                         foreach (var layer in material.Layers ?? [])
-                            if (layer.Texture is { } layerTexture) Assert.NotNull(provider.OpenAsset(layerTexture));
+                            if (layer.Texture is { } layerTexture) Assert.True(File.Exists(Path.Combine(root, PublishedTexture(layerTexture))), layerTexture);
                     }
                 }
                 output.WriteLine($"{region}: {slice.Batches.Count} batches, {slice.TotalInBox} instances and {slice.Lights.Count} lights without local extraction.");
@@ -61,6 +62,10 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
             if (Directory.Exists(data)) Directory.Delete(data, recursive: true);
         }
     }
+
+    /// <summary>Where the website publishes a texture: <c>textures/&lt;SHA-256 of its id&gt;.webp</c>.</summary>
+    private static string PublishedTexture(string id)
+        => "textures/" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(id))) + ".webp";
 
     /// <summary>
     /// Prepares every level and what it draws into this install's cache (<c>ABIOTIC_SCENERY_PREPARE=1</c>),

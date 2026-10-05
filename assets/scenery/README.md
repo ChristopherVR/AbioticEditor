@@ -15,7 +15,8 @@ Each build directory is named for a portable signature of the base game's archiv
 archive sizes and mappings (`signature` in `tools/scenery.py`). Pak footers and complete IoStore
 tables are hashed; install paths and dates do not affect it.
 
-The format is the desktop provider's render cache: compact binary level indexes, ABM1 meshes,
+The format is the desktop provider's render cache (textures are PNG here and published as WebP by
+`assemble`, which needs Pillow): compact binary level indexes, ABM1 meshes,
 PNG textures, JSON world layouts, materials and class descriptions. Streaming volumes, terrain
 weights, actor identities, lights and the alternate open door leaves stay intact. Each manifest
 entry records its byte count and SHA-256 digest; the manifest is checked when the site is
@@ -57,7 +58,8 @@ python tools/scenery.py export --extend --cache '<plugin-data>/cache/<current in
 ```
 
 `assemble` publishes the answers together as `classes.json` per build (about 1 MB, 140 KB
-compressed), which the browser loads once; the single files stay as a fallback. A garden's crops
+compressed), which the browser loads once. Items lying on the ground are prepared as
+`item:<row>` entries in it (the mesh and scale an `ItemTable_Global` row names); the single files stay as a fallback. A garden's crops
 (one entry per spot, crop and stage) and a tank's liquid level (surface empty and full, plus each
 liquid's material, in `liquids-v1`) are prepared too; the browser combines them for each saved object.
 
@@ -85,5 +87,5 @@ the browser reader asks for the published name (`HostedSceneryReader.PublishedPa
 `docs.yml` verifies and extracts every source chunk into the combined Pages artifact, outside
 `/app/`, and writes `v1/index.json`. With more than one build here, put the newest build's
 signature in `latest.txt` so the browser editor draws it. It fails on missing files, duplicate
-names, unsafe paths, incorrect sizes/hashes or a combined site larger than 980 MiB (GitHub Pages refuses 1 GiB). Old build
+names, unsafe paths, incorrect sizes/hashes or a combined site larger than 900 MiB (GitHub Pages refuses 1 GiB). Old build
 exports must be removed when necessary to keep the site within this budget.

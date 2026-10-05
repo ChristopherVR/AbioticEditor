@@ -50,6 +50,22 @@ public static class PlacedSceneSpace
     /// <summary>Per-axis scale to viewer space (no unit change, axes swapped like a position).</summary>
     public static PlacedVector ScaleToViewer(PlacedVector save) => new(save.X, save.Z, save.Y);
 
+    /// <summary>
+    /// The save-space quaternion of an Unreal rotator (pitch, yaw, roll in degrees), as the engine's
+    /// <c>FRotator::Quaternion</c> builds it.
+    /// </summary>
+    public static PlacedQuaternion FromRotator(double pitch, double yaw, double roll)
+    {
+        var (sp, cp) = Math.SinCos(pitch * Math.PI / 360.0);
+        var (sy, cy) = Math.SinCos(yaw * Math.PI / 360.0);
+        var (sr, cr) = Math.SinCos(roll * Math.PI / 360.0);
+        return Normalize(new PlacedQuaternion(
+            (cr * sp * sy) - (sr * cp * cy),
+            (-cr * sp * cy) - (sr * cp * sy),
+            (cr * cp * sy) - (sr * sp * cy),
+            (cr * cp * cy) + (sr * sp * sy)));
+    }
+
     /// <summary>The unit-length form of <paramref name="q"/>; identity for a degenerate input.</summary>
     public static PlacedQuaternion Normalize(PlacedQuaternion q)
     {

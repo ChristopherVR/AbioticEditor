@@ -53,7 +53,10 @@ public partial class WorldBases3DTab
             .Select(i =>
             {
                 var v = PlacedSceneSpace.ToViewer(new PlacedVector(i.X, i.Y, i.Z));
-                return new { id = i.Id, p = new[] { v.X, v.Y, v.Z }, color = ItemColor };
+                // The item's own model (key "item:<row>") is drawn at its saved place and turn.
+                var q = PlacedSceneSpace.ToViewer(PlacedSceneSpace.FromRotator(i.Pitch, i.Yaw, i.Roll));
+                var cls = string.IsNullOrWhiteSpace(i.Slot.ItemId) || i.Slot.ItemId == "Empty" ? null : "item:" + i.Slot.ItemId;
+                return new { id = i.Id, p = new[] { v.X, v.Y, v.Z }, color = ItemColor, cls, q = new[] { q.X, q.Y, q.Z, q.W } };
             })
             .ToList();
         try

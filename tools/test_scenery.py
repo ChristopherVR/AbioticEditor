@@ -47,6 +47,17 @@ class SceneryTests(unittest.TestCase):
         self.assertFalse((output / "manifest.json").exists())
         self.assertFalse(list(output.rglob("personal.txt")))
 
+    def test_textures_are_published_as_smaller_webp(self):
+        import io
+        from PIL import Image
+        self.assertEqual(scenery.published_name("textures/" + "c" * 64 + ".png"), "textures/" + "c" * 64 + ".webp")
+        source = io.BytesIO()
+        Image.new("RGBA", (64, 64), (200, 30, 30, 128)).save(source, "PNG")
+        with Image.open(io.BytesIO(scenery.transcode_texture(source.getvalue()))) as image:
+            self.assertEqual(image.format, "WEBP")
+            self.assertEqual(image.size, (64, 64))
+            self.assertEqual(image.mode, "RGBA")  # see-through textures stay see-through
+
     def test_published_names_avoid_extensions_download_managers_capture(self):
         self.assertEqual(scenery.published_name("levels/" + "b" * 64 + ".bin"), "levels/" + "b" * 64 + ".ali")
         self.assertEqual(scenery.published_name("meshes/" + "b" * 64 + ".abm"), "meshes/" + "b" * 64 + ".abm")

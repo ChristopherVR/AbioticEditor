@@ -739,6 +739,42 @@ public sealed class GameModels3DTests
     }
 
     [Fact]
+    public void Ground_items_are_drawn_from_the_mesh_their_row_names()
+    {
+        using var assets = GameAssetProvider.CreateForLocalInstall();
+        if (assets is not { HasMappings: true }) return;
+        PluginHostEnvironment.GameAssets = () => assets;
+        var dir = Path.Combine(Path.GetTempPath(), "abiotic-item-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var provider = new PakSceneModelProvider(new TestHost(dir));
+            var corn = provider.DescribeClass("item:Plant_Corn")!;
+            var part = Assert.Single(corn.Parts);
+            Assert.StartsWith("mesh/0/Game/Models/Items/", part.Mesh, StringComparison.Ordinal);
+            // The row's Scale_WorldMesh (4) is in the part's matrix.
+            Assert.Equal(4f, part.Matrix[0], 0.01f);
+            Assert.Null(provider.DescribeClass("item:NoSuchItemRow"));
+            Assert.Null(provider.DescribeClass("item:../../Game/Evil"));
+        }
+        finally
+        {
+            PluginHostEnvironment.GameAssets = null!;
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_saved_rotator_becomes_the_quaternion_the_engine_builds()
+    {
+        var yaw = PlacedSceneSpace.FromRotator(0, 90, 0);
+        Assert.Equal(Math.Sqrt(0.5), yaw.Z, 6);
+        Assert.Equal(Math.Sqrt(0.5), yaw.W, 6);
+        var pitch = PlacedSceneSpace.FromRotator(90, 0, 0);
+        Assert.Equal(Math.Sqrt(0.5), pitch.Y * -1, 6); // pitching up turns about -Y in the engine
+        Assert.Equal(PlacedQuaternion.Identity, PlacedSceneSpace.FromRotator(0, 0, 0));
+    }
+
+    [Fact]
     public void Liquid_containers_show_their_surface_at_the_saved_fill()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();

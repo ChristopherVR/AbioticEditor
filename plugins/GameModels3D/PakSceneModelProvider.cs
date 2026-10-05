@@ -89,8 +89,15 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
 
     // ---- classes ----------------------------------------------------------------------------
 
+    /// <summary>
+    /// Key of an item lying on the ground: <c>item:&lt;ItemTable row&gt;</c> (<c>item:Plant_Corn</c>). It is
+    /// answered like a class, from the mesh the item's row names (see <see cref="BuildItem"/>).
+    /// </summary>
+    internal const string ItemKeyPrefix = "item:";
+
     public SceneClassModel? DescribeClass(string classPath)
     {
+        if (classPath is not null && classPath.StartsWith(ItemKeyPrefix, StringComparison.Ordinal)) return DescribeItem(classPath[ItemKeyPrefix.Length..]);
         if (string.IsNullOrWhiteSpace(classPath) || !GamePath().IsMatch(classPath)) return null;
         var cacheFile = CachePath(ClassesFolder, classPath, ".json");
         if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
@@ -242,6 +249,74 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
         }
         return meshes.Values.FirstOrDefault();
     }
+
+    private const string ItemTablePath = "AbioticFactor/Content/Blueprints/Items/ItemTable_Global";
+
+    private Lazy<IReadOnlyDictionary<string, (string Mesh, float Scale)>>? _itemMeshes;
+
+    /// <summary>Every item row's world mesh and its <c>Scale_WorldMesh</c>, read once (rows without a mesh are left out).</summary>
+    internal IReadOnlyDictionary<string, (string Mesh, float Scale)> ItemMeshes
+        => (_itemMeshes ??= new(() => Read(ReadItemMeshes))).Value;
+
+    private static IReadOnlyDictionary<string, (string Mesh, float Scale)> ReadItemMeshes(IFileProvider provider)
+    {
+        var result = new Dictionary<string, (string, float)>(StringComparer.OrdinalIgnoreCase);
+        if (!provider.TryLoadPackage(ItemTablePath, out var package)
+            || package.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Engine.UDataTable>().FirstOrDefault() is not { } table) return result;
+        foreach (var (name, row) in table.RowMap)
+        {
+            string? mesh = null;
+            var scale = 1f;
+            foreach (var prop in row.Properties)
+            {
+                var propName = prop.Name.Text;
+                if (mesh is null && (propName.StartsWith("WorldStaticMesh_", StringComparison.Ordinal) || propName.StartsWith("WorldSkeletalMesh_", StringComparison.Ordinal)))
+                    mesh = PathOf(prop.Tag?.GenericValue);
+                else if (propName.StartsWith("Scale_WorldMesh_", StringComparison.Ordinal) && prop.Tag?.GenericValue is { } value)
+                    scale = Convert.ToSingle(value, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            if (mesh is not null) result[name.Text] = (mesh, scale > 0f ? scale : 1f);
+        }
+        return result;
+    }
+
+    private static string? PathOf(object? value)
+    {
+        var path = value switch
+        {
+            FSoftObjectPath soft => soft.AssetPathName.Text,
+            FPackageIndex index => index.ResolvedObject?.GetPathName(),
+            _ => value?.ToString(),
+        };
+        return path is { Length: > 0 } && path[0] == '/' && GamePath().IsMatch(path) ? path : null;
+    }
+
+    /// <summary>An item on the ground: the mesh its row names, at the row's world scale (a row with none has no model).</summary>
+    private SceneClassModel? DescribeItem(string row)
+    {
+        if (!ItemRow().IsMatch(row)) return null;
+        var cacheFile = CachePath(ClassesFolder, ItemKeyPrefix + row, ".json");
+        if (TryReadJson<CachedClass>(cacheFile) is { } cached) return cached.Model;
+        var model = BuildItem(row);
+        WriteJson(cacheFile, new CachedClass(model));
+        return model;
+    }
+
+    private SceneClassModel? BuildItem(string row)
+    {
+        if (!ItemMeshes.TryGetValue(row, out var world) || MeshInfoOf(world.Mesh) is not { } info || IsEffectOnly(info, [])) return null;
+        var local = Matrix4x4.CreateScale(world.Scale);
+        var materials = MaterialsFor(info, [], ObjectTextureSize);
+        if (materials.Any(m => m.Decal && (m.Texture is null || !TextureHasAlpha(m.Texture)))) return null;
+        var min = new Vector3(float.MaxValue);
+        var max = new Vector3(float.MinValue);
+        SceneMath.Encapsulate(ref min, ref max, info.BoundsMin, info.BoundsMax, local);
+        return new SceneClassModel([new ScenePart($"mesh/0{world.Mesh}", SceneMath.ToViewer(local), materials, "item/" + row)],
+            [min.X, min.Y, min.Z], [max.X, max.Y, max.Z]);
+    }
+
+    [GeneratedRegex(@"^[A-Za-z0-9_\-]{1,100}$")]
+    private static partial Regex ItemRow();
 
     /// <summary>A cached answer, including "no model" so a class without one is not re-read every run.</summary>
     private sealed record CachedClass(SceneClassModel? Model);

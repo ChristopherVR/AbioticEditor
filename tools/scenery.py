@@ -13,9 +13,9 @@ FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "liquid
            "meshes-posed-v2", "meshes-terrain-v3", "textures", "terrain-materials-v1", "texture-alpha-v1"}
 FILE = re.compile(r"[a-z0-9-]+/[a-f0-9]{64}\.(?:json|bin|abm|png)\Z")
 CHUNK_BYTES = 80 * 1024 * 1024
-# GitHub Pages refuses a site over 1 GiB. The objects' models took the site past the old 900 MiB budget
-# (883.6 MiB before them); this keeps a margin under the hard limit.
-PAGES_BUDGET_MIB = 980
+# GitHub Pages refuses a site over 1 GiB; this keeps a margin. (Textures are published as WebP, which
+# is what lets the objects, crops, liquids and items fit: the same textures were 260 MiB as PNG.)
+PAGES_BUDGET_MIB = 900
 # Small JSON answers the browser needs before drawing anything: a level asks for about a thousand of
 # them, and fetched one by one they took 20 seconds. All of them are also published together as one
 # descriptions.json per build (2.6 MB, about 330 KB compressed); the separate files stay too.
@@ -151,7 +151,7 @@ def assemble(source, destination):
                         raise ValueError(f"Incorrect scenery hash: {key}")
                     target = output / published_name(key)
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    target.write_bytes(data)
+                    target.write_bytes(transcode_texture(data) if key.startswith("textures/") else data)
                     seen.add(key)
                     if key.split("/")[0] in DESCRIPTION_FOLDERS:
                         descriptions[key] = json.loads(data)
@@ -181,9 +181,28 @@ def published_name(key):
     published as .ali, after their ALI1 header. Every other name is kept.
     """
     name = key[:-4] + ".ali" if key.endswith(".bin") else key
+    if name.startswith("textures/") and name.endswith(".png"):
+        name = name[:-4] + ".webp"
     if Path(name).suffix.lower() in CAPTURED_EXTENSIONS:
         raise ValueError(f"Download managers would capture this published file: {name}")
     return name
+
+
+WEBP_QUALITY = 90
+
+
+def transcode_texture(png):
+    """A texture's PNG as the WebP the browser downloads: about a quarter of the size, alpha kept.
+
+    The source packs and the desktop's cache keep the PNG; only the published copy is converted, so
+    the textures fit in the Pages site (they were over 260 MiB as PNG).
+    """
+    import io
+    from PIL import Image  # pip install pillow
+    with Image.open(io.BytesIO(png)) as image:
+        out = io.BytesIO()
+        image.save(out, "WEBP", quality=WEBP_QUALITY, method=4)
+        return out.getvalue()
 
 
 def write_index(source, destination, builds):

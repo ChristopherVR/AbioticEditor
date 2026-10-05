@@ -111,7 +111,15 @@ public static partial class WorldSaveReader
                 y = loc.Value.Y;
                 z = loc.Value.Z;
             }
-            result.Add(new WorldDroppedItem(id, slot, noDespawn, x, y, z));
+            double pitch = 0, yaw = 0, roll = 0;
+            if (ps.Properties.FindByPrefix("ItemRotation_")?.Property is StructProperty rotSp
+                && rotSp.Value is VectorStruct rot)
+            {
+                pitch = rot.Value.X;
+                yaw = rot.Value.Y;
+                roll = rot.Value.Z;
+            }
+            result.Add(new WorldDroppedItem(id, slot, noDespawn, x, y, z, Pitch: pitch, Yaw: yaw, Roll: roll));
         }
         return result;
     }

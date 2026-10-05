@@ -101,6 +101,15 @@ internal sealed partial class PakSceneModelProvider
                 progress($"No model for {classPath}: {ex.Message}");
             }
         }
+        var items = 0;
+        foreach (var row in ItemMeshes.Keys.Order(StringComparer.Ordinal))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (DescribeClass(ItemKeyPrefix + row) is not { } item) continue;
+            OpenPartAssets(item.Parts);
+            items++;
+        }
+        progress($"Prepared {items} of {ItemMeshes.Count} item models.");
         PrepareGardenCrops(classes, progress, cancellationToken);
         PrepareLiquidContainers(classes, progress, cancellationToken);
         // Only what the browser asks for: the answers and the files they name.

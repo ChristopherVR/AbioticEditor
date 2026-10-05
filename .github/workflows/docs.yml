@@ -106,6 +106,7 @@ jobs:
       # assets/scenery, and these archives are unpacked only into the Pages artifact.
       - name: Assemble browser editor scenery
         run: |
+          python3 -m pip install --quiet pillow
           python3 -m unittest discover -s tools -p test_scenery.py -q
           python3 tools/scenery.py assemble --destination docs/.vitepress/dist/scenery
 

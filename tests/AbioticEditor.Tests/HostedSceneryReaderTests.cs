@@ -134,6 +134,18 @@ public sealed class HostedSceneryReaderTests
     }
 
     [SkippableFact]
+    public async Task Ground_items_are_drawn_from_hosted_item_models()
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        var answer = await reader.DescribeClassesAsync(["item:Plant_Corn", "item:NoSuchItemRow"]);
+        var part = Assert.Single(answer["item:Plant_Corn"]!.Parts);
+        Assert.True(site.Has(part.Mesh[site.Build.AbsoluteUri.Length..]), part.Mesh);
+        Assert.False(answer.ContainsKey("item:NoSuchItemRow"));
+    }
+
+    [SkippableFact]
     public async Task Level_files_are_fetched_under_a_name_download_managers_leave_alone()
     {
         using var site = HostedSite.Open();
@@ -335,7 +347,8 @@ public sealed class HostedSceneryReaderTests
             return build is null ? null : new HostedSite(build);
         }
 
-        public bool Has(string key) => _files.ContainsKey(key);
+        /// <summary>Whether the build has a published file; a texture is published as .webp, from the cache's .png.</summary>
+        public bool Has(string key) => _files.ContainsKey(key.StartsWith("textures/", StringComparison.Ordinal) && key.EndsWith(".webp", StringComparison.Ordinal) ? key[..^5] + ".png" : key);
 
         /// <summary>Writes every file asked for so far into a provider's cache folder, under its cache name.</summary>
         public void CopyRequestedTo(string cacheRoot)
