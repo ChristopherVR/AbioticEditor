@@ -78,6 +78,33 @@ public sealed class HostedSceneryReaderTests
         }
     }
 
+    private const string Workbench = "/Game/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Default.Deployed_CraftingBench_Default_C";
+
+    [SkippableTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Placed_objects_are_drawn_from_hosted_models(bool packed)
+    {
+        using var site = HostedSite.Open();
+        Skip.If(site is null, "the prepared scenery is not in this checkout");
+        site.ServeClasses = packed;
+        var reader = new HostedSceneryReader(new HttpClient(site), Root);
+        var answer = await reader.DescribeClassesAsync([Workbench, Workbench + "#lamp=0", "/Game/Blueprints/DeployedObjects/Furniture/Deployed_NoSuchThing.Deployed_NoSuchThing_C"]);
+        Assert.NotEmpty(answer[Workbench]!.Parts);
+        Assert.NotEmpty(answer[Workbench + "#lamp=0"]!.Parts);
+        Assert.False(answer.ContainsKey("/Game/Blueprints/DeployedObjects/Furniture/Deployed_NoSuchThing.Deployed_NoSuchThing_C"));
+        foreach (var part in answer[Workbench]!.Parts)
+        {
+            Assert.StartsWith(site.Build.AbsoluteUri, part.Mesh, StringComparison.Ordinal);
+            Assert.True(site.Has(part.Mesh[site.Build.AbsoluteUri.Length..]), part.Mesh);
+            foreach (var texture in part.Materials.Select(m => m.Texture).OfType<string>())
+                Assert.True(site.Has(texture[site.Build.AbsoluteUri.Length..]), texture);
+        }
+        // One download answers every class when the build has classes.json; otherwise each class is its own file.
+        Assert.Contains("classes.json", site.Requested);
+        Assert.Equal(!packed, site.Requested.Any(p => p.StartsWith("classes-v4/", StringComparison.Ordinal)));
+    }
+
     [SkippableFact]
     public async Task Level_files_are_fetched_under_a_name_download_managers_leave_alone()
     {
@@ -240,14 +267,21 @@ public sealed class HostedSceneryReaderTests
         /// <summary>Serve the build's descriptions.json (as tools/scenery.py assemble publishes it).</summary>
         public bool ServeDescriptions { get; set; } = true;
 
-        private byte[]? _descriptions;
+        /// <summary>Serve the build's classes.json (the placed objects' models, as tools/scenery.py assemble publishes it).</summary>
+        public bool ServeClasses { get; set; } = true;
 
-        private byte[] Descriptions()
+        private byte[]? _descriptions;
+        private byte[]? _classes;
+
+        private byte[] Descriptions() => Pack(ref _descriptions, "meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1");
+
+        private byte[] Classes() => Pack(ref _classes, "classes-v4");
+
+        private byte[] Pack(ref byte[]? cached, params string[] folders)
         {
             lock (_packs)
             {
-                if (_descriptions is not null) return _descriptions;
-                var folders = new[] { "meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1" };
+                if (cached is not null) return cached;
                 var pack = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
                 foreach (var (key, entry) in _files)
                 {
@@ -255,7 +289,7 @@ public sealed class HostedSceneryReaderTests
                     using var stream = entry.Open();
                     pack[key] = JsonDocument.Parse(stream).RootElement.Clone();
                 }
-                return _descriptions = JsonSerializer.SerializeToUtf8Bytes(pack);
+                return cached = JsonSerializer.SerializeToUtf8Bytes(pack);
             }
         }
 
@@ -317,6 +351,7 @@ public sealed class HostedSceneryReaderTests
                 Requested.Enqueue(published);
                 // No manifest.json: Pages does not publish it (the browser needs none).
                 if (key == "descriptions.json") data = ServeDescriptions ? Descriptions() : null;
+                else if (key == "classes.json") data = ServeClasses ? Classes() : null;
                 else if (_files.TryGetValue(key, out var entry))
                 {
                     lock (_packs)

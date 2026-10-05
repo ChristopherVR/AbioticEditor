@@ -43,6 +43,23 @@ python tools/scenery.py export --cache '<plugin-data>/cache/<current install sta
 python tools/scenery.py assemble --destination artifacts/scenery-preview/scenery
 ```
 
+Placed objects (furniture, benches, containers, vehicles) are prepared by a second probe, which
+needs no native decoder. It finds every `Deployed_*` and `ABF_Vehicle*` blueprint by name (never
+a list of classes, so a game update's new objects are included), describes each plain and in
+each paint colour it can wear, and adds the answers and the meshes and textures they name to
+`hosted-files.json`. Add them to an existing export with `--extend`:
+
+```powershell
+$env:ABIOTIC_SCENERY_PREPARE = '1'
+dotnet test tests/AbioticEditor.Probes --filter FullyQualifiedName~HostedSceneryExportProbe.Prepare_object_models_for_Pages
+Remove-Item Env:ABIOTIC_SCENERY_PREPARE
+python tools/scenery.py export --extend --cache '<plugin-data>/cache/<current install stamp>' --paks '<game>/AbioticFactor/Content/Paks' --mappings assets/Mappings.usmap
+```
+
+`assemble` publishes the answers together as `classes.json` per build (about 1 MB, 140 KB
+compressed), which the browser loads once; the single files stay as a fallback. A garden's crops
+and a tank's liquid level need the game, so those objects draw as their plain model.
+
 The export command checks that the cache stamp matches the current installed game. The
 preparation probe records the files needed by level scenery in `hosted-files.json`; the export
 uses this inventory to leave unrelated cached object previews out of Pages. It refuses to
@@ -67,5 +84,5 @@ the browser reader asks for the published name (`HostedSceneryReader.PublishedPa
 `docs.yml` verifies and extracts every source chunk into the combined Pages artifact, outside
 `/app/`, and writes `v1/index.json`. With more than one build here, put the newest build's
 signature in `latest.txt` so the browser editor draws it. It fails on missing files, duplicate
-names, unsafe paths, incorrect sizes/hashes or a combined site larger than 900 MiB. Old build
+names, unsafe paths, incorrect sizes/hashes or a combined site larger than 980 MiB (GitHub Pages refuses 1 GiB). Old build
 exports must be removed when necessary to keep the site within this budget.

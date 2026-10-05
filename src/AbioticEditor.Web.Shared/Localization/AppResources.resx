@@ -4725,7 +4725,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="World3D_SceneryAskNo" xml:space="preserve"><value>Keep boxes</value></data>
   <data name="World3D_SceneryOffer" xml:space="preserve"><value>Every piece is drawn as a box. The level around your base can be downloaded from the editor's website (about 40 MB for an area).</value></data>
   <data name="World3D_SceneryStop" xml:space="preserve"><value>Stop downloading the level</value></data>
-  <data name="World3D_ModelsBrowserScenery" xml:space="preserve"><value>The level around your base is downloaded from the editor's website as you look around. Your own things are still drawn as boxes: their game models, doors and characters need the desktop app.</value></data>
+  <data name="World3D_ModelsBrowserScenery" xml:space="preserve"><value>The level around your base is downloaded from the editor's website as you look around. Your own things are drawn with their game models too. Doors, characters and the plants in a garden need the desktop app.</value></data>
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>appears when: {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>leaves when: {0}</value></data>

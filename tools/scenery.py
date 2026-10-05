@@ -13,10 +13,16 @@ FOLDERS = {"levels", "worlds", "meshinfo", "materials-v5", "classes-v4", "meshes
            "meshes-posed-v2", "meshes-terrain-v3", "textures", "terrain-materials-v1", "texture-alpha-v1"}
 FILE = re.compile(r"[a-z0-9-]+/[a-f0-9]{64}\.(?:json|bin|abm|png)\Z")
 CHUNK_BYTES = 80 * 1024 * 1024
+# GitHub Pages refuses a site over 1 GiB. The objects' models took the site past the old 900 MiB budget
+# (883.6 MiB before them); this keeps a margin under the hard limit.
+PAGES_BUDGET_MIB = 980
 # Small JSON answers the browser needs before drawing anything: a level asks for about a thousand of
 # them, and fetched one by one they took 20 seconds. All of them are also published together as one
 # descriptions.json per build (2.6 MB, about 330 KB compressed); the separate files stay too.
 DESCRIPTION_FOLDERS = {"meshinfo", "materials-v5", "texture-alpha-v1", "terrain-materials-v1"}
+# How each placed object looks (a few hundred answers, 2-3 MB): published together as classes.json, which
+# the browser loads once when a scene holds objects, so the view needs no request per class.
+CLASS_FOLDERS = {"classes-v4"}
 # Extensions browser download managers (IDM, FDM and the like) capture by default. A published
 # scenery file must not end in one, or the browser editor's request for it is taken away.
 CAPTURED_EXTENSIONS = {".7z", ".aac", ".apk", ".arj", ".avi", ".bin", ".bz2", ".cab", ".dmg", ".exe", ".gz",
@@ -128,6 +134,7 @@ def assemble(source, destination):
         expected = manifest["files"]
         seen = set()
         descriptions = {}
+        classes = {}
         for chunk in json.loads((build / "chunks.json").read_text(encoding="utf-8")):
             if not re.fullmatch(r"part-[0-9]{3}\.zip", chunk):
                 raise ValueError("Invalid chunk name")
@@ -148,18 +155,22 @@ def assemble(source, destination):
                     seen.add(key)
                     if key.split("/")[0] in DESCRIPTION_FOLDERS:
                         descriptions[key] = json.loads(data)
+                    elif key.split("/")[0] in CLASS_FOLDERS:
+                        classes[key] = json.loads(data)
         if seen != set(expected):
             raise ValueError("Scenery export is missing assets")
         (output / "descriptions.json").write_text(
             json.dumps(dict(sorted(descriptions.items())), separators=(",", ":")) + "\n", encoding="utf-8")
+        (output / "classes.json").write_text(
+            json.dumps(dict(sorted(classes.items())), separators=(",", ":")) + "\n", encoding="utf-8")
         # The manifest stays in the source packs: the browser needs none, and desktop v2.26.0 downloaded
         # scenery only when it found one, which the desktop must never do.
         builds.append(build.name)
         print(f"Assembled {len(seen)} verified scenery assets for {build.name}")
     write_index(source, destination, builds)
     total = sum(p.stat().st_size for p in destination.parent.rglob("*") if p.is_file())
-    if total > 900 * 1024 * 1024:
-        raise ValueError("Combined Pages site exceeds the 900 MiB publishing budget")
+    if total > PAGES_BUDGET_MIB * 1024 * 1024:
+        raise ValueError(f"Combined Pages site exceeds the {PAGES_BUDGET_MIB} MiB publishing budget")
 
 
 def published_name(key):

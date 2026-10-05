@@ -1,5 +1,26 @@
 # Abiotic Editor - Session history
 
+## Round-170: the browser draws placed objects with their game models (2026-10-06)
+
+- The browser 3D view still drew every placed object (furniture, benches, containers, vehicles) as a
+  plain box: `HostedSceneryReader.DescribeClasses` answered nothing because no object models were
+  hosted. Round-167 had left that as a known gap.
+- `PakSceneModelProvider.PrepareHostedClasses` (probe `Prepare_object_models_for_Pages`, no native
+  decoder needed) finds every `Deployed_*` and `ABF_Vehicle*` blueprint under Blueprints by name,
+  describes each plain and in each paint colour the class can wear, and records the answers plus the
+  meshes and textures they name. 436 of 457 classes have a model (the rest are parent blueprints
+  with nothing to draw). `export --extend` added 1,986 files to the hosted build (53 MB packed).
+- `tools/scenery.py assemble` also publishes `classes.json` per build (987 KB, 136 KB compressed).
+  The reader loads it once, falls back to single files when a build has none, and answers a painted
+  or lamp-off object from the plain model plus the paint variant. Crops and liquid levels draw as the
+  plain model in the browser. A class the build lacks stays a box.
+- The Pages budget in `scenery.py` moved from 900 to 980 MiB: the site was 883.6 MiB and the objects
+  add about 65 MiB, and GitHub Pages refuses 1 GiB.
+- Not covered: ground items and anything that is not a `Deployed_*` or vehicle blueprint.
+- Verified: `HostedSceneryReaderTests` (12) serve the committed packs to the reader, with and without
+  `classes.json`, and check every mesh and texture address exists; the Python packaging tests pass.
+  No push or deployment; the live site shows the models after the next Pages publish.
+
 ## Round-169: the browser's first look at an area loads faster and says how far it got (2026-10-04)
 
 - Measured on the live site (Facility_Office1, 40 m): 20 s went on about a thousand tiny

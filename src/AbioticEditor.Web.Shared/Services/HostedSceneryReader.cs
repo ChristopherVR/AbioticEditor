@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AbioticEditor.Core.Diagnostics;
+using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Plugins.Scene;
 using Microsoft.JSInterop;
 
@@ -24,7 +25,8 @@ namespace AbioticEditor.Web.Services;
 /// </para>
 /// <para>
 /// Asset ids in the answers are the hosted files' own addresses, so the view fetches meshes and
-/// textures straight from the website. Only level scenery is hosted; placed objects stay boxes.
+/// textures straight from the website. Level scenery and the models of placed objects are hosted;
+/// an object with no hosted model (a class added after the build was prepared) stays a box.
 /// </para>
 /// </remarks>
 public sealed partial class HostedSceneryReader : IDisposable
@@ -36,6 +38,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     private const string MaterialsFolder = "materials-v5";
     private const string TerrainMaterialsFolder = "terrain-materials-v1";
     private const string AlphaFolder = "texture-alpha-v1";
+    private const string ClassesFolder = "classes-v4";
     private const int LevelTextureSize = 512;
     private const int LevelLod = 1;
     private const float LevelMarginCm = 300f;
@@ -57,6 +60,7 @@ public sealed partial class HostedSceneryReader : IDisposable
     private readonly SemaphoreSlim _downloads = new(16);
     private readonly Lazy<Task<Uri?>> _build;
     private readonly Lazy<Task<Dictionary<string, JsonElement>?>> _descriptions;
+    private readonly Lazy<Task<Dictionary<string, JsonElement>?>> _classPack;
     private int _filesAsked;
     private int _filesDone;
     private readonly ConcurrentDictionary<string, Task<World?>> _worlds = new(StringComparer.OrdinalIgnoreCase);
@@ -78,7 +82,8 @@ public sealed partial class HostedSceneryReader : IDisposable
         _http = http ?? throw new ArgumentNullException(nameof(http));
         _root = root;
         _build = new Lazy<Task<Uri?>>(FindBuildAsync);
-        _descriptions = new Lazy<Task<Dictionary<string, JsonElement>?>>(ReadDescriptionsAsync);
+        _descriptions = new Lazy<Task<Dictionary<string, JsonElement>?>>(() => ReadPackAsync("descriptions.json"));
+        _classPack = new Lazy<Task<Dictionary<string, JsonElement>?>>(() => ReadPackAsync("classes.json"));
     }
 
     /// <summary>
@@ -111,10 +116,64 @@ public sealed partial class HostedSceneryReader : IDisposable
             ? new SceneModelStatus(false, false, null, null)
             : new SceneModelStatus(true, true, "Game scenery", null);
 
-    /// <summary>Placed objects: none are hosted, so every class stays a box.</summary>
+    /// <summary>
+    /// How to draw each placed-object class (key: the class path, with the view's paint and lamp suffixes).
+    /// A class the build has no model for is left out of the answer, so the view keeps its box.
+    /// </summary>
     [JSInvokable]
-    public Task<Dictionary<string, SceneClassModel?>> DescribeClasses(string[] classPaths)
-        => Task.FromResult(new Dictionary<string, SceneClassModel?>(StringComparer.Ordinal));
+    public async Task<Dictionary<string, SceneClassModel?>> DescribeClasses(string[] classPaths)
+    {
+        var result = new Dictionary<string, SceneClassModel?>(StringComparer.Ordinal);
+        if (!Allowed || classPaths is null) return result;
+        try
+        {
+            return await DescribeClassesAsync(classPaths).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or JsonException or TaskCanceledException)
+        {
+            EditorLog.Warn("Scene", $"Hosted object models failed: {ex.Message}");
+            return result;
+        }
+    }
+
+    /// <summary>The models <see cref="DescribeClasses"/> answers with, without the player's permission check.</summary>
+    public async Task<Dictionary<string, SceneClassModel?>> DescribeClassesAsync(IEnumerable<string> classPaths)
+    {
+        var result = new Dictionary<string, SceneClassModel?>(StringComparer.Ordinal);
+        if (await _build.Value.ConfigureAwait(false) is not { } build) return result;
+        foreach (var key in classPaths.Where(k => !string.IsNullOrWhiteSpace(k)).Distinct(StringComparer.Ordinal).Take(2000))
+            if (await DescribeClassAsync(build, key).ConfigureAwait(false) is { } model) result[key] = model;
+        return result;
+    }
+
+    /// <summary>
+    /// One object as the desktop provider draws it from a full cache, minus what is not hosted: the
+    /// plain model, or its painted one where the class has one. A garden's crops and a tank's liquid
+    /// level need the game itself, so those objects draw as their plain model.
+    /// </summary>
+    private async Task<SceneClassModel?> DescribeClassAsync(Uri build, string key)
+    {
+        var (classPath, state) = SceneModelHostService.ParseModelKey(key);
+        var plain = await ClassOf(classPath).ConfigureAwait(false);
+        var model = plain;
+        if (state?.PaintColor is { } paint && paint != DeployablePaintCatalog.NoneValue
+            && await ClassOf($"{classPath}#paint={paint}").ConfigureAwait(false) is { } painted)
+            model = painted;
+        if (model is null) return null;
+        if (state?.LampOn == false)
+            model = model with { Parts = model.Parts.Select(part => part with
+            {
+                Materials = part.Materials.Select(m => m.Emissive ? m with { Emissive = false } : m).ToArray(),
+            }).ToArray() };
+        return model with
+        {
+            Parts = model.Parts.Select(part => part with
+            {
+                Mesh = MeshUrl(build, part.Mesh),
+                Materials = part.Materials.Select(m => Hosted(build, m)).ToArray(),
+            }).ToArray(),
+        };
+    }
 
     /// <summary>The level geometry around a base, as the desktop provider answers it; null when the region has none.</summary>
     [JSInvokable]
@@ -375,6 +434,14 @@ public sealed partial class HostedSceneryReader : IDisposable
             ? info with { Materials = info.Materials ?? [] }
             : null);
 
+    private readonly ConcurrentDictionary<string, Task<SceneClassModel?>> _classes = new(StringComparer.Ordinal);
+
+    private Task<SceneClassModel?> ClassOf(string key) => Once(_classes, key, async k =>
+        await ReadJsonAsync<CachedClass>(ClassesFolder, k, ".json").ConfigureAwait(false) is { } cached ? cached.Model : null);
+
+    /// <summary>A class answer as the provider caches it (<c>CachedClass</c>); null for "no model".</summary>
+    private sealed record CachedClass(SceneClassModel? Model);
+
     private Task<Material?> MaterialOf(string path) => Once(_materials, path, p => ReadJsonAsync<Material>(MaterialsFolder, p, ".json"));
 
     private Task<List<SceneMaterial>?> TerrainMaterialOf(string path) => Once(_terrain, path, p => ReadJsonAsync<List<SceneMaterial>>(TerrainMaterialsFolder, p, ".json"));
@@ -386,7 +453,8 @@ public sealed partial class HostedSceneryReader : IDisposable
     {
         // The small answers come from the build's one descriptions.json when it has one: a level asks
         // for about a thousand of them, which fetched one by one took 20 seconds on the website.
-        if (DescriptionFolders.Contains(folder) && await _descriptions.Value.ConfigureAwait(false) is { } pack)
+        var packed = DescriptionFolders.Contains(folder) ? _descriptions : folder == ClassesFolder ? _classPack : null;
+        if (packed is not null && await packed.Value.ConfigureAwait(false) is { } pack)
             return pack.TryGetValue($"{folder}/{Hash(key)}{extension}", out var value) ? value.Deserialize<T>(Json) : null;
         return await ReadBytesAsync(folder, key, extension).ConfigureAwait(false) is { } bytes ? JsonSerializer.Deserialize<T>(bytes, Json) : null;
     }
@@ -394,14 +462,14 @@ public sealed partial class HostedSceneryReader : IDisposable
     /// <summary>Folders whose files are also published together in descriptions.json (DESCRIPTION_FOLDERS in tools/scenery.py).</summary>
     private static readonly HashSet<string> DescriptionFolders = new(StringComparer.Ordinal) { "meshinfo", MaterialsFolder, AlphaFolder, TerrainMaterialsFolder };
 
-    /// <summary>The build's descriptions.json as key to value, or null when it has none (each file is then fetched alone).</summary>
-    private async Task<Dictionary<string, JsonElement>?> ReadDescriptionsAsync()
+    /// <summary>One of the build's packs (descriptions.json, classes.json) as key to value, or null when it has none (each file is then fetched alone).</summary>
+    private async Task<Dictionary<string, JsonElement>?> ReadPackAsync(string name)
     {
         if (await _build.Value.ConfigureAwait(false) is not { } build) return null;
         Interlocked.Increment(ref _filesAsked);
         try
         {
-            using var response = await _http.GetAsync(new Uri(build, "descriptions.json")).ConfigureAwait(false);
+            using var response = await _http.GetAsync(new Uri(build, name)).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return null;
             using var document = JsonDocument.Parse(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
             var pack = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
@@ -410,7 +478,7 @@ public sealed partial class HostedSceneryReader : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
         {
-            EditorLog.Info("Scene", $"No hosted scenery descriptions; fetching them one by one: {ex.Message}");
+            EditorLog.Info("Scene", $"No hosted scenery {name}; fetching its files one by one: {ex.Message}");
             return null;
         }
         finally { Interlocked.Increment(ref _filesDone); }

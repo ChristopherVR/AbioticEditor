@@ -85,6 +85,26 @@ public sealed class HostedSceneryExportProbe(ITestOutputHelper output)
         finally { PluginHostEnvironment.GameAssets = static () => null; }
     }
 
+    /// <summary>
+    /// Prepares how every placeable object looks into this install's cache (<c>ABIOTIC_SCENERY_PREPARE=1</c>),
+    /// then <c>python tools/scenery.py export --extend</c> adds it to the hosted build. Needs no native decoder.
+    /// </summary>
+    [Fact]
+    public void Prepare_object_models_for_Pages()
+    {
+        if (Environment.GetEnvironmentVariable("ABIOTIC_SCENERY_PREPARE") != "1") return;
+        using var assets = AbioticEditor.Core.Assets.GameAssetProvider.CreateForLocalInstall(includeMods: false)
+            ?? throw new InvalidOperationException("No installed game found.");
+        PluginHostEnvironment.GameAssets = () => assets;
+        try
+        {
+            var provider = new PakSceneModelProvider(new ExportHost(output));
+            output.WriteLine("Cache: " + provider.CacheRoot);
+            provider.PrepareHostedClasses(message => { output.WriteLine(message); Console.WriteLine(message); }, CancellationToken.None);
+        }
+        finally { PluginHostEnvironment.GameAssets = static () => null; }
+    }
+
     private sealed class ExportHost(ITestOutputHelper output, string? directory = null) : IPluginHost, IPluginLog
     {
         public Version SdkVersion => new(1, 0);
