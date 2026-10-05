@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.0] - 2026-10-05
+
+### Features
+- Items lying on the ground now show as real 3D models
+
+
+### Bug Fixes
+- The editor now ignores requests from other websites and checks updates before installing them
+- Ground items are now shown by default in the web version
+- The web version now actually draws your objects, crops, tanks and ground items as 3D models
+- The web version now shows garden plants and how full your tanks are
+- The web version now shows your furniture, benches and vehicles as real 3D models
+
+
 ## [2.26.3] - 2026-10-04
 
 ### Bug Fixes
