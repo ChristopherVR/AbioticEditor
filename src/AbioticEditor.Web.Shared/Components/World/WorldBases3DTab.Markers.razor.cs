@@ -28,7 +28,17 @@ public partial class WorldBases3DTab
 
     private sealed record ThingInfo(string FeatureId, string FeatureName, string Key, string Label, PlacedVector At);
 
-    private bool _itemsOn; // off at first: hundreds of them crowd the overview; one click away in Show
+    private bool? _itemsPicked;
+
+    /// <summary>
+    /// Ground items: on at first in the browser, which has no other sign of them; off at first in the desktop
+    /// app, where hundreds of them crowd the overview and are one click away in Show. The player's own pick wins.
+    /// </summary>
+    private bool _itemsOn
+    {
+        get => _itemsPicked ?? InBrowser;
+        set => _itemsPicked = value;
+    }
     private bool _thingsOn = true;
     private bool _markersDirty = true;
     private int _itemStamp = -1;

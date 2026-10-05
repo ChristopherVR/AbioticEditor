@@ -663,6 +663,9 @@ public sealed class Base3DViewerTests
         Assert.Contains("_modelsOn = _modelStatus.Available && (_keptModelsOn ?? true);", tab, StringComparison.Ordinal);
         Assert.DoesNotContain("_modelStatus.Available && !InBrowser", tab, StringComparison.Ordinal); // models are on in the browser too
         Assert.Contains("data-b3d=\"models-toggle\"", tab, StringComparison.Ordinal);
+        // Ground items are on at first in the browser (the player's own pick wins), off in the desktop app.
+        var markers = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Markers.razor.cs");
+        Assert.Contains("get => _itemsPicked ?? InBrowser;", markers, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowserScenery", tab, StringComparison.Ordinal);
         Assert.Contains("World3D_ModelsBrowser\"", tab, StringComparison.Ordinal); // no scenery on this site
         // Nothing downloads until the player agrees: the view asks each time it opens, until they do.

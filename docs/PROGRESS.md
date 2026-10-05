@@ -38,6 +38,10 @@
   `tools/scenery.py assemble` now publishes textures as WebP (quality 90, alpha kept; Pillow, installed by the
   docs workflow). The source packs and the desktop cache stay PNG. Textures went from 286 MiB to about 70 MiB;
   the site is about 812 MiB, and the budget is back at 900 MiB.
+- The browser build had forced game models off (`_modelsOn` ignored the hosted models), so none of the hosted
+  objects, crops, tanks or items ever drew there; found by running the published browser build with the assembled
+  scenery in Playwright (the 12g Buckshot drew at its pin). Models are now on in the browser, and the Ground items
+  toggle starts on there (the player's pick wins; the desktop app still starts with it off).
 - Verified: provider and hosted tests for `item:Plant_Corn`, rotator test, 129 focused 3D tests, the Python tests
   (WebP keeps alpha), and the assembled build drawing all six checked areas with no game files.
 - Verified: `HostedSceneryReaderTests` (12) serve the committed packs to the reader, with and without
