@@ -10,12 +10,16 @@ namespace AbioticEditor.Web.Models;
 /// </summary>
 public sealed class LivePlayerCodexSession : IPlayerCodexSession
 {
+    // Ids are game FNames, which compare case-insensitively: the running game reports a name in
+    // whatever casing was registered first (e.g. Email_Signal_Sun_14), which can differ from the
+    // data table's row key (email_Signal_Sun_14). Matching case-sensitively made those rows look
+    // unread again right after they were marked.
     private readonly LivePlayerCodexChannel _channel;
     private string? _playerId;
-    private HashSet<string> _emailIds = new(StringComparer.Ordinal);
-    private HashSet<string> _journalIds = new(StringComparer.Ordinal);
-    private HashSet<string> _fishIds = new(StringComparer.Ordinal);
-    private HashSet<string> _compendiumIds = new(StringComparer.Ordinal);
+    private HashSet<string> _emailIds = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _journalIds = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _fishIds = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _compendiumIds = new(StringComparer.OrdinalIgnoreCase);
     private bool _hasVocabulary;
     private bool _canUnlockKillSections;
 
@@ -179,10 +183,10 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     {
         CanUnsetKnown = directory.CanUnsetKnown;
         _canUnlockKillSections = directory.CanUnlockKillSections;
-        _emailIds = directory.Emails.ToHashSet(StringComparer.Ordinal);
-        _journalIds = directory.Journals.ToHashSet(StringComparer.Ordinal);
-        _fishIds = directory.Fish.ToHashSet(StringComparer.Ordinal);
-        _compendiumIds = directory.Compendium.ToHashSet(StringComparer.Ordinal);
+        _emailIds = directory.Emails.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _journalIds = directory.Journals.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _fishIds = directory.Fish.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _compendiumIds = directory.Compendium.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private CodexVocabulary _lastVocabulary = CodexVocabulary.Empty;
@@ -208,7 +212,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     {
         var rows = known.Select(row => new CodexRowEdit(
             row.Id, row.Title, row.Subtitle, row.Body, knownIds.Contains(row.Id), editable, [])).ToList();
-        var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
+        var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var id in knownIds.Where(seen.Add))
             rows.Add(new CodexRowEdit(id, id, null, string.Empty, true, editable, []));
         return rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToList();
@@ -237,7 +241,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
                 c.Id, c.Title, c.Subtitle ?? c.Tag, string.Join("\n\n", c.SectionTexts),
                 knownIds.Contains(c.Id), editable: sectionTypes.Count > 0, sectionTypes) { Tag = c.Tag };
         }).ToList();
-        var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
+        var seen = rows.Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var id in knownIds.Where(seen.Add))
             rows.Add(new CodexRowEdit(id, id, null, string.Empty, true, false, []));
         return rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToList();

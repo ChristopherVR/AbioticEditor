@@ -33,6 +33,10 @@ else
         {
             <p class="world-flags-intro">@(string.IsNullOrWhiteSpace(Description(feature)) ? L.Resource("WorldFeature_EditHint") : Description(feature))</p>
         }
+        @if (_regionFallback)
+        {
+            <p class="world-flags-intro">Could not tell which of these belong to the sector you are in, so every loaded one is listed.</p>
+        }
         @* Power rerouting and repair (file sessions only: they stage with the base edits). *@
         @if (IsPowerSockets && Session is WorldSaveSession powerSession)
         {
@@ -439,8 +443,16 @@ else
     private void RefreshSnapshot()
     {
         _snapshot = Session.MapFeature(FeatureId);
+        _regionFallback = false;
         if (Session is not WorldSaveSession && LiveSession.CurrentRegionToken is not null && _snapshot is { } snapshot)
-            _snapshot = snapshot with { Entries = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key, WorldFeaturePositions.Region(Session, e.Key), WorldFeaturePositions.Find(Session, FeatureId, e.Key))).ToArray() };
+        {
+            var inRegion = snapshot.Entries.Where(e => LiveSession.IsActorInCurrentRegion(e.Key, WorldFeaturePositions.Region(Session, e.Key), WorldFeaturePositions.Find(Session, FeatureId, e.Key))).ToArray();
+            // The region test cannot always place an actor (one on the shared facility level with
+            // no known section, or outside every mapped brush). Showing an empty list while the
+            // game reports loaded entries is the worse failure, so they are all shown instead.
+            if (inRegion.Length == 0 && snapshot.Entries.Count > 0) _regionFallback = true;
+            else _snapshot = snapshot with { Entries = inRegion };
+        }
         _allRows = _snapshot is null
             ? []
             : RenderKeys.With(_snapshot.Entries, entry => entry.Key)
@@ -457,6 +469,8 @@ else
     }
 
     private bool _singleArea;
+    /// <summary>True when the live region filter matched nothing, so every loaded entry is listed.</summary>
+    private bool _regionFallback;
 
     private void RebuildVisibleRows()
     {

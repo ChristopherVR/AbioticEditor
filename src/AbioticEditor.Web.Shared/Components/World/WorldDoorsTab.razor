@@ -102,7 +102,7 @@
                             </label>
                         }
                     </div>
-                    <small class="wd-subtitle">@DoorSubtitle(map, actor)</small>
+                    <small class="wd-subtitle">@DoorSubtitle(map, actor)@DistanceSuffix(door)</small>
                 </article>
             }
             @if (VisibleDoors.Count == 0) { <p class="empty">@L.Resource("WorldUi_NoDoors")</p> }
@@ -122,6 +122,9 @@
     [Parameter, EditorRequired] public IWorldDoorsSession Session { get; set; } = null!;
     [Parameter] public string Title { get; set; } = "World editor";
     [Parameter] public EventCallback<string?> OnError { get; set; }
+    /// <summary>The live player's own position, when known. Doors are listed nearest-first from
+    /// here, so the one you are standing next to is at the top instead of buried in the region.</summary>
+    [Parameter] public (double X, double Y, double Z)? PlayerPosition { get; set; }
     private const string DetailKeyPrefix = "world-door:";
     private string _filter = string.Empty;
     private string? _error;
@@ -135,7 +138,22 @@
     private bool _mapEnlarged;
     private readonly Dictionary<string, IReadOnlyDictionary<string, DoorStoryGate>> _gatesByMap = new(StringComparer.OrdinalIgnoreCase);
     private IEnumerable<WorldDoor> RegionDoors => Session.Doors.Where(d => Session is not LiveDoorsSession || LiveRegion.IsActorInCurrentRegion(d.Id, at: d.X is { } x && d.Y is { } y && d.Z is { } z ? new(x, y, z) : null));
-    private List<WorldDoor> VisibleDoors => RegionDoors.Where(MatchesFilter).ToList();
+    private List<WorldDoor> VisibleDoors
+    {
+        get
+        {
+            var doors = RegionDoors.Where(MatchesFilter);
+            if (PlayerPosition is not { } here) return doors.ToList();
+            // Doors without a known position (a file session never has one) sort last, in their
+            // original order.
+            return doors.OrderBy(door => DistanceTo(door, here) ?? double.MaxValue).ToList();
+        }
+    }
+
+    private static double? DistanceTo(WorldDoor door, (double X, double Y, double Z) from)
+        => door.X is { } x && door.Y is { } y && door.Z is { } z
+            ? Math.Sqrt((x - from.X) * (x - from.X) + (y - from.Y) * (y - from.Y) + (z - from.Z) * (z - from.Z))
+            : null;
 
     /// <summary>One door's spot on a drawn sector map, as fractions of the image.</summary>
     private readonly record struct SectorPin(double X, double Y, bool IsSelected);
@@ -224,6 +242,12 @@
         if (string.IsNullOrEmpty(map)) return number ?? string.Empty;
         return number is null ? map : $"{map} · {number}";
     }
+
+    /// <summary>" · 12 m" (UE units are centimetres), or nothing when no player position is known.</summary>
+    private string DistanceSuffix(WorldDoor door)
+        => PlayerPosition is { } here && DistanceTo(door, here) is { } distance
+            ? $" · {(distance / 100).ToString("F0", System.Globalization.CultureInfo.InvariantCulture)} m"
+            : string.Empty;
 
     /// <summary>Localized class display name (native DoorLocalization.ClassDisplayName).</summary>
     private string FriendlyClass(string className, DoorClassInfo info)
@@ -576,51 +600,13 @@
     private static string F(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     private static string PinStyle(SectorPin pin) => $"left:{F(pin.X * 100)}%;top:{F(pin.Y * 100)}%";
 
-    // Ported verbatim from the retired native app's WorldEditorViewModel.FileRegionMap: maps a
-    // sub-level/save-file name token to the story chapter whose card art represents that
-    // sector. Ordered most-specific-first; the first matching token wins. Kept private to this
-    // tab since it is presentation lookup data, not save-editing logic that belongs in Core.
-    private static readonly (string Token, string Row)[] FileRegionMap =
-    {
-        ("office1", "Office"), ("office2", "Office2"), ("office3", "Office3"), ("office4", "Office3"),
-        ("labs_adjustment", "Labs"), ("labs_control", "Tarasque"), ("containment", "Containment"),
-        ("helmholtz", "Helmholtz"), ("labs", "Labs"),
-        ("security", "PostLabs"), ("canaan", "SecSurfaceElevator"),
-        ("dam_hydroplant", "ElectricalStation"), ("hydroplant", "ElectricalStation"),
-        ("dam_central", "ElectricalStation"), ("dam_lower", "EndDam"), ("dam_waterfall", "EndDam"),
-        ("dam", "ElectricalStation"), ("reservoir", "ElectricalStation"), ("voussoir", "Voussoir"),
-        ("mfmines", "MFMines"), ("mfmaggot", "MFMines"), ("mines", "MFMines"),
-        ("mfwest", "MF"), ("mfhq", "MF"), ("foundry", "MF"), ("manufacturing", "MF"), ("mf", "MF"),
-        ("pens", "Pens"), ("parking", "Office"), ("tram", "Office3"),
-        ("df_labs", "Reactors1Labs"), ("dflabs", "Reactors1Labs"),
-        ("radwaste", "ReactorsAll"), ("df_war", "ReactorsAll"), ("df_overgrowth", "ReactorsAll"),
-        ("df_central", "ReactorsAll"), ("darkfusion", "ReactorsEntry"), ("df", "ReactorsEntry"),
-        ("reactor", "ReactorsEntry"), ("shadowgate", "Shadowgate"),
-        ("botanical", "Botanical"), ("fracture", "Fracture"), ("southisland", "SouthIsland"),
-        ("residence", "Residence"),
-        ("powerservices", "PowerServices"), ("plant", "PowerServices"),
-        ("flathill", "Flathill"), ("fog", "Flathill"),
-        ("facility", "Office"),
-    };
-
-    private static StoryChapter? RegionChapterForToken(string? token)
-    {
-        if (string.IsNullOrEmpty(token)) return null;
-        var lower = token.ToLowerInvariant();
-        foreach (var (t, row) in FileRegionMap)
-        {
-            if (lower.Contains(t, StringComparison.Ordinal)) return StoryProgressionCatalog.Find(row);
-        }
-        return null;
-    }
-
     private StoryChapter? RegionChapterForFile()
     {
         var name = System.IO.Path.GetFileNameWithoutExtension(Session.Path).ToLowerInvariant();
-        return RegionChapterForToken(name);
+        return RegionChapterMap.ForToken(name);
     }
 
     /// <summary>The door's own sub-level maps to a chapter first; otherwise fall back to
     /// whichever chapter the loaded save file itself represents.</summary>
-    private StoryChapter? RegionChapterFor(string? doorMapName) => RegionChapterForToken(doorMapName) ?? RegionChapterForFile();
+    private StoryChapter? RegionChapterFor(string? doorMapName) => RegionChapterMap.ForToken(doorMapName) ?? RegionChapterForFile();
 }

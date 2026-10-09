@@ -185,7 +185,7 @@ else
             }
             else if (_worldTab == "doors" && _doors is not null)
             {
-                <WorldDoorsTab Session="_doors" />
+                <WorldDoorsTab Session="_doors" PlayerPosition="_spawn?.LivePosition" />
             }
             else if (_worldTab == "containers" && _containers is not null)
             {

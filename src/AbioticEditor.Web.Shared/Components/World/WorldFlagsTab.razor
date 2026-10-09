@@ -7,6 +7,7 @@
 @inject SaveWorkspaceSessionService Workspace
 @inject InventorySelectionService Selection
 @inject ModalService Modals
+@inject LiveSessionService LiveRegion
 
 @* Faithful port of the native WorldFlagsTab.xaml: heading + IN THIS FILE count, intro,
    HOW QUESTS WORK card, filter/add row, then the story-ordered grouped flag list with
@@ -40,6 +41,12 @@
             <input aria-label="@L.Resource("WorldFlags_AddFlagPlaceholder")" @bind="_newFlag" @bind:event="oninput" placeholder="@L.Resource("WorldFlags_AddFlagPlaceholder")" />
             <button class="secondary" disabled="@(string.IsNullOrWhiteSpace(_newFlag) || _busy || (Session.AppliesImmediately && !Session.IsHost))" @onclick="AddFlagAsync">@L.Resource("WorldFlags_AddFlag")</button>
             </div></details>
+            @if (RegionScopeTitle is { } scopeTitle)
+            {
+                @* Live only: the flag catalog spans the whole facility, so by default the list is
+                   narrowed to the sector the player is standing in. *@
+                <label class="wf-scope" title="@scopeTitle"><input type="checkbox" @bind="_allRegions" /> All regions</label>
+            }
             @if (Session.AppliesImmediately)
             {
                 <button class="secondary" type="button" disabled="@_busy" @onclick="RefreshAsync">@L.Resource("LiveNpcs_Refresh")</button>
@@ -97,8 +104,30 @@
     private string? _selected;
     private bool _busy;
     private string? _error;
+    private bool _allRegions;
 
-    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+    /// <summary>
+    /// The region title the live list is narrowed to, or null when it is not narrowed: offline
+    /// (a file is one region already), no known position yet, or the persistent "Facility" level,
+    /// which names no particular sector.
+    /// </summary>
+    private string? RegionScopeTitle
+    {
+        get
+        {
+            if (!Session.AppliesImmediately || LiveRegion.CurrentRegionToken is not { } token) return null;
+            if (token.Equals("Facility", StringComparison.OrdinalIgnoreCase)) return null;
+            return RegionChapterMap.ForToken(token) is { } chapter ? RegionTitleFor(chapter) : null;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Selection.Changed += OnSelectionChanged;
+        LiveRegion.Changed += OnRegionChanged;
+    }
+
+    private void OnRegionChanged() => _ = InvokeAsync(StateHasChanged);
 
     /// <summary>Drops the stale row highlight when the pane closes or another tab takes it.</summary>
     private void OnSelectionChanged()
@@ -113,6 +142,7 @@
     public void Dispose()
     {
         Selection.Changed -= OnSelectionChanged;
+        LiveRegion.Changed -= OnRegionChanged;
         // Leaving the tab retires this tab's own detail card (never someone else's).
         if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
         {
@@ -163,6 +193,7 @@
 
             // Story-ordered grouping, ported from the native ApplyFlagFilter: flags read like
             // the story timeline - Office first, Finale last, anomaly/meta flags at the end.
+            var scope = _allRegions ? null : RegionScopeTitle;
             return items
                 .GroupBy(x =>
                 {
@@ -170,6 +201,7 @@
                     var index = chapter is null ? int.MaxValue : StoryProgressionCatalog.IndexOf(chapter.Row);
                     return (Index: index, Title: chapter is null ? L.Resource("WorldStory_RegionOtherAnomaliesMeta") : RegionTitleFor(chapter));
                 })
+                .Where(g => scope is null || g.Key.Title == scope)
                 .OrderBy(g => g.Key.Index)
                 .Select(g => new FlagGroupModel(
                     g.Key.Title,

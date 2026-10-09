@@ -441,11 +441,27 @@
     });
 
     private bool IsCurrent(StoryChapter chapter)
-        => string.Equals(Session.StoryProgressionRow, chapter.Row, StringComparison.OrdinalIgnoreCase);
+        => CurrentChapterIndex is var current and >= 0
+            && string.Equals(StoryProgressionCatalog.Chapters[current].Row, chapter.Row, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The chapter the world is on. The stored/reported row wins when it is a chapter we know;
+    /// otherwise (the running game reports a quest row that is not one of the chapters, or
+    /// nothing at all) the furthest chapter whose trigger flag is set stands in, which is what
+    /// the game works the current quest out from.
+    /// </summary>
+    private int CurrentChapterIndex
+    {
+        get
+        {
+            var reported = StoryProgressionCatalog.IndexOf(Session.StoryProgressionRow);
+            return reported >= 0 ? reported : StoryProgressionCatalog.FurthestReachedIndex(HasWorldFlag);
+        }
+    }
 
     private bool IsReached(int index)
     {
-        var current = StoryProgressionCatalog.IndexOf(Session.StoryProgressionRow);
+        var current = CurrentChapterIndex;
         return current >= 0 && index <= current;
     }
 
@@ -501,7 +517,7 @@
     {
         get
         {
-            var index = StoryProgressionCatalog.IndexOf(Session.StoryProgressionRow);
+            var index = CurrentChapterIndex;
             return index < 0
                 ? L.Resource("WorldStory_UnknownChapter")
                 : L.Resource("WorldStory_ChapterIndexFormat", index + 1, StoryProgressionCatalog.Rows.Count);

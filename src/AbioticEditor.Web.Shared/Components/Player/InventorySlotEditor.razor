@@ -824,6 +824,10 @@
     private async Task ApplyUpgradeAsync(bool downgrade)
     {
         if (Selection.Current is { } current) await current.Upgrade((current.Slot.Index, downgrade));
+        // The slot is changed in place and this runs from the modal's confirm callback, not a DOM
+        // event on this component, so nothing else repaints the pane: without this it keeps
+        // showing the old item until the slot is clicked again.
+        await InvokeAsync(StateHasChanged);
     }
     /// <summary>What an item's PlayerMadeString actually holds.</summary>
     private enum NameFieldRole { Name, TeleporterTarget, Contents }
