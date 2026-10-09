@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Plugins;
 using Photino.NET;
 
 namespace AbioticEditor.Web.Services;
@@ -44,6 +45,9 @@ public sealed class DesktopWindowHost(ILogger<DesktopWindowHost> logger)
         {
             Centered = true,
             LogVerbosity = 0,
+            // Keep the embedded browser's profile (cache, cookies, GPU data) under the app data
+            // root so ABIOTIC_APPDATA_DIR redirects it, instead of a separate "Photino" folder.
+            TemporaryFilesPath = Path.Combine(PluginPaths.AppDataRoot, "WebView"),
         };
 
         window.SetTitle("Abiotic Editor");
