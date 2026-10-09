@@ -7,9 +7,16 @@ namespace AbioticEditor.Updater;
 public static class UpdatePaths
 {
     /// <summary><c>%LOCALAPPDATA%\AbioticEditor</c> (or the OS equivalent) - the app's per-user root.</summary>
-    public static string AppDataRoot { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor");
+    public static string AppDataRoot { get; } = ResolveAppDataRoot();
+
+    // Mirrors Core's PluginPaths.AppDataRoot: ABIOTIC_APPDATA_DIR redirects the whole per-user root.
+    private static string ResolveAppDataRoot()
+    {
+        var overridden = Environment.GetEnvironmentVariable("ABIOTIC_APPDATA_DIR");
+        return string.IsNullOrWhiteSpace(overridden)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor")
+            : overridden.Trim();
+    }
 
     /// <summary>Root of all update working folders (<c>&lt;appdata&gt;\updates</c>).</summary>
     public static string UpdatesRoot { get; } = Path.Combine(AppDataRoot, "updates");

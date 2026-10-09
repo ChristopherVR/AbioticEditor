@@ -13,9 +13,7 @@ public static class GamePathStore
 {
     /// <summary>Where the chosen path is persisted (a single line of UTF-8 text).</summary>
     public static string ConfigPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "gamepath.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "gamepath.txt");
 
     /// <summary>The user-chosen install path, or null when none is set / the file is empty.</summary>
     public static string? Saved

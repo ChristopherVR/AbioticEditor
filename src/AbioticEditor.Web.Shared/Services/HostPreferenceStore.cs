@@ -85,7 +85,7 @@ public static class HostPreferenceStore
     }
 
     private static string FilePath(string fileName) => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", fileName);
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, fileName);
 
     /// <summary>Keys, shared with the browser host's start-up script so both agree on the names.</summary>
     public static class Keys

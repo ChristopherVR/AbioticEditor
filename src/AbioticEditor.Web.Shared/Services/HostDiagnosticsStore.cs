@@ -16,7 +16,7 @@ namespace AbioticEditor.Web.Services;
 public static class HostDiagnosticsStore
 {
     private static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "weblogging.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "weblogging.txt");
 
     /// <summary>Applies the saved choice to <see cref="EditorLog"/>. Call once at startup.</summary>
     public static void Restore()

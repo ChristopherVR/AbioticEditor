@@ -57,9 +57,7 @@ public sealed class WikiImageCache
 
     /// <summary>Process-wide instance caching under <c>%LOCALAPPDATA%\AbioticEditor\wiki</c>.</summary>
     public static WikiImageCache Default { get; } = new(Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "wiki"));
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "wiki"));
 
     private readonly object _sync = new();
     private readonly Dictionary<string, Task<string?>> _inFlight = new(StringComparer.OrdinalIgnoreCase);

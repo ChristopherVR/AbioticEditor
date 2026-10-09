@@ -21,9 +21,7 @@ public static class EditorLog
     private static readonly object Sync = new();
 
     private static string _directory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "logs");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "logs");
 
     /// <summary>Master switch. Default false - no files are touched until enabled.</summary>
     public static bool Enabled { get; set; }

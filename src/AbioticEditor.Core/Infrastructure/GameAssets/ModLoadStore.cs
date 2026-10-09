@@ -19,9 +19,7 @@ public static class ModLoadStore
 
     /// <summary>Where the flag is persisted (a single line: "1" enabled, "0" disabled).</summary>
     public static string ConfigPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "mods-enabled.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "mods-enabled.txt");
 
     /// <summary>
     /// The effective decision: true when mods should be mounted. False when the
@@ -72,9 +70,7 @@ public static class ModLoadStore
     /// nothing keeps every mod on - matching the master default.
     /// </summary>
     public static string DisabledModsPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "mods-disabled.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "mods-disabled.txt");
 
     /// <summary>The set of mod names the user has individually turned off (case-insensitive).</summary>
     public static IReadOnlySet<string> DisabledMods

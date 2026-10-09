@@ -358,9 +358,7 @@ public sealed class GameDataRegistry
     /// newer game builds can drop in a fresh dump without updating the editor.
     /// </summary>
     public static string UserRegistryPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "registry",
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "registry",
         RegistryFileName);
 }
 

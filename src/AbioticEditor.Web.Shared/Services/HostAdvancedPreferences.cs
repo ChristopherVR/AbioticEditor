@@ -8,7 +8,7 @@ public sealed class HostAdvancedPreferences
     private readonly string _path;
     private bool _skipEquipSlotValidation;
 
-    public HostAdvancedPreferences() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "webadvanced.json")) { }
+    public HostAdvancedPreferences() : this(Path.Combine(AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "webadvanced.json")) { }
     public HostAdvancedPreferences(string path)
     {
         _path = path;

@@ -29,7 +29,7 @@ public sealed class HostLanguageService
     /// has not installed a browser-storage-backed <see cref="HostPreferenceStore"/> - see that
     /// type's own remarks.</summary>
     public static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", ConfigFileName);
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, ConfigFileName);
 
     /// <summary>
     /// Each language's name in its own words, spelled out here rather than looked up.

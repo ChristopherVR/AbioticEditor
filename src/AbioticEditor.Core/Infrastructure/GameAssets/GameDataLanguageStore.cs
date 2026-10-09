@@ -11,9 +11,7 @@ public static class GameDataLanguageStore
 {
     /// <summary>Where the chosen culture is persisted (a single line of UTF-8 text).</summary>
     public static string ConfigPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "gamedatalanguage.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "gamedatalanguage.txt");
 
     /// <summary>
     /// Somewhere other than a file to keep this in.

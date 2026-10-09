@@ -33,8 +33,7 @@ public static class OodleCodec
 
     /// <summary>Where a downloaded Oodle library is cached so later runs don't need internet again.</summary>
     private static readonly string CacheDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor", "oodle");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "oodle");
 
     // OodleLZ_Compressor: Kraken is a good general default; the decompressor auto-detects the
     // codec from the stream, so the editor need not match the game's exact compressor.

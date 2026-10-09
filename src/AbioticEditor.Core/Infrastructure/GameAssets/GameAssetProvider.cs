@@ -217,9 +217,7 @@ public sealed partial class GameAssetProvider : IDisposable
     /// updating the editor, and a later editor update with a fresher bundled file still takes over.
     /// </summary>
     public static string UserMappingsPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AbioticEditor",
-        "mappings",
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "mappings",
         "Mappings.usmap");
 
     /// <summary>
@@ -317,9 +315,7 @@ public sealed partial class GameAssetProvider : IDisposable
         }
 
         var cache = cacheDir ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AbioticEditor",
-            "assets");
+            AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "assets");
         Directory.CreateDirectory(cache);
 
         if (mappingsPath is not null && File.Exists(mappingsPath))

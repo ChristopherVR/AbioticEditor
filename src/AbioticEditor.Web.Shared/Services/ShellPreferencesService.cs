@@ -6,7 +6,7 @@ namespace AbioticEditor.Web.Services;
 public sealed class ShellPreferencesService
 {
     private readonly string _path;
-    public ShellPreferencesService() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "web-shell.json")) { }
+    public ShellPreferencesService() : this(Path.Combine(AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "web-shell.json")) { }
     public ShellPreferencesService(string path) { _path = path; State = Read(path); }
 
     public ShellPreferences State { get; private set; }

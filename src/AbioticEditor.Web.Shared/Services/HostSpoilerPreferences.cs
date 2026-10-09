@@ -9,7 +9,7 @@ public sealed class HostSpoilerPreferences
     private readonly HashSet<string> _revealed;
     private bool _enabled;
 
-    public HostSpoilerPreferences() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "webspoilers.json")) { }
+    public HostSpoilerPreferences() : this(Path.Combine(AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "webspoilers.json")) { }
     public HostSpoilerPreferences(string path)
     {
         _path = path;

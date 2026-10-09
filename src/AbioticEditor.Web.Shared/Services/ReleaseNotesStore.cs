@@ -12,7 +12,7 @@ public static class ReleaseNotesStore
     /// can back up and restore this real per-user file around itself instead of needing an
     /// injectable path this store has no other reason to support.</summary>
     public static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditor", "releasenotesversion.txt");
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "releasenotesversion.txt");
 
     /// <summary>The version last recorded as shown, or null if nothing has been recorded yet
     /// (a brand-new install, or the file could not be read).</summary>
