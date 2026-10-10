@@ -52,7 +52,7 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/AbioticEditor/logo.png' }],
-    ['meta', { name: 'theme-color', content: '#0c2023' }],
+    ['meta', { name: 'theme-color', content: '#16140e' }],
     ['meta', { name: 'og:title', content: 'Abiotic Editor' }],
     [
       'meta',
@@ -78,6 +78,11 @@ export default defineConfig({
       // Saves never leave the player's machine. What it cannot do (compare, new world,
       // settings files, achievements) is gated in the app itself and listed in the guide.
       { text: 'Open in browser', link: '/app/', target: '_self' },
+      // Lands on the issue chooser: the bug-report form plus the Nexus Mods posts link.
+      {
+        text: 'Report an issue',
+        link: 'https://github.com/ChristopherVR/AbioticEditor/issues/new/choose',
+      },
     ],
 
     sidebar: {

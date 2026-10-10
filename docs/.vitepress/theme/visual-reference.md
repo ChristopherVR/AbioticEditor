@@ -1,7 +1,15 @@
 # Visual reference for the handbook
 
-Reviewed online on 15 September 2026. The application theme is not the source of truth
-for the game's visual identity.
+The handbook uses the editor's **Hazard Orange** theme, so the site and the app read as
+one product. The colors in `style.css` come from the `.accent-hazard` blocks in
+`src/AbioticEditor.Web.Shared/wwwroot/parity.css`: warm near-black surfaces with an orange
+accent in dark mode, and a parchment page with a deeper orange in light mode. Light-mode
+links and buttons use the darker orange so body-size text keeps a readable contrast.
+
+## Game references (GATE Teal)
+
+Reviewed online on 15 September 2026. These informed the editor's GATE Teal theme, which
+the handbook used before it moved to Hazard Orange.
 
 - [Official game website](https://www.abioticfactor.com/): near-black framing, turquoise
   branding, bright aqua highlights, and heavy display lettering.
@@ -11,9 +19,7 @@ for the game's visual identity.
 - [Game listing](https://store.steampowered.com/app/427410/Abiotic_Factor/): source context
   for the publisher's screenshots and visual identity.
 
-The documentation adapts these cues with aqua primary links/buttons, teal surfaces,
-and quiet reading backgrounds. CSS colors are chosen approximations for readability,
-not official brand specifications or sampled authoritative palette values. Light mode
-is an accessibility adaptation. No game screenshots or website fonts were copied into
-published assets for this revision. The homepage preview still depicts the editor and
-is not used as a game-theme reference.
+CSS colors are chosen approximations for readability, not official brand specifications
+or sampled authoritative palette values. No game screenshots or website fonts were copied
+into published assets. The homepage preview depicts the editor and is not used as a
+game-theme reference.

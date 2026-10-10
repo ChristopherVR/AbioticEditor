@@ -1,23 +1,23 @@
-/* Adapted from online game references, not the editor palette. See visual-reference.md. */
+/* Follows the editor's Hazard Orange theme (parity.css .accent-hazard). See visual-reference.md. */
 :root {
   --vp-font-family-base: 'Trebuchet MS', 'Gill Sans', sans-serif;
   --vp-font-family-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
-  --vp-c-bg: #e9f1f7; --vp-c-bg-alt: #dce6ee; --vp-c-bg-soft: #dceaf0; --vp-c-bg-elv: #f4f9fd;
-  --vp-c-text-1: #162f3b; --vp-c-text-2: #3e586c; --vp-c-text-3: #47637a;
-  --vp-c-brand-1: #086876; --vp-c-brand-2: #075360; --vp-c-brand-3: #086876; --vp-c-brand-soft: #16899518;
-  --vp-c-divider: #b5c9d8; --vp-c-border: #9ebbc8;
-  --manual-accent: #086876; --manual-panel: #dbe9ee; --manual-hazard: #ae590a;
-  --manual-button: #096d7a; --manual-on-button: #fff; --manual-grid: #236c8010;
-  --manual-glow: #52b9c71c;
+  --vp-c-bg: #f2eddd; --vp-c-bg-alt: #e8e2d2; --vp-c-bg-soft: #efe7d2; --vp-c-bg-elv: #fbf6e6;
+  --vp-c-text-1: #2a2417; --vp-c-text-2: #5d5440; --vp-c-text-3: #665b41;
+  --vp-c-brand-1: #9c4f07; --vp-c-brand-2: #7d3f05; --vp-c-brand-3: #9c4f07; --vp-c-brand-soft: #c7640818;
+  --vp-c-divider: #d8cdaf; --vp-c-border: #c9bc9c;
+  --manual-accent: #9c4f07; --manual-panel: #efe7d2; --manual-hazard: #82620a;
+  --manual-button: #9c4f07; --manual-on-button: #fff6e2; --manual-grid: #9c4f0710;
+  --manual-glow: #f084181c;
 }
 .dark {
-  --vp-c-bg: #0c2023; --vp-c-bg-alt: #0a1517; --vp-c-bg-soft: #173b40; --vp-c-bg-elv: #224c51;
-  --vp-c-text-1: #e0f5f2; --vp-c-text-2: #b2d3d0; --vp-c-text-3: #95bdbb;
-  --vp-c-brand-1: #86f4ec; --vp-c-brand-2: #bbfff6; --vp-c-brand-3: #39baad; --vp-c-brand-soft: #86f4ec18;
-  --vp-c-divider: #315e64; --vp-c-border: #4c858c;
-  --manual-accent: #86f4ec; --manual-panel: #1b4248bd; --manual-hazard: #e9d979;
-  --manual-button: #86f4ec; --manual-on-button: #103236; --manual-grid: #86f4ec06;
-  --manual-glow: #41999d38;
+  --vp-c-bg: #16140e; --vp-c-bg-alt: #0c0b07; --vp-c-bg-soft: #201d15; --vp-c-bg-elv: #2a261c;
+  --vp-c-text-1: #efe4c5; --vp-c-text-2: #c8bb9c; --vp-c-text-3: #a3977a;
+  --vp-c-brand-1: #f08418; --vp-c-brand-2: #ffb347; --vp-c-brand-3: #b05f12; --vp-c-brand-soft: #f0841818;
+  --vp-c-divider: #403724; --vp-c-border: #5a4d32;
+  --manual-accent: #f08418; --manual-panel: #201d15bd; --manual-hazard: #f5c518;
+  --manual-button: #f08418; --manual-on-button: #0c0b07; --manual-grid: #f0841806;
+  --manual-glow: #b05f1238;
 }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); outline-offset: 5px; }
 .VPNavBarTitle .title, .vp-doc h1, .vp-doc h2, .vp-doc h3, .manual-intro h1, .manual-routes h2 {
@@ -53,7 +53,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--vp-c-brand-1); 
 .manual-actions .manual-primary { background: var(--manual-button); color: var(--manual-on-button); border-color: var(--manual-button); }
 .manual-actions a:hover { outline: 1px solid var(--manual-accent); outline-offset: 3px; }
 .manual-note { font-size: 12px; color: var(--vp-c-text-2); margin: 20px 0 0; }
-.manual-preview { min-width: 0; margin: 0; padding: 14px; background: var(--manual-panel); border: 1px solid var(--vp-c-border); border-radius: 12px; box-shadow: inset 0 1px 0 #b1fff017, 0 12px 40px #0002; }
+.manual-preview { min-width: 0; margin: 0; padding: 14px; background: var(--manual-panel); border: 1px solid var(--vp-c-border); border-radius: 12px; box-shadow: inset 0 1px 0 #ffe9b117, 0 12px 40px #0002; }
 .manual-preview-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--manual-accent); padding: 0 0 12px; border-bottom: 2px solid var(--manual-accent); margin-bottom: 14px; font-size: 10px; }
 .manual-preview img { display: block; width: 100%; height: auto; border: 1px solid var(--vp-c-border); }
 .manual-preview figcaption { font-size: 12px; color: var(--vp-c-text-2); line-height: 1.6; margin-top: 14px; }
