@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.2] - 2026-10-10
+
+### Bug Fixes
+- Live editing now keeps its files in the portable data folder too
+
+
+### Documentation
+- The handbook site now wears the orange theme and has a Report an issue link
+
+
 ## [2.27.1] - 2026-10-10
 
 ### Bug Fixes
