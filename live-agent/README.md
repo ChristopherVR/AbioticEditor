@@ -61,7 +61,10 @@ The desktop setup screen after detecting a separate UE4SS installation. See the 
   `%LOCALAPPDATA%\AbioticEditorLiveAgent\ipc\` (`request.json` / `response.json`, each published
   atomically via a temp-file rename), which the Lua mod polls every 50ms via `LoopAsync`. Both
   sides derive that path from `%LOCALAPPDATA%` independently, so there is no config file to keep
-  in sync.
+  in sync. The one exception is a portable editor install (`ABIOTIC_APPDATA_DIR`): the editor
+  then launches the helper with `ABIOTIC_LIVE_AGENT_DIR` set and deploys a generated
+  `Scripts/datadir.lua` next to `main.lua`, so both use `<that folder>\live-agent` instead
+  (see `LiveAgentPaths.cs`).
 - Exists because the *other* approach (below) turned out to need access this project could not
   get. See "Why the hybrid, not just the C++ mod" below for the full story.
 

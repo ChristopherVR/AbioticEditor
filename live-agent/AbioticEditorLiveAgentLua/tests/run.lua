@@ -30,5 +30,20 @@ for _, name in ipairs(manifest) do
     if not ok then H.check(false, name .. " raised: " .. tostring(err)) end
 end
 
+-- The files shared with the helper live under %LOCALAPPDATA% by default; a portable editor
+-- install drops a generated datadir.lua next to main.lua, and the mod must use that folder.
+local function polls(dir)
+    for _, line in ipairs(H.printed) do
+        if line:find("Polling " .. dir .. "\\ipc ", 1, true) then return true end
+    end
+    return false
+end
+io.write("== datadir" .. newline)
+H.check(polls(".\\AbioticEditorLiveAgent"), "the mailbox defaults to %LOCALAPPDATA%")
+package.preload["datadir"] = function() return "X:\\portable\\live-agent" end
+package.loaded["datadir"] = nil
+H.load(scriptsDir)
+H.check(polls("X:\\portable\\live-agent"), "datadir.lua redirects the mailbox")
+
 local allPassed = H.summary()
 os.exit(allPassed and 0 or 1)

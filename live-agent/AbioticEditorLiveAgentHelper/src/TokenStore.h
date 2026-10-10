@@ -24,6 +24,19 @@ namespace LiveAgent
         return std::string(buffer, length);
     }
 
+    // The folder this helper keeps its token, port and mailbox in. The editor sets
+    // ABIOTIC_LIVE_AGENT_DIR when it launches this process for a portable install (see
+    // LiveAgentPaths.cs) and points the Lua mod at the same folder through a generated
+    // datadir.lua; run by hand, with the variable unset, it is the default both sides derive
+    // from %LOCALAPPDATA% on their own.
+    inline std::string LiveAgentDir()
+    {
+        char buffer[MAX_PATH];
+        DWORD length = GetEnvironmentVariableA("ABIOTIC_LIVE_AGENT_DIR", buffer, MAX_PATH);
+        if (length > 0 && length < MAX_PATH) return std::string(buffer, length);
+        return LocalAppDataDir() + "\\AbioticEditorLiveAgent";
+    }
+
     inline std::string GenerateRandomToken()
     {
         static const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

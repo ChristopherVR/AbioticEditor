@@ -96,7 +96,7 @@ If the `live-agent` folder is missing from a Windows release, extract the comple
 
 Set up the helper on the **server machine**, while its game is stopped. On a Windows machine with desktop access, install UE4SS there and use **This PC**. Start the server afterward and keep the helper running under the same Windows account as the game.
 
-Then choose the remote-server option in the desktop editor and enter the helper's host, port, and token. The usual port is `42117`; use the helper's actual port if it differs. Local details are in `%LOCALAPPDATA%\AbioticEditorLiveAgent` as `token.txt` and `port.txt`.
+Then choose the remote-server option in the desktop editor and enter the helper's host, port, and token. The usual port is `42117`; use the helper's actual port if it differs. Local details are in `%LOCALAPPDATA%\AbioticEditorLiveAgent` as `token.txt` and `port.txt`. If you run the editor with a portable data folder (`ABIOTIC_APPDATA_DIR`), they are in its `live-agent` subfolder instead.
 
 Only the server owner can make the helper reachable through their network and firewall. Treat its token like a password. Do not include it in screenshots or reports. Joining somebody else's multiplayer server does not give the editor control over it.
 

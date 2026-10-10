@@ -38,10 +38,9 @@ public sealed class LiveAgentLogBridgeService : BackgroundService
 
     // helper.log is written by LiveAgentSetup's own launcher code directly (a normal .NET
     // FileStream on this process's own filesystem, redirecting the child helper process's
-    // stdout/stderr) - always under this process's own native %LOCALAPPDATA%, on every OS,
+    // stdout/stderr) - always under this process's own native data folder, on every OS,
     // regardless of whether the helper itself runs through Wine on Linux.
-    private static readonly string HelperLogRootDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditorLiveAgent");
+    private static readonly string HelperLogRootDir = LiveAgentPaths.HostRoot;
 
     // lua.log is written by the UE4SS Lua mod itself (see main.lua's logLine()), which runs
     // inside the GAME's own process. On Windows/macOS that is this same native %LOCALAPPDATA%.
@@ -79,8 +78,7 @@ public sealed class LiveAgentLogBridgeService : BackgroundService
             }
         }
 
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AbioticEditorLiveAgent");
+        return LiveAgentPaths.SharedRoot;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

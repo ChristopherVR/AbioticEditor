@@ -11,7 +11,8 @@
 // Both sides derive the IPC folder from %LOCALAPPDATA% independently (no config file to keep in
 // sync): this helper via GetEnvironmentVariable, the Lua mod via os.getenv - both are the
 // standard way to read that variable on their respective sides, so they agree without either
-// telling the other where to look.
+// telling the other where to look. (A portable editor install overrides both ends at once - see
+// LiveAgentDir in TokenStore.h.)
 
 #include <chrono>
 #include <fstream>

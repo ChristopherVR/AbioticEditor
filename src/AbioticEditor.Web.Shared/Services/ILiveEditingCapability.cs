@@ -72,7 +72,8 @@ public sealed class DesktopLiveEditingCapability : ILiveEditingCapability
     /// <summary>
     /// Where the native helper's <c>AbioticEditorLiveAgent</c> folder (token.txt/port.txt) can be
     /// found. On Windows and macOS this is always this process's own
-    /// <c>%LOCALAPPDATA%\AbioticEditorLiveAgent</c> - the helper runs as a normal process under
+    /// <c>%LOCALAPPDATA%\AbioticEditorLiveAgent</c> (or the portable data folder, see
+    /// <see cref="LiveAgentPaths"/>) - the helper runs as a normal process under
     /// the same user. On Linux the helper is still a Windows binary that only ever runs inside the
     /// Steam Play (Proton) prefix of the detected game (see
     /// <see cref="ProtonLiveAgentEnvironment"/> and <c>LiveAgentSetup</c>'s own launch code), so
@@ -94,8 +95,6 @@ public sealed class DesktopLiveEditingCapability : ILiveEditingCapability
             }
         }
 
-        yield return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AbioticEditorLiveAgent");
+        yield return LiveAgentPaths.SharedRoot;
     }
 }

@@ -349,9 +349,7 @@ public static class LiveAgentSetup
     [SupportedOSPlatform("linux")]
     private static void LaunchHelperHidden(string? linuxPrefixRoot)
     {
-        var logPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AbioticEditorLiveAgent", "helper.log");
+        var logPath = Path.Combine(LiveAgentPaths.HostRoot, "helper.log");
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
         // Overwritten each launch: this process only ever matters for the live-editing session
         // that just started it, and an ever-growing log nobody rotates helps nobody.
@@ -384,6 +382,14 @@ public static class LiveAgentSetup
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+
+        // A portable data folder (ABIOTIC_APPDATA_DIR): the helper keeps its token, port and
+        // mailbox there too. The Lua mod is pointed at the same folder by DeployMod.
+        if (LiveAgentPaths.RedirectedSharedRoot is { } sharedRoot)
+        {
+            Directory.CreateDirectory(sharedRoot);
+            startInfo.Environment[LiveAgentPaths.HelperDirectoryEnvVar] = sharedRoot;
+        }
 
         var process = new Process
         {
@@ -446,7 +452,7 @@ public static class LiveAgentSetup
             {
                 var target = Path.Combine(modsDir, ModFolderName, "Scripts", Path.GetRelativePath(BundledScriptsDir, file));
                 return File.Exists(target) && File.ReadAllBytes(file).AsSpan().SequenceEqual(File.ReadAllBytes(target));
-            }) && IsEnabledInModsList(modsDir);
+            }) && IsDataFolderPointerUpToDate(modsDir) && IsEnabledInModsList(modsDir);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -454,6 +460,28 @@ public static class LiveAgentSetup
             // to silently skip a deploy that turns out to matter.
             return false;
         }
+    }
+
+    private static string DataFolderPointerPath(string modsDir)
+        => Path.Combine(modsDir, ModFolderName, "Scripts", LiveAgentPaths.LuaPointerFileName);
+
+    /// <summary>Whether the in-game mod looks for its files where this editor and the helper do:
+    /// the pointer script names the redirected folder, or is absent when there is none.</summary>
+    private static bool IsDataFolderPointerUpToDate(string modsDir)
+    {
+        var path = DataFolderPointerPath(modsDir);
+        return LiveAgentPaths.RedirectedSharedRoot is { } root
+            ? File.Exists(path) && File.ReadAllText(path) == LiveAgentPaths.LuaPointerContent(root)
+            : !File.Exists(path);
+    }
+
+    private static void WriteDataFolderPointer(string modsDir)
+    {
+        var path = DataFolderPointerPath(modsDir);
+        if (LiveAgentPaths.RedirectedSharedRoot is { } root)
+            File.WriteAllText(path, LiveAgentPaths.LuaPointerContent(root), new System.Text.UTF8Encoding(false));
+        else
+            File.Delete(path);
     }
 
     private static bool IsEnabledInModsList(string modsDir)
@@ -485,6 +513,7 @@ public static class LiveAgentSetup
         }
 
         CopyDirectory(BundledScriptsDir, Path.Combine(modsDir, ModFolderName, "Scripts"));
+        WriteDataFolderPointer(modsDir);
         EnableInModsList(modsDir);
     }
 

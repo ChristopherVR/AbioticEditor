@@ -59,8 +59,7 @@ int main()
 {
     using namespace LiveAgent;
 
-    auto localAppData = LocalAppDataDir();
-    auto rootDir = localAppData + "\\AbioticEditorLiveAgent";
+    auto rootDir = LiveAgentDir();
     auto token = LoadOrCreateToken(rootDir);
     // The token itself is deliberately NOT printed here: this console output is piped into a
     // rolling log file by the editor's own launcher (see LaunchHelperHidden in LiveAgentSetup.cs),

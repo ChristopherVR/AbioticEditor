@@ -7772,6 +7772,14 @@ from the original ask.
    pictures: every DT_NPCList class now has a curated wiki file where the wiki has one
    (`NpcRosterProbe.cs` + the wiki API); ~100 classes resolve, the imageless rest are listed
    in `CreatureWikiImages.cs`.
+7. **Portable live-agent folder (issue #43, 2026-10-10)**: with `ABIOTIC_APPDATA_DIR` set on
+   Windows, the helper's token/port/mailbox and both logs move to `<root>\live-agent`
+   (`LiveAgentPaths.cs`). The helper is told via `ABIOTIC_LIVE_AGENT_DIR`, the Lua mod via a
+   generated `Scripts/datadir.lua` written at deploy time (a changed folder counts as "mod out
+   of date", so setup re-asks consent). Unit, Lua-harness and a real helper run verified;
+   **the redirected mailbox has not been exercised in the running game**. Known gap: a helper
+   still running from before the variable was set keeps its old folder until it is closed.
+   Linux is unchanged (those files already live in the Proton prefix).
 
 ## Conventions / gotchas (see also memory: abiotic-save-schema-facts)
 - Property names hash-suffixed -> always prefix-match; delta-serialization omits

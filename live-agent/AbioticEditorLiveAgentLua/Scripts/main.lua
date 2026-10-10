@@ -46,7 +46,17 @@
 local json = require("json")
 local UEHelpers = require("UEHelpers")
 
-local ipcDir = (os.getenv("LOCALAPPDATA") or "") .. "\\AbioticEditorLiveAgent\\ipc"
+-- Where this mod, the helper and the editor exchange files. All three default to the same
+-- folder under %LOCALAPPDATA%; a portable editor install (ABIOTIC_APPDATA_DIR) moves it, and since
+-- the game never sees the editor's environment, the editor's setup drops a generated datadir.lua
+-- next to this script that returns the folder to use instead (see LiveAgentPaths.cs).
+local dataDir = (os.getenv("LOCALAPPDATA") or "") .. "\\AbioticEditorLiveAgent"
+do
+    local ok, redirected = pcall(require, "datadir")
+    if ok and type(redirected) == "string" and redirected ~= "" then dataDir = redirected end
+end
+
+local ipcDir = dataDir .. "\\ipc"
 local requestPath = ipcDir .. "\\request.json"
 local responsePath = ipcDir .. "\\response.json"
 local responseTempPath = responsePath .. ".tmp"
@@ -65,7 +75,7 @@ local responseTempPath = responsePath .. ".tmp"
 -- the same file without coordinating locks risks interleaved/corrupted lines, and the editor's own
 -- tailer already merges the two files back together by timestamp, so there is no real cost to
 -- keeping them apart.
-local luaLogPath = (os.getenv("LOCALAPPDATA") or "") .. "\\AbioticEditorLiveAgent\\lua.log"
+local luaLogPath = dataDir .. "\\lua.log"
 -- A rough cap so a long play session can never grow this file without bound - not exact rotation
 -- (checking the real size on every single line would mean an extra file stat per log line), just
 -- "large enough that something has clearly gone very wrong" (see PruneOldLogs's own reasoning in
