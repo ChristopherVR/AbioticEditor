@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.1] - 2026-10-10
+
+### Bug Fixes
+- The editor window's browser data now follows the portable data folder setting
+- The portable data folder setting now applies to everything the editor stores
+- Live editing shows the right slot, mail, story events, doors and chapter
+
+
+### Miscellaneous Tasks
+- Get the automated builds passing again
+- Update dependencies to their latest compatible versions
+
+
 ## [2.27.0] - 2026-10-05
 
 ### Features
