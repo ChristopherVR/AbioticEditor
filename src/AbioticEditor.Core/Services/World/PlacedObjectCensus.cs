@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using AbioticEditor.Core.Saves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -305,6 +306,7 @@ public static partial class PlacedObjectCensus
             foreach (var x in extras) AddTo(poweredBy, x, socketId);
         }
 
+        var labels = new NameLabels();
         var objects = new List<PlacedObjectSummary>();
         var fieldTypes = new Dictionary<string, (HashSet<string> Types, int Count)>(StringComparer.Ordinal);
         int keyPath = 0, keyGuid = 0, keyOther = 0;
@@ -322,14 +324,12 @@ public static partial class PlacedObjectCensus
             var names = new List<string>(props.Count);
             foreach (var tag in props)
             {
-                var stripped = StripHash(tag.Name?.Value ?? "?");
+                var stripped = labels.Strip(tag.Name?.Value ?? "?");
                 names.Add(stripped);
-                if (!fieldTypes.TryGetValue(stripped, out var acc))
-                {
-                    acc = (new HashSet<string>(StringComparer.Ordinal), 0);
-                }
-                acc.Types.Add(TypeLabel(tag));
-                fieldTypes[stripped] = (acc.Types, acc.Count + 1);
+                ref var acc = ref CollectionsMarshal.GetValueRefOrAddDefault(fieldTypes, stripped, out var seen);
+                if (!seen) acc = (new HashSet<string>(StringComparer.Ordinal), 0);
+                acc.Types.Add(labels.Label(tag));
+                acc.Count++;
             }
 
             var classPath = ClassPathOf(props);
@@ -415,7 +415,7 @@ public static partial class PlacedObjectCensus
             objects.Count(o => o.Origin == PlacedClassOrigin.NonGamePath),
             objects.Count(o => o.Origin == PlacedClassOrigin.Missing),
             keyPath, keyGuid, keyOther,
-            classes, fields, CensusMaps(save), powerLinks,
+            classes, fields, CensusMaps(save, labels), powerLinks,
             includeObjects ? objects : null);
     }
 
@@ -478,7 +478,7 @@ public static partial class PlacedObjectCensus
         return i >= 0 && i < classPath.Length - 1 ? classPath[(i + 1)..] : classPath;
     }
 
-    private static List<WorldMapCensusEntry> CensusMaps(SaveGame save)
+    private static List<WorldMapCensusEntry> CensusMaps(SaveGame save, NameLabels labels)
     {
         var result = new List<WorldMapCensusEntry>();
         foreach (var tag in save.Properties ?? [])
@@ -497,8 +497,8 @@ public static partial class PlacedObjectCensus
                 {
                     foreach (var f in ps.Properties)
                     {
-                        var n = StripHash(f.Name?.Value ?? "?");
-                        var label = TypeLabel(f);
+                        var n = labels.Strip(f.Name?.Value ?? "?");
+                        var label = labels.Label(f);
                         fields[n] = label;
                         if (label.Contains("<Vector>", StringComparison.Ordinal)
                             || label.Contains("<Transform>", StringComparison.Ordinal)
@@ -517,5 +517,32 @@ public static partial class PlacedObjectCensus
                 locations.Count > 0, locations.ToList()));
         }
         return result;
+    }
+
+    /// <summary>
+    /// Stripped names and type labels, worked out once per spelling. Every placed object repeats the
+    /// same few dozen property names and types, so a census of the Facility save would otherwise
+    /// run the same regex and build the same label strings hundreds of thousands of times.
+    /// </summary>
+    private sealed class NameLabels
+    {
+        private readonly Dictionary<string, string> _stripped = new(StringComparer.Ordinal);
+        private readonly Dictionary<FPropertyTypeName, string> _labels = new(ReferenceEqualityComparer.Instance);
+
+        public string Strip(string name)
+        {
+            ref var stripped = ref CollectionsMarshal.GetValueRefOrAddDefault(_stripped, name, out var seen);
+            if (!seen) stripped = StripHash(name);
+            return stripped!;
+        }
+
+        public string Label(FPropertyTag tag)
+        {
+            // Without a type the label comes from the property itself, so it is not cached.
+            if (tag.Type is not { Name.Value: not null } type) return TypeLabel(tag);
+            ref var label = ref CollectionsMarshal.GetValueRefOrAddDefault(_labels, type, out var seen);
+            if (!seen) label = TypeLabel(tag);
+            return label!;
+        }
     }
 }

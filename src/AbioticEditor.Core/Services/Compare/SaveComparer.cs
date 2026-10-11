@@ -32,14 +32,13 @@ public static class SaveComparer
         }
 
         var diffs = new List<SaveLeafDiff>();
-        var matchedRight = new HashSet<string>(StringComparer.Ordinal);
 
         // Walk the left side in order: changed + removed leaves keep the left's natural order.
+        // A matched path is taken out of the index, so what remains afterwards is what was added.
         foreach (var l in leftLeaves)
         {
-            if (rightByPath.TryGetValue(l.Path, out var r))
+            if (rightByPath.Remove(l.Path, out var r))
             {
-                matchedRight.Add(l.Path);
                 if (!string.Equals(l.Value, r.Value, StringComparison.Ordinal))
                 {
                     var category = SaveDiffClassifier.Classify(l.Path, l.Type, l.Value, r.Value);
@@ -54,12 +53,15 @@ public static class SaveComparer
         }
 
         // Anything in the right that the left never matched was added.
-        foreach (var r in rightLeaves)
+        if (rightByPath.Count > 0)
         {
-            if (!matchedRight.Contains(r.Path))
+            foreach (var r in rightLeaves)
             {
-                var category = SaveDiffClassifier.Classify(r.Path, r.Type, null, r.Value);
-                diffs.Add(new SaveLeafDiff(SaveDiffKind.Added, r.Path, null, r.Value, r.Type, category));
+                if (rightByPath.ContainsKey(r.Path))
+                {
+                    var category = SaveDiffClassifier.Classify(r.Path, r.Type, null, r.Value);
+                    diffs.Add(new SaveLeafDiff(SaveDiffKind.Added, r.Path, null, r.Value, r.Type, category));
+                }
             }
         }
 
@@ -83,7 +85,7 @@ public static class SaveComparer
 
     internal static SaveGame Load(string path)
     {
-        using var fs = File.OpenRead(path);
-        return SaveGame.LoadFrom(fs);
+        using var stream = Saves.SaveFileStream.OpenForParsing(path);
+        return SaveGame.LoadFrom(stream);
     }
 }

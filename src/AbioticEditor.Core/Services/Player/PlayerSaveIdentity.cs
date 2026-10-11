@@ -40,7 +40,7 @@ public static class PlayerSaveIdentity
         Saves.SaveBackup.CreateFor(sourcePath);
 
         SaveGame save;
-        using (var fs = File.OpenRead(sourcePath))
+        using (var fs = Saves.SaveFileStream.OpenForParsing(sourcePath))
         {
             save = SaveGame.LoadFrom(fs);
         }
@@ -69,7 +69,7 @@ public static class PlayerSaveIdentity
         RequireSafeId(newId);
         var dir = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
         SaveGame save;
-        using (var fs = File.OpenRead(sourcePath))
+        using (var fs = Saves.SaveFileStream.OpenForParsing(sourcePath))
         {
             save = SaveGame.LoadFrom(fs);
         }

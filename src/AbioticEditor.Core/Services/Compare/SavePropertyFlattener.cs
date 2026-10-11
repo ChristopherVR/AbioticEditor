@@ -182,7 +182,33 @@ public static class SavePropertyFlattener
     }
 
     /// <summary>Strips the blueprint hash suffix so the same logical property aligns across saves.</summary>
-    public static string Normalize(string name) => HashSuffix.Replace(name, string.Empty);
+    public static string Normalize(string name)
+    {
+        // The regex's "$" also matches before a final line break; leave that rare shape to it.
+        if (name.EndsWith('\n')) return HashSuffix.Replace(name, string.Empty);
+        return HashSuffixStart(name) is var start and >= 0 ? name[..start] : name;
+    }
+
+    /// <summary>
+    /// Where <see cref="HashSuffix"/> would match, found without the regex: names are normalized once
+    /// per property, hundreds of thousands of times on a large save. The suffix is the last two
+    /// underscore-separated segments: digits, then at least eight hex characters. Returns -1 when absent.
+    /// </summary>
+    private static int HashSuffixStart(string name)
+    {
+        var hashStart = name.LastIndexOf('_') + 1;
+        if (hashStart == 0 || name.Length - hashStart < 8) return -1;
+        for (var i = hashStart; i < name.Length; i++)
+        {
+            if (!char.IsAsciiHexDigit(name[i])) return -1;
+        }
+
+        var digitsEnd = hashStart - 1;
+        var digitsStart = digitsEnd;
+        while (digitsStart > 0 && char.IsDigit(name[digitsStart - 1])) digitsStart--;
+        if (digitsStart == digitsEnd || digitsStart == 0 || name[digitsStart - 1] != '_') return -1;
+        return digitsStart - 1;
+    }
 
     private static string TypeOf(FPropertyTag tag)
         => tag.Type?.Name ?? tag.Property?.GetType().Name ?? string.Empty;

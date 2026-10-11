@@ -67,7 +67,7 @@ public static class SaveOperationRunner
         // Load the save (the Abiotic custom save classes must be registered for typed reads).
         AbioticSaveClasses.EnsureLoaded();
         SaveGame save;
-        using (var fs = File.OpenRead(filePath))
+        using (var fs = Saves.SaveFileStream.OpenForParsing(filePath))
         {
             save = SaveGame.LoadFrom(fs);
         }

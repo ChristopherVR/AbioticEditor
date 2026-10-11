@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using UeSaveGame;
 using UeSaveGame.StructData;
 
@@ -36,14 +37,20 @@ internal static class SaveTreeCompactor
         ArgumentNullException.ThrowIfNull(save);
         if (save.Properties is null) return;
         var pool = new Pool();
-        foreach (var tag in save.Properties) pool.Tag(tag);
+        pool.Tags(save.Properties);
     }
 
     private sealed class Pool
     {
         private readonly Dictionary<(string Value, int CodePage, ulong Seed), FString> _strings = new();
-        private readonly Dictionary<string, string> _text = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, FPropertyTypeName> _types = new(StringComparer.Ordinal);
+        private readonly Dictionary<FPropertyTypeName, FPropertyTypeName> _types = new(TypeNameComparer.Instance);
+
+        // Index loops rather than foreach: the tree's lists are typed as interfaces, and enumerating
+        // one through its interface allocates an enumerator per list, millions on a large save.
+        public void Tags(IList<FPropertyTag> tags)
+        {
+            for (var i = 0; i < tags.Count; i++) Tag(tags[i]);
+        }
 
         public void Tag(FPropertyTag tag)
         {
@@ -64,21 +71,38 @@ internal static class SaveTreeCompactor
                     property.Value = Share(text);
                     break;
                 case PropertiesStruct ps:
-                    foreach (var tag in ps.Properties) Tag(tag);
+                    if (ps.Properties is { } properties) Tags(properties);
                     break;
                 case IList<KeyValuePair<FProperty, FProperty>> pairs:
-                    foreach (var pair in pairs)
+                    for (var i = 0; i < pairs.Count; i++)
                     {
+                        var pair = pairs[i];
                         Property(pair.Key);
                         Property(pair.Value);
                     }
                     break;
-                case Array items:
+                case FProperty[] children:
+                    foreach (var child in children)
+                    {
+                        if (child is not null) Property(child);
+                    }
+                    break;
+                case FPropertyTag[] childTags:
+                    foreach (var childTag in childTags)
+                    {
+                        if (childTag is not null) Tag(childTag);
+                    }
+                    break;
+                // Arrays of plain values (bytes, numbers, names) hold no properties to visit; walking
+                // them element by element would box every value for nothing.
+                case Array items when MayHoldProperties(items):
                     foreach (var item in items)
                     {
                         if (item is FProperty child) Property(child);
                         else if (item is FPropertyTag childTag) Tag(childTag);
                     }
+                    break;
+                case Array:
                     break;
                 case IEnumerable<FProperty> list:
                     foreach (var child in list) Property(child);
@@ -86,36 +110,64 @@ internal static class SaveTreeCompactor
             }
         }
 
+        private static bool MayHoldProperties(Array items)
+        {
+            var element = items.GetType().GetElementType();
+            return element is null
+                || element.IsAssignableFrom(typeof(FProperty))
+                || element.IsAssignableFrom(typeof(FPropertyTag))
+                || typeof(FProperty).IsAssignableFrom(element)
+                || typeof(FPropertyTag).IsAssignableFrom(element);
+        }
+
         private FString Share(FString value)
         {
             if (value.Value is null) return value;
             var key = (value.Value, value.Encoding?.CodePage ?? 0, HashSeed(value));
-            if (_strings.TryGetValue(key, out var shared)) return shared;
-            _strings[key] = value;
-            return value;
+            ref var shared = ref CollectionsMarshal.GetValueRefOrAddDefault(_strings, key, out var exists);
+            if (!exists) shared = value;
+            return shared!;
         }
 
         /// <summary>One instance per spelling of a type name (its name and parameters, recursively).</summary>
         private FPropertyTypeName ShareType(FPropertyTypeName type)
         {
-            var key = TypeKey(type);
-            if (_types.TryGetValue(key, out var shared)) return shared;
-            _types[key] = type;
-            return type;
+            ref var shared = ref CollectionsMarshal.GetValueRefOrAddDefault(_types, type, out var exists);
+            if (!exists) shared = type;
+            return shared!;
+        }
+    }
+
+    /// <summary>
+    /// Compares type names by spelling: the name's text and, in order, the parameters' spellings.
+    /// Comparing the structure directly avoids building a key string for every tag of a large save.
+    /// </summary>
+    private sealed class TypeNameComparer : IEqualityComparer<FPropertyTypeName>
+    {
+        public static readonly TypeNameComparer Instance = new();
+
+        public bool Equals(FPropertyTypeName? x, FPropertyTypeName? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null || y is null) return false;
+            if (!string.Equals(x.Name?.Value ?? string.Empty, y.Name?.Value ?? string.Empty, StringComparison.Ordinal)) return false;
+            var xs = x.Parameters;
+            var ys = y.Parameters;
+            if (xs.Count != ys.Count) return false;
+            for (var i = 0; i < xs.Count; i++)
+            {
+                if (!Equals(xs[i], ys[i])) return false;
+            }
+            return true;
         }
 
-        private string TypeKey(FPropertyTypeName type)
+        public int GetHashCode(FPropertyTypeName type)
         {
-            var name = type.Name?.Value ?? string.Empty;
-            if (type.Parameters.Count == 0) return Text(name);
-            return Text(name + "<" + string.Join(",", type.Parameters.Select(TypeKey)) + ">");
-        }
-
-        private string Text(string value)
-        {
-            if (_text.TryGetValue(value, out var shared)) return shared;
-            _text[value] = value;
-            return value;
+            var hash = new HashCode();
+            hash.Add(type.Name?.Value ?? string.Empty, StringComparer.Ordinal);
+            hash.Add(type.Parameters.Count);
+            foreach (var parameter in type.Parameters) hash.Add(GetHashCode(parameter));
+            return hash.ToHashCode();
         }
     }
 }

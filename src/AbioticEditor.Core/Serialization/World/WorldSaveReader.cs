@@ -37,8 +37,8 @@ public static partial class WorldSaveReader
         Diagnostics.EditorLog.Info("WorldSave", $"Parsing {Path.GetFileName(path)}");
         try
         {
-            using var fs = File.OpenRead(path);
-            return ReadFromStream(fs);
+            using var stream = SaveFileStream.OpenForParsing(path);
+            return ReadFromStream(stream);
         }
         catch (Exception ex)
         {

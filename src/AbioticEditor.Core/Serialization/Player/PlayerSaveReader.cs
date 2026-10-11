@@ -32,8 +32,8 @@ public static class PlayerSaveReader
         Diagnostics.EditorLog.Info("PlayerSave", $"Parsing {Path.GetFileName(path)}");
         try
         {
-            using var fs = File.OpenRead(path);
-            return ReadFromStream(fs);
+            using var stream = Saves.SaveFileStream.OpenForParsing(path);
+            return ReadFromStream(stream);
         }
         catch (Exception ex)
         {
