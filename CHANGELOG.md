@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.4] - 2026-10-11
+
+### Bug Fixes
+- Live editing helper now closes when the editor closes
+
+
+### Testing
+- Check the live editing helper really is closed with the editor
+
+
 ## [2.27.3] - 2026-10-11
 
 ### Bug Fixes
