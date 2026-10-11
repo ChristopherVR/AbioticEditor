@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.3] - 2026-10-11
+
+### Bug Fixes
+- Update build-tool dependencies to patched versions
+
+
+### Performance
+- Saves open, compare and survey faster with less memory
+
+
+### Miscellaneous Tasks
+- Bump source-map-js from 1.2.1 to 1.2.2 in /docs (#46)
+
+
 ## [2.27.2] - 2026-10-10
 
 ### Bug Fixes
