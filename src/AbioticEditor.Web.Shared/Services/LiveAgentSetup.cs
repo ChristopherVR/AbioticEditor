@@ -408,6 +408,9 @@ public static class LiveAgentSetup
             }
         };
         process.Start();
+        // Only a helper this editor launched is bound to it. One that was already running (for
+        // example on a dedicated server machine) is never touched.
+        ChildProcessLifetime.BindToCurrentProcess(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         _helperProcess = process;
