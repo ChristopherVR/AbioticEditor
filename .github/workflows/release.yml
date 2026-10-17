@@ -188,7 +188,7 @@ jobs:
           fetch-tags: true
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2.87.26
+        uses: taiki-e/install-action@v2.87.28
         with:
           tool: git-cliff
 
@@ -1266,7 +1266,7 @@ jobs:
       - name: Upload Windows host to NexusMods
         id: upload
         if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.11
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_APP_FILE_ID }}
@@ -1377,7 +1377,7 @@ jobs:
       - name: Upload Linux / Steam Deck host to NexusMods
         id: upload
         if: steps.gate.outputs.enabled == 'true'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.10
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.11
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_PROTON_FILE_ID }}
