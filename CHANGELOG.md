@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.5] - 2026-10-20
+
+### Bug Fixes
+- Prevent the Recipes tab freezing on differently cased recipe names
+
+
 ## [2.27.4] - 2026-10-11
 
 ### Bug Fixes
