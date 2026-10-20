@@ -1,5 +1,19 @@
 # Abiotic Editor - Session history
 
+## Issue #49: Recipes tab opens saves with differently cased recipe names (2026-10-20)
+
+- The reporter's save stores `Recipe_238`, while the catalog uses `recipe_238`. The file
+  session added separate rows, then the Recipes tab's case-insensitive dictionary threw
+  and stopped the desktop circuit or browser render.
+- Recipe rows, unlock lookup and staged recipe sets now consistently ignore case. Saved
+  spelling takes precedence over catalog spelling; unknown saved recipes remain available.
+  Initial catalog loading, lazy loading and bulk unlock all keep a single row per recipe.
+- Regression tests reproduced all three paths before the fix and now cover lock/unlock,
+  revert, dirty state and save/reload. All 35 focused recipe and player round-trip tests pass.
+- Verified the issue's attached save separately against the bundled English catalog:
+  593 unique rows, all 582 unlocks retained, `recipe_238` unlocked, save/reload unchanged.
+  The attachment and diagnostic probe stay outside the repository.
+
 ## Round-170: the browser draws placed objects with their game models (2026-10-06)
 
 - The browser 3D view still drew every placed object (furniture, benches, containers, vehicles) as a

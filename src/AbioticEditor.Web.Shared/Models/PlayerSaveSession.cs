@@ -126,7 +126,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     /// </summary>
     public void EnsureRecipeRows(IEnumerable<string> ids)
     {
-        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.Ordinal);
+        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var id in ids)
         {
             if (!string.IsNullOrWhiteSpace(id) && known.Add(id)) _recipes.Add(new PlayerRecipeEdit(id, false));
@@ -182,7 +182,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     public Task SetUnlockedAsync(string recipeId, bool unlocked)
     {
         EnsureRecipeRows([recipeId]);
-        var edit = _recipes.First(recipe => string.Equals(recipe.Id, recipeId, StringComparison.Ordinal));
+        var edit = _recipes.First(recipe => string.Equals(recipe.Id, recipeId, StringComparison.OrdinalIgnoreCase));
         edit.IsUnlocked = unlocked;
         MarkChanged();
         return Task.CompletedTask;
@@ -587,7 +587,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     /// <summary>Unlocks every known recipe, adding rows for catalog ids this session had not seen.</summary>
     public void UnlockAllRecipes(IEnumerable<string> vocabulary)
     {
-        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.Ordinal);
+        var known = _recipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var id in CleanIds(vocabulary))
             if (known.Add(id)) _recipes.Add(new PlayerRecipeEdit(id, false));
         _recipes.Sort((left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Id, right.Id));
@@ -778,7 +778,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private HashSet<string> CurrentRecipeSet() => Recipes
         .Where(recipe => recipe.IsUnlocked)
         .Select(recipe => recipe.Id)
-        .ToHashSet(StringComparer.Ordinal);
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private IEnumerable<PlayerInventorySlotEdit> AllInventorySlots()
         => Equipment.Concat(Hotbar).Concat(Backpack);
@@ -797,11 +797,13 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private static List<PlayerRecipeEdit> BuildRecipes(
         IEnumerable<string> unlocked, IEnumerable<string>? vocabulary)
     {
-        var unlockedSet = unlocked.ToHashSet(StringComparer.Ordinal);
-        var ids = (vocabulary ?? Array.Empty<string>())
-            .Concat(unlockedSet)
+        var unlockedSet = unlocked.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Unreal row names are case-insensitive. Keep the save's spelling when the catalog
+        // uses another case, and expose one shared edit for both (issue #49).
+        var ids = unlockedSet
+            .Concat(vocabulary ?? Array.Empty<string>())
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct(StringComparer.Ordinal)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(id => id, StringComparer.OrdinalIgnoreCase);
         return ids.Select(id => new PlayerRecipeEdit(id, unlockedSet.Contains(id))).ToList();
     }
