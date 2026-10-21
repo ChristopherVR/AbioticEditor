@@ -49,7 +49,7 @@ public sealed class InventoryDismantleService
         if (vocabulary.Recipes.Count == 0)
         {
             message = "Dismantling needs the game's own recipe list, which the editor could not read. "
-                + "Point it at your Abiotic Factor install in Settings, then try again.";
+                + "If you use the desktop app, point it at your Abiotic Factor install in Settings, then try again.";
             return false;
         }
         var recipe = vocabulary.Recipes.FirstOrDefault(candidate => string.Equals(candidate.CreatesItemId, source.ItemId, StringComparison.OrdinalIgnoreCase) && candidate.IngredientList.Count > 0);
@@ -81,8 +81,9 @@ public sealed class InventoryDismantleService
         try
         {
             var provider = GameDataGate.CreateProvider();
-            if (provider is not { HasMappings: true }) return DismantleVocabulary.Empty;
-            return new(RecipeCatalog.LoadInfosFrom(provider), ItemCatalog.LoadFrom(provider));
+            if (provider is { HasMappings: true }) return new(RecipeCatalog.LoadInfosFrom(provider), ItemCatalog.LoadFrom(provider));
+            // No installed game (always the case in a browser): the recipe list that ships with the editor.
+            return FromBundled();
         }
         catch (Exception exception)
         {
@@ -92,6 +93,13 @@ public sealed class InventoryDismantleService
             EditorLog.Error("Dismantle", "Could not read the game's recipe list", exception);
             return DismantleVocabulary.Empty;
         }
+    }
+
+    private static DismantleVocabulary FromBundled()
+    {
+        var registry = GameDataRegistry.LoadBundled();
+        if (registry?.Recipes is not { Count: > 0 } recipes) return DismantleVocabulary.Empty;
+        return new(recipes, ItemCatalog.FromRegistry(registry.Items ?? [], registry.ItemTableRefs ?? new Dictionary<string, string>()));
     }
 
     private sealed record DismantleVocabulary(IReadOnlyList<RecipeInfo> Recipes, ItemCatalog Items)

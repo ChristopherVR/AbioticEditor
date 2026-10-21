@@ -50,7 +50,7 @@ public sealed class RazorVisualParityTests
         Assert.Contains(".app-frame.accent-hazard", css, StringComparison.Ordinal);
         Assert.Contains("--shell:#0c0b07", css, StringComparison.Ordinal);
         Assert.Contains("--shell:#e8e2d2", css, StringComparison.Ordinal);
-        Assert.Contains("class=\"theme-segments\"", settings, StringComparison.Ordinal);
+        Assert.Contains("HostThemeAccent.Gate", settings, StringComparison.Ordinal);
         Assert.Contains("HostThemeAccent.Cascade", settings, StringComparison.Ordinal);
         Assert.Contains("HostThemeAccent.Hazard", settings, StringComparison.Ordinal);
         // Hazard (the warm orange accent) is the default; Cascade remains available as the
@@ -67,7 +67,7 @@ public sealed class RazorVisualParityTests
         var css = Source("wwwroot", "parity.css");
 
         Assert.DoesNotContain("@page \"/settings\"", settings, StringComparison.Ordinal);
-        Assert.Contains("<Settings OnClose=\"CloseSettings\" OnShowReleaseNotes=\"ShowLatestReleaseNotes\" />", layout, StringComparison.Ordinal);
+        Assert.Contains("<Settings OnClose=\"CloseSettings\" />", layout, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-sheet\"", settings, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-sheet-header\"", settings, StringComparison.Ordinal);
         Assert.Contains("class=\"settings-tab-rail\"", settings, StringComparison.Ordinal);

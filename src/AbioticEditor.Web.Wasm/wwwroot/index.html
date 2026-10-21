@@ -5,6 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Abiotic Editor</title>
+    <!-- Stamped with the commit by the Pages workflow; "dev" means a local run, which never checks. -->
+    <meta name="app-build" content="dev" />
     <!-- Local `dotnet run` serves this app at site root. The GitHub Pages workflow
          (.github/workflows/docs.yml) rewrites this to /AbioticEditor/app/ in the
          published output, since Pages serves it from that subpath. -->
@@ -60,6 +62,40 @@
             window.addEventListener("load", function () {
                 setTimeout(() => sessionStorage.removeItem(RETRY_KEY), 10000);
             });
+        })();
+    </script>
+    <!-- Tells someone who keeps the editor open (or comes back to an old tab) that a newer version
+         is published. version.json is fetched uncached and compared with the build stamped into
+         this page; a difference shows a Reload bar. Quietly does nothing offline or on a local run. -->
+    <script>
+        (function () {
+            const meta = document.querySelector('meta[name="app-build"]');
+            const mine = meta && meta.content;
+            if (!mine || mine === "dev") return;
+            let shown = false;
+            async function check() {
+                if (shown) return;
+                try {
+                    const response = await fetch(new URL("version.json", document.baseURI), { cache: "no-store" });
+                    if (!response.ok) return;
+                    const latest = (await response.json()).build;
+                    if (!latest || latest === mine) return;
+                    shown = true;
+                    const bar = document.createElement("div");
+                    bar.setAttribute("role", "status");
+                    bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:2000;display:flex;gap:12px;justify-content:center;align-items:center;padding:10px 16px;background:#f08a24;color:#111;font:600 13px sans-serif";
+                    bar.append("A new version of Abiotic Editor is available. ");
+                    const button = document.createElement("button");
+                    button.textContent = "RELOAD";
+                    button.style.cssText = "padding:4px 12px;font-weight:700;cursor:pointer";
+                    button.onclick = function () { location.reload(); };
+                    bar.append(button);
+                    document.body.append(bar);
+                } catch { /* offline: try again next time */ }
+            }
+            check();
+            document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+            setInterval(check, 15 * 60 * 1000);
         })();
     </script>
     <script src="_content/AbioticEditor.Web.Shared/modal.js"></script>

@@ -13,6 +13,7 @@
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
 @inject ModalService Modals
+@inject AbioticEditor.Ui.IExternalNavigationService ExternalNavigation
 
 <div class="app-frame @Theme.CssClass">
     @if (!RendererInfo.IsInteractive)
@@ -86,7 +87,7 @@
                    can do more. This opens the same mode-select dialog the desktop host uses, whose
                    Choose step shows the live-editing card as an informational "desktop app only"
                    dead end instead of a working flow - see ModeSelectDialog.IsBrowserHost. *@
-                <button class="secondary mode-switch-action" type="button" @onclick="OpenModeSelect" title="@Languages.Resource("Editing_LiveInfoButtonTitle")"><span class="material-symbol" aria-hidden="true">swap_horiz</span>@Languages.Resource("Editing_LiveModeLabel")</button>
+                <button class="secondary mode-switch-action" type="button" @onclick="ShowLiveDesktopOnly" title="@Languages.Resource("Editing_LiveInfoButtonTitle")"><span class="material-symbol" aria-hidden="true">swap_horiz</span>@Languages.Resource("Editing_LiveModeLabel")</button>
             }
             @* OPEN FOLDER is a file-workspace action, and /live is never the place for it: it stays
                off the header for the whole time that route is active, loaded folder or not, the
@@ -134,7 +135,7 @@
     <ToastHost />
     @if (_settingsOpen)
     {
-        <Settings OnClose="CloseSettings" OnShowReleaseNotes="ShowLatestReleaseNotes" />
+        <Settings OnClose="CloseSettings" />
     }
     @if (_modeSelectOpen)
     {
@@ -245,6 +246,18 @@
     // on top of it - answering that prompt is what frees the sidebar's own "switching" flag, and
     // stacking the mode dialog over it made it easy to navigate away instead of answering, which
     // used to leave the sidebar unresponsive for the rest of the session.
+    /// <summary>The browser build's LIVE EDITING button: a short "desktop app only" note, not the
+    /// whole mode-select dialog (which has nothing else to offer a browser).</summary>
+    private void ShowLiveDesktopOnly()
+    {
+        if (Modals.Current is not null) return;
+        Modals.Show(new ModalRequest(
+            Languages.Resource("Editing_LiveBrowserModalTitle"),
+            builder => { builder.OpenElement(0, "p"); builder.AddContent(1, Languages.Resource("Editing_LiveBrowserModalBody")); builder.CloseElement(); },
+            ConfirmText: Languages.Resource("Editing_LiveBrowserModalGet"),
+            OnConfirm: () => ExternalNavigation.OpenUrlAsync(new Uri(BrowserGamePassBlockGuard.ReleasesUrl)),
+            CancelText: Languages.Resource("Common_Close")));
+    }
     private void OpenModeSelect() { if (Modals.Current is null) { _modeSelectOpen = true; _modeSelectFromUser = true; } }
     private void CloseModeSelect()
     {
@@ -263,16 +276,6 @@
     {
         _releaseNotesOpen = false;
         ReleaseNotesStore.MarkShown(AppVersion);
-    }
-    /// <summary>The Settings screen's own "what's new" button reaches this - always shows just
-    /// the latest release (not "since last seen", which could be empty for a player who is
-    /// already caught up and just wants a reminder of what shipped most recently), and does not
-    /// touch <see cref="ReleaseNotesStore"/> at all: a manual look back is not "the player has now
-    /// seen the newest release" the way the automatic dialog closing is.</summary>
-    private void ShowLatestReleaseNotes()
-    {
-        _releaseNotesToShow = ChangelogService.Releases.Take(1).ToArray();
-        _releaseNotesOpen = true;
     }
     // The dialog itself only ever offers a close button when this is true (see its own remarks
     // on why not always). The one case it stays false for is the automatic prompt on launch,

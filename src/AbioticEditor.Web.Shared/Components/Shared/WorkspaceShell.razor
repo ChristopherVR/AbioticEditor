@@ -294,6 +294,7 @@
                so it falls through to the very same markup the file editor's sidebar uses. *@
             @if (Workspace.BusyOperation is { } busy) { <span class="shell-busy">@busy</span> }
             else if (IsPureLiveMode && Live.Surface != LiveSurface.OfflinePlayerFile) { <span>@L.Resource("Live_SidebarSubtitle")</span> }
+            else if (IsHomeView) { }
             else if (Workspace.Current?.SelectedSave is { } save)
             {
                 <div class="selected-save-title"><strong>@SaveDisplayName(save)</strong><span><b>@KindLabel(save.Kind)</b> @save.Size</span></div>
@@ -336,7 +337,7 @@
     </div>
 
     <aside class="shell-pane details-pane" aria-label="@L.Text("inventory.slot.editor")">
-        <InventorySlotEditor />
+        @if (!IsHomeView) { <InventorySlotEditor /> }
     </aside>
 
     @if (DrawerMode)
@@ -390,6 +391,10 @@
     private bool DetailsShown => DrawerMode ? _detailsDrawer : DetailsVisible;
     // Reserve the side panel only for a palette or an actual selection. General forms
     // and world lists use the space until an item or detail card needs it.
+    /// <summary>True on the home (world list) view reached with the header's home button while a
+    /// save is still open: the save's own toolbar and slot editor must not show beside the world list.</summary>
+    private bool IsHomeView => string.Equals(new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'), Navigation.ToAbsoluteUri("browse").AbsolutePath.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
+        && new Uri(Navigation.Uri).Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries).Any(param => param.Equals("home", StringComparison.OrdinalIgnoreCase));
     private bool IsEditingIni => new Uri(Navigation.Uri).AbsolutePath is var path && (path.Equals("/ini", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/ini/", StringComparison.OrdinalIgnoreCase));
     private bool DetailsAvailable => !IsEditingIni && (InventorySelection.HasAnySelection || InventorySelection.Palette is not null);
     private string FileClass => DrawerMode ? (_fileDrawer ? "file-drawer-open" : string.Empty) : (FileVisible ? string.Empty : "file-collapsed");
@@ -1121,6 +1126,29 @@
     /// opened, so exporting only what is on screen would hand back an incomplete set.
     /// </summary>
     private async Task ExportWorkspaceAsync()
+    {
+        if (_exporting) return;
+        // An export is built from what is on disk, so changes still waiting to be saved would be
+        // left out of it. Ask to save them first instead of exporting a file without them.
+        if (Workspace.HasStagedEdits && Workspace.CanWrite)
+        {
+            Modals.Show(new ModalRequest(
+                L.Resource("Workspace_ExportSaveFirstTitle"),
+                @<p>@L.Resource("Workspace_ExportSaveFirstBody")</p>,
+                ConfirmText: L.Resource("Workspace_ExportSaveFirstConfirm"),
+                OnConfirm: async () =>
+                {
+                    await SaveAsync();
+                    // A failed save already told the player why; exporting now would hand over a file without the changes.
+                    if (!Workspace.HasStagedEdits) await ExportWorkspaceCoreAsync();
+                },
+                CancelText: L.Resource("Common_Cancel")));
+            return;
+        }
+        await ExportWorkspaceCoreAsync();
+    }
+
+    private async Task ExportWorkspaceCoreAsync()
     {
         if (_exporting) return;
         _exporting = true;

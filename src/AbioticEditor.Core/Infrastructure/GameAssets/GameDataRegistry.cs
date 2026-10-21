@@ -184,6 +184,18 @@ public sealed class GameDataRegistry
     /// </summary>
     public IReadOnlyList<DistillationRecipe>? Distillations { get; init; }
 
+    /// <summary>The weapon coating choices, so the browser can offer them with no game install.</summary>
+    public IReadOnlyList<WeaponCoatingDefinition>? WeaponCoatings { get; init; }
+
+    /// <summary>What each tameable pet eats to be tamed or to mutate (the pet care guide).</summary>
+    public IReadOnlyList<WorldSaves.PetCareDefinition>? PetCare { get; init; }
+
+    /// <summary>
+    /// The mutation picker's choices per pet, keyed by both the pet's item row and its pet row
+    /// (see <see cref="WorldSaves.PetCareCatalog.MutationOptionsFor"/>).
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? PetMutationOptions { get; init; }
+
     /// <summary>
     /// What each kind of NPC spawn point makes: spawn blueprint class to the short class of the
     /// creature (<see cref="NpcSpawnCatalog"/>), so its list and the 3D view show that creature.
@@ -231,8 +243,28 @@ public sealed class GameDataRegistry
             NarrativeNpcNames = Optional("narrative NPC names", () => NarrativeNpcNameCatalog.BuildFrom(provider) is { Count: > 0 } names ? names : null),
             Distillations = Optional("distillations", () => DistillationCatalog.LoadFrom(provider) is { Count: > 0 } d ? d : null),
             NpcSpawnCreatures = Optional("NPC spawn creatures", () => NpcSpawnCatalog.LoadFrom(provider) is { Count: > 0 } spawns ? spawns : null),
+            WeaponCoatings = Optional("weapon coatings", () => WeaponCoatingCatalog.Load(provider) is { Count: > 0 } coatings ? coatings : null),
+            PetCare = Optional("pet care", () => WorldSaves.PetCareCatalog.Load(provider) is { Count: > 0 } care ? care : null),
+            PetMutationOptions = Optional("pet mutation options", () => BuildPetMutationOptions(provider)),
             NarrativeNpcPlacements = Optional("narrative NPC placements", () => NarrativeNpcNameCatalog.BuildPlacementsFrom(provider) is { Count: > 0 } placements ? placements : null),
         };
+    }
+
+    private static Dictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? BuildPetMutationOptions(GameAssetProvider provider)
+    {
+        var pets = WorldSaves.PetGameData.TryLoadFrom(provider);
+        if (pets is null) return null;
+        var result = new Dictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pet in pets.Definitions)
+        {
+            foreach (var key in new[] { pet.ItemRow, pet.PetRow })
+            {
+                if (string.IsNullOrEmpty(key) || result.ContainsKey(key)) continue;
+                var options = WorldSaves.PetCareCatalog.MutationOptionsFor(provider, key);
+                if (options.Count > 0) result[key] = options;
+            }
+        }
+        return result.Count > 0 ? result : null;
     }
 
     /// <summary>Reads one optional catalog, logging and skipping it rather than failing the dump.</summary>

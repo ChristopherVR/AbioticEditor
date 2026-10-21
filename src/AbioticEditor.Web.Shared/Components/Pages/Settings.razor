@@ -17,7 +17,18 @@
 
 <section @ref="_sheet" inert="@(_languageChooserOpen || Modals.Current is not null ? "" : null)" class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-sheet-title" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="settings-sheet-header">
-        <span class="settings-badge" aria-hidden="true">AF</span>
+        @* The same logo lockup as the main header, so it does not jump when this sheet covers it. *@
+        <span class="brand-lockup">
+            <GameArtImage GameRef="AbioticFactor/Content/Textures/GUI/Inventory/T_ABF_Logo_1024" Alt="">
+                <ChildContent>
+                    <GameArtImage GameRef="AbioticFactor/Content/Textures/GUI/Logos/ABF-Full-Color-1024w" Alt="">
+                        <ChildContent>
+                            <img class="brand-logo-bundled" alt="" src="_content/AbioticEditor.Web.Shared/images/abiotic-factor.png" />
+                        </ChildContent>
+                    </GameArtImage>
+                </ChildContent>
+            </GameArtImage>
+        </span>
         <div>
             <h1 id="settings-sheet-title">@R("Settings_ScaffoldSubtitle")</h1>
         </div>
@@ -37,13 +48,20 @@
                 @switch (_selectedTab)
                 {
                     case SettingsTab.General:
+                        @if (!Workspace.HasLocalPaths)
+                        {
+                            <article class="settings-card">
+                                <h2>@R("Settings_BrowserAboutTitle")</h2>
+                                <p class="muted">@R("Settings_BrowserAboutBody")</p>
+                            </article>
+                        }
                         <article class="settings-card">
                             <h2>@R("Settings_Theme")</h2>
-                            <div class="theme-segments" role="group" aria-label="@R("Settings_Theme")">
-                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Cascade ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Cascade)">@ThemeLabel("Settings_ThemeCascade", HostThemeAccent.Cascade)</button>
-                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Hazard ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Hazard)">@ThemeLabel("Settings_ThemeHazard", HostThemeAccent.Hazard)</button>
-                                <button type="button" class="@(Theme.Accent == HostThemeAccent.Gate ? "selected" : null)" @onclick="() => SetAccent(HostThemeAccent.Gate)">@ThemeLabel("Settings_ThemeGate", HostThemeAccent.Gate)</button>
-                            </div>
+                            <select class="settings-select" aria-label="@R("Settings_Theme")" value="@Theme.Accent.ToString()" @onchange="SetAccentFromSelect">
+                                <option value="@nameof(HostThemeAccent.Cascade)">@R("Settings_ThemeCascade")</option>
+                                <option value="@nameof(HostThemeAccent.Hazard)">@R("Settings_ThemeHazard")</option>
+                                <option value="@nameof(HostThemeAccent.Gate)">@R("Settings_ThemeGate")</option>
+                            </select>
                             <label class="settings-switch-row">
                                 <span>@R("Settings_LightMode")</span>
                                 <input type="checkbox" role="switch" checked="@(Theme.Current == HostTheme.Light)" @onchange="SetLightMode" />
@@ -52,33 +70,16 @@
                         <article class="settings-card">
                             <h2>@R("Settings_Language")</h2>
                             <div class="settings-value-row"><strong>@CurrentLanguageName()</strong><button class="secondary" type="button" @onclick="() => _languageChooserOpen = true">@R("Settings_LanguageChange")</button></div>
-                        </article>
-                        @* The language item names, recipes and journal entries are shown in.
-                           It normally lives on the GAME DATA tab, which a browser does not get -
-                           everything else on that tab points at files on the player's own machine.
-                           The setting itself works perfectly well here (the names come from a
-                           translated copy of the game's tables that ships with the editor), so it
-                           gets a home of its own rather than being lost with the rest of the tab. *@
-                        @if (!Workspace.HasLocalPaths)
-                        {
-                            <article class="settings-card">
-                                <h2>@R("GameDataSettings_LanguageTitle")</h2>
-                                <p class="muted">@R("Language_GameDataDescription")</p>
-                                <select class="settings-select" aria-label="@R("GameDataSettings_LanguageTitle")"
-                                        value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
-                                    <option value="">@R("GameDataSettings_LanguageAuto")</option>
-                                    @foreach (var language in Languages.AvailableGameData)
-                                    {
-                                        <option value="@language.Code">@language.NativeName</option>
-                                    }
-                                </select>
-                                @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
-                            </article>
-                        }
-                        <article class="settings-card">
-                            <h2>@R("Settings_WhatsNew")</h2>
-                            <p class="muted">@R("Settings_WhatsNewHint")</p>
-                            <button class="secondary" type="button" @onclick="ShowReleaseNotesAsync">@R("Settings_WhatsNewButton")</button>
+                            <label for="game-data-language">@R("GameDataSettings_LanguageTitle")</label>
+                            <p class="muted">@R("Language_GameDataDescription")</p>
+                            <select id="game-data-language" class="settings-select" value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
+                                <option value="">@R("GameDataSettings_LanguageAuto")</option>
+                                @foreach (var language in Languages.AvailableGameData)
+                                {
+                                    <option value="@language.Code">@language.NativeName</option>
+                                }
+                            </select>
+                            @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
                         </article>
                         <article class="settings-card">
                             <h2>@R("Settings_Diagnostics")</h2>
@@ -86,6 +87,9 @@
                             <label class="settings-switch-row"><span>@R("Settings_DiagnosticLogging")</span><input type="checkbox" role="switch" checked="@HostSettings.DiagnosticLoggingEnabled" @onchange="SetDiagnostics" /></label>
                             <button class="secondary" type="button" @onclick="RevealLogsAsync">@(LogDelivery.RevealsFolder ? R("Settings_OpenLogFolder") : "EXPORT LOG FILE")</button>
                             @if (_logFolderStatus is not null) { <p class="muted" role="status">@_logFolderStatus</p> }
+                            <h3>@R("Settings_ReportIssueTitle")</h3>
+                            <p class="muted">@R("Settings_ReportIssueBody")</p>
+                            <button class="secondary" type="button" @onclick="OpenIssuesAsync">@R("Settings_ReportIssueButton")</button>
                         </article>
                         break;
                     case SettingsTab.Editor:
@@ -111,14 +115,6 @@
                             <details class="editor-disclosure"><summary>@R("Editing_AdvancedGameData")</summary>
                             <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync" disabled="@GameDataBusy">@R("GameDataSettings_ImportDataFile")</button></div>
                             </details>
-                            <label for="game-data-language">@R("GameDataSettings_LanguageTitle")</label>
-                            <select id="game-data-language" class="settings-select" value="@(Languages.GameDataLanguage ?? string.Empty)" @onchange="SetGameDataLanguageAsync">
-                                <option value="">@R("GameDataSettings_LanguageAuto")</option>
-                                @foreach (var language in Languages.AvailableGameData)
-                                {
-                                    <option value="@language.Code">@language.NativeName</option>
-                                }
-                            </select>
                             @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
                         </article>
                         <article class="settings-card">
@@ -194,12 +190,6 @@
     private void ModalChanged() { _focusedLanguage = null; _ = InvokeAsync(StateHasChanged); }
 
     [Parameter] public EventCallback OnClose { get; set; }
-    /// <summary>The header's own "what's new" reopen (MainLayout owns the dialog itself, since it
-    /// is also what shows it automatically on a fresh update - see its own remarks). Closes this
-    /// screen first rather than stacking a second overlay on top of it.</summary>
-    [Parameter] public EventCallback OnShowReleaseNotes { get; set; }
-    private async Task ShowReleaseNotesAsync() { await CloseAsync(); await OnShowReleaseNotes.InvokeAsync(); }
-
     private readonly record struct TabChoice(SettingsTab Id, string ResourceKey);
     private static readonly TabChoice[] AllTabs =
     [
@@ -238,9 +228,8 @@
     private string CurrentLanguageName() => Languages.Available.FirstOrDefault(language => language.Code == Languages.CurrentCode)?.NativeName ?? Languages.CurrentCode;
     private string GameDataLanguageName(string? code) => Languages.AvailableGameData.FirstOrDefault(language => string.Equals(language.Code, code, StringComparison.OrdinalIgnoreCase))?.NativeName ?? code ?? R("GameDataSettings_LanguageAuto");
     private string PluginStateLabel(PluginLoadState state) => R("Plugins_State" + state);
-    private string ThemeLabel(string key, HostThemeAccent accent) => Theme.Accent == accent ? R("Settings_ThemeActive", R(key)) : R(key);
     private void SelectTab(SettingsTab tab) { _selectedTab = tab; _error = null; }
-    private void SetAccent(HostThemeAccent accent) => Theme.SetAccent(accent.ToString());
+    private void SetAccentFromSelect(ChangeEventArgs e) => Theme.SetAccent(e.Value?.ToString() ?? nameof(HostThemeAccent.Cascade));
     private void SetLightMode(ChangeEventArgs e) => Theme.SetTheme((e.Value as bool? ?? false) ? "Light" : "Dark");
     private void SetLanguage(string code)
     {
@@ -392,6 +381,7 @@
         catch (Exception ex) { Errors.Record(ex, "Deliver diagnostics log"); _logFolderStatus = LogDelivery.RevealsFolder ? R("Main_LogFolderOpenFailed") : "The log could not be exported. Turn on detailed logging, do the thing that went wrong, then try again."; }
     }
     private void TogglePlugin(PluginDescriptor plugin, ChangeEventArgs e) { if (!HostSettings.SetPluginEnabled(plugin, e.Value as bool? ?? false)) _error = R("Settings_PluginManifestFailed", plugin.Manifest.Name); }
+    private Task OpenIssuesAsync() => ExternalNavigation.OpenUrlAsync(new Uri("https://github.com/ChristopherVR/AbioticEditor/issues/new"));
     private async Task CloseAsync() => await OnClose.InvokeAsync();
     private async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Escape") { if (Modals.Current is not null) return; if (_languageChooserOpen) _languageChooserOpen = false; else await CloseAsync(); } }
     private void Refresh(object? sender, EventArgs args) => _ = InvokeAsync(StateHasChanged);

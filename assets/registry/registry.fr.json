@@ -91204,5 +91204,1270 @@
     "NPCSpawn_Zombie_DamWorker_C": "NPC_Zombie_DamWorker",
     "NPCSpawn_Zombie_Scientist_C": "NPC_Zombie_Scientist",
     "NPCSpawn_Zombie_Vignette_C": "NPC_Zombie"
+  },
+  "WeaponCoatings": [
+    {
+      "Index": 0,
+      "Row": "coating_thermal",
+      "Name": "Enduit thermique",
+      "Durability": 100
+    },
+    {
+      "Index": 1,
+      "Row": "coating_holy",
+      "Name": "Enduit consacr\u00E9",
+      "Durability": 100
+    },
+    {
+      "Index": 2,
+      "Row": "coating_reforging",
+      "Name": "Enduit de reforge",
+      "Durability": 100
+    },
+    {
+      "Index": 3,
+      "Row": "coating_electromagnetic",
+      "Name": "Enduit \u00E9lectromagn\u00E9tique",
+      "Durability": 100
+    },
+    {
+      "Index": 4,
+      "Row": "coating_bounce",
+      "Name": "Enduit repoussant",
+      "Durability": 100
+    },
+    {
+      "Index": 5,
+      "Row": "coating_somnivorous",
+      "Name": "Enduit somnivore",
+      "Durability": 100
+    },
+    {
+      "Index": 6,
+      "Row": "coating_acid",
+      "Name": "Enduit acide",
+      "Durability": 100
+    },
+    {
+      "Index": 7,
+      "Row": "coating_disruptor",
+      "Name": "Enduit disruptif",
+      "Durability": 100
+    },
+    {
+      "Index": 8,
+      "Row": "coating_foggy",
+      "Name": "Enduit brumeux",
+      "Durability": 100
+    },
+    {
+      "Index": 9,
+      "Row": "coating_quantum",
+      "Name": "Enduit quantique",
+      "Durability": 100
+    }
+  ],
+  "PetCare": [
+    {
+      "ItemRow": "pest",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest.NPC_Monster_Pest_C",
+      "TamingFoods": [
+        "alienwheat",
+        "food_bread",
+        "food_nachos"
+      ],
+      "Mutations": [
+        {
+          "Target": "Nuisible",
+          "Foods": [
+            "food_nachos"
+          ]
+        },
+        {
+          "Target": "Nuisible volatile",
+          "Foods": [
+            "blood_plutonic"
+          ]
+        },
+        {
+          "Target": "Nuisible des neiges",
+          "Foods": [
+            "essence_frozen"
+          ]
+        },
+        {
+          "Target": "Nuisible de magma",
+          "Foods": [
+            "distillation_boiling",
+            "food_pepper"
+          ]
+        },
+        {
+          "Target": "Nuisible illumin\u00E9",
+          "Foods": [
+            "food_shadowberry",
+            "food_pie_sberry_slice",
+            "food_milkshake_sberry"
+          ]
+        },
+        {
+          "Target": "Nuisible Leyak",
+          "Foods": [
+            "food_meatpie_slice"
+          ]
+        },
+        {
+          "Target": "Nuisible gazeux",
+          "Foods": [
+            "soda_a",
+            "soda_anom",
+            "soda_b",
+            "soda_bad",
+            "soda_c",
+            "soda_d",
+            "soda_e",
+            "soda_energy",
+            "soda_votv_04",
+            "soda_votv_05",
+            "soda_votv_07"
+          ]
+        }
+      ]
+    },
+    {
+      "ItemRow": "Pest_Volatile",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Volatile.NPC_Monster_Pest_Volatile_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Electro",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Electro.NPC_Monster_Pest_Electro_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Electro_Shield",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Electro.NPC_Monster_Pest_Electro_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Snow",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Snow.NPC_Monster_Pest_Snow_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Magma",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Magma.NPC_Monster_Pest_Magma_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Enlightened",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Enlightened.NPC_Monster_Pest_Enlightened_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Leyak",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Leyak.NPC_Monster_Pest_Leyak_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Rat",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Rat.NPC_Monster_Pest_Rat_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Pest_Carbonated",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Pest_Carbonated.NPC_Monster_Pest_Carbonated_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Peccary.NPC_Monster_Peccary_C",
+      "TamingFoods": [
+        "alienwheat",
+        "food_bread",
+        "food_nachos"
+      ],
+      "Mutations": [
+        {
+          "Target": "Truie p\u00E9cari",
+          "Foods": [
+            "food_lettuce"
+          ]
+        },
+        {
+          "Target": "P\u00E9cari champignon",
+          "Foods": [
+            "food_mushroom",
+            "soup_gooeymushroom"
+          ]
+        },
+        {
+          "Target": "P\u00E9cari des neiges",
+          "Foods": [
+            "essence_frozen"
+          ]
+        },
+        {
+          "Target": "Tar\u00E9cari",
+          "Foods": [
+            "tincture_giganto"
+          ]
+        },
+        {
+          "Target": "P\u00E9cari volatil",
+          "Foods": [
+            "blood_plutonic"
+          ]
+        }
+      ]
+    },
+    {
+      "ItemRow": "Sow",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Sow.NPC_Peccary_Sow_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Mushroom",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Mushroom.NPC_Peccary_Mushroom_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Snow",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Peccary_Snow.NPC_Monster_Peccary_Snow_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Armored",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Peccary_Armored.NPC_Monster_Peccary_Armored_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Volatile",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Peccary_Volatile.NPC_Monster_Peccary_Volatile_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Electro",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_Peccary_Electro.NPC_Monster_Peccary_Electro_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Peccary_Alpha",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Alpha.NPC_Peccary_Alpha_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Skink",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Basic.NPC_Skink_Basic_C",
+      "TamingFoods": [
+        "alienwheat",
+        "food_bread",
+        "food_nachos"
+      ],
+      "Mutations": [
+        {
+          "Target": "Scincid\u00E9 de magma",
+          "Foods": [
+            "distillation_boiling",
+            "food_pepper"
+          ]
+        },
+        {
+          "Target": "Scincid\u00E9 verdoyant",
+          "Foods": [
+            "food_mushroom"
+          ]
+        }
+      ]
+    },
+    {
+      "ItemRow": "Skink_Crafted",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Crafted.NPC_Skink_Crafted_C",
+      "TamingFoods": [],
+      "Mutations": [
+        {
+          "Target": "Scincid\u00E9 de magma",
+          "Foods": [
+            "distillation_boiling",
+            "food_pepper"
+          ]
+        },
+        {
+          "Target": "Scincid\u00E9 verdoyant",
+          "Foods": [
+            "food_mushroom"
+          ]
+        }
+      ]
+    },
+    {
+      "ItemRow": "Skink_Magma",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Magma.NPC_Skink_Magma_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Skink_Magma_Crafted",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Magma_Crafted.NPC_Skink_Magma_Crafted_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Skink_Mushroom",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Mushroom.NPC_Skink_Mushroom_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Skink_Mushroom_Crafted",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Skink_Mushroom_Crafted.NPC_Skink_Mushroom_Crafted_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "WinterSprite",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_WinterSprite.NPC_Monster_WinterSprite_C",
+      "TamingFoods": [],
+      "Mutations": [
+        {
+          "Target": "Rapidogi",
+          "Foods": [
+            "coffee",
+            "tincture_speedy"
+          ]
+        }
+      ]
+    },
+    {
+      "ItemRow": "Lamogi_Plated",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_LamogiPlated.NPC_Monster_LamogiPlated_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "Lamogi_Speedy",
+      "ClassPath": "/Game/Blueprints/Characters/NPCs/NPC_Monster_LamogiSpeedy.NPC_Monster_LamogiSpeedy_C",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "pet_skink",
+      "TamingFoods": [],
+      "Mutations": []
+    },
+    {
+      "ItemRow": "biocannon",
+      "TamingFoods": [],
+      "Mutations": []
+    }
+  ],
+  "PetMutationOptions": {
+    "pest": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Volatile": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Snow": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Magma": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Enlightened": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Leyak": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Pest_Carbonated": [
+      {
+        "Value": 1,
+        "TargetRow": "Pest",
+        "DisplayName": "Nuisible",
+        "Foods": [
+          "food_nachos"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Pest_Volatile",
+        "DisplayName": "Nuisible volatile",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Pest_Snow",
+        "DisplayName": "Nuisible des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Pest_Magma",
+        "DisplayName": "Nuisible de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Pest_Enlightened",
+        "DisplayName": "Nuisible illumin\u00E9",
+        "Foods": [
+          "food_shadowberry",
+          "food_pie_sberry_slice",
+          "food_milkshake_sberry"
+        ]
+      },
+      {
+        "Value": 6,
+        "TargetRow": "Pest_Leyak",
+        "DisplayName": "Nuisible Leyak",
+        "Foods": [
+          "food_meatpie_slice"
+        ]
+      },
+      {
+        "Value": 7,
+        "TargetRow": "Pest_Carbonated",
+        "DisplayName": "Nuisible gazeux",
+        "Foods": [
+          "soda_a",
+          "soda_anom",
+          "soda_b",
+          "soda_bad",
+          "soda_c",
+          "soda_d",
+          "soda_e",
+          "soda_energy",
+          "soda_votv_04",
+          "soda_votv_05",
+          "soda_votv_07"
+        ]
+      }
+    ],
+    "Peccary": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Sow": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Peccary_Mushroom": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Peccary_Snow": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Peccary_Armored": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Peccary_Volatile": [
+      {
+        "Value": 1,
+        "TargetRow": "Sow",
+        "DisplayName": "Truie p\u00E9cari",
+        "Foods": [
+          "food_lettuce"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Peccary_Mushroom",
+        "DisplayName": "P\u00E9cari champignon",
+        "Foods": [
+          "food_mushroom",
+          "soup_gooeymushroom"
+        ]
+      },
+      {
+        "Value": 3,
+        "TargetRow": "Peccary_Snow",
+        "DisplayName": "P\u00E9cari des neiges",
+        "Foods": [
+          "essence_frozen"
+        ]
+      },
+      {
+        "Value": 4,
+        "TargetRow": "Peccary_Armored",
+        "DisplayName": "Tar\u00E9cari",
+        "Foods": [
+          "tincture_giganto"
+        ]
+      },
+      {
+        "Value": 5,
+        "TargetRow": "Peccary_Volatile",
+        "DisplayName": "P\u00E9cari volatil",
+        "Foods": [
+          "blood_plutonic"
+        ]
+      }
+    ],
+    "Skink": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "Skink_Crafted": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma_Crafted",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom_Crafted",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "Skink_Magma": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "Skink_Magma_Crafted": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma_Crafted",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom_Crafted",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "Skink_Mushroom": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "Skink_Mushroom_Crafted": [
+      {
+        "Value": 1,
+        "TargetRow": "Skink_Magma_Crafted",
+        "DisplayName": "Scincid\u00E9 de magma",
+        "Foods": [
+          "distillation_boiling",
+          "food_pepper"
+        ]
+      },
+      {
+        "Value": 2,
+        "TargetRow": "Skink_Mushroom_Crafted",
+        "DisplayName": "Scincid\u00E9 verdoyant",
+        "Foods": [
+          "food_mushroom"
+        ]
+      }
+    ],
+    "WinterSprite": [
+      {
+        "Value": 1,
+        "TargetRow": "Lamogi_Speedy",
+        "DisplayName": "Rapidogi",
+        "Foods": [
+          "coffee",
+          "tincture_speedy"
+        ]
+      }
+    ],
+    "Lamogi_Speedy": [
+      {
+        "Value": 1,
+        "TargetRow": "Lamogi_Speedy",
+        "DisplayName": "Rapidogi",
+        "Foods": [
+          "coffee",
+          "tincture_speedy"
+        ]
+      }
+    ]
   }
 }

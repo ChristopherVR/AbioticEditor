@@ -93,6 +93,13 @@ jobs:
           sed -i 's#<base href="/" />#<base href="/AbioticEditor/app/" />#' publish/app/wwwroot/index.html
           grep -q '<base href="/AbioticEditor/app/" />' publish/app/wwwroot/index.html
 
+      # Lets an open or old tab notice a newer publish (see the app-build script in index.html).
+      - name: Stamp the build for update detection
+        run: |
+          sed -i 's#<meta name="app-build" content="dev" />#<meta name="app-build" content="${{ github.sha }}" />#' publish/app/wwwroot/index.html
+          grep -q 'content="${{ github.sha }}"' publish/app/wwwroot/index.html
+          printf '{"build":"%s"}' "${{ github.sha }}" > publish/app/wwwroot/version.json
+
       - name: Assemble combined site
         run: |
           mkdir -p docs/.vitepress/dist/app

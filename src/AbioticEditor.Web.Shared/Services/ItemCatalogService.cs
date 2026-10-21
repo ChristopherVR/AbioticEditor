@@ -77,8 +77,12 @@ public sealed class ItemCatalogService : IDisposable
     public Task<IReadOnlyList<WeaponCoatingDefinition>> GetCoatingsAsync()
         => _coatings ??= Task.Run<IReadOnlyList<WeaponCoatingDefinition>>(() =>
         {
-            try { return _extractsIconsLive && _provider.Value is { } provider ? WeaponCoatingCatalog.Load(provider) : []; }
-            catch (Exception) { return []; }
+            try
+            {
+                if (_extractsIconsLive && _provider.Value is { } provider && WeaponCoatingCatalog.Load(provider) is { Count: > 0 } live) return live;
+            }
+            catch (Exception) { /* fall through to the bundled list */ }
+            return GameDataRegistry.LoadBundled()?.WeaponCoatings ?? [];
         });
 
     private Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>? _petCare;
@@ -103,8 +107,12 @@ public sealed class ItemCatalogService : IDisposable
     public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>> GetPetCareAsync()
         => _petCare ??= Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetCareDefinition>>(() =>
         {
-            try { return _extractsIconsLive && _provider.Value is { } provider ? AbioticEditor.Core.WorldSaves.PetCareCatalog.Load(provider) : []; }
-            catch (Exception) { return []; }
+            try
+            {
+                if (_extractsIconsLive && _provider.Value is { } provider && AbioticEditor.Core.WorldSaves.PetCareCatalog.Load(provider) is { Count: > 0 } live) return live;
+            }
+            catch (Exception) { /* fall through to the bundled list */ }
+            return GameDataRegistry.LoadBundled()?.PetCare ?? [];
         });
 
     private readonly ConcurrentDictionary<string, Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>> _petMutationOptions = new(StringComparer.OrdinalIgnoreCase);
@@ -113,8 +121,12 @@ public sealed class ItemCatalogService : IDisposable
     public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>> GetPetMutationOptionsAsync(string itemRow)
         => _petMutationOptions.GetOrAdd(itemRow, row => Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>(() =>
         {
-            try { return _extractsIconsLive && _provider.Value is { } provider ? AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor(provider, row) : []; }
-            catch (Exception) { return []; }
+            try
+            {
+                if (_extractsIconsLive && _provider.Value is { } provider && AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor(provider, row) is { Count: > 0 } live) return live;
+            }
+            catch (Exception) { /* fall through to the bundled list */ }
+            return GameDataRegistry.LoadBundled()?.PetMutationOptions is { } bundled && bundled.TryGetValue(row, out var options) ? options : [];
         }));
 
     private readonly ConcurrentDictionary<string, Task<string?>> _characterNames = new(StringComparer.Ordinal);

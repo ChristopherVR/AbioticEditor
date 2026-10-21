@@ -1054,6 +1054,9 @@
   <data name="Customization_StatusDownloaded" xml:space="preserve">
     <value>Downloaded {0}. Put it back next to your Worlds folder.</value>
   </data>
+  <data name="Workspace_ExportSaveFirstTitle" xml:space="preserve"><value>Save your changes first?</value></data>
+  <data name="Workspace_ExportSaveFirstBody" xml:space="preserve"><value>You have changes that are not saved yet. Save them now so they are included in the export.</value></data>
+  <data name="Workspace_ExportSaveFirstConfirm" xml:space="preserve"><value>Save and export</value></data>
   <data name="FileSidebar_ExportedUnsaved" xml:space="preserve">
     <value>Exported {0} save(s), but your unsaved changes are NOT in it. Press SAVE first, then export again.</value>
   </data>
@@ -4288,6 +4291,14 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_LiveModeLabel" xml:space="preserve"><value>Live editing</value></data>
   <data name="Editing_LiveDesktopOnlyBadge" xml:space="preserve"><value>Desktop app only</value></data>
   <data name="Editing_LiveBrowserHint" xml:space="preserve"><value>Live editing connects to your running game and needs the desktop app.</value></data>
+  <data name="Settings_BrowserAboutTitle" xml:space="preserve"><value>About the browser version</value></data>
+  <data name="Settings_BrowserAboutBody" xml:space="preserve"><value>These settings are remembered by this browser only. Your saves never leave your computer. Game folder, mods, plugins and live editing need the desktop app, so they are not shown here.</value></data>
+  <data name="Settings_ReportIssueTitle" xml:space="preserve"><value>Report a problem</value></data>
+  <data name="Settings_ReportIssueBody" xml:space="preserve"><value>Turn on detailed logging, repeat what went wrong, then export the log file and attach it to a new issue on GitHub along with a short description.</value></data>
+  <data name="Settings_ReportIssueButton" xml:space="preserve"><value>Report an issue on GitHub</value></data>
+  <data name="Editing_LiveBrowserModalTitle" xml:space="preserve"><value>Live editing needs the desktop app</value></data>
+  <data name="Editing_LiveBrowserModalBody" xml:space="preserve"><value>Live editing changes your character and world while Abiotic Factor is running. A web page cannot reach your game, so this only works in the desktop app. Everything else in the editor works here.</value></data>
+  <data name="Editing_LiveBrowserModalGet" xml:space="preserve"><value>Get the desktop app</value></data>
   <data name="Editing_LiveInfoButtonTitle" xml:space="preserve"><value>About live editing (desktop app only)</value></data>
   <data name="Editing_HomeTitle" xml:space="preserve"><value>Choose a world to edit</value></data>
   <data name="Editing_HomeSteps" xml:space="preserve"><value>Close the game, choose a world, then save your changes.</value></data>
