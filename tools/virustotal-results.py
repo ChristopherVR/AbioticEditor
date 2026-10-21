@@ -31,16 +31,20 @@ def collect(results_path, verdict_path, timeout=3000):
                     stats = attributes["stats"]
                     hits = stats.get("malicious", 0) + stats.get("suspicious", 0)
                     detected |= hits > 0
-                    verdicts[name] = ", ".join(f"{count} {category}" for category, count in sorted(stats.items()))
+                    checked = stats.get("malicious", 0) + stats.get("suspicious", 0) + stats.get("undetected", 0) + stats.get("harmless", 0)
+                    if hits:
+                        verdicts[name] = f"flagged by {hits} of {checked} engines ({stats.get('malicious', 0)} malicious, {stats.get('suspicious', 0)} suspicious)"
+                    else:
+                        verdicts[name] = f"clean, none of the {checked} engines that checked it flagged it"
                     del pending[name]
             except (urllib.error.URLError, TimeoutError, KeyError, ValueError, TypeError):
                 # An unavailable result is explicitly reported; it never becomes a clean verdict.
                 pass
             time.sleep(20)  # At most three requests per minute on the free API.
     for name in pending:
-        verdicts[name] = "Analysis unavailable or still pending; no clean verdict confirmed."
+        verdicts[name] = "no result yet (the scan was too slow to finish); open its link for the latest verdict"
     Path(verdict_path).write_text(
-        "\nCompleted analysis results (timeouts and unsupported engines remain visible):\n\n"
+        "\nResults:\n\n"
         + "\n".join(f"- `{Path(name).name}`: {result}" for name, result in verdicts.items()) + "\n"
     )
     Path("vt_detected.txt").write_text("true" if detected else "false")

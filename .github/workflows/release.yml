@@ -996,44 +996,18 @@ jobs:
             echo "::warning::VT_API_KEY secret not set; skipping VirusTotal scan."
           fi
 
-      # Unconditional (no secret needed): the Windows Defender result build-web-win produced
-      # while building the release (see its complete Windows package scan step). Posted first so it is always present in the release body even when
-      # VT_API_KEY is not configured - see this job's own header comment. Runs before the
-      # VirusTotal steps below: each one strips everything from ITS OWN heading onward before
-      # re-appending, so the fixed order (Defender section, then VirusTotal section) is what
-      # keeps a republish from ever losing the other section - see the strip pattern's own note.
-      - name: Download Windows Defender scan result
-        uses: actions/download-artifact@v8
-        with:
-          name: defender-scan-result
-          path: defender-scan
-
-      - name: Append Windows Defender result to the release body
+      # The Defender result is no longer posted to the release notes (players found it noise); the
+      # scan still runs in build-web-win and fails the build on a detection. This step only removes
+      # the section from a body that an earlier run already published, so a republish stays clean.
+      - name: Remove old Windows Defender section from the release body
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
-
-          {
-            echo "## Live-editing helper security scan"
-            echo
-            echo "This release bundles a small helper program and game mod that let the editor"
-            echo "read and write your character/world while the game is actually running (see"
-            echo "the live-editing guide). Both complete Windows packages, including their final ZIPs, are checked with"
-            echo "Windows Defender:"
-            echo
-            cat defender-scan/RESULT.txt
-          } > defender_section.md
-          echo "----- defender_section.md -----"
-          cat defender_section.md
-
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' > body.md
-          awk 'BEGIN{keep=1} /^## Live-editing helper security scan/{keep=0} keep{print}' body.md > body.trimmed.md
-          mv body.trimmed.md body.md
-          printf '\n' >> body.md
-          cat defender_section.md >> body.md
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file body.md
+          awk 'BEGIN{keep=1} /^## Live-editing helper security scan/{keep=0} /^## VirusTotal scan/{keep=1} keep{print}' body.md > body.trimmed.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file body.trimmed.md
 
       - name: Download all artifacts
         if: steps.gate.outputs.enabled == 'true'
@@ -1131,7 +1105,7 @@ jobs:
             done
             if [ -n "${MISSING}" ]; then
               echo
-              echo "VirusTotal refused these archives, so they have no scan link (their checksums are in SHA256SUMS.txt):"
+              echo "A few archives could not be scanned this time (their checksums are in SHA256SUMS.txt):"
               echo
               IFS=',' read -ra missing <<< "${MISSING}"
               for item in "${missing[@]}"; do
