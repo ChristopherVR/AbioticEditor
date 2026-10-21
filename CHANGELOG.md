@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.6] - 2026-10-21
+
+### Bug Fixes
+- The browser editor now works for coatings, pet care and dismantling, and settings are tidier
+- Simplify the security scan notes in the release page
+
+
+### Testing
+- Update the live editing browser check for the new desktop-only box
+
+
 ## [2.27.5] - 2026-10-20
 
 ### Bug Fixes
