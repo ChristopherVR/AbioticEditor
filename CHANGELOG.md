@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.7] - 2026-10-21
+
+### Bug Fixes
+- Adding more than one pet no longer breaks saving
+
+
 ## [2.27.6] - 2026-10-21
 
 ### Bug Fixes
