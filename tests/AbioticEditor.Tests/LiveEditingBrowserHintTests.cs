@@ -70,12 +70,12 @@ public sealed class LiveEditingBrowserHintTests
 
         Assert.Contains("_isBrowserHost = Services.GetService<IBrowserHostMarker>() is not null;",
             source, StringComparison.Ordinal);
-        // The browser branch must reuse the same OpenModeSelect() the desktop button already
-        // uses (so it goes through the one dialog, not a second bespoke screen), and must not be
-        // gated behind _liveEditingAvailable, which is always false in the browser build.
+        // The browser branch opens a short "desktop app only" box (ShowLiveDesktopOnly) rather than
+        // the whole mode dialog, and must not be gated behind _liveEditingAvailable, which is
+        // always false in the browser build.
         Assert.Contains("else if (_isBrowserHost)", source, StringComparison.Ordinal);
         Assert.Contains(
-            "@onclick=\"OpenModeSelect\" title=\"@Languages.Resource(\"Editing_LiveInfoButtonTitle\")\"",
+            "@onclick=\"ShowLiveDesktopOnly\" title=\"@Languages.Resource(\"Editing_LiveInfoButtonTitle\")\"",
             source, StringComparison.Ordinal);
     }
 
