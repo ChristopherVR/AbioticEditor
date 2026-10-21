@@ -426,9 +426,22 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         }
         foreach (var pet in CarriedPets.Where(pet => pet.IsDeleted && !pet.IsNew))
             PlayerSaveWriter.RemoveCarriedPet(_data, pet.Slot, pet.Index);
-        foreach (var pet in CarriedPets.Where(pet => pet.IsNew && !pet.IsDeleted))
-            if (PlayerSaveWriter.AddCarriedPetToSlot(_data, pet.Slot, pet.Index, pet.ToCarriedPet()) < 0)
-                throw new InvalidOperationException($"The staged destination for '{pet.DisplayName}' is no longer empty.");
+        var addedPets = CarriedPets.Where(pet => pet.IsNew && !pet.IsDeleted).ToList();
+        foreach (var pet in addedPets)
+        {
+            // The staged slot can be filled since staging (an item moved into it), so fall back to
+            // the first free hotbar slot rather than failing the whole save.
+            var kind = pet.Slot;
+            var used = PlayerSaveWriter.AddCarriedPetToSlot(_data, kind, pet.Index, pet.ToCarriedPet());
+            if (used < 0)
+            {
+                kind = pet.Slot == PetSlotKind.Equipment ? PetSlotKind.Hotbar : pet.Slot;
+                used = PlayerSaveWriter.AddCarriedPetToSlot(_data, kind, -1, pet.ToCarriedPet() with { Slot = kind });
+            }
+            if (used < 0)
+                throw new InvalidOperationException($"There is no free slot left for '{pet.DisplayName}'. Free a hotbar slot and save again.");
+            pet.MoveTo(kind, used);
+        }
         foreach (var pet in CarriedPets.Where(pet => !pet.IsNew && !pet.IsDeleted && pet.IsDirty))
             PlayerSaveWriter.ApplyCarriedPet(_data, pet.ToCarriedPet());
         PlayerSaveWriter.ApplyEmailsRead(_data, Codex.CurrentEmails().OrderBy(id => id, StringComparer.Ordinal).ToList());
@@ -453,6 +466,24 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalMapsUnlocked = new(MapsUnlocked, StringComparer.Ordinal);
         _originalItemsDistilled = new(ItemsDistilled, StringComparer.OrdinalIgnoreCase);
         _originalActiveBuffs = ActiveBuffs.ToList();
+        if (addedPets.Count > 0)
+        {
+            // Show the new pet items in the inventory grid, so the next staged pet or item move
+            // does not see those slots as empty.
+            var inventory = PlayerSaveReader.ReadFrom(_data.Raw).Inventory;
+            foreach (var pet in addedPets)
+            {
+                var (slots, saved) = pet.Slot switch
+                {
+                    PetSlotKind.Equipment => (Equipment, inventory.Equipment),
+                    PetSlotKind.Hotbar => (Hotbar, inventory.Hotbar),
+                    _ => (Backpack, inventory.Main),
+                };
+                if (slots.FirstOrDefault(slot => slot.Index == pet.Index) is { } edit
+                    && saved.FirstOrDefault(slot => slot.Index == pet.Index) is { } value)
+                    edit.LoadFrom(value);
+            }
+        }
         foreach (var slot in AllInventorySlots()) slot.AcceptCurrentAsBaseline();
         foreach (var slot in Transmog) slot.AcceptCurrentAsBaseline();
         foreach (var toggle in TransmogVisibility) toggle.AcceptCurrentAsBaseline();
@@ -691,9 +722,12 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     private (PetSlotKind Kind, int Index, string Label)? FindFreePetSlot(PetSlotKind kind)
     {
         var slots = kind switch { PetSlotKind.Equipment => Equipment, PetSlotKind.Hotbar => Hotbar, _ => Backpack };
+        // A pet staged earlier in this session has not touched the inventory projection yet, so
+        // its slot still reads as empty; skip it or two staged pets would share one destination.
+        bool Claimed(int index) => CarriedPets.Any(pet => pet.IsNew && !pet.IsDeleted && pet.Slot == kind && pet.Index == index);
         var candidate = kind == PetSlotKind.Equipment
-            ? slots.FirstOrDefault(slot => slot.Index == 12 && slot.IsEmpty)
-            : slots.FirstOrDefault(slot => slot.IsEmpty);
+            ? slots.FirstOrDefault(slot => slot.Index == 12 && slot.IsEmpty && !Claimed(slot.Index))
+            : slots.FirstOrDefault(slot => slot.IsEmpty && !Claimed(slot.Index));
         return candidate is null ? null : (kind, candidate.Index, kind == PetSlotKind.Equipment ? "companion slot" : $"{kind} slot {candidate.Index}");
     }
 
@@ -946,6 +980,8 @@ public sealed class CarriedPetEdit
     public CarriedPet ToCarriedPet() => new(Slot, Index, ItemRow, string.IsNullOrWhiteSpace(Name) ? null : Name, Math.Max(0, Health), Math.Max(0, MaxHealth), Math.Max(0, Xp), Math.Max(0, MutationProgress), PetMutation);
     public void Heal() => Health = MaxHealth > 0 ? MaxHealth : PetItemCatalog.DefaultMaxHealth;
     public void AcceptCurrentAsBaseline() { _original = ToCarriedPet(); IsDeleted = false; IsNew = false; }
+    /// <summary>Records where the save actually placed a new pet when its staged slot was taken.</summary>
+    public void MoveTo(PetSlotKind slot, int index) => _original = _original with { Slot = slot, Index = index };
     public void LoadReadback(CarriedPet source) { _original = source; Load(source); IsDeleted = false; IsNew = false; }
     public void Revert() { IsDeleted = false; Load(_original); }
     private void Load(CarriedPet source) { ItemRow = source.ItemRow; Name = source.Name; Health = source.Health; MaxHealth = source.MaxHealth; Xp = source.Xp; MutationProgress = source.MutationProgress; PetMutation = source.PetMutation; }

@@ -57,6 +57,25 @@ public sealed class WebCompanionCrossSaveTests
     }
 
     [Fact]
+    public async Task Several_staged_pets_get_their_own_slots_across_saves()
+    {
+        using var world = CopyCascadeWorld();
+        var playerPath = FindPlayer(world.Path);
+
+        var playerSession = new PlayerSaveSession(PlayerSaveReader.ReadFromFile(playerPath), playerPath);
+        // The fixture's companion slot is its only free pet slot (the hotbar is full), so a second
+        // pet must be refused while the first is still staged there, not stacked onto the same slot.
+        Assert.True(playerSession.TryAddCatalogPet("pest", PetSlotKind.Equipment, "One", out var first), first);
+        Assert.False(playerSession.TryAddCatalogPet("pest", PetSlotKind.Equipment, "Two", out _));
+        await playerSession.SaveAsync();
+        Assert.Equal("One", Assert.Single(PlayerSaveReader.ReadFromFile(playerPath).CarriedPets).Name);
+
+        // After the save the inventory grid shows the pet, so the slot still reads as taken.
+        Assert.False(playerSession.TryAddCatalogPet("pest", PetSlotKind.Equipment, "Three", out _));
+        Assert.False(playerSession.IsDirty);
+    }
+
+    [Fact]
     public async Task Catalog_add_creates_a_pet_map_entry_when_the_world_has_only_npcs()
     {
         using var world = CopyCascadeWorld();
