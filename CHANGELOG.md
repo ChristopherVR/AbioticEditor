@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.8] - 2026-10-22
+
+### Miscellaneous Tasks
+- Bump vite (#50)
+
+
 ## [2.27.7] - 2026-10-21
 
 ### Bug Fixes
