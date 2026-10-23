@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.27.9] - 2026-10-23
+
+### Miscellaneous Tasks
+- Patch security issues in the documentation site tooling
+
+
 ## [2.27.8] - 2026-10-22
 
 ### Miscellaneous Tasks
