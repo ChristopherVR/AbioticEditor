@@ -73,7 +73,7 @@ else
                             </ul>
                         </details>
                     }
-                    <RecipeDiscoverySources Assessment="assessment" ItemName="ItemName" Concealed="SourceConcealed" OnReveal="OnRevealSource" />
+                    <RecipeDiscoverySources Assessment="assessment" Learned="unlocked" ItemName="ItemName" Concealed="SourceConcealed" OnReveal="OnRevealSource" />
                 }
                 @if (!concealed && Feedback(recipe.Id) is { Length: > 0 } feedback)
                 {

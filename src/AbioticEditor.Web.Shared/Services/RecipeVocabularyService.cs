@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Web.Models;
 
@@ -126,9 +127,10 @@ public sealed class RecipeVocabularyService
                 {
                     var vocabulary = CodexVocabularyService.LoadFromProvider(provider);
                     var variants = ItemVariantCatalog.LoadFrom(provider).Entries;
+                    var traders = InstalledTraders(TraderCatalog.LoadFrom(provider));
                     return new RecipeCatalogSnapshot(recipes, itemCatalog.Entries.ToArray(), vocabulary,
                         new RecipeCatalogMetadata(revision, RecipeCatalogSource.InstalledGame, checkedAt,
-                            null, culture, false)) { ItemVariants = variants };
+                            null, culture, false)) { ItemVariants = variants, Traders = traders };
                 }
             }
         }
@@ -145,8 +147,18 @@ public sealed class RecipeVocabularyService
         return new RecipeCatalogSnapshot(registry?.Recipes ?? [], registry?.Items ?? [],
             CodexVocabularyService.FromRegistry(registry),
             new RecipeCatalogMetadata(revision, source, checkedAt, registry?.GameVersion,
-                registry?.Culture ?? culture, paks is not null)) { Registry = registry, ItemVariants = registry?.ItemVariants };
+                registry?.Culture ?? culture, paks is not null))
+        {
+            Registry = registry,
+            ItemVariants = registry?.ItemVariants,
+            Traders = registry?.Traders ?? [],
+        };
     }
+
+    // TraderCatalog serves its built-in roster to older screens when installed tables fail.
+    // Acquisition guidance must not present that unrelated snapshot as current installed stock.
+    internal static IReadOnlyList<TraderInfo> InstalledTraders(IReadOnlyList<TraderInfo> traders)
+        => ReferenceEquals(traders, TraderCatalog.Fallback) ? [] : traders;
 
     private static IReadOnlyList<RecipeInfo> LoadInfos()
     {

@@ -1,0 +1,77 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<div class="detail-card detail-card--terminal recipe-acquisition" aria-label="@L.Resource("RecipeGuide_GetItem", ItemName(ItemId))">
+    <div class="detail-head">
+        <strong>@L.Resource("RecipeGuide_GetItem", ItemName(ItemId))</strong>
+        <button type="button" class="detail-close" aria-label="@L.Inventory("closeSlotEditor")" @onclick="OnClose">✕</button>
+    </div>
+    @if (!CatalogAvailable) { <p>@L.Resource("RecipeGuide_CatalogUnavailable")</p> }
+    else if (IsGroup) { <p>@L.Resource("RecipeGuide_GroupUnknown")</p> }
+    else if (!ItemKnown) { <p>@L.Resource("RecipeGuide_ItemMissing")</p> }
+    else if (Sources.Count == 0) { <p>@L.Resource("RecipeGuide_NoMaterialSources")</p> }
+    else
+    {
+        <p>@L.Resource("RecipeGuide_AcquisitionHelp")</p>
+        <ul class="recipe-acquisition-list">
+            @foreach (var (source, sourceKey) in RenderKeys.With(Sources.Take(_showAll ? Sources.Count : 8), SourceKey))
+            {
+                <li @key="sourceKey">
+                    @if (Concealed(source))
+                    {
+                        <span>@L.Resource("RecipeGuide_AcquisitionSealed")</span>
+                        <button type="button" class="secondary" @onclick="() => OnReveal.InvokeAsync(source)">@L.Resource("RecipeGuide_RevealAcquisition")</button>
+                    }
+                    else
+                    {
+                        @if (source.Kind == ItemAcquisitionKind.Salvage && source.Salvage is { } drop)
+                        {
+                            <strong>@L.Resource("RecipeGuide_SalvageItem", ItemName(source.SalvageSourceItemId!))</strong>
+                            <p>@L.Resource("RecipeGuide_MayYield", drop.QuantityMin == drop.QuantityMax ? drop.QuantityMax.ToString(System.Globalization.CultureInfo.CurrentCulture) : $"{drop.QuantityMin}-{drop.QuantityMax}", ItemName(ItemId))</p>
+                        }
+                        else if (source.Kind == ItemAcquisitionKind.Trade && source.Trader is { } trader)
+                        {
+                            <strong>@L.Resource("RecipeGuide_TradeWith", TraderName(trader.Id))</strong>
+                            <p>@L.Resource("RecipeGuide_TradeStock", source.Offer!.Count, ItemName(ItemId))</p>
+                            @if (TraderWhere(trader.Id) is { Length: > 0 } where) { <p>@where</p> }
+                            <small>@L.Resource("RecipeGuide_TradeNotPaired")</small>
+                        }
+                        else if (source.Fish is { } fish)
+                        {
+                            <strong>@L.Resource("RecipeGuide_FishLocation", fish.Location ?? L.Resource("RecipeGuide_LocationUnlisted"))</strong>
+                            @if (fish.RequiredBaitTag is { Length: > 0 } bait) { <p>@L.Resource("RecipeGuide_SourceBait", PlainNames.Words(bait))</p> }
+                            @if (fish.RequiredDlcId is { Length: > 0 } dlc) { <p>@L.Resource("RecipeGuide_SourceDlc", PlainNames.Words(dlc))</p> }
+                            @if (fish.HasTimePreference) { <small>@L.Resource("RecipeGuide_SourceTime")</small> }
+                        }
+                        @if (RequiredFlags(source).Count > 0)
+                        {
+                            <small>@L.Resource(WorldFlags is null ? "RecipeGuide_StoryUnknown" : RequiredFlags(source).All(flag => WorldFlags.Contains(flag)) ? "RecipeGuide_StoryMet" : "RecipeGuide_StoryUnmet"): @string.Join(", ", RequiredFlags(source).Select(flag => PlainNames.Flag(L, flag)))</small>
+                        }
+                    }
+                </li>
+            }
+        </ul>
+        @if (!_showAll && Sources.Count > 8) { <button type="button" class="secondary" @onclick="() => _showAll = true">@L.Resource("RecipeGuide_AllSources", Sources.Count)</button> }
+    }
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_MaterialNotLearning")</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string ItemId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<ItemAcquisitionSource> Sources { get; set; } = [];
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> TraderName { get; set; } = null!;
+    [Parameter] public Func<string, string?> TraderWhere { get; set; } = _ => null;
+    [Parameter] public Func<ItemAcquisitionSource, bool> Concealed { get; set; } = _ => false;
+    [Parameter] public EventCallback<ItemAcquisitionSource> OnReveal { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public IReadOnlySet<string>? WorldFlags { get; set; }
+    [Parameter] public bool CatalogAvailable { get; set; }
+    [Parameter] public bool ItemKnown { get; set; }
+    [Parameter] public bool IsGroup { get; set; }
+    private bool _showAll;
+
+    private static string SourceKey(ItemAcquisitionSource source) => $"{source.Kind}:{source.Trader?.Id}:{source.SalvageSourceItemId}:{source.Fish?.Id}:{source.Offer?.RequiredFlag}";
+    private static IReadOnlyList<string> RequiredFlags(ItemAcquisitionSource source)
+        => (source.Trader?.RequiredFlags ?? []).Concat(new[] { source.Offer?.RequiredFlag, source.Fish?.RequiredWorldFlag }.OfType<string>().Where(flag => !string.IsNullOrWhiteSpace(flag))).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+}

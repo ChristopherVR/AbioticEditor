@@ -4816,7 +4816,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
   <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Collapse ingredients</value></data>
   <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Benches are required tools, not consumed ingredients.</value></data>
-  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>This guide does not check your current stock or unlock recipes.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Browsing crafting steps does not change your inventory or unlock recipes.</value></data>
   <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Make {0} × {1}</value></data>
   <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Find {0} × {1}</value></data>
   <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Crafts: {0}. Station: {1}. Produces {2}.</value></data>
@@ -4833,8 +4833,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Reveal recipe</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>No crafting recipe is listed for this item. Its acquisition source is unknown.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingredients per craft</value></data>
-  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Learn it in the game</value></data>
-  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>How this recipe is learned is not recorded in these game tables.</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Recipe learning</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>No verified in-game learning step is listed. You can use Unlock recipe in the editor; collecting its ingredients is only a clue.</value></data>
   <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Read email: {0}</value></data>
   <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Catch: {0}</value></data>
   <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>This email is already recorded as read.</value></data>
@@ -4866,7 +4866,27 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Checking recipe data...</value></data>
   <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Discovery details are classified.</value></data>
   <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Reveal discovery details</value></data>
-  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>these discovery details</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>this discovery source</value></data>
   <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>A known discovery source requires later story progress. Reveal its discovery details to see why.</value></data>
   <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>No story condition is listed for this source.</value></data>
+  <data name="RecipeGuide_GetItem" xml:space="preserve"><value>Getting {0}</value></data>
+  <data name="RecipeGuide_ItemMissing" xml:space="preserve"><value>This ingredient is not defined in the current item catalog.</value></data>
+  <data name="RecipeGuide_NoMaterialSources" xml:space="preserve"><value>No salvage, trader or fishing source is listed for this material.</value></data>
+  <data name="RecipeGuide_AcquisitionHelp" xml:space="preserve"><value>These are catalog-listed ways to get the item, not a check of your inventory or current stock.</value></data>
+  <data name="RecipeGuide_AcquisitionSealed" xml:space="preserve"><value>Material sources are classified.</value></data>
+  <data name="RecipeGuide_RevealAcquisition" xml:space="preserve"><value>Reveal material source</value></data>
+  <data name="RecipeGuide_TheseAcquisitionDetails" xml:space="preserve"><value>this material source</value></data>
+  <data name="RecipeGuide_SalvageItem" xml:space="preserve"><value>Salvage {0}</value></data>
+  <data name="RecipeGuide_MayYield" xml:space="preserve"><value>May yield {0} × {1}.</value></data>
+  <data name="RecipeGuide_TradeWith" xml:space="preserve"><value>Trade with {0}</value></data>
+  <data name="RecipeGuide_TradeStock" xml:space="preserve"><value>Listed offer: {0} × {1}.</value></data>
+  <data name="RecipeGuide_TraderAccepts" xml:space="preserve"><value>This trader accepts: {0}.</value></data>
+  <data name="RecipeGuide_TradeNotPaired" xml:space="preserve"><value>Check the trade screen for the exchange and current stock.</value></data>
+  <data name="RecipeGuide_FishLocation" xml:space="preserve"><value>Fish in {0}</value></data>
+  <data name="RecipeGuide_LocationUnlisted" xml:space="preserve"><value>a location not listed in the catalog</value></data>
+  <data name="RecipeGuide_AllSources" xml:space="preserve"><value>Show all {0} sources</value></data>
+  <data name="RecipeGuide_MaterialNotLearning" xml:space="preserve"><value>Getting a material and learning a crafting recipe are separate. These sources describe the item only.</value></data>
+  <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Sources</value></data>
+  <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Sources lists known salvage, trading and fishing options. Other loot and enemy locations are not mapped here.</value></data>
+  <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Already learned by this player.</value></data>
 </root>

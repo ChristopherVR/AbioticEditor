@@ -3535,7 +3535,7 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Alle aufklappen</value></data>
   <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Zutaten einklappen</value></data>
   <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Werkbänke sind benötigte Werkzeuge und keine verbrauchten Zutaten.</value></data>
-  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Diese Anleitung prüft nicht deinen aktuellen Vorrat und schaltet keine Rezepte frei.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Das Ansehen der Herstellungsschritte verändert weder dein Inventar noch schaltet es Rezepte frei.</value></data>
   <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Herstellen: {0} × {1}</value></data>
   <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Finden: {0} × {1}</value></data>
   <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Herstellungen: {0}. Station: {1}. Ergibt {2}.</value></data>
@@ -3552,8 +3552,8 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Rezept aufdecken</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Für diesen Gegenstand ist kein Herstellungsrezept aufgeführt. Seine Bezugsquelle ist unbekannt.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Zutaten pro Herstellung</value></data>
-  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Im Spiel lernen</value></data>
-  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Wie dieses Rezept gelernt wird, ist in diesen Spieldatentabellen nicht verzeichnet.</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Rezept lernen</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Hier ist kein bestätigter Lernschritt im Spiel aufgeführt. Du kannst im Editor Rezept freischalten verwenden; gesammelte Zutaten sind nur ein Hinweis.</value></data>
   <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>E-Mail lesen: {0}</value></data>
   <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Fangen: {0}</value></data>
   <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Diese E-Mail ist bereits als gelesen verzeichnet.</value></data>
@@ -3585,7 +3585,27 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Rezeptdaten werden geprüft...</value></data>
   <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Die Entdeckungsdetails sind geheim.</value></data>
   <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Entdeckungsdetails aufdecken</value></data>
-  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>diese Entdeckungsdetails</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>diese Entdeckungsquelle</value></data>
   <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Eine bekannte Entdeckungsquelle erfordert weiteren Story-Fortschritt. Decke ihre Entdeckungsdetails auf, um den Grund zu sehen.</value></data>
   <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>Für diese Quelle ist keine Story-Bedingung aufgeführt.</value></data>
+  <data name="RecipeGuide_GetItem" xml:space="preserve"><value>{0} erhalten</value></data>
+  <data name="RecipeGuide_ItemMissing" xml:space="preserve"><value>Diese Zutat ist im aktuellen Gegenstandskatalog nicht definiert.</value></data>
+  <data name="RecipeGuide_NoMaterialSources" xml:space="preserve"><value>Für dieses Material ist keine Quelle durch Zerlegen, Handel oder Angeln aufgeführt.</value></data>
+  <data name="RecipeGuide_AcquisitionHelp" xml:space="preserve"><value>Diese Möglichkeiten, den Gegenstand zu erhalten, stammen aus dem Katalog. Dein Inventar und aktuelle Bestände werden dabei nicht geprüft.</value></data>
+  <data name="RecipeGuide_AcquisitionSealed" xml:space="preserve"><value>Die Materialquellen sind geheim.</value></data>
+  <data name="RecipeGuide_RevealAcquisition" xml:space="preserve"><value>Materialquelle aufdecken</value></data>
+  <data name="RecipeGuide_TheseAcquisitionDetails" xml:space="preserve"><value>diese Materialquelle</value></data>
+  <data name="RecipeGuide_SalvageItem" xml:space="preserve"><value>{0} zerlegen</value></data>
+  <data name="RecipeGuide_MayYield" xml:space="preserve"><value>Kann {0} × {1} ergeben.</value></data>
+  <data name="RecipeGuide_TradeWith" xml:space="preserve"><value>Mit {0} handeln</value></data>
+  <data name="RecipeGuide_TradeStock" xml:space="preserve"><value>Aufgeführtes Angebot: {0} × {1}.</value></data>
+  <data name="RecipeGuide_TraderAccepts" xml:space="preserve"><value>Dieser Händler nimmt an: {0}.</value></data>
+  <data name="RecipeGuide_TradeNotPaired" xml:space="preserve"><value>Prüfe den Tausch und die aktuellen Bestände im Handelsbildschirm.</value></data>
+  <data name="RecipeGuide_FishLocation" xml:space="preserve"><value>In {0} angeln</value></data>
+  <data name="RecipeGuide_LocationUnlisted" xml:space="preserve"><value>einem Ort, der im Katalog nicht aufgeführt ist</value></data>
+  <data name="RecipeGuide_AllSources" xml:space="preserve"><value>Alle {0} Quellen anzeigen</value></data>
+  <data name="RecipeGuide_MaterialNotLearning" xml:space="preserve"><value>Ein Material zu beschaffen und ein Rezept zu lernen sind verschiedene Dinge. Diese Quellen beschreiben nur den Gegenstand.</value></data>
+  <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Quellen</value></data>
+  <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Quellen zeigt bekannte Möglichkeiten durch Zerlegen, Handel und Angeln. Andere Beute und Fundorte von Gegnern sind hier nicht erfasst.</value></data>
+  <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Von diesem Spieler bereits gelernt.</value></data>
 </root>

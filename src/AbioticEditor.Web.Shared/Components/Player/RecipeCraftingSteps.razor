@@ -13,6 +13,8 @@
 }
 else
 {
+<RecipeUnlockControls RecipeId="@RootRecipe.Id" Learned="@Learned(RootRecipe.Id)" Staged="@Staged(RootRecipe.Id)" CanUndo="@CanUndo(RootRecipe.Id)"
+                      Busy="Busy" Feedback="@Feedback(RootRecipe.Id)" OnUnlock="OnUnlock" OnUndo="OnUndo" />
 <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_TreeHelp")</p>
 <div class="recipe-expand-controls">
     <span>@L.Resource("RecipeGuide_AmountHelp", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id))</span>
@@ -27,11 +29,13 @@ else
         <ul>
             <RecipeCraftingBranch Node="tree" Expanded="_expanded" ItemName="ItemName" StationName="StationName" RouteName="RouteName"
                                   Concealed="Concealed" Learned="Learned" OnToggle="Toggle" OnRoute="ChooseRoute"
+                                  SourceHint="SourceHint"
                                   OnInspect="OnInspect" OnReveal="OnReveal" />
         </ul>
     </div>
 }
 <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_StationHelp") @L.Resource("RecipeGuide_StockHelp")</p>
+<p class="recipe-workflow-copy">@L.Resource("RecipeGuide_MaterialCoverage")</p>
 }
 
 @code {
@@ -42,6 +46,13 @@ else
     [Parameter, EditorRequired] public Func<RecipeInfo, string> RouteName { get; set; } = null!;
     [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
     [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
+    [Parameter] public Func<string, string?> SourceHint { get; set; } = _ => null;
+    [Parameter] public Func<string, bool> Staged { get; set; } = _ => false;
+    [Parameter] public Func<string, bool> CanUndo { get; set; } = _ => false;
+    [Parameter] public Func<string, string?> Feedback { get; set; } = _ => null;
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnUnlock { get; set; }
+    [Parameter] public EventCallback<string> OnUndo { get; set; }
     [Parameter] public bool ReturnToCheck { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }

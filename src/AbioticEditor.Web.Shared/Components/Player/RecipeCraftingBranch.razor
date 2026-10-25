@@ -55,6 +55,7 @@
                     {
                         <RecipeCraftingBranch @key="child.Path" Node="child" Expanded="Expanded" ItemName="ItemName"
                                               StationName="StationName" RouteName="RouteName" Concealed="Concealed" Learned="Learned"
+                                              SourceHint="SourceHint"
                                               OnToggle="OnToggle" OnInspect="OnInspect" OnReveal="OnReveal" OnRoute="OnRoute" />
                     }
                 </ul>
@@ -67,9 +68,9 @@
             <span class="recipe-branch-icon"><ItemIcon ItemId="@Node.ItemId" Alt="" /></span>
             <span class="recipe-branch-label">
                 <strong>@L.Resource("RecipeGuide_FindCount", Node.RequiredCount, ItemName(Node.ItemId))</strong>
-                <small>@(StopMessage ?? L.Resource("RecipeGuide_SourceUnknown"))</small>
+                @if ((StopMessage ?? SourceHint(Node.ItemId)) is { Length: > 0 } hint) { <small>@hint</small> }
             </span>
-            <button type="button" class="secondary recipe-inspect" @onclick="() => OnInspect.InvokeAsync(new RecipeCraftingSelection(Node.ItemId, null))">@L.Resource("RecipeGuide_Details")</button>
+            <button type="button" class="secondary recipe-inspect" @onclick="() => OnInspect.InvokeAsync(new RecipeCraftingSelection(Node.ItemId, null))">@L.Resource("RecipeGuide_MaterialSources")</button>
         </div>
     }
 </li>
@@ -82,6 +83,7 @@
     [Parameter, EditorRequired] public Func<RecipeInfo, string> RouteName { get; set; } = null!;
     [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
     [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
+    [Parameter] public Func<string, string?> SourceHint { get; set; } = _ => null;
     [Parameter] public EventCallback<string> OnToggle { get; set; }
     [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
     [Parameter] public EventCallback<string> OnReveal { get; set; }
@@ -89,7 +91,7 @@
 
     private string? StopMessage => Node.Stop switch
     {
-        RecipeTreeStop.UnknownIngredient => L.Resource("RecipeGuide_GroupUnknown"),
+        RecipeTreeStop.UnknownIngredient => L.Resource(Node.ItemId.StartsWith("Any", StringComparison.OrdinalIgnoreCase) ? "RecipeGuide_GroupUnknown" : "RecipeGuide_ItemMissing"),
         RecipeTreeStop.Cycle => L.Resource("RecipeGuide_Cycle"),
         RecipeTreeStop.NodeLimit => L.Resource("RecipeGuide_NodeLimit"),
         RecipeTreeStop.DepthLimit => L.Resource("RecipeGuide_DepthLimit"),

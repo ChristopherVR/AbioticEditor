@@ -3535,7 +3535,7 @@
   <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Раскрыть всё</value></data>
   <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Свернуть ингредиенты</value></data>
   <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Верстаки нужны как инструменты, а не расходуются как ингредиенты.</value></data>
-  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Это руководство не проверяет ваши текущие запасы и не разблокирует рецепты.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Просмотр этапов создания не изменяет инвентарь и не разблокирует рецепты.</value></data>
   <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Изготовить {0} × {1}</value></data>
   <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Найти {0} × {1}</value></data>
   <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Созданий: {0}. Станция: {1}. Результат: {2}.</value></data>
@@ -3552,8 +3552,8 @@
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Раскрыть рецепт</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Для этого предмета не указан рецепт изготовления. Его источник неизвестен.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ингредиенты на одно изготовление</value></data>
-  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Изучить в игре</value></data>
-  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>В этих таблицах игры не указано, как изучается этот рецепт.</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Изучение рецепта</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Проверенный способ изучения в игре не указан. Можно использовать «Разблокировать рецепт» в редакторе; сбор ингредиентов служит лишь подсказкой.</value></data>
   <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Прочитать письмо: {0}</value></data>
   <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Поймать: {0}</value></data>
   <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Это письмо уже отмечено как прочитанное.</value></data>
@@ -3585,7 +3585,27 @@
   <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Проверка данных рецептов...</value></data>
   <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Подробности открытия засекречены.</value></data>
   <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Раскрыть подробности открытия</value></data>
-  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>эти подробности открытия</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>этот источник открытия</value></data>
   <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Известный источник открытия требует дальнейшего продвижения по сюжету. Раскройте подробности открытия, чтобы узнать причину.</value></data>
   <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>Для этого источника условие сюжета не указано.</value></data>
+  <data name="RecipeGuide_GetItem" xml:space="preserve"><value>Как получить {0}</value></data>
+  <data name="RecipeGuide_ItemMissing" xml:space="preserve"><value>Этот ингредиент не определён в текущем каталоге предметов.</value></data>
+  <data name="RecipeGuide_NoMaterialSources" xml:space="preserve"><value>Для этого материала не указаны источники переработки, торговли или рыбалки.</value></data>
+  <data name="RecipeGuide_AcquisitionHelp" xml:space="preserve"><value>Эти способы получения предмета указаны в каталоге. Ваш инвентарь и текущие запасы не проверяются.</value></data>
+  <data name="RecipeGuide_AcquisitionSealed" xml:space="preserve"><value>Источники материала засекречены.</value></data>
+  <data name="RecipeGuide_RevealAcquisition" xml:space="preserve"><value>Показать источник материала</value></data>
+  <data name="RecipeGuide_TheseAcquisitionDetails" xml:space="preserve"><value>этот источник материала</value></data>
+  <data name="RecipeGuide_SalvageItem" xml:space="preserve"><value>Переработать {0}</value></data>
+  <data name="RecipeGuide_MayYield" xml:space="preserve"><value>Можно получить {0} × {1}.</value></data>
+  <data name="RecipeGuide_TradeWith" xml:space="preserve"><value>Торговать с {0}</value></data>
+  <data name="RecipeGuide_TradeStock" xml:space="preserve"><value>Указанное предложение: {0} × {1}.</value></data>
+  <data name="RecipeGuide_TraderAccepts" xml:space="preserve"><value>Этот торговец принимает: {0}.</value></data>
+  <data name="RecipeGuide_TradeNotPaired" xml:space="preserve"><value>Проверьте условия обмена и текущие запасы в окне торговли.</value></data>
+  <data name="RecipeGuide_FishLocation" xml:space="preserve"><value>Рыбачить в {0}</value></data>
+  <data name="RecipeGuide_LocationUnlisted" xml:space="preserve"><value>месте, не указанном в каталоге</value></data>
+  <data name="RecipeGuide_AllSources" xml:space="preserve"><value>Показать все источники: {0}</value></data>
+  <data name="RecipeGuide_MaterialNotLearning" xml:space="preserve"><value>Получение материала и изучение рецепта являются разными действиями. Эти источники описывают только предмет.</value></data>
+  <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Источники</value></data>
+  <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Здесь показаны известные варианты переработки, торговли и рыбалки. Другие места добычи и появления врагов не указаны.</value></data>
+  <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Этот игрок уже изучил рецепт.</value></data>
 </root>

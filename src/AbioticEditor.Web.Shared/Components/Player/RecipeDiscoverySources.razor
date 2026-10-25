@@ -2,8 +2,12 @@
 @using AbioticEditor.Core.Items
 
 <div class="recipe-discovery-sources">
-    <strong>@L.Resource("RecipeGuide_LearnInGame")</strong>
-    @if (!Assessment.HasKnownSources)
+    @if (!Learned) { <strong>@L.Resource("RecipeGuide_LearnInGame")</strong> }
+    @if (Learned)
+    {
+        <p>@L.Resource("RecipeGuide_AlreadyLearned")</p>
+    }
+    else if (!Assessment.HasKnownSources)
     {
         <p>@L.Resource("RecipeGuide_DiscoveryUnknown")</p>
     }
@@ -35,6 +39,7 @@
 
 @code {
     [Parameter, EditorRequired] public RecipeDiscoveryAssessment Assessment { get; set; } = null!;
+    [Parameter] public bool Learned { get; set; }
     [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
     [Parameter] public Func<RecipeDiscoveryRoute, bool> Concealed { get; set; } = _ => false;
     [Parameter] public EventCallback<RecipeDiscoveryRoute> OnReveal { get; set; }

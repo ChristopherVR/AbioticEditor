@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Web.Models;
 
@@ -23,4 +24,6 @@ public sealed record RecipeCatalogSnapshot(
 {
     internal GameDataRegistry? Registry { get; init; }
     public IReadOnlyList<ItemVariantDefinition>? ItemVariants { get; init; }
+    /// <summary>Stock from the same installed load or registry; absent evidence never uses the unrelated built-in roster.</summary>
+    public IReadOnlyList<TraderInfo> Traders { get; init; } = [];
 }

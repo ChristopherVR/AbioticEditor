@@ -1,5 +1,36 @@
 # Abiotic Editor - Session history
 
+## Crafting materials show acquisition sources separately from recipe learning (2026-10-25)
+
+- Find leaves now offer Sources with explicit item salvage, trader stock and fishing records,
+  replacing repeated unknown-location warnings. Material details distinguish missing catalog
+  data, an unresolved ingredient group and a known material with no listed acquisition route.
+  Eight visible/familiar sources show initially; large lists expand on request. Source reveals
+  preserve the selected material, and source conditions/names remain spoiler gated.
+- Added a pure case-insensitive acquisition index. It uses actual item salvage tables, not the
+  editor's reverse-crafting dismantle operation. Salvage is a possible quantity range, never a
+  promised drop or invented chance percentage. Trader accepted items are not displayed as
+  paired prices. Trader stock now refreshes with the same recipe/item/codex snapshot; unrelated
+  built-in fallback stock is excluded from installed-data evidence.
+- Bundled English coverage: 139 of 253 known concrete noncraft recipe-input IDs have an explicit
+  acquisition route; 114 still have none. Groups and undefined IDs are excluded. This is not
+  an enemy-drop or complete loot-location map. Only the existing explicit email/fish grants
+  establish learning sources; collecting crafting inputs remains a clue, not an unlock rule.
+- Learned recipes now say already learned. Locked recipe details and crafting roots offer the
+  canonical guarded Unlock/Undo actions beside the limited in-game learning explanation.
+  Actual click QA caught and fixed a literal recipe-ID binding; a rendered event regression
+  now dispatches Unlock and verifies that the selected recipe ID reaches the callback.
+- Focused verification: 130 passed, covering acquisition semantics, privacy, absence states,
+  bounded lists, fresh trader data, existing recipe/session behavior and the real button event.
+  Shared, desktop (both targets) and WASM builds pass with zero warnings/errors. Docs build
+  and 3,443 link/image checks pass. Actual installed-data UI used only the complete
+  copied Cascade: Metal Scrap showed eight of 189 salvage sources, Gravity Dampener showed
+  Marion's offer, and source reveal retained selection. Temporary staged lock/unlock returned
+  to the clean baseline; learned-state warnings disappeared. SAVE stayed clean after browsing,
+  the connection stayed healthy, and original/copy player plus Facility hashes still matched.
+  Screenshots: ignored artifacts/recipe-acquisition-salvage.png, recipe-acquisition-trade.png
+  and recipe-learning-unlocked.png. No real save write, native app stop or push.
+
 ## Cascading player tabs stay responsive during recipe loading (2026-10-25)
 
 - Fixed a recipe initialization loop: sibling-world read status raises a workspace change,

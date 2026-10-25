@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Web.Models;
 using AbioticEditor.Web.Services;
@@ -83,6 +84,7 @@ public sealed class CatalogFreshnessTests
 
         Assert.Equal(1, loads);
         Assert.Same(first.Recipes, second.Recipes);
+        Assert.Same(first.Traders, second.Traders);
         Assert.Equal(first.Metadata.Revision, second.Metadata.Revision);
         Assert.True(second.Metadata.CheckedAt > first.Metadata.CheckedAt);
         Assert.Same(second.Codex, codex.Get());
@@ -92,7 +94,7 @@ public sealed class CatalogFreshnessTests
     }
 
     [Fact]
-    public void Changed_revision_replaces_recipes_items_codex_and_variants_as_one_snapshot()
+    public void Changed_revision_replaces_recipes_items_codex_variants_and_traders_as_one_snapshot()
     {
         var clock = new CatalogClock();
         long revision = 1;
@@ -110,6 +112,7 @@ public sealed class CatalogFreshnessTests
         Assert.Equal("Output two", items.Find("output-two")?.DisplayName);
         Assert.Equal("email-two", Assert.Single(codex.Get().Emails).Id);
         Assert.Equal("variant-two", Assert.Single(items.Variants.Entries).RowName);
+        Assert.Equal("trader-two", Assert.Single(next.Traders).Id);
         Assert.Equal(3, next.Items.Count);
         Assert.Equal(2, items.Entries.Count);
         Assert.NotNull(items.Find("hidden-two"));
@@ -149,6 +152,7 @@ public sealed class CatalogFreshnessTests
         Assert.Equal("Output installed", items.Find("output-installed")?.DisplayName);
         Assert.Equal("variant-installed", Assert.Single(items.Variants.Entries).RowName);
         Assert.Equal("email-installed", Assert.Single(codex.Get().Emails).Id);
+        Assert.Equal("trader-installed", Assert.Single(recovered.Traders).Id);
     }
 
     [Fact]
@@ -175,12 +179,23 @@ public sealed class CatalogFreshnessTests
         Assert.NotNull(items.Find("output-recovered"));
     }
 
+    [Fact]
+    public void Built_in_trader_fallback_is_not_presented_as_installed_acquisition_evidence()
+    {
+        Assert.Empty(RecipeVocabularyService.InstalledTraders(TraderCatalog.Fallback));
+        TraderInfo[] installed = [new("installed-trader", null, [], [new("item", 1, null)], [])];
+        Assert.Same(installed, RecipeVocabularyService.InstalledTraders(installed));
+    }
+
     private static RecipeCatalogSnapshot Snapshot(long revision, string suffix, DateTimeOffset checkedAt)
         => new([new RecipeInfo("recipe-" + suffix, "output-" + suffix, 1, null, "Crafting", [new("ingredient-" + suffix, 1)])],
             [Item("output-" + suffix, "Output " + suffix), Item("ingredient-" + suffix, "Ingredient " + suffix), Item("hidden-" + suffix, "DEPRECATED")],
             new CodexVocabulary([new("email-" + suffix, "Subject", [], [], [])], [], [], []),
             new RecipeCatalogMetadata(revision, RecipeCatalogSource.BundledSnapshot, checkedAt, "snapshot-version", "en", false))
-            { ItemVariants = [new("variant-" + suffix, "Variant", null, null)] };
+            {
+                ItemVariants = [new("variant-" + suffix, "Variant", null, null)],
+                Traders = [new("trader-" + suffix, null, [], [new("ingredient-" + suffix, 1, null)], [])],
+            };
 
     private static ItemCatalogEntry Item(string id, string name) => new(id, name, null, null, 1, 0, false, 0, []);
 

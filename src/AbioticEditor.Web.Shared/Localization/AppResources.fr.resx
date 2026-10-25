@@ -3535,7 +3535,7 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Tout développer</value></data>
   <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Replier les ingrédients</value></data>
   <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Les établis sont des outils nécessaires, pas des ingrédients consommés.</value></data>
-  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Ce guide ne vérifie pas votre stock actuel et ne débloque aucune recette.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Consulter les étapes de fabrication ne modifie pas votre inventaire et ne débloque aucune recette.</value></data>
   <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Fabriquer {0} × {1}</value></data>
   <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Trouver {0} × {1}</value></data>
   <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Fabrications : {0}. Poste : {1}. Quantité produite : {2}.</value></data>
@@ -3552,8 +3552,8 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Révéler la recette</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Aucune recette de fabrication n’est répertoriée pour cet objet. Sa provenance est inconnue.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingrédients par fabrication</value></data>
-  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>L’apprendre dans le jeu</value></data>
-  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Ces tables du jeu n’indiquent pas comment apprendre cette recette.</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Apprentissage de la recette</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Aucune méthode d’apprentissage dans le jeu n’est vérifiée ici. Vous pouvez utiliser Débloquer la recette dans l’éditeur ; réunir ses ingrédients n’est qu’un indice.</value></data>
   <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Lire l’e-mail : {0}</value></data>
   <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Pêcher : {0}</value></data>
   <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Cet e-mail est déjà enregistré comme lu.</value></data>
@@ -3585,7 +3585,27 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Vérification des données des recettes...</value></data>
   <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Les détails de la découverte sont classifiés.</value></data>
   <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Révéler les détails de la découverte</value></data>
-  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>ces détails de découverte</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>cette source de découverte</value></data>
   <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Une source de découverte connue exige de progresser davantage dans l’histoire. Révélez ses détails de découverte pour savoir pourquoi.</value></data>
   <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>Aucune condition de progression n’est indiquée pour cette source.</value></data>
+  <data name="RecipeGuide_GetItem" xml:space="preserve"><value>Obtenir {0}</value></data>
+  <data name="RecipeGuide_ItemMissing" xml:space="preserve"><value>Cet ingrédient ne figure pas dans le catalogue actuel des objets.</value></data>
+  <data name="RecipeGuide_NoMaterialSources" xml:space="preserve"><value>Aucune source de récupération, de commerce ou de pêche n’est indiquée pour ce matériau.</value></data>
+  <data name="RecipeGuide_AcquisitionHelp" xml:space="preserve"><value>Ces moyens d’obtenir l’objet proviennent du catalogue. Ils ne vérifient ni votre inventaire ni les stocks actuels.</value></data>
+  <data name="RecipeGuide_AcquisitionSealed" xml:space="preserve"><value>Les sources de ce matériau sont confidentielles.</value></data>
+  <data name="RecipeGuide_RevealAcquisition" xml:space="preserve"><value>Révéler la source du matériau</value></data>
+  <data name="RecipeGuide_TheseAcquisitionDetails" xml:space="preserve"><value>cette source de matériau</value></data>
+  <data name="RecipeGuide_SalvageItem" xml:space="preserve"><value>Récupérer des matériaux de {0}</value></data>
+  <data name="RecipeGuide_MayYield" xml:space="preserve"><value>Peut donner {0} × {1}.</value></data>
+  <data name="RecipeGuide_TradeWith" xml:space="preserve"><value>Échanger avec {0}</value></data>
+  <data name="RecipeGuide_TradeStock" xml:space="preserve"><value>Offre répertoriée : {0} × {1}.</value></data>
+  <data name="RecipeGuide_TraderAccepts" xml:space="preserve"><value>Ce marchand accepte : {0}.</value></data>
+  <data name="RecipeGuide_TradeNotPaired" xml:space="preserve"><value>Consultez l’écran de commerce pour connaître l’échange et les stocks actuels.</value></data>
+  <data name="RecipeGuide_FishLocation" xml:space="preserve"><value>Pêcher dans {0}</value></data>
+  <data name="RecipeGuide_LocationUnlisted" xml:space="preserve"><value>un lieu non indiqué dans le catalogue</value></data>
+  <data name="RecipeGuide_AllSources" xml:space="preserve"><value>Afficher les {0} sources</value></data>
+  <data name="RecipeGuide_MaterialNotLearning" xml:space="preserve"><value>Obtenir un matériau et apprendre une recette sont deux choses distinctes. Ces sources décrivent uniquement l’objet.</value></data>
+  <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Sources</value></data>
+  <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Sources indique les possibilités connues de récupération, de commerce et de pêche. Les autres butins et lieux des ennemis ne sont pas répertoriés ici.</value></data>
+  <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Déjà apprise par ce personnage.</value></data>
 </root>

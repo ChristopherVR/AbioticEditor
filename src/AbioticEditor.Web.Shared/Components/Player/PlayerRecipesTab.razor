@@ -7,7 +7,6 @@
 @inject ItemCatalogService Items
 @inject HostSpoilerPreferences Spoilers
 @inject RecipeProgressGateService Gate
-@inject TraderVocabularyService TraderVocabulary
 @inject ItemUpgradeVocabularyService ItemUpgrades
 @inject ToastService Toasts
 @inject ModalService Modals
@@ -37,7 +36,9 @@
     {
         <RecipeCraftingSteps Graph="_recipeGraph" RootRecipe="crafting" ReturnToCheck="@(_craftingReturn == RecipeWorkflow.Check)"
                              ItemName="CraftItemName" StationName="BenchesText" RouteName="CraftRouteName" Concealed="ConcealedInfo"
-                             Learned="IsLearned" OnBack="BackFromCrafting" OnInspect="InspectCraftItem" OnReveal="RevealRecipe" />
+                             Learned="IsLearned" SourceHint="AcquisitionHint" Staged="Session.IsRecipeUnlockStaged" CanUndo="CanUndoRecipe" Feedback="RecipeFeedback"
+                             Busy="_recipeWriteBusy" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"
+                             OnBack="BackFromCrafting" OnInspect="InspectCraftItem" OnReveal="RevealRecipe" />
     }
     else
     {
@@ -195,7 +196,9 @@
                     <p class="rb-detail-desc">@description</p>
                 }
                 <button type="button" class="secondary recipe-detail-steps" @onclick="() => OpenCrafting(selected.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
-                <RecipeDiscoverySources Assessment="@AssessRecipe(selected.Info.Id)" ItemName="CraftItemName" Concealed="ConcealedSource" OnReveal="RevealSource" />
+                <RecipeUnlockControls RecipeId="@selected.Info.Id" Learned="@IsLearned(selected.Info.Id)" Staged="@Session.IsRecipeUnlockStaged(selected.Info.Id)"
+                                      CanUndo="@CanUndoRecipe(selected.Info.Id)" Busy="_recipeWriteBusy" Feedback="@RecipeFeedback(selected.Info.Id)" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe" />
+                <RecipeDiscoverySources Assessment="@AssessRecipe(selected.Info.Id)" Learned="@IsLearned(selected.Info.Id)" ItemName="CraftItemName" Concealed="ConcealedSource" OnReveal="RevealSource" />
                 <span class="sp-label">@L.Resource("PlayerRecipes_Ingredients")</span>
                 <p class="rb-detail-value">@IngredientsText(selected.Info)</p>
                 <p class="rb-detail-output">@L.Resource("PlayerRecipes_MakesCount", selected.Info.Count > 1 ? selected.Info.Count : 1)</p>
@@ -233,11 +236,13 @@
     private void ShowOwnDetail()
     {
         if (SelectedRow is { } row) Selection.ShowDetail(DetailKeyPrefix + row.Info.Id, DetailContent);
+        else if (_materialDetailItemId is { } material) PublishMaterialDetail(material);
     }
 
     private void CloseOwnDetail()
     {
         _selected = null;
+        _materialDetailItemId = null;
         if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
         {
             Selection.CloseDetail();
@@ -251,6 +256,7 @@
         {
             _selected = null;
         }
+        if (_materialDetailItemId is { } material && Selection.DetailKey != DetailKeyPrefix + "material:" + material) _materialDetailItemId = null;
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -337,19 +343,17 @@
         ResetWorkflow();
         CloseOwnDetail();
         // Mounting the game paks is expensive; keep it off the render path (native rule).
-        // The same background hop resolves the sibling world's story flags for the unlock
-        // gate, warms the email vocabulary the gate consults, and loads the trader roster
-        // (live pak stock when the game is installed, the built-in snapshot otherwise).
+        // The shared world read supplies story flags; the background hop loads coherent
+        // recipe, item, discovery and trader data alongside optional item upgrades.
         var session = Session;
         try
         {
             var worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
             if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
-            var (snapshot, traders, itemUpgrades) = await Task.Run(
-                () => (RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
+            var (snapshot, itemUpgrades) = await Task.Run(
+                () => (RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary), ItemUpgrades.Get()));
             if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
             _worldFlags = worldFlags;
-            _traders = traders;
             _itemUpgrades = itemUpgrades;
             ApplyCatalog(snapshot);
         }
@@ -362,6 +366,9 @@
         var infos = snapshot.Recipes;
         _catalogSnapshot = snapshot;
         _recipeGraph = new RecipeGraph(infos, snapshot.Items.Select(item => item.Id));
+        _acquisitionIndex = new ItemAcquisitionIndex(snapshot.Items, snapshot.Traders, snapshot.Codex.Fish);
+        _catalogItemIds = snapshot.Items.Select(item => item.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _traders = snapshot.Traders;
         Session.EnsureRecipeRows(infos.Select(info => info.Id));
         var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.OrdinalIgnoreCase);
         // A session that could not add rows (a live one whose connection dropped mid-way, so the
@@ -656,7 +663,7 @@
 
     private string SoldByText(RecipeRow row) => row.Info.CreatesItemId is not { } itemId
         ? string.Empty
-        : string.Join(", ", (_traders ?? TraderCatalog.Fallback)
+        : string.Join(", ", (_traders ?? [])
             .Where(trader => trader.Sells.Any(offer => string.Equals(offer.ItemId, itemId, StringComparison.OrdinalIgnoreCase)))
             .Select(trader => TraderDisplayName(trader.Id))
             .Distinct());

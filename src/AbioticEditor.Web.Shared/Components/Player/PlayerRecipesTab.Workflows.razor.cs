@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Items;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Web.Models;
 using AbioticEditor.Web.Services;
 using AbioticEditor.Web.Components.Shared;
@@ -24,6 +25,9 @@ public partial class PlayerRecipesTab
     private bool _catalogRefreshing;
     private long _catalogLoadGeneration;
     private bool _bindingLoading;
+    private ItemAcquisitionIndex _acquisitionIndex = new([]);
+    private HashSet<string> _catalogItemIds = new(StringComparer.OrdinalIgnoreCase);
+    private string? _materialDetailItemId;
 
     private IPlayerRecipesSession RecipeSource => Session is LivePlayerEditorSession live ? live.RecipesSession ?? Session : Session;
 
@@ -33,8 +37,8 @@ public partial class PlayerRecipesTab
             && codex.HasCurrentHistory && string.Equals(recipes.SelectedPlayerId, codex.SelectedPlayerId, StringComparison.OrdinalIgnoreCase) ? codex : null
         : Session as IPlayerCodexSession;
     private bool HasDiscoveryHistory => DiscoverySession is not null;
-    private IReadOnlySet<string>? ReadEmails => DiscoverySession?.Emails.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-    private IReadOnlySet<string>? CaughtFish => DiscoverySession?.Fish.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string>? ReadEmails => DiscoverySession?.Emails.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string>? CaughtFish => DiscoverySession?.Fish.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private RecipeDiscoveryAssessment AssessRecipe(string id)
         => RecipeDiscoveryAssessment.Assess(id, _catalogSnapshot?.Codex.Emails ?? [], _catalogSnapshot?.Codex.Fish ?? [], _worldFlags, ReadEmails, CaughtFish);
@@ -170,20 +174,72 @@ public partial class PlayerRecipesTab
             return;
         }
         _selected = null;
-        Selection.ShowDetail(DetailKeyPrefix + "material:" + itemId, builder =>
-        {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "detail-card detail-card--terminal");
-            builder.OpenElement(2, "strong");
-            builder.AddContent(3, CraftItemName(itemId));
-            builder.CloseElement();
-            builder.OpenElement(4, "p");
-            builder.AddAttribute(5, "class", "detail-value");
-            builder.AddContent(6, L.Resource("RecipeGuide_UnknownRecipe"));
-            builder.CloseElement();
-            builder.CloseElement();
-        });
+        _materialDetailItemId = itemId;
+        PublishMaterialDetail(itemId);
     }
+
+    private string AcquisitionItemName(string id) => Items.Find(id)?.DisplayName ?? PlainNames.Words(id);
+    private string AcquisitionTraderName(string id) => TraderLore.ById.ContainsKey(id) ? L.Resource($"WorldTraders_Lore_{id}_Name") : PlainNames.Words(id);
+    private string? AcquisitionTraderWhere(string id) => TraderLore.ById.ContainsKey(id) ? L.Resource($"WorldTraders_Lore_{id}_Where") : null;
+
+    private static string AcquisitionSpoilerKey(ItemAcquisitionSource source)
+        => $"material-source:{source.Kind}:{source.ItemId}:{source.Trader?.Id}:{source.SalvageSourceItemId}:{source.Fish?.Id}:{source.Offer?.RequiredFlag}";
+
+    private bool ConcealedAcquisition(ItemAcquisitionSource source)
+    {
+        if (!Spoilers.Enabled || Spoilers.IsRevealed(AcquisitionSpoilerKey(source))) return false;
+        if (source.Trader is { } trader)
+            return !Spoilers.IsRevealed($"trader:{trader.Id}") && (TraderSpoilers.IsFutureContent(trader.Id, HasWorldFlag)
+                || trader.RequiredFlags.Any(flag => !HasWorldFlag(flag)) || (source.Offer?.RequiredFlag is { Length: > 0 } flag && !HasWorldFlag(flag)));
+        if (source.Fish is { } fish) return CaughtFish?.Contains(fish.Id) != true;
+        if (source.SalvageSourceItemId is { } item)
+            return Session.RecipeItemsPickedUp?.Contains(item, StringComparer.OrdinalIgnoreCase) != true
+                && !_recipeGraph.RecipesProducing(item).Any(recipe => IsLearned(recipe.Id));
+        return true;
+    }
+
+    private ItemAcquisitionSource[] MaterialSources(string itemId)
+        => _acquisitionIndex.SourcesFor(itemId).OrderBy(ConcealedAcquisition).ThenBy(source => source.Kind)
+            .ThenBy(source => ConcealedAcquisition(source) ? string.Empty : source.SalvageSourceItemId is { } material ? AcquisitionItemName(material) : source.Trader?.Id ?? source.Fish?.Location, StringComparer.CurrentCultureIgnoreCase).ToArray();
+
+    private string? AcquisitionHint(string itemId)
+    {
+        var sources = _acquisitionIndex.SourcesFor(itemId);
+        var source = sources.FirstOrDefault(candidate => !ConcealedAcquisition(candidate));
+        if (source is null) return sources.Count > 0 ? L.Resource("RecipeGuide_AcquisitionSealed") : null;
+        return source.Kind switch
+        {
+            ItemAcquisitionKind.Salvage => L.Resource("RecipeGuide_SalvageItem", AcquisitionItemName(source.SalvageSourceItemId!)),
+            ItemAcquisitionKind.Trade => L.Resource("RecipeGuide_TradeWith", AcquisitionTraderName(source.Trader!.Id)),
+            _ => L.Resource("RecipeGuide_FishLocation", source.Fish?.Location ?? L.Resource("RecipeGuide_LocationUnlisted")),
+        };
+    }
+
+    private void RevealAcquisition(ItemAcquisitionSource source) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"), Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("RecipeGuide_TheseAcquisitionDetails"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Spoilers.Reveal(AcquisitionSpoilerKey(source)); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private void PublishMaterialDetail(string itemId)
+        => Selection.ShowDetail(DetailKeyPrefix + "material:" + itemId, builder =>
+        {
+            builder.OpenComponent<ItemAcquisitionDetails>(0);
+            builder.SetKey(itemId);
+            builder.AddAttribute(1, nameof(ItemAcquisitionDetails.ItemId), itemId);
+            builder.AddAttribute(2, nameof(ItemAcquisitionDetails.Sources), MaterialSources(itemId));
+            builder.AddAttribute(3, nameof(ItemAcquisitionDetails.ItemName), (Func<string, string>)AcquisitionItemName);
+            builder.AddAttribute(4, nameof(ItemAcquisitionDetails.TraderName), (Func<string, string>)AcquisitionTraderName);
+            builder.AddAttribute(5, nameof(ItemAcquisitionDetails.TraderWhere), (Func<string, string?>)AcquisitionTraderWhere);
+            builder.AddAttribute(6, nameof(ItemAcquisitionDetails.Concealed), (Func<ItemAcquisitionSource, bool>)ConcealedAcquisition);
+            builder.AddAttribute(7, nameof(ItemAcquisitionDetails.OnReveal), EventCallback.Factory.Create<ItemAcquisitionSource>(this, RevealAcquisition));
+            builder.AddAttribute(8, nameof(ItemAcquisitionDetails.OnClose), EventCallback.Factory.Create(this, CloseOwnDetail));
+            builder.AddAttribute(9, nameof(ItemAcquisitionDetails.WorldFlags), _worldFlags);
+            builder.AddAttribute(10, nameof(ItemAcquisitionDetails.ItemKnown), _catalogItemIds.Contains(itemId));
+            builder.AddAttribute(11, nameof(ItemAcquisitionDetails.IsGroup), itemId.StartsWith("Any", StringComparison.OrdinalIgnoreCase));
+            builder.AddAttribute(12, nameof(ItemAcquisitionDetails.CatalogAvailable), _catalogSnapshot?.Metadata.Source != RecipeCatalogSource.Unavailable && _catalogItemIds.Count > 0);
+            builder.CloseComponent();
+        });
 
     private void RevealRecipe(string recipeId)
     {
