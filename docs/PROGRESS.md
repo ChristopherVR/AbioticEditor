@@ -1,5 +1,32 @@
 # Abiotic Editor - Session history
 
+## Cascading player tabs stay responsive during recipe loading (2026-10-25)
+
+- Fixed a recipe initialization loop: sibling-world read status raises a workspace change,
+  which reapplied parameters while recipe rows were still loading and started another read.
+  The same binding now has one in-flight load; failure clears the guard, and switching saves
+  or leaving the tab invalidates old results before another expensive catalog load begins.
+- Sibling facts and editable sessions share per-world read gates, recheck cached version
+  stamps inside the gate and recover after failure or file changes. Canceling a waiter does
+  not abort another tab's read. Busy notifications remain balanced across different worlds.
+  Read diagnostics identify the phase and elapsed duration without dumping save contents.
+  General's codex warm-up now stays in its background catalog load.
+- Corrected the earlier standalone-only QA limitation: copied the user's complete Cascade
+  world (78 files, 85.7 MB), including the 14,448,241-byte Facility and main 201,051-byte
+  Tribbes player. Used installed game data and copied mappings in an isolated profile.
+  Cold Recipes selected in 74 ms and Vitals in 132 ms while the read was pending; further
+  cold tab switches took 51-64 ms. Exactly one Facility read completed in 529 ms. Recipes
+  completed with 584 catalog rows, and General/Skills/Spawn/Gatepal/Vitals/Recipes remained
+  clickable (69-438 ms), without a circuit disconnect. SAVE remained disabled; player and
+  Facility hashes still matched the original files. Working set was about 736 MB, rather
+  than the repeated-read memory pressure observed during earlier QA.
+- Focused checks: 105 passed, including three delayed component-binding tests and six shared
+  read/concurrency/cancellation/retry tests. Desktop (both targets), shared and WASM builds
+  pass with zero warnings/errors. The source does not need a Core parser rewrite:
+  a separate single-read check of the older full Facility fixture completed in about 393 ms.
+  Actual-copy screenshot: ignored artifacts/cascading-tabs-fixed.png. The isolated host was
+  stopped; no real save was edited or saved, and nothing was pushed.
+
 ## Recipe checks follow game-data updates and discovery sources (2026-10-25)
 
 - Recipe task entry and explicit unlocks now check container, mappings, mod/settings and
@@ -27,8 +54,9 @@
   that unlock, adding a synthetic recipe/item/grant was detected on Refresh and then on crafting
   entry after another change, preserving the staged unlock/Undo. At 390px, document width stayed
   within the viewport. Screenshots are under ignored artifacts/recipe-auto-*. No actual save,
-  installed game, native live game, public deployment or push was used. Large sibling-world
-  fixture parsing caused an existing cold-load timeout; standalone QA avoided that unrelated path.
+  installed game, native live game, public deployment or push was used. The full sibling-world
+  path timed out during this QA; the later Cascading investigation above identified and fixed
+  repeated in-flight reads, then validated the complete copied world.
 
 ## Issue #53: crafting steps and missed-recipe unlocks implemented (2026-10-25)
 

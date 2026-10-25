@@ -23,6 +23,7 @@ public partial class PlayerRecipesTab
     private RecipeCatalogSnapshot? _catalogSnapshot;
     private bool _catalogRefreshing;
     private long _catalogLoadGeneration;
+    private bool _bindingLoading;
 
     private IPlayerRecipesSession RecipeSource => Session is LivePlayerEditorSession live ? live.RecipesSession ?? Session : Session;
 

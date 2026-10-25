@@ -325,9 +325,12 @@
     {
         var source = RecipeSource;
         var targetIdentity = source.RecipeTargetIdentity;
-        if (ReferenceEquals(_boundSession, source) && string.Equals(_boundRecipeIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal) && _rows is not null) return;
+        // Reading announces progress through the workspace, which can set our parameters
+        // again before this await completes. Never start a second read for that binding.
+        if (ReferenceEquals(_boundSession, source) && string.Equals(_boundRecipeIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal) && (_rows is not null || _bindingLoading)) return;
         var generation = ++_catalogLoadGeneration;
         _boundSession = source;
+        _bindingLoading = true;
         _catalogRefreshing = false;
         _boundRecipeIdentity = source.RecipeTargetIdentity;
         _rows = null;
@@ -338,14 +341,19 @@
         // gate, warms the email vocabulary the gate consults, and loads the trader roster
         // (live pak stock when the game is installed, the built-in snapshot otherwise).
         var session = Session;
-        var worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
-        var (snapshot, traders, itemUpgrades) = await Task.Run(
-            () => (RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
-        if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
-        _worldFlags = worldFlags;
-        _traders = traders;
-        _itemUpgrades = itemUpgrades;
-        ApplyCatalog(snapshot);
+        try
+        {
+            var worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
+            if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            var (snapshot, traders, itemUpgrades) = await Task.Run(
+                () => (RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
+            if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            _worldFlags = worldFlags;
+            _traders = traders;
+            _itemUpgrades = itemUpgrades;
+            ApplyCatalog(snapshot);
+        }
+        finally { if (generation == _catalogLoadGeneration) _bindingLoading = false; }
     }
 
     private void ApplyCatalog(RecipeCatalogSnapshot snapshot)

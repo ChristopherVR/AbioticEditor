@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
 
@@ -26,6 +28,11 @@ public sealed record SiblingPetBed(double X, double Y, double Z, string DisplayN
 public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCache? factsCache = null)
 {
     private readonly IWorldFactsCache _factsCache = factsCache ?? new NoWorldFactsCache();
+    // Acquire before publishing Reading: its subscribers can synchronously rerender a caller
+    // and ask for this same world again before the first read has reached an await.
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _readGates = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _readingStateGate = new();
+    private int _activeReads;
 
     private readonly ConcurrentDictionary<string, CachedBeds> _bedCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedDeployables> _deployableCache = new(StringComparer.OrdinalIgnoreCase);
@@ -81,29 +88,40 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCac
     /// </remarks>
     private async Task<CachedFacts> GetFactsAsync(string fullPath, CancellationToken cancellationToken)
     {
-        var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        if (_factCache.TryGetValue(fullPath, out var cached) && stamp is not null && cached.Stamp == stamp) return cached;
-
-        if (stamp is not null && await ReadStoredFactsAsync(fullPath, stamp, cancellationToken).ConfigureAwait(false) is { } stored)
+        var gate = _readGates.GetOrAdd(fullPath, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            _factCache[fullPath] = stored;
-            Loaded?.Invoke();
-            return stored;
-        }
+            var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (_factCache.TryGetValue(fullPath, out var cached) && stamp is not null && cached.Stamp == stamp) return cached;
 
-        var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        var deployables = (IReadOnlyList<WorldDeployable>)[.. save.Deployables];
-        var facts = new CachedFacts(
-            stamp,
-            deployables,
-            new HashSet<string>(save.Flags, StringComparer.OrdinalIgnoreCase),
-            // Derived once with everything else, so repeated lookups hand back the very same
-            // list rather than filtering the deployables again on each glance.
-            BedsFrom(deployables));
-        _factCache[fullPath] = facts;
-        if (stamp is not null) await StoreFactsAsync(fullPath, stamp, save, cancellationToken).ConfigureAwait(false);
-        Loaded?.Invoke();
-        return facts;
+            if (stamp is not null && await ReadStoredFactsAsync(fullPath, stamp, CancellationToken.None).ConfigureAwait(false) is { } stored)
+            {
+                _factCache[fullPath] = stored;
+                Loaded?.Invoke();
+                return stored;
+            }
+
+            // A tab leaving must not abort the shared read and force every waiting consumer
+            // to start it again. Cancellation still stops callers waiting to acquire the gate.
+            var save = await ReadAsync(fullPath, CancellationToken.None).ConfigureAwait(false);
+            var deployables = (IReadOnlyList<WorldDeployable>)[.. save.Deployables];
+            var facts = new CachedFacts(
+                stamp,
+                deployables,
+                new HashSet<string>(save.Flags, StringComparer.OrdinalIgnoreCase),
+                // Derived once with everything else, so repeated lookups hand back the very same
+                // list rather than filtering the deployables again on each glance.
+                BedsFrom(deployables));
+            _factCache[fullPath] = facts;
+            if (stamp is not null) await StoreFactsAsync(fullPath, stamp, save, CancellationToken.None).ConfigureAwait(false);
+            Loaded?.Invoke();
+            return facts;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private async Task<CachedFacts?> ReadStoredFactsAsync(string fullPath, string stamp, CancellationToken cancellationToken)
@@ -256,18 +274,29 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCac
         var fullPath = Normalize(worldPath);
         if (loadedSession is not null && PathsEqual(loadedSession.Path, fullPath)) return loadedSession;
 
-        var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        if (_sessions.TryGetValue(fullPath, out var cached)
-            && (cached.Session.IsDirty || (stamp is not null && cached.Stamp == stamp)))
-            return cached.Session;
+        var gate = _readGates.GetOrAdd(fullPath, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var stamp = await files.GetVersionStampAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (_sessions.TryGetValue(fullPath, out var cached)
+                && (cached.Session.IsDirty || (stamp is not null && cached.Stamp == stamp)))
+                return cached.Session;
 
-        var save = await ReadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        // Hand the session the host's file system. Without it, saving this world falls back to
-        // writing straight to a disk path, which works on the desktop and cannot work in a
-        // browser - so sending a pet to another world staged fine and then failed at SAVE WORLD.
-        var session = new WorldSaveSession(save, fullPath, files);
-        _sessions[fullPath] = new CachedSession(stamp, session);
-        return session;
+            // A tab leaving must not abort the shared read and force every waiting consumer
+            // to start it again. Cancellation still stops callers waiting to acquire the gate.
+            var save = await ReadAsync(fullPath, CancellationToken.None).ConfigureAwait(false);
+            // Hand the session the host's file system. Without it, saving this world falls back to
+            // writing straight to a disk path, which works on the desktop and cannot work in a
+            // browser - so sending a pet to another world staged fine and then failed at SAVE WORLD.
+            var session = new WorldSaveSession(save, fullPath, files);
+            _sessions[fullPath] = new CachedSession(stamp, session);
+            return session;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     /// <summary>The already-loaded session for a path, when one exists.</summary>
@@ -280,7 +309,7 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCac
 
     /// <summary>
     /// Reads a world save through the host's file system. Parsing is the expensive half (~16 MB
-    /// for the Facility save), so it stays off the render thread on both hosts.
+    /// for the Facility save), so desktop parses run off the render thread; browsers yield first.
     /// </summary>
     private async Task<WorldSaveData> ReadAsync(string path, CancellationToken cancellationToken)
     {
@@ -288,22 +317,37 @@ public sealed class SiblingWorldBedService(ISaveFileSystem files, IWorldFactsCac
         // Reading the facility save means parsing ~16 MB of world, which a browser does on the
         // one thread it also draws with - several seconds of stillness with nothing said was
         // indistinguishable from the editor having hung.
-        Reading?.Invoke(true);
+        var started = Stopwatch.GetTimestamp();
         try
         {
+            lock (_readingStateGate)
+            {
+                if (++_activeReads == 1) Reading?.Invoke(true);
+            }
+            EditorLog.Info("WorldFacts", $"Reading {Path.GetFileName(path)} for sibling-world facts.");
             var bytes = await files.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
             await UiBreather.BreatheAsync(cancellationToken).ConfigureAwait(false);
-            return await Task.Run(
+            var save = await Task.Run(
                 () => WorldSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false)), cancellationToken)
                 .ConfigureAwait(false);
+            EditorLog.Info("WorldFacts", $"Read {Path.GetFileName(path)} in {Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0} ms.");
+            return save;
+        }
+        catch (Exception exception)
+        {
+            EditorLog.Warn("WorldFacts", $"Reading {Path.GetFileName(path)} failed after {Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0} ms: {exception.Message}");
+            throw;
         }
         finally
         {
-            Reading?.Invoke(false);
+            lock (_readingStateGate)
+            {
+                if (--_activeReads == 0) Reading?.Invoke(false);
+            }
         }
     }
 
-    /// <summary>Raised with true when a world save is about to be read, and false when it is done.</summary>
+    /// <summary>Raised when the first world read begins and when the last active read finishes.</summary>
     public event Action<bool>? Reading;
 
     /// <summary>
