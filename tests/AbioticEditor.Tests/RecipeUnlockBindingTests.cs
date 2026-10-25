@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace AbioticEditor.Tests;
 
@@ -23,6 +24,7 @@ public sealed class RecipeUnlockBindingTests
         services.AddSingleton<HostLanguageService>();
         services.AddSingleton<UserFacingErrorService>();
         services.AddSingleton<ItemCatalogService>();
+        services.AddSingleton<IJSRuntime, UnexpectedJsRuntime>();
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new EventRenderer(provider, provider.GetRequiredService<ILoggerFactory>());
         string? unlockedId = null;
@@ -68,6 +70,14 @@ public sealed class RecipeUnlockBindingTests
         }
         protected override Task UpdateDisplayAsync(in RenderBatch renderBatch) => Task.CompletedTask;
         protected override void HandleException(Exception exception) => throw new InvalidOperationException("Rendered recipe test failed.", exception);
+    }
+
+    private sealed class UnexpectedJsRuntime : IJSRuntime
+    {
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
+            => throw new InvalidOperationException("An ordinary crafting render must not request focus.");
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+            => InvokeAsync<TValue>(identifier, args);
     }
 }
 #pragma warning restore BL0006

@@ -75,6 +75,9 @@ public sealed class InventorySelectionService
     public PaletteContext? Palette { get; private set; }
 
     public event Action? Changed;
+    /// <summary>Requests that a result in the centre editor is visible without clearing its detail selection.</summary>
+    public event Action? EditorFocusRequested;
+    public void RequestEditorFocus() => EditorFocusRequested?.Invoke();
 
     /// <summary>
     /// Raised when a slot's item identity actually changes (an item is placed, swapped, cleared

@@ -35,6 +35,7 @@
     else if (_workflow == RecipeWorkflow.Crafting && _craftingRecipe is { } crafting)
     {
         <RecipeCraftingSteps Graph="_recipeGraph" RootRecipe="crafting" ReturnToCheck="@(_craftingReturn == RecipeWorkflow.Check)"
+                             RevealRequest="_craftingRevealRequest"
                              ItemName="CraftItemName" StationName="BenchesText" RouteName="CraftRouteName" Concealed="ConcealedInfo"
                              Learned="IsLearned" SourceHint="AcquisitionHint" Staged="Session.IsRecipeUnlockStaged" CanUndo="CanUndoRecipe" Feedback="RecipeFeedback"
                              Busy="_recipeWriteBusy" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"

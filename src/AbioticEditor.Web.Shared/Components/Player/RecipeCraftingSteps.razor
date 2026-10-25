@@ -1,5 +1,8 @@
 @namespace AbioticEditor.Web.Components.Player
 @using AbioticEditor.Core.Items
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 
 <div class="recipe-workflow-heading">
     <h3>@(Concealed(RootRecipe) ? L.Resource("Spoiler_Redacted") : L.Resource("RecipeGuide_MakeTitle", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id)))</h3>
@@ -25,7 +28,7 @@ else
 </div>
 @if (_tree is { } tree)
 {
-    <div class="recipe-crafting-tree" aria-label="@L.Resource("RecipeGuide_ShowSteps")">
+    <div class="recipe-crafting-tree" tabindex="-1" @ref="_treeElement" aria-label="@L.Resource("RecipeGuide_MakeTitle", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id))">
         <ul>
             <RecipeCraftingBranch Node="tree" Expanded="_expanded" ItemName="ItemName" StationName="StationName" RouteName="RouteName"
                                   Concealed="Concealed" Learned="Learned" OnToggle="Toggle" OnRoute="ChooseRoute"
@@ -57,12 +60,43 @@ else
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
     [Parameter] public EventCallback<string> OnReveal { get; set; }
+    [Parameter] public long RevealRequest { get; set; }
 
     private readonly HashSet<string> _expanded = ["root", "root.0"];
     private readonly Dictionary<string, string> _routes = new(StringComparer.Ordinal);
     private RecipeTreeNode? _tree;
     private RecipeGraph? _boundGraph;
     private string? _rootId;
+    private ElementReference _treeElement;
+    private IJSObjectReference? _guideModule;
+    private long _revealedRequest;
+    private bool _disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || RevealRequest == 0 || RevealRequest == _revealedRequest || _tree is null || Concealed(RootRecipe)) return;
+        _revealedRequest = RevealRequest;
+        try
+        {
+            _guideModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/recipe-guide.js");
+            if (_disposed) { await _guideModule.DisposeAsync(); _guideModule = null; return; }
+            await _guideModule.InvokeVoidAsync("reveal", _treeElement);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException exception)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeGuide", $"Could not reveal the crafting guide: {exception.Message}");
+        }
+        catch (ObjectDisposedException) when (_disposed) { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_guideModule is null) return;
+        try { await _guideModule.DisposeAsync(); }
+        catch (JSException) { }
+    }
 
     protected override void OnParametersSet()
     {

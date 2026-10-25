@@ -1,5 +1,22 @@
 # Abiotic Editor - Session history
 
+## Show crafting steps brings the actual tree into view (2026-10-25)
+
+- Confirmed the book-row and Details actions already opened the guide. In the user's
+  948x594 window, the introduction occupied the main viewport and the tree was below the
+  fold while the Details card barely changed, making the action look ineffective.
+- Explicit guide navigation now requests focus and scrolling after the tree renders.
+  Reopening the same recipe reveals its root again; ordinary parent updates do not jump
+  focus. On phone layouts the Details drawer closes without clearing its selection.
+  Focus/module failures are logged as best-effort enhancements and leave the guide usable.
+- Added non-UI rendered lifecycle checks for explicit/repeated/same-root navigation,
+  ordinary updates, JS failure recovery and selection preservation. The JS helper was
+  checked with connected, detached and absent targets. No further UI automation or native
+  restart was performed after the user stopped desktop control with Escape.
+- Focused verification: 9 passed, plus non-UI JS helper assertions. Shared and Windows
+  managed builds use the existing optional-native-decoder skip switch and unchanged compiled
+  dependency assemblies. Browser/WASM interaction was not rerun after desktop control stopped.
+
 ## Crafting materials show acquisition sources separately from recipe learning (2026-10-25)
 
 - Find leaves now offer Sources with explicit item salvage, trader stock and fishing records,

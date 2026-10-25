@@ -441,7 +441,7 @@
     /// why being on <c>/live</c> wins outright, loaded workspace or not.</summary>
     private bool IsPureLiveMode => IsOnLivePage || (Live.IsConnected && Workspace.Current is null);
 
-    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Live.Changed += Refresh; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
+    protected override void OnInitialized() { Workspace.Changed += WorkspaceChanged; Live.Changed += Refresh; Preferences.Changed += Refresh; InventorySelection.Changed += SelectionChanged; InventorySelection.ItemCommitted += ItemCommitted; InventorySelection.EditorFocusRequested += EditorFocusRequested; Navigation.LocationChanged += NavigationChanged; _selectedSavePath = Workspace.Current?.SelectedSave?.Path; _workspaceFolder = Workspace.Current?.WorldFolder; _playerSession = Workspace.Current?.PlayerSession; _worldSession = Workspace.Current?.WorldSession; _hadSlotSelection = InventorySelection.HasAnySelection; if (Workspace.Current is { } open) LoadClaimPersonas(open.WorldFolder); Beds.Loaded += DeployablesLoaded; Beds.Reading += WorldReading; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -958,6 +958,10 @@
         if (Preferences.State.DetailsPaneCollapsed == show) Preferences.ToggleDetailsPane();
     }
     private void CloseDrawers() { _fileDrawer = false; _detailsDrawer = false; }
+    private void EditorFocusRequested()
+    {
+        if (DrawerMode && _detailsDrawer) { _detailsDrawer = false; Refresh(); }
+    }
     private void ItemCommitted()
     {
         // On a phone the slot editor lives in a full-screen sheet over the list. Once the item
@@ -1240,7 +1244,7 @@
     private static string KindClass(SaveDocumentKind kind) => kind.ToString().ToLowerInvariant();
     public async ValueTask DisposeAsync()
     {
-        Workspace.Changed -= WorkspaceChanged; Live.Changed -= Refresh; Beds.Loaded -= DeployablesLoaded; Beds.Reading -= WorldReading; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; Navigation.LocationChanged -= NavigationChanged;
+        Workspace.Changed -= WorkspaceChanged; Live.Changed -= Refresh; Beds.Loaded -= DeployablesLoaded; Beds.Reading -= WorldReading; Preferences.Changed -= Refresh; InventorySelection.Changed -= SelectionChanged; InventorySelection.ItemCommitted -= ItemCommitted; InventorySelection.EditorFocusRequested -= EditorFocusRequested; Navigation.LocationChanged -= NavigationChanged;
         if (_splitterModule is not null) { try { await _splitterModule.InvokeVoidAsync("unwatch"); await _splitterModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
         _self?.Dispose();
     }

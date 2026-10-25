@@ -28,6 +28,7 @@ public partial class PlayerRecipesTab
     private ItemAcquisitionIndex _acquisitionIndex = new([]);
     private HashSet<string> _catalogItemIds = new(StringComparer.OrdinalIgnoreCase);
     private string? _materialDetailItemId;
+    private long _craftingRevealRequest;
 
     private IPlayerRecipesSession RecipeSource => Session is LivePlayerEditorSession live ? live.RecipesSession ?? Session : Session;
 
@@ -155,7 +156,9 @@ public partial class PlayerRecipesTab
         _craftingRecipe = row.Info;
         _workflow = RecipeWorkflow.Crafting;
         _selected = row;
+        _craftingRevealRequest++;
         ShowOwnDetail();
+        Selection.RequestEditorFocus();
     }
 
     private void InspectCraftItem(RecipeCraftingSelection selection)
