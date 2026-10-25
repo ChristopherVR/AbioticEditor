@@ -9,10 +9,13 @@ namespace AbioticEditor.Web.Components.Player;
 
 public partial class PlayerRecipesTab
 {
-    private enum RecipeWorkflow { Book, Check, Crafting }
+    private enum RecipeWorkflow { Book, Check, Crafting, Learning }
     private RecipeWorkflow _workflow;
     private RecipeWorkflow _craftingReturn;
     private RecipeInfo? _craftingRecipe;
+    private RecipeInfo? _learningRecipe;
+    private RecipeWorkflow _learningReturn;
+    private long _learningRevealRequest;
     private RecipeGraph _recipeGraph = new([], []);
     private readonly List<string> _reviewRecipeIds = [];
     private HashSet<string> _ingredientClueIds = new(StringComparer.OrdinalIgnoreCase);
@@ -49,9 +52,6 @@ public partial class PlayerRecipesTab
             Session.Recipes.Where(row => row.IsUnlocked).Select(row => row.Id), Session.RecipeResearchPending,
             Session is PlayerSaveSession file ? file.Skills.ToDictionary(skill => skill.Definition.Id, skill => skill.Level, StringComparer.OrdinalIgnoreCase) : null);
 
-    private RecipeSpecialGrant[] SpecialLearning(string id)
-        => _catalogSnapshot?.RecipeLearning?.SpecialGrants.Where(grant => grant.RecipeId.Equals(id, StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
-
     private string LearningSkillName(string id) => Session is PlayerSaveSession file
         ? file.Skills.FirstOrDefault(skill => skill.Definition.Id.Equals(id, StringComparison.OrdinalIgnoreCase))?.Name ?? PlainNames.Words(id)
         : PlainNames.Words(id);
@@ -77,26 +77,16 @@ public partial class PlayerRecipesTab
         OnConfirm: async () => { Spoilers.Reveal(SpecialLearningKey(grant)); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
         CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
 
-    private RenderFragment LearningContent(string id) => builder =>
-    {
-        if (_catalogSnapshot?.RecipeLearning is null) return;
-        builder.OpenComponent<RecipeLearningGuide>(0);
-        builder.AddAttribute(1, nameof(RecipeLearningGuide.Assessment), AssessLearning(id));
-        builder.AddAttribute(2, nameof(RecipeLearningGuide.SpecialGrants), SpecialLearning(id));
-        builder.AddAttribute(3, nameof(RecipeLearningGuide.ItemName), (Func<string, string>)CraftItemName);
-        builder.AddAttribute(4, nameof(RecipeLearningGuide.RecipeName), (Func<string, string>)LearningRecipeName);
-        builder.AddAttribute(5, nameof(RecipeLearningGuide.SkillName), (Func<string, string>)LearningSkillName);
-        builder.AddAttribute(6, nameof(RecipeLearningGuide.LevelName), (Func<string, string>)PlainNames.Area);
-        builder.AddAttribute(7, nameof(RecipeLearningGuide.ConcealedSpecial), (Func<RecipeSpecialGrant, bool>)ConcealedSpecialLearning);
-        builder.AddAttribute(8, nameof(RecipeLearningGuide.OnRevealSpecial), EventCallback.Factory.Create<RecipeSpecialGrant>(this, RevealSpecialLearning));
-        builder.AddAttribute(9, nameof(RecipeLearningGuide.ConcealedLinked), (Func<string, bool>)ConcealedLinkedLearning);
-        builder.AddAttribute(10, nameof(RecipeLearningGuide.OnRevealLinked), EventCallback.Factory.Create<string>(this, RevealRecipe));
-        builder.AddAttribute(11, nameof(RecipeLearningGuide.HasAdditionalSources), AssessRecipe(id).HasKnownSources);
-        builder.AddAttribute(12, nameof(RecipeLearningGuide.BenchName), (Func<string, string>)AcquisitionItemName);
-        builder.CloseComponent();
-    };
-
     private string LearningRecipeName(string id) => ConcealedLinkedLearning(id) ? L.Resource("Spoiler_Redacted") : RecipeName(id);
+
+    private RecipeDiscoveryState PickupState(string id) => Session.RecipeItemsPickedUp is { } history
+        ? history.Contains(id, StringComparer.OrdinalIgnoreCase) ? RecipeDiscoveryState.KnownMet : RecipeDiscoveryState.KnownUnmet
+        : RecipeDiscoveryState.Unknown;
+
+    private RecipeLearningNode LearningTree(string id) => RecipeLearningTree.Build(id, _catalogSnapshot?.RecipeLearning,
+        AssessLearning, AssessRecipe, ConcealedLinkedLearning, ConcealedSpecialLearning, ConcealedSource, PickupState);
+
+    private void InspectLearningItem(string id) => InspectCraftItem(new RecipeCraftingSelection(id, null));
 
     private bool ConcealedSource(RecipeDiscoveryRoute route)
         => Spoilers.Enabled && route.RecordedSourceState != RecipeDiscoveryState.KnownMet && !Spoilers.IsRevealed(DiscoverySpoilerKey(route));
@@ -213,11 +203,25 @@ public partial class PlayerRecipesTab
         if (!await RefreshCatalogAsync()) return;
         if (RowFor(recipeId) is not { } row) return;
         if (Concealed(row)) { RequestRevealAfter(row, () => OpenCrafting(recipeId)); return; }
-        _craftingReturn = _workflow == RecipeWorkflow.Crafting ? _craftingReturn : _workflow;
+        _craftingReturn = _workflow switch { RecipeWorkflow.Crafting => _craftingReturn, RecipeWorkflow.Learning => _learningReturn, _ => _workflow };
         _craftingRecipe = row.Info;
         _workflow = RecipeWorkflow.Crafting;
         _selected = row;
         _craftingRevealRequest++;
+        ShowOwnDetail();
+        Selection.RequestEditorFocus();
+    }
+
+    private async Task OpenLearning(string recipeId)
+    {
+        if (!await RefreshCatalogAsync()) return;
+        if (RowFor(recipeId) is not { } row) return;
+        if (Concealed(row)) { RequestRevealAfter(row, () => OpenLearning(recipeId)); return; }
+        _learningReturn = _workflow switch { RecipeWorkflow.Learning => _learningReturn, RecipeWorkflow.Crafting => _craftingReturn, _ => _workflow };
+        _learningRecipe = row.Info;
+        _workflow = RecipeWorkflow.Learning;
+        _selected = row;
+        _learningRevealRequest++;
         ShowOwnDetail();
         Selection.RequestEditorFocus();
     }
@@ -312,6 +316,7 @@ public partial class PlayerRecipesTab
 
     private void BackToBook() => _workflow = RecipeWorkflow.Book;
     private void BackFromCrafting() => _workflow = _craftingReturn;
+    private void BackFromLearning() => _workflow = _learningReturn;
     private void ShowAllUnlearned()
     {
         _workflow = RecipeWorkflow.Book;
@@ -332,6 +337,7 @@ public partial class PlayerRecipesTab
     {
         _workflow = RecipeWorkflow.Book;
         _craftingRecipe = null;
+        _learningRecipe = null;
         _reviewRecipeIds.Clear();
         _ingredientClueIds.Clear();
         _newUnlockIds.Clear();

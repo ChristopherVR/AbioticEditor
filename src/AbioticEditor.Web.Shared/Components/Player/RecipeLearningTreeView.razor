@@ -1,0 +1,226 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+
+<div class="learning-tree-controls">
+    <p>@L.Resource("RecipeLearningTree_Help")</p>
+    <div>
+        <button type="button" class="secondary" data-action="expand-all" @onclick="ExpandAll">@L.Resource("RecipeGuide_ExpandAll")</button>
+        <button type="button" class="secondary" data-action="collapse-all" @onclick="Collapse">@L.Resource("RecipeLearningTree_Collapse")</button>
+    </div>
+</div>
+<div class="learning-tree" tabindex="-1" @ref="_treeElement" aria-label="@L.Resource("RecipeLearningTree_Aria")">
+    <ul class="learning-tree-root">@Branch(Root, Root.Path)</ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RecipeLearningNode Root { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> RecipeName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> SkillName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> LevelName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> BenchName { get; set; } = null!;
+    [Parameter] public EventCallback<string> OnRevealRecipe { get; set; }
+    [Parameter] public EventCallback<RecipeSpecialGrant> OnRevealSpecial { get; set; }
+    [Parameter] public EventCallback<RecipeDiscoveryRoute> OnRevealSource { get; set; }
+    [Parameter] public EventCallback<string> OnInspectItem { get; set; }
+    [Parameter] public long RevealRequest { get; set; }
+
+    private readonly HashSet<string> _expanded = new(StringComparer.Ordinal);
+    private string? _rootId;
+    private bool _wasConcealed;
+    private ElementReference _treeElement;
+    private IJSObjectReference? _module;
+    private long _revealedRequest;
+    private bool _disposed;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_rootId, Root.RecipeId, StringComparison.OrdinalIgnoreCase))
+        {
+            _rootId = Root.RecipeId;
+            _expanded.Clear();
+            ExpandInitial(Root);
+        }
+        else if (_wasConcealed && !Root.Concealed) ExpandInitial(Root);
+        _wasConcealed = Root.Concealed;
+    }
+
+    private void ExpandInitial(RecipeLearningNode node)
+    {
+        if (node.Concealed) return;
+        if (node.IsRoot || node.Kind is RecipeLearningNodeKind.Discovery or RecipeLearningNodeKind.PickupAll) _expanded.Add(node.Path);
+        foreach (var child in node.Children) ExpandInitial(child);
+    }
+    private void Toggle(string path) { if (!_expanded.Add(path)) _expanded.Remove(path); }
+    private void Collapse() { _expanded.Clear(); _expanded.Add(Root.Path); }
+    private void ExpandAll() => Expand(Root);
+    private void Expand(RecipeLearningNode node)
+    {
+        if (node.Concealed) return;
+        _expanded.Add(node.Path);
+        foreach (var child in node.Children) Expand(child);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || Root.Concealed || RevealRequest == 0 || _revealedRequest == RevealRequest) return;
+        _revealedRequest = RevealRequest;
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./_content/AbioticEditor.Web.Shared/recipe-guide.js");
+            if (_disposed) { await _module.DisposeAsync(); _module = null; return; }
+            await _module.InvokeVoidAsync("reveal", _treeElement);
+        }
+        catch (JSDisconnectedException) { }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeLearning", $"Could not reveal the learning tree: {exception.Message}");
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_module is null) return;
+        try { await _module.DisposeAsync(); }
+        catch (JSException) { }
+    }
+
+    private string Label(RecipeLearningNode node) => node.Kind switch
+    {
+        RecipeLearningNodeKind.Recipe => L.Resource(node.IsRoot ? "RecipeLearningTree_RootRecipe" : "RecipeLearningTree_LinkedRecipe", RecipeName(node.RecipeId)),
+        RecipeLearningNodeKind.Discovery => L.Resource("RecipeLearningTree_Discovery"),
+        RecipeLearningNodeKind.PickupAll => L.Resource("RecipeLearningTree_PickupAll"),
+        RecipeLearningNodeKind.PickupAny => L.Resource("RecipeLearningTree_PickupAny"),
+        RecipeLearningNodeKind.PickupItem => L.Resource("RecipeLearningTree_PickupItem", node.ItemId is { } item ? ItemName(item) : L.Resource("RecipeLearningTree_UnknownItem")),
+        RecipeLearningNodeKind.Skill when node.Skill is { } skill => L.Resource("RecipeLearning_Skill", SkillName(skill.Grant.SkillId), skill.Grant.Level),
+        RecipeLearningNodeKind.Starting => L.Resource("RecipeLearning_Starting"),
+        RecipeLearningNodeKind.Special when node.Special is { } source => SpecialLabel(source),
+        RecipeLearningNodeKind.Email => L.Resource("RecipeGuide_ReadEmail", node.Source?.EmailSubject ?? L.Resource("RecipeLearningTree_UnknownEmail")),
+        RecipeLearningNodeKind.Fish => L.Resource("RecipeGuide_CatchFish", node.Source?.FishItemId is { } fish ? ItemName(fish) : L.Resource("RecipeLearningTree_UnknownFish")),
+        RecipeLearningNodeKind.Research => L.Resource(ResearchKey(node.Assessment)),
+        RecipeLearningNodeKind.Cycle => L.Resource("RecipeLearningTree_Cycle"),
+        RecipeLearningNodeKind.DepthLimit => L.Resource("RecipeLearningTree_DepthLimit"),
+        RecipeLearningNodeKind.NodeLimit => L.Resource("RecipeLearningTree_NodeLimit"),
+        RecipeLearningNodeKind.Unknown when node.Input is not null || node.Assessment?.Definition is { PickupDiscoveryEnabled: true, DiscoveryInputsKnown: false } => L.Resource("RecipeLearning_UnresolvedInput"),
+        _ => L.Resource("RecipeLearning_MethodUnknown"),
+    };
+    private string SpecialLabel(RecipeSpecialGrant source) => source.Kind switch
+    {
+        RecipeSpecialGrantKind.Conversation => L.Resource("RecipeLearning_Conversation", SourceLabel(source, "RecipeLearning_Character")),
+        RecipeSpecialGrantKind.Trait => L.Resource("RecipeLearning_Trait", SourceLabel(source, "RecipeLearningTree_UnknownTrait")),
+        RecipeSpecialGrantKind.Compendium when source.SectionKind == "Kill" && source.RequiredCount is { } count => L.Resource("RecipeLearning_CompendiumKills", SourceLabel(source, "RecipeLearningTree_UnknownEntry"), count),
+        RecipeSpecialGrantKind.Compendium => L.Resource("RecipeLearning_Compendium", SourceLabel(source, "RecipeLearningTree_UnknownEntry")),
+        RecipeSpecialGrantKind.Inspectable => L.Resource("RecipeLearning_Inspect", SourceLabel(source, "RecipeLearning_Object")),
+        RecipeSpecialGrantKind.Cooking => L.Resource("RecipeLearningTree_Cooking"),
+        RecipeSpecialGrantKind.Processing => L.Resource("RecipeLearning_Processing"),
+        RecipeSpecialGrantKind.BenchAccess => L.Resource("RecipeLearning_Bench", string.IsNullOrWhiteSpace(source.SourceLabel) ? L.Resource("RecipeLearning_Workbench") : BenchName(source.SourceLabel)),
+        _ => L.Resource("RecipeLearning_MethodUnknown"),
+    };
+    private string SourceLabel(RecipeSpecialGrant source, string fallback)
+        => string.IsNullOrWhiteSpace(source.SourceLabel) ? L.Resource(fallback) : source.SourceLabel;
+    private static string ResearchKey(RecipeLearningAssessment? assessment)
+        => assessment?.IsResearchPending == true ? "RecipeLearningTree_FinishResearch"
+            : assessment?.Definition?.RequiresResearch == false ? "RecipeLearningTree_NoResearch"
+            : assessment is { IsDiscovered: true, IsResearchPending: false } ? "RecipeLearningTree_ResearchDone"
+            : assessment is { IsDiscovered: false, Definition.RequiresResearch: true } ? "RecipeLearningTree_ResearchAfterDiscovery"
+            : assessment?.Definition?.RequiresResearch == true ? "RecipeLearning_ResearchStateUnknown"
+            : "RecipeLearning_ResearchUnknown";
+    private string? StateLabel(RecipeLearningNode node)
+    {
+        if (node.Kind == RecipeLearningNodeKind.Recipe)
+        {
+            if (node.IsRoot && node.Assessment is { } assessment)
+                return L.Resource(assessment.IsResearchPending == true ? "RecipeLearning_PendingResearch"
+                    : assessment.RecipeKnowledgeAvailable == true ? "RecipeGuide_Learned"
+                    : assessment.IsDiscovered == true ? "RecipeLearningTree_Discovered"
+                    : assessment.IsDiscovered == false ? "RecipeLearningTree_NotDiscovered" : "RecipeLearning_ConditionUnknown");
+            return L.Resource(node.State switch { RecipeDiscoveryState.KnownMet => "RecipeLearningTree_Discovered", RecipeDiscoveryState.KnownUnmet => "RecipeLearningTree_NotDiscovered", _ => "RecipeLearning_ConditionUnknown" });
+        }
+        if (node.Kind is RecipeLearningNodeKind.PickupItem or RecipeLearningNodeKind.PickupAny or RecipeLearningNodeKind.PickupAll)
+            return L.Resource(node.State switch { RecipeDiscoveryState.KnownMet => "RecipeLearning_PickedUp", RecipeDiscoveryState.KnownUnmet => "RecipeLearning_NotPickedUp", _ => "RecipeLearning_PickupUnknown" });
+        if (node.Kind == RecipeLearningNodeKind.Skill)
+            return L.Resource(node.State switch { RecipeDiscoveryState.KnownMet => "RecipeLearning_ConditionMet", RecipeDiscoveryState.KnownUnmet => "RecipeLearning_ConditionUnmet", _ => "RecipeLearning_ConditionUnknown" });
+        return null;
+    }
+    private string? AreaLabel(RecipeSpecialGrant source)
+    {
+        if (string.IsNullOrWhiteSpace(source.LevelId)) return null;
+        var label = LevelName(source.LevelId);
+        return string.IsNullOrWhiteSpace(label) || label.Equals(source.LevelId, StringComparison.Ordinal) && label.Contains('_', StringComparison.Ordinal) ? null : label;
+    }
+    private Task Reveal(RecipeLearningNode node)
+        => node.Special is { } special ? OnRevealSpecial.InvokeAsync(special)
+            : node.Source is { } source ? OnRevealSource.InvokeAsync(source) : OnRevealRecipe.InvokeAsync(node.RecipeId);
+
+    private RenderFragment Branch(RecipeLearningNode node, string key) => @<li class="learning-tree-node" @key="key" data-node-kind="@node.Kind" data-node-path="@node.Path">
+        @if (node.Concealed)
+        {
+            <div class="learning-tree-row learning-tree-sealed">
+                <span>@L.Resource("RecipeLearning_SourceSealed")</span>
+                <button type="button" class="secondary" data-action="reveal" data-path="@node.Path" @onclick="() => Reveal(node)">@L.Resource("RecipeLearning_RevealSource")</button>
+            </div>
+        }
+        else
+        {
+            <div class="learning-tree-row @(node.IsRoot ? "learning-tree-target" : null)">
+                @if (node.Children.Count > 0)
+                {
+                    <button type="button" class="learning-tree-toggle" data-action="toggle" data-path="@node.Path" aria-expanded="@(_expanded.Contains(node.Path) ? "true" : "false")" @onclick="() => Toggle(node.Path)">
+                        <span class="learning-tree-chevron" aria-hidden="true">@(_expanded.Contains(node.Path) ? "⌄" : "›")</span>
+                        <span>@Label(node)</span>
+                    </button>
+                }
+                else { <span class="learning-tree-leaf">@Label(node)</span> }
+                @if (StateLabel(node) is { } state) { <small class="learning-tree-state @((node.IsRoot ? node.Assessment?.RecipeKnowledgeAvailable == true : node.State == RecipeDiscoveryState.KnownMet) ? "known" : null)">@state</small> }
+                @if (node.Kind == RecipeLearningNodeKind.PickupItem && node.ItemId is { } item)
+                {
+                    <button type="button" class="secondary learning-tree-sources" data-action="inspect-item" data-path="@node.Path" aria-label="@L.Resource("RecipeLearningTree_ItemSources", ItemName(item))" @onclick="() => OnInspectItem.InvokeAsync(item)">@L.Resource("RecipeLearningTree_InspectItem")</button>
+                }
+                @Details(node)
+            </div>
+            @if (node.Children.Count > 0 && _expanded.Contains(node.Path))
+            {
+                <ul class="learning-tree-children">
+                    @foreach (var (child, childKey) in RenderKeys.With(node.Children, child => child.Path)) { @Branch(child, childKey) }
+                </ul>
+            }
+        }
+    </li>;
+
+    private RenderFragment Details(RecipeLearningNode node) => @<text>
+        @if (node.Kind == RecipeLearningNodeKind.Discovery) { <small class="learning-tree-note">@L.Resource("RecipeLearningTree_Alternatives")</small> }
+        @if (node.Kind == RecipeLearningNodeKind.PickupAll) { <small class="learning-tree-note">@L.Resource("RecipeLearning_TypeCountHelp")</small> }
+        @if (node.Kind == RecipeLearningNodeKind.Research && node.Assessment?.IsResearchPending == true)
+        {
+            <small class="learning-tree-note">@L.Resource("RecipeLearning_ResearchPending")</small>
+        }
+        else if (node.Kind == RecipeLearningNodeKind.Research && node.Assessment is { IsDiscovered: false, Definition.RequiresResearch: true })
+        {
+            <small class="learning-tree-note">@L.Resource("RecipeLearning_ResearchAfterDiscovery")</small>
+        }
+        @if (node.Kind == RecipeLearningNodeKind.Special && node.Special is { } special)
+        {
+            @if (special.Kind == RecipeSpecialGrantKind.Conversation) { <small class="learning-tree-note">@L.Resource("RecipeLearning_ConversationHelp")</small> }
+            @if (AreaLabel(special) is { } area) { <small class="learning-tree-note">@L.Resource("RecipeLearning_Area", area)</small> }
+        }
+        @if (node.Source is { } source)
+        {
+            <small class="learning-tree-note">@L.Resource((source.Kind, source.RecordedSourceState) switch
+            {
+                (RecipeDiscoverySourceKind.Email, RecipeDiscoveryState.KnownMet) => "RecipeGuide_EmailRecorded",
+                (RecipeDiscoverySourceKind.Email, RecipeDiscoveryState.KnownUnmet) => "RecipeGuide_EmailNotRecorded",
+                (RecipeDiscoverySourceKind.Fish, RecipeDiscoveryState.KnownMet) => "RecipeGuide_FishRecorded",
+                (RecipeDiscoverySourceKind.Fish, RecipeDiscoveryState.KnownUnmet) => "RecipeGuide_FishNotRecorded",
+                _ => "RecipeGuide_DiscoveryHistoryUnknown",
+            })</small>
+            <small class="learning-tree-note">@L.Resource(source.Kind == RecipeDiscoverySourceKind.Fish && string.IsNullOrWhiteSpace(source.RequiredWorldFlag)
+                ? "RecipeGuide_NoStoryCondition" : source.WorldAccessState switch { RecipeDiscoveryState.KnownMet => "RecipeGuide_StoryMet", RecipeDiscoveryState.KnownUnmet => "RecipeGuide_StoryUnmet", _ => "RecipeGuide_StoryUnknown" })@if (source.RequiredWorldFlag is { Length: > 0 } flag) { <text>: @PlainNames.Flag(L, flag)</text> }</small>
+            @if (source.RequiredDlcId is { Length: > 0 } dlc) { <small class="learning-tree-note">@L.Resource("RecipeGuide_SourceDlc", PlainNames.Words(dlc))</small> }
+            @if (source.RequiredBaitTag is { Length: > 0 } bait) { <small class="learning-tree-note">@L.Resource("RecipeGuide_SourceBait", PlainNames.Words(bait))</small> }
+            @if (source.HasTimePreference) { <small class="learning-tree-note">@L.Resource("RecipeGuide_SourceTime")</small> }
+        }
+    </text>;
+}

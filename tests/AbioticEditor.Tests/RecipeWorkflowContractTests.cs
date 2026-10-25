@@ -154,17 +154,18 @@ public sealed class RecipeWorkflowContractTests
         var language = new HostLanguageService();
         var html = await RenderReport(language, concealed: false, learned: false, staged: false, history: false, discovery: true);
         Assert.Contains(language.Resource("RecipeGuide_RecordedGrantClue"), html, StringComparison.Ordinal);
-        Assert.Contains("grant-email-subject", html, StringComparison.Ordinal);
+        Assert.Contains(language.Resource("RecipeLearning_UnlockAction"), html, StringComparison.Ordinal);
+        Assert.DoesNotContain("grant-email-subject", html, StringComparison.Ordinal);
         Assert.DoesNotContain(language.Resource("RecipeGuide_SeenInputs", 1), html, StringComparison.Ordinal);
         Assert.DoesNotContain(language.Resource("RecipeGuide_HistoryHelp"), html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_revealed_recipe_keeps_unrecorded_discovery_sources_sealed()
+    public async Task A_report_links_to_the_selected_learning_tree_without_duplicating_source_details()
     {
         var language = new HostLanguageService();
         var html = await RenderReport(language, concealed: false, learned: false, staged: false, discovery: true, sourceSealed: true);
-        Assert.Contains(language.Resource("RecipeGuide_RevealDiscovery"), html, StringComparison.Ordinal);
+        Assert.Contains(language.Resource("RecipeLearning_UnlockAction"), html, StringComparison.Ordinal);
         Assert.DoesNotContain("grant-email-subject", html, StringComparison.Ordinal);
         Assert.DoesNotContain("classified-fish-name", html, StringComparison.Ordinal);
         Assert.DoesNotContain("classified-dlc", html, StringComparison.Ordinal);
@@ -231,7 +232,6 @@ public sealed class RecipeWorkflowContractTests
                     [new EmailEntry("Email_Labs_Test", "grant-email-subject", [], [id], [])],
                     [new FishDefinition("classified-fish-name", "classified-fish-name", false, UnlockRecipeId: id, RequiredDlcId: "classified-dlc", RequiredBaitTag: "classified-bait")],
                     [], discovery && !sourceSealed ? ["Email_Labs_Test"] : [], [])),
-                [nameof(RecipeDiscoveryReport.SourceConcealed)] = (Func<RecipeDiscoveryRoute, bool>)(_ => sourceSealed),
             }));
             return WebUtility.HtmlDecode(view.ToHtmlString());
         });

@@ -12,6 +12,15 @@ snapshot. The UI separates discovering a recipe from finishing its research and 
 finding its materials. Explicit editor Unlock still uses the existing guarded writer.
 No quest, conversation, item history or research completion is changed by browsing.
 
+The selected recipe's **How to unlock** view presents this evidence as a connected,
+expandable tree. Alternative discovery methods are separate branches. The standard pickup
+route requires all input types, with an any-one branch for each actual substitute group.
+Linked recipes expand into their own discovery routes, not a fabricated requirement to
+finish their research. Only the selected root has the subsequent research phase. Projection
+is bounded to 200 nodes and depth 8 with explicit cycle, depth and size boundaries. Source
+conditions such as fish bait or approximate email-region access remain contextual notes,
+not additional mandatory discovery branches.
+
 ## Primary evidence and extraction
 
 The authoritative source is the installed cooked assets, their class defaults and Blueprint

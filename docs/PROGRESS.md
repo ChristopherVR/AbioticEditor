@@ -1,5 +1,38 @@
 # Abiotic Editor - Session history
 
+## Selected recipes show connected unlock requirements (2026-10-26)
+
+- Added **How to unlock** to recipe rows, Details, missed-recipe suggestions and crafting
+  guides. It opens the selected recipe in the main content area with a connected expandable
+  learning tree, not a whole-catalog overview or another ambiguous tab. Existing explicit
+  Unlock/Undo controls remain beside the selected target.
+- The root separates alternative discovery methods from subsequent research. Pickup routes
+  require every input type, while substitute branches accept any one actual member. Linked
+  recipes expand into their own discovery methods without requiring their research. Skills,
+  conversations, objects, bench access, cooking, processing, compendium, email and fish routes
+  use one hierarchy. Fish/email availability notes remain limited context, not mandatory AND
+  prerequisites. Ingredient inspection opens optional existing material or recipe details.
+- Added a pure selected-recipe projection with case-insensitive cycle checks, depth 8 and
+  200-node limits. Boundaries are explicit, and a reserved slot keeps root research visible.
+  Sealed recipes stop before assessment/descendant callbacks. The inherited Open Sans/theme
+  palette and amber connector lines preserve the existing editor identity.
+- Expand/collapse state survives fresh projections, source reveals and history updates for
+  the same target. Explicit entry, including reopening the same recipe, alone requests focus
+  and scrolling; ordinary updates do not jump the viewport. Unknown live research does not
+  imply an unfinished minigame, and pending research is not styled as completed knowledge.
+- Removed duplicated flat learning/source panels from the active workflows and kept the
+  source-coverage notice once in the data disclosure. Removed the exact requested sentence
+  "Changes stage until you press SAVE." from Vitals effects and Distilled item history.
+  Save staging, backups and actual write handlers are unchanged.
+- Focused verification: 62 passed, covering pure topology/limits, rendered privacy and states,
+  actual expand/collapse/inspect/reveal callbacks, stable expansion, explicit focus lifecycle,
+  integrated selected-recipe navigation and one source notice. Core, Shared, both desktop
+  targets and WASM build without warnings/errors using the existing optional-native skip.
+  Docs build and 3,496 local link/image checks pass. No UI automation or real save writes.
+- Ready Windows copy: ignored `artifacts/recipe-unlock-tree-build/desktop/AbioticEditor.Web.exe`.
+  All 48 managed runtime entries are present; Core and Shared hashes match current builds.
+  The prior review output was not replaced, and no user process was stopped or restarted.
+
 ## Recipe learning catalog follows the game's discovery logic (2026-10-26)
 
 - Replaced the 26-source email/fish-only boundary with verified learning metadata from the

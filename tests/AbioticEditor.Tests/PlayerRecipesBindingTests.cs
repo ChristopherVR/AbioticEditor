@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Net;
 using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.Items;
 using AbioticEditor.Web.Components.Player;
@@ -10,11 +11,44 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Web.HtmlRendering;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace AbioticEditor.Tests;
 
 public sealed class PlayerRecipesBindingTests
 {
+    [Fact]
+    public async Task Integrated_recipe_views_show_the_source_notice_once_and_open_a_selected_recipe_tree()
+    {
+        await using var harness = new BindingHarness();
+        var session = new CountingSession { RecipeItemsPickedUp = [] };
+        var view = await harness.Begin(session);
+        harness.ReleaseLoader();
+        await view.QuiescenceTask;
+        var language = new HostLanguageService();
+        var notice = language.Resource("RecipeGuide_SourceCoverage");
+
+        await harness.Action("CheckRecipes");
+        var report = await harness.Html(view);
+        Assert.Equal(1, report.Split(notice, StringSplitOptions.None).Length - 1);
+
+        await harness.Action("OpenLearning", "recipe_loaded");
+        var learning = await harness.Html(view);
+        Assert.Equal(1, learning.Split(notice, StringSplitOptions.None).Length - 1);
+        Assert.Contains("class=\"learning-tree\"", learning, StringComparison.Ordinal);
+        Assert.Contains(language.Resource("RecipeLearning_UnlockTitle", "Recipe Loaded"), learning, StringComparison.Ordinal);
+        Assert.DoesNotContain("recipe-learning-guide", learning, StringComparison.Ordinal);
+        Assert.DoesNotContain("recipe-discovery-sources", learning, StringComparison.Ordinal);
+        Assert.DoesNotContain("Changes stage until you press SAVE.", learning, StringComparison.Ordinal);
+        Assert.Equal(0, session.UnlockedRecipeCount);
+    }
+
+    [Theory]
+    [InlineData("PlayerVitalsTab.razor")]
+    [InlineData("PlayerDistilledSection.razor")]
+    public void Requested_staging_sentence_is_removed_from_existing_player_panels(string file)
+        => Assert.DoesNotContain("Changes stage until you press SAVE.", UiSource.ReadAllText("Components", "Player", file), StringComparison.Ordinal);
+
     [Fact]
     public async Task Missed_check_uses_verified_pickup_eligibility_and_current_history_instead_of_crafting_inputs_alone()
     {
@@ -147,7 +181,8 @@ public sealed class PlayerRecipesBindingTests
             services.AddSingleton<InventorySelectionService>();
             services.AddSingleton<ModalService>();
             services.AddSingleton<ToastService>();
-            services.AddSingleton(new HostSpoilerPreferences(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "spoilers.json")));
+            services.AddSingleton(new HostSpoilerPreferences(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "spoilers.json")) { Enabled = false });
+            services.AddSingleton<IJSRuntime, NoBrowserJs>();
             services.AddSingleton<ISaveFileSystem, DesktopSaveFileSystem>();
             services.AddSingleton<SaveWorkspaceSessionService>();
             services.AddSingleton<SiblingWorldBedService>();
@@ -168,6 +203,13 @@ public sealed class PlayerRecipesBindingTests
             })));
 
         public Task Update(IPlayerRecipesSession session) => _renderer.Dispatcher.InvokeAsync(() => Host.Update(session));
+        public Task Action(string name, string? recipeId = null) => _renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            await (Task)typeof(PlayerRecipesTab).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(Host.Child, recipeId is null ? null : [recipeId])!;
+            Host.Update(Host.Session);
+        });
+        public Task<string> Html(HtmlRootComponent view) => _renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(view.ToHtmlString()));
         public Task<string[]> ReviewIds() => _renderer.Dispatcher.InvokeAsync(() =>
             ((IReadOnlyList<RecipeInfo>)typeof(PlayerRecipesTab).GetProperty("ReviewRecipes", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(Host.Child)!).Select(recipe => recipe.Id).ToArray());
@@ -185,6 +227,12 @@ public sealed class PlayerRecipesBindingTests
             typeof(T).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(service, new Lazy<TValue>(() => value));
             return service;
         }
+    }
+
+    private sealed class NoBrowserJs : IJSRuntime
+    {
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) => throw new InvalidOperationException("No UI automation is used by this rendered test.");
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) => InvokeAsync<TValue>(identifier, args);
     }
 
     public sealed class BindingHost : ComponentBase

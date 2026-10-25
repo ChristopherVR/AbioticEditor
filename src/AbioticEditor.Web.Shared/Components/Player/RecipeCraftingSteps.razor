@@ -7,6 +7,7 @@
 <div class="recipe-workflow-heading">
     <h3>@(Concealed(RootRecipe) ? L.Resource("Spoiler_Redacted") : L.Resource("RecipeGuide_MakeTitle", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id)))</h3>
     <button type="button" class="secondary" @onclick="OnBack">@L.Resource(ReturnToCheck ? "RecipeGuide_BackCheck" : "RecipeGuide_BackBook")</button>
+    @if (!Concealed(RootRecipe)) { <button type="button" class="secondary" @onclick="() => OnLearning.InvokeAsync(RootRecipe.Id)">@L.Resource("RecipeLearning_UnlockAction")</button> }
 </div>
 <div class="hazard" role="presentation"></div>
 @if (Concealed(RootRecipe))
@@ -37,7 +38,6 @@ else
         </ul>
     </div>
 }
-@if (LearningContent is not null) { @LearningContent(RootRecipe.Id) }
 <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_StationHelp") @L.Resource("RecipeGuide_StockHelp")</p>
 <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_MaterialCoverage")</p>
 }
@@ -63,7 +63,7 @@ else
     [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
     [Parameter] public EventCallback<string> OnReveal { get; set; }
     [Parameter] public long RevealRequest { get; set; }
-    [Parameter] public RenderFragment<string>? LearningContent { get; set; }
+    [Parameter] public EventCallback<string> OnLearning { get; set; }
 
     private readonly HashSet<string> _expanded = ["root", "root.0"];
     private readonly Dictionary<string, string> _routes = new(StringComparer.Ordinal);

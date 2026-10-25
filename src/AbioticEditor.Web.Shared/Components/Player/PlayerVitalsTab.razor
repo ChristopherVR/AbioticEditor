@@ -28,7 +28,7 @@
         <section class="editor-card" aria-label="Active effects">
             <div class="card-title-row"><span class="amber-field-label">Active effects</span>
                 <button class="heal-all-button" type="button" disabled="@(FileSession.ActiveBuffs.Count == 0)" @onclick="ClearEffects">Clear all</button></div>
-            <p class="muted">Effects the character currently has. You can remove them here; adding new ones is not supported. Changes stage until you press SAVE.</p>
+            <p class="muted">Effects the character currently has. You can remove them here; adding new ones is not supported.</p>
             @if (FileSession.ActiveBuffs.Count == 0)
             {
                 <p>-</p>

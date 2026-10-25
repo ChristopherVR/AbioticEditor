@@ -887,6 +887,8 @@ h1[tabindex="-1"]:focus{outline:none}
 .recipe-review-entry p{margin:0;font-size:13px}.recipe-review-entry small{display:block;margin-top:3px;color:var(--muted);font-size:11px}.recipe-review-entry button{flex:0 0 auto;font-size:12px;letter-spacing:0;text-transform:none}
 .rb-row:has(.recipe-book-steps){grid-template-columns:auto auto minmax(0,1fr) auto auto}
 .recipe-book-steps,.recipe-detail-steps{font-size:11px!important;letter-spacing:0!important;text-transform:none!important;white-space:normal}
+.recipe-book-actions{display:flex;flex-wrap:wrap;gap:5px;max-width:260px}
+@container(max-width:760px){.recipe-book-actions{grid-column:3;grid-row:2;justify-self:start}}
 .recipe-workflow-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.recipe-workflow-heading h3{margin:0!important}.recipe-workflow-heading button{font-size:11px;letter-spacing:0;text-transform:none}
 .recipe-workflow-copy{margin:0;color:var(--muted);font-size:12px;line-height:1.6;max-width:80ch}
 .recipe-expand-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}.recipe-expand-controls>div{display:flex;gap:5px}.recipe-expand-controls button{font-size:11px;letter-spacing:0;text-transform:none}

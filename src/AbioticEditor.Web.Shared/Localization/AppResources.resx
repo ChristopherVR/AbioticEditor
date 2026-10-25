@@ -4890,6 +4890,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Sources lists known salvage, trading and fishing options. Other loot and enemy locations are not mapped here.</value></data>
   <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Already learned by this player.</value></data>
   <data name="RecipeLearning_Title" xml:space="preserve"><value>How to learn this recipe</value></data>
+  <data name="RecipeLearning_UnlockAction" xml:space="preserve"><value>How to unlock</value></data>
+  <data name="RecipeLearning_UnlockTitle" xml:space="preserve"><value>How to unlock {0}</value></data>
+  <data name="RecipeLearning_PickupConditionMet" xml:space="preserve"><value>You have picked up the item types needed for this recipe's discovery method.</value></data>
+  <data name="RecipeLearning_KnownConditionClue" xml:space="preserve"><value>A recorded learning condition is met. Open How to unlock to follow its requirements.</value></data>
   <data name="RecipeLearning_PendingResearch" xml:space="preserve"><value>Discovered, research pending</value></data>
   <data name="RecipeLearning_Discovered" xml:space="preserve"><value>This player has discovered this recipe. The ways to learn it are shown below.</value></data>
   <data name="RecipeLearning_NotDiscovered" xml:space="preserve"><value>This player has not discovered this recipe yet.</value></data>
@@ -4935,4 +4939,31 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeLearning_Cooking" xml:space="preserve"><value>Try the listed ingredients together in a cooking pot. Experimenting with similar combinations can also reveal soup recipes.</value></data>
   <data name="RecipeLearning_Processing" xml:space="preserve"><value>Mix these ingredients at a chemistry bench.</value></data>
   <data name="RecipeLearning_Bench" xml:space="preserve"><value>Open {0} to discover this recipe.</value></data>
+  <data name="RecipeLearningTree_Help" xml:space="preserve"><value>Follow a connected branch to discover the recipe, then check whether research is still needed.</value></data>
+  <data name="RecipeLearningTree_Collapse" xml:space="preserve"><value>Collapse branches</value></data>
+  <data name="RecipeLearningTree_Aria" xml:space="preserve"><value>Recipe learning paths</value></data>
+  <data name="RecipeLearningTree_RootRecipe" xml:space="preserve"><value>Learn {0}</value></data>
+  <data name="RecipeLearningTree_LinkedRecipe" xml:space="preserve"><value>Discover {0}</value></data>
+  <data name="RecipeLearningTree_Discovery" xml:space="preserve"><value>Choose a way to discover it</value></data>
+  <data name="RecipeLearningTree_Alternatives" xml:space="preserve"><value>These are alternatives. You do not need to complete every branch.</value></data>
+  <data name="RecipeLearningTree_PickupAll" xml:space="preserve"><value>Pick up every required item type</value></data>
+  <data name="RecipeLearningTree_PickupAny" xml:space="preserve"><value>Pick up any one of these items</value></data>
+  <data name="RecipeLearningTree_PickupItem" xml:space="preserve"><value>Pick up {0}</value></data>
+  <data name="RecipeLearningTree_UnknownItem" xml:space="preserve"><value>an unresolved item type</value></data>
+  <data name="RecipeLearningTree_UnknownEmail" xml:space="preserve"><value>the relevant email</value></data>
+  <data name="RecipeLearningTree_UnknownFish" xml:space="preserve"><value>the relevant fish</value></data>
+  <data name="RecipeLearningTree_UnknownTrait" xml:space="preserve"><value>the relevant trait or background</value></data>
+  <data name="RecipeLearningTree_UnknownEntry" xml:space="preserve"><value>this creature or encounter</value></data>
+  <data name="RecipeLearningTree_Cooking" xml:space="preserve"><value>Try the recipe’s ingredients together in a cooking pot.</value></data>
+  <data name="RecipeLearningTree_FinishResearch" xml:space="preserve"><value>Then finish research</value></data>
+  <data name="RecipeLearningTree_NoResearch" xml:space="preserve"><value>No research minigame needed</value></data>
+  <data name="RecipeLearningTree_ResearchDone" xml:space="preserve"><value>Research completed</value></data>
+  <data name="RecipeLearningTree_ResearchAfterDiscovery" xml:space="preserve"><value>Then research it in the crafting screen</value></data>
+  <data name="RecipeLearningTree_Discovered" xml:space="preserve"><value>Discovered</value></data>
+  <data name="RecipeLearningTree_NotDiscovered" xml:space="preserve"><value>Not discovered</value></data>
+  <data name="RecipeLearningTree_Cycle" xml:space="preserve"><value>This route leads back to a recipe already shown. Try another branch.</value></data>
+  <data name="RecipeLearningTree_DepthLimit" xml:space="preserve"><value>This branch is too deep to expand further.</value></data>
+  <data name="RecipeLearningTree_NodeLimit" xml:space="preserve"><value>Some paths are not shown because this learning chain is too large.</value></data>
+  <data name="RecipeLearningTree_ItemSources" xml:space="preserve"><value>Inspect {0}</value></data>
+  <data name="RecipeLearningTree_InspectItem" xml:space="preserve"><value>Inspect item</value></data>
 </root>
