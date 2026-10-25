@@ -3502,12 +3502,12 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>verschwindet bei: {0}</value></data>
   <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Übersehene Rezepte suchen</value></data>
   <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Hast du ein Rezept übersehen?</value></data>
-  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Finde Rezepte zum Überprüfen anhand der Zutaten, die du aufgehoben hast.</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Finde Rezepte zum Überprüfen anhand der Zutaten, freischaltenden E-Mails und Fische, die du entdeckt hast.</value></data>
   <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Herstellungsschritte anzeigen</value></data>
   <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Zurück zum Rezeptbuch</value></data>
   <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Zurück zur Rezeptprüfung</value></data>
   <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} Rezepte in dieser Prüfung: {1} nicht gelernt, {2} freigeschaltet.</value></data>
-  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Diese Rezepte wurden vorgeschlagen, weil ihre Zutaten im Verlauf deiner aufgehobenen Gegenstände stehen.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Jeder Vorschlag erklärt, welcher Zutaten- oder Entdeckungshinweis dazu geführt hat.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Das sind Hinweise zum Nachgehen, keine sicher übersehenen Freischaltungen.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Du hast alle {0} Zutatenarten für dieses Rezept aufgehoben.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Welche Zutaten?</value></data>
@@ -3522,10 +3522,10 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Die Freischaltung wird sofort im laufenden Spiel angewendet.</value></data>
   <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>Das Rezept konnte nicht freigeschaltet werden.</value></data>
   <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Prüfe die Verbindung und versuche es erneut.</value></data>
-  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Verlauf aufgehobener Gegenstände nicht verfügbar</value></data>
-  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Diese Sitzung enthält nicht die Gegenstände, die du aufgehoben hast. Öffne den Spielstand eines Spielers, um nach übersehenen Rezepten zu suchen.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Entdeckungsverlauf nicht verfügbar</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Diese Sitzung enthält weder den Verlauf aufgehobener Gegenstände noch gelesener E-Mails oder gefangener Fische. Öffne den Spielstand eines Spielers, um diese Hinweise zu prüfen.</value></data>
   <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Keine Rezepte passen zu diesem Hinweis</value></data>
-  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Andere noch nicht gelernte Rezepte können weiterhin interessant sein. Diese Prüfung verwendet nur den Verlauf aufgehobener Zutaten.</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Andere noch nicht gelernte Rezepte können weiterhin interessant sein. Diese Prüfung verwendet nur den für diesen Spieler verfügbaren Entdeckungsverlauf.</value></data>
   <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Alle noch nicht gelernten Rezepte anzeigen</value></data>
   <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Für die anderen noch nicht gelernten Rezepte fehlen Informationen für diese Prüfung. Es kann sich trotzdem lohnen, sie anzusehen.</value></data>
   <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Ohne Spieldaten sind die Rezeptbeziehungen nicht verfügbar.</value></data>
@@ -3552,4 +3552,40 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Rezept aufdecken</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Für diesen Gegenstand ist kein Herstellungsrezept aufgeführt. Seine Bezugsquelle ist unbekannt.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Zutaten pro Herstellung</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Im Spiel lernen</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Wie dieses Rezept gelernt wird, ist in diesen Spieldatentabellen nicht verzeichnet.</value></data>
+  <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>E-Mail lesen: {0}</value></data>
+  <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Fangen: {0}</value></data>
+  <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Diese E-Mail ist bereits als gelesen verzeichnet.</value></data>
+  <data name="RecipeGuide_EmailNotRecorded" xml:space="preserve"><value>Diese E-Mail ist nicht als gelesen verzeichnet.</value></data>
+  <data name="RecipeGuide_FishRecorded" xml:space="preserve"><value>Dieser Fisch ist bereits als gefangen verzeichnet.</value></data>
+  <data name="RecipeGuide_FishNotRecorded" xml:space="preserve"><value>Dieser Fisch ist nicht als gefangen verzeichnet.</value></data>
+  <data name="RecipeGuide_DiscoveryHistoryUnknown" xml:space="preserve"><value>Dieser Entdeckungsverlauf ist nicht verfügbar.</value></data>
+  <data name="RecipeGuide_StoryMet" xml:space="preserve"><value>Bekannte Story-Bedingung erfüllt</value></data>
+  <data name="RecipeGuide_StoryUnmet" xml:space="preserve"><value>Bekannte Story-Bedingung nicht erfüllt</value></data>
+  <data name="RecipeGuide_StoryUnknown" xml:space="preserve"><value>Story-Bedingung unbekannt</value></data>
+  <data name="RecipeGuide_SourceDlc" xml:space="preserve"><value>Benötigter DLC: {0}. Der Besitz wird nicht geprüft.</value></data>
+  <data name="RecipeGuide_SourceBait" xml:space="preserve"><value>Benötigter Köder: {0}. Dein Köder wird nicht geprüft.</value></data>
+  <data name="RecipeGuide_SourceTime" xml:space="preserve"><value>Die Fangchancen hängen von der Tageszeit ab.</value></data>
+  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>Bekannte E-Mail- und Fischquellen werden geprüft. Andere Quest- oder Entdeckungsbedingungen sind möglicherweise nicht aufgeführt.</value></data>
+  <data name="RecipeGuide_RecordedGrantClue" xml:space="preserve"><value>Dieses Rezept wurde vorgeschlagen, weil eine Entdeckung, die es freischaltet, bereits verzeichnet ist.</value></data>
+  <data name="RecipeGuide_PickupUnavailableSources" xml:space="preserve"><value>Der Verlauf aufgehobener Gegenstände ist nicht verfügbar. Diese Prüfung verwendet nur verzeichnete E-Mail- und Fischentdeckungen.</value></data>
+  <data name="RecipeGuide_DataSource" xml:space="preserve"><value>Rezeptdaten: {0}</value></data>
+  <data name="RecipeGuide_SourceInstalledGame" xml:space="preserve"><value>installiertes Spiel</value></data>
+  <data name="RecipeGuide_SourceUserSnapshot" xml:space="preserve"><value>importierter Datenstand</value></data>
+  <data name="RecipeGuide_SourceBundledSnapshot" xml:space="preserve"><value>mitgelieferter Datenstand</value></data>
+  <data name="RecipeGuide_SourceSuppliedSnapshot" xml:space="preserve"><value>Browser-Datenstand</value></data>
+  <data name="RecipeGuide_SourceUnavailable" xml:space="preserve"><value>nicht verfügbar</value></data>
+  <data name="RecipeGuide_DataChecked" xml:space="preserve"><value>Datenquelle geprüft: {0}. Dies ist nicht das Erstellungsdatum des Datenstands.</value></data>
+  <data name="RecipeGuide_DataVersion" xml:space="preserve"><value>Verzeichnete Spielversion: {0}</value></data>
+  <data name="RecipeGuide_DataFallback" xml:space="preserve"><value>Die Daten des installierten Spiels konnten nicht vollständig gelesen werden. Wo verfügbar, wird ein gespeicherter Datenstand verwendet.</value></data>
+  <data name="RecipeGuide_SnapshotHelp" xml:space="preserve"><value>Gespeicherte Datenstände beschreiben die mit dem Editor gelieferten oder importierten Daten. Installiere ein Editor-Update oder importiere neuere Daten, wenn sich das Spiel ändert.</value></data>
+  <data name="RecipeGuide_AutoRefreshHelp" xml:space="preserve"><value>Spieldateien werden geprüft, wenn du Herstellungsschritte öffnest, nach übersehenen Rezepten suchst oder ein Rezept freischaltest. Geänderte Daten werden gemeinsam neu geladen.</value></data>
+  <data name="RecipeGuide_RefreshData" xml:space="preserve"><value>Rezeptdaten aktualisieren</value></data>
+  <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Rezeptdaten werden geprüft...</value></data>
+  <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Die Entdeckungsdetails sind geheim.</value></data>
+  <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Entdeckungsdetails aufdecken</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>diese Entdeckungsdetails</value></data>
+  <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Eine bekannte Entdeckungsquelle erfordert weiteren Story-Fortschritt. Decke ihre Entdeckungsdetails auf, um den Grund zu sehen.</value></data>
+  <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>Für diese Quelle ist keine Story-Bedingung aufgeführt.</value></data>
 </root>

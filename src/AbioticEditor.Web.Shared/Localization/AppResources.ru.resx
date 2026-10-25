@@ -3502,12 +3502,12 @@
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>уходит: {0}</value></data>
   <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Проверить пропущенные рецепты</value></data>
   <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Вы не пропустили рецепт?</value></data>
-  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Найдите рецепты для проверки по ингредиентам, которые вы подбирали.</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Найдите рецепты для проверки по ингредиентам, письмам с рецептами и рыбам, которые вы обнаружили.</value></data>
   <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Показать этапы изготовления</value></data>
   <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Назад к книге рецептов</value></data>
   <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Назад к проверке рецептов</value></data>
   <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>Рецепты в проверке: {0}; не изучено: {1}; разблокировано: {2}.</value></data>
-  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Эти рецепты предложены, потому что их ингредиенты есть в вашей истории подобранных предметов.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Каждая рекомендация объясняет, какая подсказка об ингредиентах или открытиях привела к её появлению.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Это подсказки для проверки, а не подтверждённые пропущенные рецепты.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Вы подбирали все {0} типов ингредиентов для этого рецепта.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Какие ингредиенты?</value></data>
@@ -3522,10 +3522,10 @@
   <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Разблокировка сразу применяется в запущенной игре.</value></data>
   <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>Не удалось разблокировать рецепт.</value></data>
   <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Проверьте подключение и попробуйте снова.</value></data>
-  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>История подбора недоступна</value></data>
-  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>В этой сессии нет списка подобранных предметов. Откройте сохранение игрока, чтобы проверить пропущенные рецепты.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>История открытий недоступна</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>В этой сессии нет ни истории подобранных предметов, ни прочитанных писем или пойманных рыб. Откройте сохранение игрока, чтобы проверить эти подсказки.</value></data>
   <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Нет рецептов с такой подсказкой</value></data>
-  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Возможно, стоит проверить и другие неизученные рецепты. Эта проверка использует только историю подобранных ингредиентов.</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Возможно, стоит проверить и другие неизученные рецепты. Эта проверка использует только доступную историю открытий этого игрока.</value></data>
   <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Показать все неизученные рецепты</value></data>
   <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Для проверки остальных неизученных рецептов недостаточно данных. Возможно, их тоже стоит изучить.</value></data>
   <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Связи между рецептами недоступны без данных игры.</value></data>
@@ -3552,4 +3552,40 @@
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Раскрыть рецепт</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Для этого предмета не указан рецепт изготовления. Его источник неизвестен.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ингредиенты на одно изготовление</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Изучить в игре</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>В этих таблицах игры не указано, как изучается этот рецепт.</value></data>
+  <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Прочитать письмо: {0}</value></data>
+  <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Поймать: {0}</value></data>
+  <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Это письмо уже отмечено как прочитанное.</value></data>
+  <data name="RecipeGuide_EmailNotRecorded" xml:space="preserve"><value>Это письмо не отмечено как прочитанное.</value></data>
+  <data name="RecipeGuide_FishRecorded" xml:space="preserve"><value>Эта рыба уже отмечена как пойманная.</value></data>
+  <data name="RecipeGuide_FishNotRecorded" xml:space="preserve"><value>Эта рыба не отмечена как пойманная.</value></data>
+  <data name="RecipeGuide_DiscoveryHistoryUnknown" xml:space="preserve"><value>Эта история открытий недоступна.</value></data>
+  <data name="RecipeGuide_StoryMet" xml:space="preserve"><value>Известное сюжетное условие выполнено</value></data>
+  <data name="RecipeGuide_StoryUnmet" xml:space="preserve"><value>Известное сюжетное условие не выполнено</value></data>
+  <data name="RecipeGuide_StoryUnknown" xml:space="preserve"><value>Сюжетное условие неизвестно</value></data>
+  <data name="RecipeGuide_SourceDlc" xml:space="preserve"><value>Нужное DLC: {0}. Владение им не проверяется.</value></data>
+  <data name="RecipeGuide_SourceBait" xml:space="preserve"><value>Нужная наживка: {0}. Ваша наживка не проверяется.</value></data>
+  <data name="RecipeGuide_SourceTime" xml:space="preserve"><value>Вероятность улова зависит от времени суток.</value></data>
+  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>Проверяются известные источники из писем и рыб. Другие условия заданий или открытий могут быть не указаны.</value></data>
+  <data name="RecipeGuide_RecordedGrantClue" xml:space="preserve"><value>Этот рецепт предложен, потому что открытие, дающее его, уже записано.</value></data>
+  <data name="RecipeGuide_PickupUnavailableSources" xml:space="preserve"><value>История подбора недоступна. Эта проверка использует только записанные открытия писем и рыб.</value></data>
+  <data name="RecipeGuide_DataSource" xml:space="preserve"><value>Данные рецептов: {0}</value></data>
+  <data name="RecipeGuide_SourceInstalledGame" xml:space="preserve"><value>установленная игра</value></data>
+  <data name="RecipeGuide_SourceUserSnapshot" xml:space="preserve"><value>импортированный снимок</value></data>
+  <data name="RecipeGuide_SourceBundledSnapshot" xml:space="preserve"><value>встроенный снимок</value></data>
+  <data name="RecipeGuide_SourceSuppliedSnapshot" xml:space="preserve"><value>снимок браузера</value></data>
+  <data name="RecipeGuide_SourceUnavailable" xml:space="preserve"><value>недоступны</value></data>
+  <data name="RecipeGuide_DataChecked" xml:space="preserve"><value>Источник данных проверен: {0}. Это не дата создания снимка.</value></data>
+  <data name="RecipeGuide_DataVersion" xml:space="preserve"><value>Записанная версия игры: {0}</value></data>
+  <data name="RecipeGuide_DataFallback" xml:space="preserve"><value>Не удалось полностью прочитать данные установленной игры. При наличии используется снимок данных.</value></data>
+  <data name="RecipeGuide_SnapshotHelp" xml:space="preserve"><value>Снимки описывают данные, поставляемые или импортируемые с редактором. Установите обновление редактора или импортируйте новые данные при изменении игры.</value></data>
+  <data name="RecipeGuide_AutoRefreshHelp" xml:space="preserve"><value>Файлы игры проверяются при открытии этапов изготовления, проверке пропущенных рецептов или разблокировке рецепта. Изменённые данные загружаются заново вместе.</value></data>
+  <data name="RecipeGuide_RefreshData" xml:space="preserve"><value>Обновить данные рецептов</value></data>
+  <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Проверка данных рецептов...</value></data>
+  <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Подробности открытия засекречены.</value></data>
+  <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Раскрыть подробности открытия</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>эти подробности открытия</value></data>
+  <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Известный источник открытия требует дальнейшего продвижения по сюжету. Раскройте подробности открытия, чтобы узнать причину.</value></data>
+  <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>Для этого источника условие сюжета не указано.</value></data>
 </root>

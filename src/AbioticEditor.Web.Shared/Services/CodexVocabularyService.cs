@@ -18,6 +18,21 @@ public sealed class CodexVocabularyService
     }
     public void Reload() => Interlocked.Exchange(ref _vocabulary, new Lazy<CodexVocabulary>(Load));
 
+    internal void ApplyRecipeSnapshot(RecipeCatalogSnapshot snapshot)
+    {
+        var loaded = new Lazy<CodexVocabulary>(() => snapshot.Codex);
+        _ = loaded.Value;
+        Interlocked.Exchange(ref _vocabulary, loaded);
+    }
+
+    internal static CodexVocabulary LoadFromProvider(GameAssetProvider provider)
+        => new(CodexCatalog.LoadEmails(provider), CodexCatalog.LoadJournals(provider),
+            CodexCatalog.LoadCompendium(provider), CodexCatalog.LoadFish(provider));
+
+    internal static CodexVocabulary FromRegistry(GameDataRegistry? registry)
+        => registry is null ? CodexVocabulary.Empty : new CodexVocabulary(
+            registry.Emails ?? [], registry.Journals ?? [], registry.Compendium ?? [], registry.Fish ?? []);
+
     private static CodexVocabulary Load()
     {
         try
@@ -25,21 +40,12 @@ public sealed class CodexVocabularyService
             var provider = GameDataGate.CreateProvider();
             if (provider is { HasMappings: true })
             {
-                var live = new CodexVocabulary(
-                    CodexCatalog.LoadEmails(provider),
-                    CodexCatalog.LoadJournals(provider),
-                    CodexCatalog.LoadCompendium(provider),
-                    CodexCatalog.LoadFish(provider));
+                var live = LoadFromProvider(provider);
                 if (live.Emails.Count > 0 || live.Compendium.Count > 0) return live;
             }
         }
         catch { /* fall through to the bundled dump */ }
 
-        if (GameDataRegistry.LoadBundled() is not { } registry) return CodexVocabulary.Empty;
-        return new CodexVocabulary(
-            registry.Emails ?? Array.Empty<EmailEntry>(),
-            registry.Journals ?? Array.Empty<JournalEntry>(),
-            registry.Compendium ?? Array.Empty<CompendiumEntry>(),
-            registry.Fish ?? Array.Empty<FishDefinition>());
+        return FromRegistry(GameDataRegistry.LoadBundled());
     }
 }

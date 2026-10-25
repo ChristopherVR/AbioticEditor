@@ -14,13 +14,75 @@ public partial class PlayerRecipesTab
     private RecipeInfo? _craftingRecipe;
     private RecipeGraph _recipeGraph = new([], []);
     private readonly List<string> _reviewRecipeIds = [];
+    private HashSet<string> _ingredientClueIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _newUnlockIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _recipeFeedback = new(StringComparer.OrdinalIgnoreCase);
     private bool _recipeWriteBusy;
     private bool _checkingRecipes;
     private string? _boundRecipeIdentity;
+    private RecipeCatalogSnapshot? _catalogSnapshot;
+    private bool _catalogRefreshing;
+    private long _catalogLoadGeneration;
 
     private IPlayerRecipesSession RecipeSource => Session is LivePlayerEditorSession live ? live.RecipesSession ?? Session : Session;
+
+    // A live facade's empty fallback arrays are not evidence that the player has read/caught nothing.
+    private IPlayerCodexSession? DiscoverySession => Session is LivePlayerEditorSession live
+        ? live.RecipesSession is LivePlayerRecipesSession recipes && live.CodexSession is LivePlayerCodexSession codex
+            && codex.HasCurrentHistory && string.Equals(recipes.SelectedPlayerId, codex.SelectedPlayerId, StringComparison.OrdinalIgnoreCase) ? codex : null
+        : Session as IPlayerCodexSession;
+    private bool HasDiscoveryHistory => DiscoverySession is not null;
+    private IReadOnlySet<string>? ReadEmails => DiscoverySession?.Emails.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlySet<string>? CaughtFish => DiscoverySession?.Fish.Where(row => row.IsKnown).Select(row => row.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private RecipeDiscoveryAssessment AssessRecipe(string id)
+        => RecipeDiscoveryAssessment.Assess(id, _catalogSnapshot?.Codex.Emails ?? [], _catalogSnapshot?.Codex.Fish ?? [], _worldFlags, ReadEmails, CaughtFish);
+
+    private bool ConcealedSource(RecipeDiscoveryRoute route)
+        => Spoilers.Enabled && route.RecordedSourceState != RecipeDiscoveryState.KnownMet && !Spoilers.IsRevealed(DiscoverySpoilerKey(route));
+
+    private static string DiscoverySpoilerKey(RecipeDiscoveryRoute route) => $"recipe-source:{route.Kind}:{route.SourceId}";
+
+    private void RevealSource(RecipeDiscoveryRoute route) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"), Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("RecipeGuide_TheseDiscoveryDetails"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Spoilers.Reveal(DiscoverySpoilerKey(route)); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private bool HasIngredientClue(string id)
+        => _ingredientClueIds.Contains(id);
+
+    private async Task<bool> RefreshCatalogAsync()
+    {
+        if (_catalogRefreshing) return false;
+        var session = Session;
+        var source = RecipeSource;
+        var targetIdentity = source.RecipeTargetIdentity;
+        var generation = ++_catalogLoadGeneration;
+        _catalogRefreshing = true;
+        try
+        {
+            var snapshot = await Task.Run(() => RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary));
+            if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return false;
+            if (_catalogSnapshot?.Metadata.Revision != snapshot.Metadata.Revision) ApplyCatalog(snapshot);
+            else _catalogSnapshot = snapshot;
+            return true;
+        }
+        finally { if (generation == _catalogLoadGeneration) _catalogRefreshing = false; }
+    }
+
+    private async Task RefreshRecipeData()
+    {
+        if (_recipeWriteBusy || _checkingRecipes) return;
+        if (!await RefreshCatalogAsync()) return;
+        var session = Session;
+        var source = RecipeSource;
+        var targetIdentity = source.RecipeTargetIdentity;
+        var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
+        if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+        _worldFlags = flags;
+        ShowOwnDetail();
+    }
 
     private bool IsLearned(string id)
         => Session.Recipes.FirstOrDefault(row => string.Equals(row.Id, id, StringComparison.OrdinalIgnoreCase))?.IsUnlocked == true;
@@ -46,10 +108,15 @@ public partial class PlayerRecipesTab
     {
         get
         {
-            var candidates = _recipeGraph.FindPossibleMissed(Session.Recipes.Where(row => row.IsUnlocked).Select(row => row.Id), Session.RecipeItemsPickedUp);
-            var currentIds = candidates.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var ingredientRecipes = _recipeGraph.FindPossibleMissed([], Session.RecipeItemsPickedUp);
+            _ingredientClueIds = ingredientRecipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var candidates = ingredientRecipes.Where(recipe => !IsLearned(recipe.Id));
+            var discovered = _catalogSnapshot is { } snapshot
+                ? RecipeDiscoveryAssessment.FindRecordedMissing(snapshot.Recipes.Select(recipe => recipe.Id), Session.Recipes.Where(row => row.IsUnlocked).Select(row => row.Id), snapshot.Codex.Emails, snapshot.Codex.Fish, ReadEmails, CaughtFish, _worldFlags)
+                : [];
+            var currentIds = candidates.Select(recipe => recipe.Id).Concat(discovered.Select(assessment => assessment.RecipeId)).ToHashSet(StringComparer.OrdinalIgnoreCase);
             _reviewRecipeIds.RemoveAll(id => !currentIds.Contains(id) && !(_newUnlockIds.Contains(id) && IsLearned(id)));
-            foreach (var recipe in candidates.OrderBy(recipe => RecipeName(recipe.Id), StringComparer.CurrentCultureIgnoreCase))
+            foreach (var recipe in (_catalogSnapshot?.Recipes ?? []).Where(recipe => currentIds.Contains(recipe.Id)).OrderBy(recipe => RecipeName(recipe.Id), StringComparer.CurrentCultureIgnoreCase))
                 if (!_reviewRecipeIds.Contains(recipe.Id, StringComparer.OrdinalIgnoreCase)) _reviewRecipeIds.Add(recipe.Id);
             return _reviewRecipeIds.Select(RowFor).Where(row => row is not null).Select(row => row!.Info).ToArray();
         }
@@ -64,6 +131,7 @@ public partial class PlayerRecipesTab
         _checkingRecipes = true;
         try
         {
+            if (!await RefreshCatalogAsync()) return;
             var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
             if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
             _worldFlags = flags;
@@ -73,10 +141,11 @@ public partial class PlayerRecipesTab
         finally { _checkingRecipes = false; }
     }
 
-    private void OpenCrafting(string recipeId)
+    private async Task OpenCrafting(string recipeId)
     {
+        if (!await RefreshCatalogAsync()) return;
         if (RowFor(recipeId) is not { } row) return;
-        if (Concealed(row)) { RequestReveal(row, () => OpenCrafting(recipeId)); return; }
+        if (Concealed(row)) { RequestRevealAfter(row, () => OpenCrafting(recipeId)); return; }
         _craftingReturn = _workflow == RecipeWorkflow.Crafting ? _craftingReturn : _workflow;
         _craftingRecipe = row.Info;
         _workflow = RecipeWorkflow.Crafting;
@@ -143,6 +212,7 @@ public partial class PlayerRecipesTab
         _workflow = RecipeWorkflow.Book;
         _craftingRecipe = null;
         _reviewRecipeIds.Clear();
+        _ingredientClueIds.Clear();
         _newUnlockIds.Clear();
         _recipeFeedback.Clear();
     }

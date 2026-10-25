@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using AbioticEditor.Core.Items;
+using AbioticEditor.Core.Codex;
 using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.Player;
 using AbioticEditor.Web.Components.Player;
@@ -81,6 +82,31 @@ public sealed class RecipeWorkflowContractTests
         Assert.Equal(live.RecipeTargetIdentity, facade.RecipeTargetIdentity);
     }
 
+    [Fact]
+    public async Task Live_discovery_history_is_unavailable_during_a_player_switch_and_ignores_old_reads()
+    {
+        await using var channel = new DelayedRecipeChannel();
+        var codex = await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), "player-a");
+        Assert.True(codex.HasCurrentHistory);
+        var oldRead = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        channel.NextRead = oldRead;
+        var refresh = codex.RefreshAsync();
+        var newRead = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        channel.NextRead = newRead;
+        var change = codex.SwitchPlayerAsync("player-b");
+        Assert.False(codex.HasCurrentHistory);
+
+        oldRead.SetResult("{\"emails\":[\"stale_a_grant\"],\"journals\":[],\"fish\":[],\"compendium\":[]}");
+        await refresh;
+        Assert.False(codex.HasCurrentHistory);
+        newRead.SetResult("{\"emails\":[\"b_grant\"],\"journals\":[],\"fish\":[],\"compendium\":[]}");
+        await change;
+
+        Assert.True(codex.HasCurrentHistory);
+        Assert.Equal("player-b", codex.SelectedPlayerId);
+        Assert.Equal("b_grant", Assert.Single(codex.Emails, row => row.IsKnown).Id);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, true)]
@@ -123,6 +149,29 @@ public sealed class RecipeWorkflowContractTests
     }
 
     [Fact]
+    public async Task Recorded_grant_is_explained_without_inventing_an_ingredient_clue_when_pickups_are_unavailable()
+    {
+        var language = new HostLanguageService();
+        var html = await RenderReport(language, concealed: false, learned: false, staged: false, history: false, discovery: true);
+        Assert.Contains(language.Resource("RecipeGuide_RecordedGrantClue"), html, StringComparison.Ordinal);
+        Assert.Contains("grant-email-subject", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(language.Resource("RecipeGuide_SeenInputs", 1), html, StringComparison.Ordinal);
+        Assert.DoesNotContain(language.Resource("RecipeGuide_HistoryHelp"), html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_revealed_recipe_keeps_unrecorded_discovery_sources_sealed()
+    {
+        var language = new HostLanguageService();
+        var html = await RenderReport(language, concealed: false, learned: false, staged: false, discovery: true, sourceSealed: true);
+        Assert.Contains(language.Resource("RecipeGuide_RevealDiscovery"), html, StringComparison.Ordinal);
+        Assert.DoesNotContain("grant-email-subject", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("classified-fish-name", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("classified-dlc", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("classified-bait", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Workflow_actions_share_the_canonical_writer_and_keep_presentation_components_read_only()
     {
         var workflow = Source("PlayerRecipesTab.Workflows.razor.cs");
@@ -151,7 +200,7 @@ public sealed class RecipeWorkflowContractTests
 
     private static string Source(string file) => UiSource.ReadAllText("Components", "Player", file);
 
-    private static async Task<string> RenderReport(HostLanguageService language, bool concealed, bool learned, bool staged, bool history = true)
+    private static async Task<string> RenderReport(HostLanguageService language, bool concealed, bool learned, bool staged, bool history = true, bool discovery = false, bool sourceSealed = false)
     {
         var recipe = new RecipeInfo("recipe_test", "output", 1, null, "Crafting", [new("ingredient", 1)]);
         var graph = new RecipeGraph([recipe], ["output", "ingredient"]);
@@ -176,6 +225,13 @@ public sealed class RecipeWorkflowContractTests
                 [nameof(RecipeDiscoveryReport.Feedback)] = (Func<string, string?>)(_ => null),
                 [nameof(RecipeDiscoveryReport.CatalogAvailable)] = true,
                 [nameof(RecipeDiscoveryReport.HasPickupHistory)] = history,
+                [nameof(RecipeDiscoveryReport.HasDiscoveryHistory)] = discovery,
+                [nameof(RecipeDiscoveryReport.IngredientClue)] = (Func<string, bool>)(_ => history),
+                [nameof(RecipeDiscoveryReport.Assessment)] = (Func<string, RecipeDiscoveryAssessment>)(id => RecipeDiscoveryAssessment.Assess(id,
+                    [new EmailEntry("Email_Labs_Test", "grant-email-subject", [], [id], [])],
+                    [new FishDefinition("classified-fish-name", "classified-fish-name", false, UnlockRecipeId: id, RequiredDlcId: "classified-dlc", RequiredBaitTag: "classified-bait")],
+                    [], discovery && !sourceSealed ? ["Email_Labs_Test"] : [], [])),
+                [nameof(RecipeDiscoveryReport.SourceConcealed)] = (Func<RecipeDiscoveryRoute, bool>)(_ => sourceSealed),
             }));
             return WebUtility.HtmlDecode(view.ToHtmlString());
         });
@@ -195,7 +251,7 @@ public sealed class RecipeWorkflowContractTests
 
         public async Task<TResponse> RequestAsync<TResponse>(string command, object? payload, CancellationToken cancellationToken = default)
         {
-            if (command == "recipes.get")
+            if (command is "recipes.get" or "codex.get")
             {
                 if (NextRead is { } pending)
                 {
@@ -204,6 +260,8 @@ public sealed class RecipeWorkflowContractTests
                 }
                 var data = JsonSerializer.SerializeToElement(payload, Options);
                 var player = data.GetProperty("playerId").GetString();
+                if (command == "codex.get")
+                    return JsonSerializer.Deserialize<TResponse>("{\"emails\":[],\"journals\":[],\"fish\":[],\"compendium\":[]}", Options)!;
                 return JsonSerializer.Deserialize<TResponse>(player == "player-b"
                     ? "{\"unlockedIds\":[\"b_known\"],\"canLock\":true}"
                     : "{\"unlockedIds\":[\"a_known\"],\"canLock\":true}", Options)!;

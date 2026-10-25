@@ -323,29 +323,51 @@ public sealed class GameDataRegistry
     /// 2. <c>registry/registry.json</c> next to the executable (bundled with the editor).
     /// </summary>
     public static GameDataRegistry? LoadBundled()
+        => LoadBundled(out _);
+
+    /// <summary>Loads a registry and reports its file path, or null for a browser-supplied snapshot.</summary>
+    public static GameDataRegistry? LoadBundled(out string? sourcePath)
     {
+        sourcePath = null;
         // A host with no file system supplies the registry directly (see Supply). Checked first
         // so it does not depend on a virtual file system behaving like a real one.
-        if (Supplied is { } supplied) return supplied;
-
-        if (File.Exists(UserRegistryPath)) return TryLoad(UserRegistryPath);
-
-        // The player's chosen game-data language first, then the default. A player reading the
-        // editor in German with no game installed should see German item names, not English ones.
-        var directory = Path.Combine(AppContext.BaseDirectory, "registry");
-        if (GameDataLanguageStore.Saved is { Length: > 0 } culture)
-        {
-            var localized = Path.Combine(directory, FileNameFor(culture));
-            if (File.Exists(localized) && TryLoad(localized) is { } match) return match;
-        }
-
-        return TryLoad(Path.Combine(directory, RegistryFileName));
+        if (SuppliedRegistry is { } supplied) return supplied;
+        return TryLoadFirst(RegistryCandidates(), out sourcePath);
     }
 
     private static GameDataRegistry? Supplied;
+    private static long _supplyRevision;
+
+    public static GameDataRegistry? SuppliedRegistry => Volatile.Read(ref Supplied);
+    public static long SupplyRevision => Interlocked.Read(ref _supplyRevision);
+
+    /// <summary>Candidate paths in precedence order; invalid overrides do not hide a valid fallback.</summary>
+    public static IReadOnlyList<string> RegistryCandidates()
+    {
+        var result = new List<string> { UserRegistryPath };
+        var directory = Path.Combine(AppContext.BaseDirectory, "registry");
+        if (GameDataLanguageStore.Saved is { Length: > 0 } culture)
+            result.Add(Path.Combine(directory, FileNameFor(culture)));
+        result.Add(Path.Combine(directory, RegistryFileName));
+        return result;
+    }
+
+    /// <summary>Returns the first readable, schema-compatible registry, skipping missing or invalid files.</summary>
+    public static GameDataRegistry? TryLoadFirst(IEnumerable<string> paths, out string? sourcePath)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        foreach (var path in paths)
+        {
+            if (TryLoad(path) is not { } registry) continue;
+            sourcePath = path;
+            return registry;
+        }
+        sourcePath = null;
+        return null;
+    }
 
     /// <summary>
-    /// Hands the registry to <see cref="LoadBundled"/> directly, for a host that cannot read it
+    /// Hands the registry to <see cref="LoadBundled()"/> directly, for a host that cannot read it
     /// off disk. The browser build fetches it over HTTP at startup and calls this.
     /// </summary>
     /// <remarks>
@@ -355,7 +377,16 @@ public sealed class GameDataRegistry
     /// to the log FILE there was nothing in the browser console to say so. Supplying the object
     /// removes the guesswork about what a virtual file system does with an absolute path.
     /// </remarks>
-    public static void Supply(GameDataRegistry? registry) => Supplied = registry;
+    public static void Supply(GameDataRegistry? registry)
+    {
+        if (registry is not null && registry.SchemaVersion != CurrentSchemaVersion)
+        {
+            EditorLog.Warn("Registry", "Ignoring a supplied registry with an unsupported schema version.");
+            registry = null;
+        }
+        Volatile.Write(ref Supplied, registry);
+        Interlocked.Increment(ref _supplyRevision);
+    }
 
     /// <summary>
     /// Reads a registry from already-fetched bytes. Same validation as <see cref="TryLoad(string)"/>.

@@ -1,0 +1,58 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<div class="recipe-discovery-sources">
+    <strong>@L.Resource("RecipeGuide_LearnInGame")</strong>
+    @if (!Assessment.HasKnownSources)
+    {
+        <p>@L.Resource("RecipeGuide_DiscoveryUnknown")</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var (route, routeKey) in RenderKeys.With(Assessment.Routes, route => $"{route.Kind}:{route.SourceId}"))
+            {
+                <li @key="routeKey">
+                    @if (Concealed(route))
+                    {
+                        <span>@L.Resource("RecipeGuide_DiscoverySealed")</span>
+                        <button type="button" class="secondary" @onclick="() => OnReveal.InvokeAsync(route)">@L.Resource("RecipeGuide_RevealDiscovery")</button>
+                    }
+                    else
+                    {
+                    <span>@L.Resource(route.Kind == RecipeDiscoverySourceKind.Email ? "RecipeGuide_ReadEmail" : "RecipeGuide_CatchFish", route.Kind == RecipeDiscoverySourceKind.Email ? route.EmailSubject : ItemName(route.FishItemId ?? route.SourceId))</span>
+                    <small>@L.Resource(RecordedKey(route))</small>
+                    <small class="recipe-source-condition">@L.Resource(WorldKey(route))@if (route.RequiredWorldFlag is { Length: > 0 } flag) { <text>: @PlainNames.Flag(L, flag)</text> }</small>
+                    @if (route.RequiredDlcId is { Length: > 0 } dlc) { <small>@L.Resource("RecipeGuide_SourceDlc", PlainNames.Words(dlc))</small> }
+                    @if (route.RequiredBaitTag is { Length: > 0 } bait) { <small>@L.Resource("RecipeGuide_SourceBait", PlainNames.Words(bait))</small> }
+                    @if (route.HasTimePreference) { <small>@L.Resource("RecipeGuide_SourceTime")</small> }
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RecipeDiscoveryAssessment Assessment { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter] public Func<RecipeDiscoveryRoute, bool> Concealed { get; set; } = _ => false;
+    [Parameter] public EventCallback<RecipeDiscoveryRoute> OnReveal { get; set; }
+
+    private static string RecordedKey(RecipeDiscoveryRoute route) => (route.Kind, route.RecordedSourceState) switch
+    {
+        (RecipeDiscoverySourceKind.Email, RecipeDiscoveryState.KnownMet) => "RecipeGuide_EmailRecorded",
+        (RecipeDiscoverySourceKind.Email, RecipeDiscoveryState.KnownUnmet) => "RecipeGuide_EmailNotRecorded",
+        (RecipeDiscoverySourceKind.Fish, RecipeDiscoveryState.KnownMet) => "RecipeGuide_FishRecorded",
+        (RecipeDiscoverySourceKind.Fish, RecipeDiscoveryState.KnownUnmet) => "RecipeGuide_FishNotRecorded",
+        _ => "RecipeGuide_DiscoveryHistoryUnknown",
+    };
+
+    private static string WorldKey(RecipeDiscoveryRoute route) => route.Kind == RecipeDiscoverySourceKind.Fish && string.IsNullOrWhiteSpace(route.RequiredWorldFlag)
+        ? "RecipeGuide_NoStoryCondition" : route.WorldAccessState switch
+    {
+        RecipeDiscoveryState.KnownMet => "RecipeGuide_StoryMet",
+        RecipeDiscoveryState.KnownUnmet => "RecipeGuide_StoryUnmet",
+        _ => "RecipeGuide_StoryUnknown",
+    };
+}

@@ -1,5 +1,35 @@
 # Abiotic Editor - Session history
 
+## Recipe checks follow game-data updates and discovery sources (2026-10-25)
+
+- Recipe task entry and explicit unlocks now check container, mappings, mod/settings and
+  registry metadata fingerprints. Changed inputs reload recipe, item, variant and codex
+  definitions together; unchanged healthy definitions are reused. First-mount fingerprinting
+  avoids retiring a healthy provider on the first task. Failed installed loads use a coherent
+  snapshot and retry after one minute; invalid schema/corrupt overrides fall back and recover.
+- Source disclosure names installed/imported/bundled/browser data, optional recorded version
+  and last source-check time. A check time is not the snapshot creation date. Bundled/browser
+  snapshots still need an editor distribution update or newer import after game updates.
+- Explicit email attachment and first-catch grants now add missed-recipe clues independently
+  of pickup history. Per-source guidance shows recorded discovery and known story conditions
+  as met, unmet or unknown; unverified bait/DLC/time conditions stay explicit. Sources are
+  alternatives, never a fabricated complete quest prerequisite map. No quest is auto-completed.
+- Current staged email/fish state is used. Unknown live history stays unknown; live codex
+  refresh/write commits are atomic with target switching, preventing stale discovery evidence.
+  Source details have separate spoiler reveals, including flags/bait/DLC and gate warnings.
+  Existing explicit unlock, staged SAVE/Undo, backup writers and unknown recipe IDs are preserved.
+- Focused verification: 130 passed, including freshness/recovery, alternative gates, discovery
+  evidence, source privacy, delayed live operations and recipe/round-trip compatibility.
+  Shared, desktop (both targets) and WASM builds pass without warnings. Docs build and 3,443
+  local link/image checks pass. Final first-mount/live/source rendering rerun: 27 passed.
+- Actual browser QA used an isolated imported registry and disposable standalone player save:
+  empty pickup history still found a recorded email grant; browsing stayed clean. After staging
+  that unlock, adding a synthetic recipe/item/grant was detected on Refresh and then on crafting
+  entry after another change, preserving the staged unlock/Undo. At 390px, document width stayed
+  within the viewport. Screenshots are under ignored artifacts/recipe-auto-*. No actual save,
+  installed game, native live game, public deployment or push was used. Large sibling-world
+  fixture parsing caused an existing cold-load timeout; standalone QA avoided that unrelated path.
+
 ## Issue #53: crafting steps and missed-recipe unlocks implemented (2026-10-25)
 
 - RECIPES keeps the existing Book home. Show crafting steps opens a connected, expandable

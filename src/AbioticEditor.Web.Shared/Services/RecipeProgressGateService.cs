@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using AbioticEditor.Core.Codex;
+using AbioticEditor.Core.Items;
 using AbioticEditor.Core.WorldSaves;
 
 namespace AbioticEditor.Web.Services;
@@ -17,18 +18,20 @@ public sealed record RecipeGateBlock(string RecipeId, string EmailSubject, strin
 public static class RecipeProgressGate
 {
     public static RecipeGateBlock? TryFindBlock(
-        string recipeId, IReadOnlySet<string>? worldFlags, IEnumerable<EmailEntry> emails)
+        string recipeId, IReadOnlySet<string>? worldFlags, IEnumerable<EmailEntry> emails,
+        IEnumerable<FishDefinition>? fish = null, IEnumerable<string>? emailsRead = null, IEnumerable<string>? fishCaught = null)
     {
         if (worldFlags is null) return null;
 
-        var email = emails.FirstOrDefault(entry =>
-            entry.AttachmentRecipes.Contains(recipeId, StringComparer.OrdinalIgnoreCase));
-        if (email is null) return null;
-
-        var chapter = FlagGate.RegionChapterForRowId(email.Id);
-        if (chapter?.TriggerFlag is null || worldFlags.Contains(chapter.TriggerFlag)) return null;
-
-        return new RecipeGateBlock(recipeId, email.Subject, chapter.Title, chapter.TriggerFlag);
+        var assessment = RecipeDiscoveryAssessment.Assess(recipeId, emails, fish, worldFlags, emailsRead, fishCaught);
+        // Preserve the established email-region gate without treating it as an exhaustive
+        // recipe prerequisite. Any unknown/available email, recorded discovery, or explicit
+        // fish alternative prevents a false universal block. Fish conditions are guidance.
+        if (assessment.RecordedSourceState == RecipeDiscoveryState.KnownMet
+            || assessment.Routes.Any(route => route.Kind == RecipeDiscoverySourceKind.Fish)
+            || assessment.WorldAccessState != RecipeDiscoveryState.KnownUnmet) return null;
+        var route = assessment.Routes[0];
+        return new RecipeGateBlock(recipeId, route.EmailSubject!, route.ChapterTitle!, route.RequiredWorldFlag!);
     }
 }
 
@@ -98,8 +101,13 @@ public sealed class RecipeProgressGateService
     }
 
     /// <summary>The block stopping this unlock, or null when the unlock is allowed.</summary>
-    public RecipeGateBlock? CheckUnlock(string recipeId, IReadOnlySet<string>? worldFlags)
-        => worldFlags is null ? null : RecipeProgressGate.TryFindBlock(recipeId, worldFlags, _codex.Get().Emails);
+    public RecipeGateBlock? CheckUnlock(string recipeId, IReadOnlySet<string>? worldFlags,
+        IEnumerable<string>? emailsRead = null, IEnumerable<string>? fishCaught = null)
+    {
+        if (worldFlags is null) return null;
+        var vocabulary = _codex.Get();
+        return RecipeProgressGate.TryFindBlock(recipeId, worldFlags, vocabulary.Emails, vocabulary.Fish, emailsRead, fishCaught);
+    }
 
     /// <summary>
     /// The facility save holding the story flags that gate this save's recipes. A save already

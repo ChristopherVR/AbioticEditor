@@ -21,6 +21,31 @@ internal static class GameDataGate
     public static readonly object Sync = new();
     private static readonly Dictionary<string, GameAssetProvider> Providers = new(StringComparer.OrdinalIgnoreCase);
     private static readonly List<GameAssetProvider> RetiredProviders = [];
+    private static string? _inputFingerprint;
+    private static long _revision;
+
+    /// <summary>Checks inputs only at an explicit workflow boundary, never during rendering.</summary>
+    public static (long Revision, string? PaksDirectory) EnsureCurrentInputs()
+    {
+        lock (Sync)
+        {
+            var culture = GameDataLanguageStore.Saved ?? "en";
+            var supplied = OperatingSystem.IsBrowser() || GameDataRegistry.SuppliedRegistry is not null;
+            var paks = supplied ? null : AfInstallLocator.FindPaksDirectory();
+            var context = string.Join('|', culture, GameDataRegistry.SupplyRevision,
+                supplied ? "supplied" : ModLoadStore.ModsEnabled.ToString());
+            string[] files = supplied ? [] : GameDataRegistry.RegistryCandidates().Concat([
+                GameAssetProvider.UserMappingsPath, Path.Combine(AppContext.BaseDirectory, "Mappings.usmap"),
+                ModLoadStore.ConfigPath, ModLoadStore.DisabledModsPath]).ToArray();
+            var fingerprint = GameDataFingerprint.Capture(paks, files, context);
+            if (!string.Equals(_inputFingerprint, fingerprint, StringComparison.Ordinal))
+            {
+                Invalidate();
+                _inputFingerprint = fingerprint;
+            }
+            return (_revision, paks);
+        }
+    }
 
     static GameDataGate() => AppDomain.CurrentDomain.ProcessExit += (_, _) => DisposeProviders();
 
@@ -35,6 +60,10 @@ internal static class GameDataGate
         {
             // Null and English both use the same baked-in game text.
             culture = string.IsNullOrWhiteSpace(culture) ? "en" : culture;
+            if (OperatingSystem.IsBrowser() || GameDataRegistry.SuppliedRegistry is not null) return null;
+            // Establish the input stamp before the first mount, so the first recipe workflow
+            // does not retire a healthy provider merely because its stamp was uninitialized.
+            if (_inputFingerprint is null) _ = EnsureCurrentInputs();
             var paks = AfInstallLocator.FindPaksDirectory();
             if (paks is null) return null;
             var mappings = GameAssetProvider.FindConventionalMappings() ?? string.Empty;
@@ -64,6 +93,7 @@ internal static class GameDataGate
             // until process exit instead of disposing underneath an in-flight catalog read.
             RetiredProviders.AddRange(Providers.Values);
             Providers.Clear();
+            _revision++;
         }
     }
 

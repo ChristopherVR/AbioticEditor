@@ -1,0 +1,17 @@
+@namespace AbioticEditor.Web.Components.Player
+
+<details class="recipe-data-status">
+    <summary>@L.Resource("RecipeGuide_DataSource", L.Resource($"RecipeGuide_Source{Metadata.Source}"))</summary>
+    <p>@L.Resource("RecipeGuide_DataChecked", Metadata.CheckedAt.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture))</p>
+    @if (!string.IsNullOrWhiteSpace(Metadata.GameVersion)) { <p>@L.Resource("RecipeGuide_DataVersion", Metadata.GameVersion)</p> }
+    @if (Metadata.HasFallback) { <p role="status">@L.Resource("RecipeGuide_DataFallback")</p> }
+    <p>@L.Resource(Metadata.IsSnapshot ? "RecipeGuide_SnapshotHelp" : "RecipeGuide_AutoRefreshHelp")</p>
+    <p>@L.Resource("RecipeGuide_SourceCoverage")</p>
+    <button type="button" class="secondary" disabled="@Busy" @onclick="OnRefresh">@L.Resource(Busy ? "RecipeGuide_DataRefreshing" : "RecipeGuide_RefreshData")</button>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public RecipeCatalogMetadata Metadata { get; set; } = null!;
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+}

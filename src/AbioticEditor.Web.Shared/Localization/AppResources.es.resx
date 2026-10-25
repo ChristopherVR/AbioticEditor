@@ -3503,12 +3503,12 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>se va cuando: {0}</value></data>
   <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Buscar recetas que se te hayan pasado</value></data>
   <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>¿Se te ha pasado alguna receta?</value></data>
-  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Encuentra recetas que revisar según los ingredientes que has recogido.</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Encuentra recetas que revisar a partir de ingredientes, correos que conceden recetas y peces que has descubierto.</value></data>
   <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Mostrar pasos de fabricación</value></data>
   <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Volver al libro de recetas</value></data>
   <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Volver a la revisión de recetas</value></data>
   <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} recetas en esta revisión: {1} sin aprender, {2} desbloqueadas.</value></data>
-  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Se han sugerido estas recetas porque sus ingredientes aparecen en tu historial de recogida.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Cada sugerencia explica la pista de ingredientes o de descubrimiento por la que aparece aquí.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Son pistas que investigar, no desbloqueos omitidos confirmados.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Has recogido los {0} tipos de ingredientes de esta receta.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>¿Qué ingredientes?</value></data>
@@ -3523,10 +3523,10 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>El desbloqueo se aplica inmediatamente a la partida en curso.</value></data>
   <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>No se ha podido desbloquear la receta.</value></data>
   <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Comprueba la conexión e inténtalo de nuevo.</value></data>
-  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Historial de recogida no disponible</value></data>
-  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Esta sesión no incluye los objetos que has recogido. Abre un archivo de guardado del jugador para buscar recetas que se te hayan pasado.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Historial de descubrimientos no disponible</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Esta sesión no incluye el historial de objetos recogidos ni el de correos leídos o peces capturados. Abre un archivo de guardado del jugador para comprobar estas pistas.</value></data>
   <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Ninguna receta coincide con esta pista</value></data>
-  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Puede que merezca la pena explorar otras recetas sin aprender. Esta revisión solo usa el historial de ingredientes recogidos.</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Puede que merezca la pena explorar otras recetas sin aprender. Esta revisión solo usa el historial de descubrimientos disponible para este jugador.</value></data>
   <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Ver todas las recetas sin aprender</value></data>
   <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>No hay información suficiente para revisar las demás recetas sin aprender. Puede que merezca la pena explorarlas.</value></data>
   <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Las relaciones entre recetas no están disponibles sin los datos del juego.</value></data>
@@ -3553,4 +3553,40 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Revelar receta</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>No hay ninguna receta de fabricación registrada para este objeto. Se desconoce su procedencia.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingredientes por fabricación</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Aprenderla en el juego</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>Estas tablas del juego no indican cómo se aprende esta receta.</value></data>
+  <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Leer correo: {0}</value></data>
+  <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Capturar: {0}</value></data>
+  <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>Este correo ya consta como leído.</value></data>
+  <data name="RecipeGuide_EmailNotRecorded" xml:space="preserve"><value>Este correo no consta como leído.</value></data>
+  <data name="RecipeGuide_FishRecorded" xml:space="preserve"><value>Este pez ya consta como capturado.</value></data>
+  <data name="RecipeGuide_FishNotRecorded" xml:space="preserve"><value>Este pez no consta como capturado.</value></data>
+  <data name="RecipeGuide_DiscoveryHistoryUnknown" xml:space="preserve"><value>Este historial de descubrimiento no está disponible.</value></data>
+  <data name="RecipeGuide_StoryMet" xml:space="preserve"><value>Condición de historia conocida cumplida</value></data>
+  <data name="RecipeGuide_StoryUnmet" xml:space="preserve"><value>Condición de historia conocida sin cumplir</value></data>
+  <data name="RecipeGuide_StoryUnknown" xml:space="preserve"><value>Condición de historia desconocida</value></data>
+  <data name="RecipeGuide_SourceDlc" xml:space="preserve"><value>DLC necesario: {0}. No se comprueba si lo tienes.</value></data>
+  <data name="RecipeGuide_SourceBait" xml:space="preserve"><value>Cebo necesario: {0}. No se comprueba tu cebo.</value></data>
+  <data name="RecipeGuide_SourceTime" xml:space="preserve"><value>Las probabilidades de captura dependen de la hora del día.</value></data>
+  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>Se comprueban las fuentes conocidas de correos y peces. Puede que no se indiquen otras condiciones de misiones o descubrimientos.</value></data>
+  <data name="RecipeGuide_RecordedGrantClue" xml:space="preserve"><value>Se ha sugerido esta receta porque ya consta un descubrimiento que la concede.</value></data>
+  <data name="RecipeGuide_PickupUnavailableSources" xml:space="preserve"><value>El historial de recogida no está disponible. Esta revisión solo usa los descubrimientos registrados de correos y peces.</value></data>
+  <data name="RecipeGuide_DataSource" xml:space="preserve"><value>Datos de recetas: {0}</value></data>
+  <data name="RecipeGuide_SourceInstalledGame" xml:space="preserve"><value>juego instalado</value></data>
+  <data name="RecipeGuide_SourceUserSnapshot" xml:space="preserve"><value>instantánea importada</value></data>
+  <data name="RecipeGuide_SourceBundledSnapshot" xml:space="preserve"><value>instantánea incluida</value></data>
+  <data name="RecipeGuide_SourceSuppliedSnapshot" xml:space="preserve"><value>instantánea del navegador</value></data>
+  <data name="RecipeGuide_SourceUnavailable" xml:space="preserve"><value>no disponibles</value></data>
+  <data name="RecipeGuide_DataChecked" xml:space="preserve"><value>Fuente de datos comprobada: {0}. No es la fecha de creación de la instantánea.</value></data>
+  <data name="RecipeGuide_DataVersion" xml:space="preserve"><value>Versión del juego registrada: {0}</value></data>
+  <data name="RecipeGuide_DataFallback" xml:space="preserve"><value>No se han podido leer por completo los datos del juego instalado. Se usa una instantánea cuando está disponible.</value></data>
+  <data name="RecipeGuide_SnapshotHelp" xml:space="preserve"><value>Las instantáneas describen los datos incluidos o importados con el editor. Instala una actualización del editor o importa datos más recientes cuando cambie el juego.</value></data>
+  <data name="RecipeGuide_AutoRefreshHelp" xml:space="preserve"><value>Los archivos del juego se comprueban cuando abres los pasos de fabricación, buscas recetas que se te hayan pasado o desbloqueas una receta. Los datos modificados se vuelven a cargar juntos.</value></data>
+  <data name="RecipeGuide_RefreshData" xml:space="preserve"><value>Actualizar datos de recetas</value></data>
+  <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Comprobando datos de recetas...</value></data>
+  <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Los detalles del descubrimiento están clasificados.</value></data>
+  <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Revelar detalles del descubrimiento</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>estos detalles del descubrimiento</value></data>
+  <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>Una fuente de descubrimiento conocida requiere avanzar más en la historia. Revela sus detalles para saber por qué.</value></data>
+  <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>No se indica ninguna condición de historia para esta fuente.</value></data>
 </root>

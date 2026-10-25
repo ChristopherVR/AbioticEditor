@@ -3,6 +3,7 @@
 @using AbioticEditor.Core.Codex
 @using AbioticEditor.Core.Items
 @inject RecipeVocabularyService RecipeVocabulary
+@inject CodexVocabularyService CodexVocabulary
 @inject ItemCatalogService Items
 @inject HostSpoilerPreferences Spoilers
 @inject RecipeProgressGateService Gate
@@ -17,10 +18,16 @@
    ALL/LOCKED/UNLOCKED radios, wiki category chips, the checkbox recipe list and the
    wiki-style detail pane for the selected recipe. *@
 <section class="editor-card rb-panel" aria-label="@L.Resource("PlayerRecipes_RecipeBook")">
+    @if (_catalogSnapshot is { } catalog)
+    {
+        <RecipeDataStatus Metadata="catalog.Metadata" Busy="@(_catalogRefreshing || _recipeWriteBusy)" OnRefresh="RefreshRecipeData" />
+    }
     @if (_workflow == RecipeWorkflow.Check)
     {
         <RecipeDiscoveryReport Graph="_recipeGraph" Recipes="ReviewRecipes" CatalogAvailable="@(_rows is { Count: > 0 })"
                                HasPickupHistory="@(Session.RecipeItemsPickedUp is not null)" AppliesImmediately="Session.AppliesImmediately"
+                               HasDiscoveryHistory="HasDiscoveryHistory" Assessment="AssessRecipe" IngredientClue="HasIngredientClue"
+                               SourceConcealed="ConcealedSource" OnRevealSource="RevealSource"
                                ItemName="CraftItemName" Concealed="ConcealedInfo" Learned="IsLearned" Staged="Session.IsRecipeUnlockStaged"
                                CanUndo="CanUndoRecipe" Feedback="RecipeFeedback" Busy="_recipeWriteBusy"
                                OnBack="BackToBook" OnAllLocked="ShowAllUnlearned" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"
@@ -188,6 +195,7 @@
                     <p class="rb-detail-desc">@description</p>
                 }
                 <button type="button" class="secondary recipe-detail-steps" @onclick="() => OpenCrafting(selected.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
+                <RecipeDiscoverySources Assessment="@AssessRecipe(selected.Info.Id)" ItemName="CraftItemName" Concealed="ConcealedSource" OnReveal="RevealSource" />
                 <span class="sp-label">@L.Resource("PlayerRecipes_Ingredients")</span>
                 <p class="rb-detail-value">@IngredientsText(selected.Info)</p>
                 <p class="rb-detail-output">@L.Resource("PlayerRecipes_MakesCount", selected.Info.Count > 1 ? selected.Info.Count : 1)</p>
@@ -248,6 +256,7 @@
 
     public void Dispose()
     {
+        _catalogLoadGeneration++;
         Selection.Changed -= OnSelectionChanged;
         // Leaving the tab retires this tab's own card, never someone else's.
         if (Selection.DetailKey?.StartsWith(DetailKeyPrefix, StringComparison.Ordinal) == true)
@@ -317,7 +326,9 @@
         var source = RecipeSource;
         var targetIdentity = source.RecipeTargetIdentity;
         if (ReferenceEquals(_boundSession, source) && string.Equals(_boundRecipeIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal) && _rows is not null) return;
+        var generation = ++_catalogLoadGeneration;
         _boundSession = source;
+        _catalogRefreshing = false;
         _boundRecipeIdentity = source.RecipeTargetIdentity;
         _rows = null;
         ResetWorkflow();
@@ -328,14 +339,21 @@
         // (live pak stock when the game is installed, the built-in snapshot otherwise).
         var session = Session;
         var worldFlags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
-        if (worldFlags is not null) Gate.Warm();
-        var (infos, traders, itemUpgrades) = await Task.Run(
-            () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
-        if (!ReferenceEquals(_boundSession, RecipeSource) || !string.Equals(targetIdentity, RecipeSource.RecipeTargetIdentity, StringComparison.Ordinal)) return;
-        _recipeGraph = new RecipeGraph(infos, Items.Entries.Select(item => item.Id));
+        var (snapshot, traders, itemUpgrades) = await Task.Run(
+            () => (RecipeVocabulary.EnsureCurrent(Items, CodexVocabulary), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
+        if (generation != _catalogLoadGeneration || !ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
         _worldFlags = worldFlags;
         _traders = traders;
         _itemUpgrades = itemUpgrades;
+        ApplyCatalog(snapshot);
+    }
+
+    private void ApplyCatalog(RecipeCatalogSnapshot snapshot)
+    {
+        var selectedId = _selected?.Info.Id;
+        var infos = snapshot.Recipes;
+        _catalogSnapshot = snapshot;
+        _recipeGraph = new RecipeGraph(infos, snapshot.Items.Select(item => item.Id));
         Session.EnsureRecipeRows(infos.Select(info => info.Id));
         var editsById = Session.Recipes.ToDictionary(edit => edit.Id, StringComparer.OrdinalIgnoreCase);
         // A session that could not add rows (a live one whose connection dropped mid-way, so the
@@ -349,6 +367,8 @@
         _usedIn = infos
             .SelectMany(info => info.IngredientList.Select(ingredient => (ingredient.ItemId, info)))
             .ToLookup(pair => pair.ItemId, pair => pair.info, StringComparer.OrdinalIgnoreCase);
+        _selected = selectedId is null ? null : RowFor(selectedId);
+        if (_craftingRecipe is { } crafting) _craftingRecipe = RowFor(crafting.Id)?.Info;
     }
 
     private RecipeRow? SelectedRow => _selected;
@@ -437,11 +457,14 @@
         if (args.Key is "Enter" or " ") SelectRow(row);
     }
 
-    private void RequestReveal(RecipeRow row, Action? afterReveal = null) => Modals.Show(new ModalRequest(
+    private void RequestReveal(RecipeRow row, Action? afterReveal = null)
+        => RequestRevealAfter(row, () => { afterReveal?.Invoke(); return Task.CompletedTask; });
+
+    private void RequestRevealAfter(RecipeRow row, Func<Task> afterReveal) => Modals.Show(new ModalRequest(
         L.Resource("Spoiler_OverrideTitle"),
         Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("PlayerRecipes_ThisRecipe"))),
         ConfirmText: L.Resource("Spoiler_OverrideAccept"),
-        OnConfirm: async () => { Reveal(row); afterReveal?.Invoke(); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
+        OnConfirm: async () => { Reveal(row); await afterReveal(); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
         CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
 
     private void Reveal(RecipeRow row)
@@ -485,12 +508,13 @@
         {
             if (unlocked)
             {
+                if (!await RefreshCatalogAsync()) return;
                 var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
                 if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
                 _worldFlags = flags;
                 if (flags is not null) await Task.Run(Gate.Warm);
                 if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
-                if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block)
+                if (Gate.CheckUnlock(row.Info.Id, _worldFlags, ReadEmails, CaughtFish) is { } block)
                 {
                     var message = GateMessage(block);
                     _recipeFeedback[row.Info.Id] = message;
@@ -533,6 +557,7 @@
         _recipeWriteBusy = true;
         try
         {
+            if (!await RefreshCatalogAsync()) return;
             var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
             if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
             _worldFlags = flags;
@@ -543,7 +568,7 @@
             foreach (var row in _rows ?? [])
             {
                 if (IsLearned(row.Info.Id)) continue;
-                if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
+                if (Gate.CheckUnlock(row.Info.Id, _worldFlags, ReadEmails, CaughtFish) is { } block) { lastBlock = block; continue; }
                 toUnlock.Add(row.Info.Id);
             }
             await session.SetUnlockedManyAsync(toUnlock);
@@ -560,7 +585,10 @@
     }
 
     private string GateMessage(RecipeGateBlock block)
-        => L.Resource("Progress_RecipeGated",
+        => (RowFor(block.RecipeId) is { } row && Concealed(row))
+            || AssessRecipe(block.RecipeId).Routes.Any(route => route.EmailSubject == block.EmailSubject && ConcealedSource(route))
+            ? L.Resource("RecipeGuide_SourceBlockedSealed")
+            : L.Resource("Progress_RecipeGated",
             RecipeName(block.RecipeId), block.EmailSubject, block.ChapterTitle,
             PlainNames.Flag(L, block.TriggerFlag));
 

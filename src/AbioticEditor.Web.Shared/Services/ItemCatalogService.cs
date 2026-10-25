@@ -11,10 +11,12 @@ namespace AbioticEditor.Web.Services;
 /// </summary>
 public sealed class ItemCatalogService : IDisposable
 {
-    private readonly IReadOnlyList<ItemCatalogEntry> _entries;
-    private readonly Dictionary<string, ItemCatalogEntry> _byId;
-    public ItemVariantCatalog Variants { get; }
-    private readonly Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
+    private sealed record CatalogState(IReadOnlyList<ItemCatalogEntry> Entries,
+        IReadOnlyDictionary<string, ItemCatalogEntry> ById, ItemVariantCatalog Variants);
+    private volatile CatalogState _catalogState;
+    public ItemVariantCatalog Variants => _catalogState.Variants;
+    private Lazy<GameAssetProvider?> _provider = new(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
+    private long _recipeRevision = -1;
     private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _icons = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -52,16 +54,53 @@ public sealed class ItemCatalogService : IDisposable
         {
             foreach (var entry in liveEntries) merged[entry.Id] = entry;
         }
-        _entries = merged.Values
+        var entries = merged.Values
             .Where(IsBrowsable)
             .OrderBy(entry => string.Equals(entry.DisplayName, entry.Id, StringComparison.Ordinal) ? 1 : 0)
             .ThenBy(entry => entry.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        _byId = _entries.ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase);
         var variantEntries = registry?.ItemVariants ?? Array.Empty<ItemVariantDefinition>();
         if (liveVocabulary is not null && liveVocabulary.TryGetItemVariants(out var liveVariants))
             variantEntries = liveVariants;
-        Variants = ItemVariantCatalog.FromRegistry(variantEntries);
+        _catalogState = new CatalogState(entries, entries.ToDictionary(entry => entry.Id, StringComparer.OrdinalIgnoreCase),
+            ItemVariantCatalog.FromRegistry(variantEntries));
+    }
+
+    /// <summary>Atomically replaces recipe-facing item names and IDs at an explicit catalog boundary.</summary>
+    internal void ApplyRecipeSnapshot(RecipeCatalogSnapshot snapshot)
+    {
+        if (_recipeRevision == snapshot.Metadata.Revision) return;
+        var all = new Dictionary<string, ItemCatalogEntry>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in snapshot.Items) if (!string.IsNullOrWhiteSpace(item.Id)) all[item.Id] = item;
+        var entries = all.Values.Where(IsBrowsable)
+            .OrderBy(entry => string.Equals(entry.DisplayName, entry.Id, StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(entry => entry.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
+        var registry = snapshot.Registry;
+        _catalogState = new CatalogState(entries, all,
+            snapshot.ItemVariants is { } variants ? ItemVariantCatalog.FromRegistry(variants)
+                : registry?.ItemVariants is { } bundledVariants ? ItemVariantCatalog.FromRegistry(bundledVariants)
+                : _catalogState.Variants);
+        _recipeRevision = snapshot.Metadata.Revision;
+        _provider = new Lazy<GameAssetProvider?>(CreateProvider, LazyThreadSafetyMode.ExecutionAndPublication);
+        _icons.Clear();
+        Categories.Clear();
+        _characterNames.Clear();
+        _npcDisplayNames.Clear();
+        _liveNpcDisplayNames = null;
+        _petMutationOptions.Clear();
+        _sandboxSettings = null;
+        _coatings = null;
+        _petCare = null;
+        _petVariants = null;
+        _distillations = null;
+        if (registry is not null)
+        {
+            _bundledNpcDisplayNames = registry.NpcDisplayNames;
+            _narrativeNpcNames = registry.NarrativeNpcNames;
+            _narrativeNpcPlacements = registry.NarrativeNpcPlacements;
+            _bundledDistillations = registry.Distillations;
+            _npcSpawnCreatures = registry.NpcSpawnCreatures;
+        }
     }
 
     private Task<IReadOnlyList<AbioticEditor.Core.Ini.SandboxSettingDefinition>>? _sandboxSettings;
@@ -136,7 +175,7 @@ public sealed class ItemCatalogService : IDisposable
         catch (Exception) { return null; }
     }));
 
-    private readonly IReadOnlyDictionary<string, string>? _narrativeNpcNames;
+    private IReadOnlyDictionary<string, string>? _narrativeNpcNames;
 
     /// <summary>
     /// The real character name a placed story-NPC actor's own conversation row gives it (e.g.
@@ -173,7 +212,7 @@ public sealed class ItemCatalogService : IDisposable
         return result.OrderBy(r => r.Item1, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private readonly IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe>? _bundledDistillations;
+    private IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe>? _bundledDistillations;
     private IReadOnlyList<AbioticEditor.Core.Items.DistillationRecipe>? _distillations;
 
     /// <summary>
@@ -198,7 +237,7 @@ public sealed class ItemCatalogService : IDisposable
         return _bundledDistillations ?? [];
     }
 
-    private readonly IReadOnlyDictionary<string, AbioticEditor.Core.WorldSaves.NarrativeNpcPlacement>? _narrativeNpcPlacements;
+    private IReadOnlyDictionary<string, AbioticEditor.Core.WorldSaves.NarrativeNpcPlacement>? _narrativeNpcPlacements;
 
     /// <summary>
     /// Where the story puts a placed story character (its conversation row and the world flags that
@@ -222,8 +261,8 @@ public sealed class ItemCatalogService : IDisposable
         return string.IsNullOrEmpty(area) ? name : withArea(name, area);
     }
 
-    private readonly IReadOnlyDictionary<string, string>? _bundledNpcDisplayNames;
-    private readonly IReadOnlyDictionary<string, string>? _npcSpawnCreatures;
+    private IReadOnlyDictionary<string, string>? _bundledNpcDisplayNames;
+    private IReadOnlyDictionary<string, string>? _npcSpawnCreatures;
 
     /// <summary>
     /// The creature an NPC spawn point makes (its short class and its in-game name), from the game's
@@ -270,8 +309,8 @@ public sealed class ItemCatalogService : IDisposable
         }));
     }
 
-    public IReadOnlyList<ItemCatalogEntry> Entries => _entries;
-    public ItemCatalogEntry? Find(string? itemId) => itemId is not null && _byId.TryGetValue(itemId, out var entry) ? entry : null;
+    public IReadOnlyList<ItemCatalogEntry> Entries => _catalogState.Entries;
+    public ItemCatalogEntry? Find(string? itemId) => itemId is not null && _catalogState.ById.TryGetValue(itemId, out var entry) ? entry : null;
     /// <summary>
     /// Where to fetch an item's picture. The desktop host serves it from its own endpoint,
     /// decoding it out of the installed game the first time it is asked for. The browser has no

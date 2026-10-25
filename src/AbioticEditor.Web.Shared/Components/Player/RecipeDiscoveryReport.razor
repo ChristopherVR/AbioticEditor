@@ -10,7 +10,7 @@
 {
     <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CatalogUnavailable")</p>
 }
-else if (!HasPickupHistory)
+else if (!HasPickupHistory && !HasDiscoveryHistory)
 {
     <h4>@L.Resource("RecipeGuide_HistoryUnavailable")</h4>
     <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_HistoryHelp")</p>
@@ -19,6 +19,8 @@ else
 {
     <p class="recipe-workflow-copy" role="status">@L.Resource("RecipeGuide_CheckCount", Recipes.Count, Recipes.Count(recipe => !Learned(recipe.Id)), Recipes.Count(recipe => Learned(recipe.Id)))</p>
     <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CheckClue") @L.Resource("RecipeGuide_CheckCaution")</p>
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_SourceCoverage")</p>
+    @if (!HasPickupHistory) { <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_PickupUnavailableSources")</p> }
     <p class="recipe-workflow-copy">@L.Resource(AppliesImmediately ? "RecipeGuide_LiveHelp" : "RecipeGuide_SaveHelp")</p>
     @if (Recipes.Count == 0)
     {
@@ -30,6 +32,7 @@ else
         {
             var concealed = Concealed(recipe);
             var unlocked = Learned(recipe.Id);
+            var assessment = Assessment(recipe.Id);
             <article class="recipe-suggestion" @key="recipeRenderKey">
                 <div class="recipe-suggestion-heading">
                     @if (!concealed && recipe.CreatesItemId is { } itemId)
@@ -56,13 +59,21 @@ else
                 </div>
                 @if (!concealed)
                 {
-                    <p>@L.Resource("RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
-                    <details>
-                        <summary>@L.Resource("RecipeGuide_WhichInputs")</summary>
-                        <ul>
-                            @foreach (var input in Graph.IngredientsFor(recipe)) { <li>@ItemName(input.ItemId)</li> }
-                        </ul>
-                    </details>
+                    @if (assessment.RecordedSourceState == RecipeDiscoveryState.KnownMet)
+                    {
+                        <p>@L.Resource("RecipeGuide_RecordedGrantClue")</p>
+                    }
+                    @if (IngredientClue(recipe.Id))
+                    {
+                        <p>@L.Resource("RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
+                        <details>
+                            <summary>@L.Resource("RecipeGuide_WhichInputs")</summary>
+                            <ul>
+                                @foreach (var input in Graph.IngredientsFor(recipe)) { <li>@ItemName(input.ItemId)</li> }
+                            </ul>
+                        </details>
+                    }
+                    <RecipeDiscoverySources Assessment="assessment" ItemName="ItemName" Concealed="SourceConcealed" OnReveal="OnRevealSource" />
                 }
                 @if (!concealed && Feedback(recipe.Id) is { Length: > 0 } feedback)
                 {
@@ -86,6 +97,11 @@ else
     [Parameter, EditorRequired] public Func<string, string?> Feedback { get; set; } = null!;
     [Parameter] public bool CatalogAvailable { get; set; }
     [Parameter] public bool HasPickupHistory { get; set; }
+    [Parameter] public bool HasDiscoveryHistory { get; set; }
+    [Parameter] public Func<string, RecipeDiscoveryAssessment> Assessment { get; set; } = id => new(id, []);
+    [Parameter] public Func<string, bool> IngredientClue { get; set; } = _ => true;
+    [Parameter] public Func<RecipeDiscoveryRoute, bool> SourceConcealed { get; set; } = _ => false;
+    [Parameter] public EventCallback<RecipeDiscoveryRoute> OnRevealSource { get; set; }
     [Parameter] public bool AppliesImmediately { get; set; }
     [Parameter] public bool Busy { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }

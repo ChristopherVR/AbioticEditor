@@ -15,7 +15,10 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     // data table's row key (email_Signal_Sun_14). Matching case-sensitively made those rows look
     // unread again right after they were marked.
     private readonly LivePlayerCodexChannel _channel;
+    private readonly object _targetGate = new();
     private string? _playerId;
+    private long _targetGeneration;
+    private long _historyGeneration;
     private HashSet<string> _emailIds = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _journalIds = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _fishIds = new(StringComparer.OrdinalIgnoreCase);
@@ -51,6 +54,9 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     public bool AppliesImmediately => true;
     public bool CanUnsetKnown { get; private set; }
     public string? Status { get; private set; }
+    /// <summary>Whether the current read/catch history has finished loading for the selected player.</summary>
+    public bool HasCurrentHistory { get { lock (_targetGate) return _historyGeneration == _targetGeneration; } }
+    public string? SelectedPlayerId { get { lock (_targetGate) return _playerId; } }
 
     /// <summary>Always false: a codex unlock already reached the running game by the time it
     /// returns, so there is never a client-side staged copy.</summary>
@@ -61,94 +67,107 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
 
     public bool ApplyCodexVocabulary(CodexVocabulary vocabulary, Func<string, object?[], string>? localize = null)
     {
-        if (_hasVocabulary || vocabulary.IsEmpty) return false;
-        _hasVocabulary = true;
-        Rebuild(vocabulary);
-        return true;
+        lock (_targetGate)
+        {
+            if (_hasVocabulary || vocabulary.IsEmpty) return false;
+            _hasVocabulary = true;
+            Rebuild(vocabulary);
+            return true;
+        }
     }
 
     /// <summary>Changes one supported entry. Clearing requires the host agent capability.</summary>
     public async Task SetKnownAsync(CodexRowEdit row, bool known)
     {
-        if (!row.Editable)
+        string? playerId;
+        long generation;
+        CodexSection section;
+        CompendiumUnlock[] pairs = [];
+        lock (_targetGate)
         {
-            throw new InvalidOperationException(
-                "This entry can't be changed live - the running game's unlock function for this section could not be safely grounded.");
+            RequireCurrentHistory();
+            playerId = _playerId;
+            generation = _targetGeneration;
+            if (!row.Editable)
+                throw new InvalidOperationException(
+                    "This entry can't be changed live - the running game's unlock function for this section could not be safely grounded.");
+            section = FindSection(row);
+            if (!known && !CanUnsetKnown)
+                throw new InvalidOperationException("Clearing codex entries requires an updated agent with host authority.");
+            if (known && section == CodexSection.Compendium)
+            {
+                pairs = row.SectionTypes.Select(type => new CompendiumUnlock(row.Id, type)).ToArray();
+                if (pairs.Length == 0)
+                    throw new InvalidOperationException(
+                        "This entry has no known section type to unlock (it may only have a kill-requirement section, unlocked by kill tracking).");
+            }
         }
         if (!known)
         {
-            if (!CanUnsetKnown) throw new InvalidOperationException("Clearing codex entries requires an updated agent with host authority.");
-            var owner = FindOwner(row);
-            var section = ReferenceEquals(owner, Emails) ? "emails" : ReferenceEquals(owner, Journals) ? "journals"
-                : ReferenceEquals(owner, Fish) ? "fish" : ReferenceEquals(owner, Compendium) ? "compendium"
-                : throw new InvalidOperationException("Unknown codex section.");
-            await _channel.ClearAsync(section, [row.Id], _playerId).ConfigureAwait(false);
-            row.IsKnown = false;
-            FindOwnerIds(row)?.Remove(row.Id);
+            await _channel.ClearAsync(section.ToString().ToLowerInvariant(), [row.Id], playerId).ConfigureAwait(false);
+        }
+        else
+        {
+            // Ownership, not the row's contents, selects the RPC field. Capture that ownership
+            // with the player before the await so a switch cannot redirect the operation.
+            switch (section)
+            {
+                case CodexSection.Emails:
+                    await _channel.SetKnownAsync(emails: [row.Id], playerId: playerId).ConfigureAwait(false);
+                    break;
+                case CodexSection.Journals:
+                    await _channel.SetKnownAsync(journals: [row.Id], playerId: playerId).ConfigureAwait(false);
+                    break;
+                case CodexSection.Fish:
+                    await _channel.SetKnownAsync(fish: [row.Id], playerId: playerId).ConfigureAwait(false);
+                    break;
+                case CodexSection.Compendium:
+                    await _channel.SetKnownAsync(compendium: pairs, playerId: playerId).ConfigureAwait(false);
+                    break;
+            }
+        }
+        lock (_targetGate)
+        {
+            if (generation != _targetGeneration) return;
+            ApplyKnown(row, section, known);
             Status = null;
             Changed?.Invoke();
-            return;
         }
-
-        // Which category owns this row is decided by which of the four writable lists it came
-        // from, not its content - matches the separate wire fields in codex.set.
-        if (ReferenceEquals(FindOwner(row), Emails)) await _channel.SetKnownAsync(emails: [row.Id], playerId: _playerId).ConfigureAwait(false);
-        else if (ReferenceEquals(FindOwner(row), Journals)) await _channel.SetKnownAsync(journals: [row.Id], playerId: _playerId).ConfigureAwait(false);
-        else if (ReferenceEquals(FindOwner(row), Fish)) await _channel.SetKnownAsync(fish: [row.Id], playerId: _playerId).ConfigureAwait(false);
-        else if (ReferenceEquals(FindOwner(row), Compendium))
-        {
-            // A compendium entry can span more than one section type (e.g. an entry unlocked
-            // partly by an email, partly by exploring somewhere) - one RPC call per section type
-            // fully unlocks the row.
-            var pairs = row.SectionTypes.Select(sectionType => new CompendiumUnlock(row.Id, sectionType)).ToList();
-            if (pairs.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "This entry has no known section type to unlock (it may only have a kill-requirement section, unlocked by kill tracking).");
-            }
-            await _channel.SetKnownAsync(compendium: pairs, playerId: _playerId).ConfigureAwait(false);
-        }
-        else throw new InvalidOperationException("Unknown codex section.");
-
-        row.IsKnown = true;
-        (FindOwnerIds(row))?.Add(row.Id);
-        Status = null;
-        Changed?.Invoke();
     }
 
     public void MarkChanged() { }
 
     public async Task SetKnownManyAsync(IEnumerable<CodexRowEdit> rows)
     {
-        var pending = rows.Where(row => row.Editable && !row.IsKnown).Distinct().ToArray();
+        string? playerId;
+        long generation;
+        (CodexRowEdit Row, CodexSection Section)[] pending;
+        lock (_targetGate)
+        {
+            RequireCurrentHistory();
+            playerId = _playerId;
+            generation = _targetGeneration;
+            pending = rows.Where(row => row.Editable && !row.IsKnown).Distinct()
+                .Select(row => (Row: row, Section: FindSection(row))).ToArray();
+            foreach (var (row, section) in pending)
+                if (section == CodexSection.Compendium && row.SectionTypes.Count == 0)
+                    throw new InvalidOperationException("This entry has no known section type to unlock.");
+        }
         if (pending.Length == 0) return;
-        var emails = Emails.ToHashSet();
-        var journals = Journals.ToHashSet();
-        var fish = Fish.ToHashSet();
-        var compendium = Compendium.ToHashSet();
-        foreach (var row in pending)
-        {
-            if (!emails.Contains(row) && !journals.Contains(row) && !fish.Contains(row) && !compendium.Contains(row))
-                throw new InvalidOperationException("Unknown codex section.");
-            if (compendium.Contains(row) && row.SectionTypes.Count == 0)
-                throw new InvalidOperationException("This entry has no known section type to unlock.");
-        }
         await _channel.SetKnownAsync(
-            emails: pending.Where(emails.Contains).Select(row => row.Id).ToArray(),
-            journals: pending.Where(journals.Contains).Select(row => row.Id).ToArray(),
-            fish: pending.Where(fish.Contains).Select(row => row.Id).ToArray(),
-            compendium: pending.Where(compendium.Contains)
-                .SelectMany(row => row.SectionTypes.Select(type => new CompendiumUnlock(row.Id, type))).Distinct().ToArray(),
-            playerId: _playerId).ConfigureAwait(false);
-        foreach (var row in pending)
+            emails: pending.Where(edit => edit.Section == CodexSection.Emails).Select(edit => edit.Row.Id).ToArray(),
+            journals: pending.Where(edit => edit.Section == CodexSection.Journals).Select(edit => edit.Row.Id).ToArray(),
+            fish: pending.Where(edit => edit.Section == CodexSection.Fish).Select(edit => edit.Row.Id).ToArray(),
+            compendium: pending.Where(edit => edit.Section == CodexSection.Compendium)
+                .SelectMany(edit => edit.Row.SectionTypes.Select(type => new CompendiumUnlock(edit.Row.Id, type))).Distinct().ToArray(),
+            playerId: playerId).ConfigureAwait(false);
+        lock (_targetGate)
         {
-            row.IsKnown = true;
-            var ids = emails.Contains(row) ? _emailIds : journals.Contains(row) ? _journalIds
-                : fish.Contains(row) ? _fishIds : _compendiumIds;
-            ids.Add(row.Id);
+            if (generation != _targetGeneration) return;
+            foreach (var (row, section) in pending) ApplyKnown(row, section, true);
+            Status = null;
+            Changed?.Invoke();
         }
-        Status = null;
-        Changed?.Invoke();
     }
 
     // A genuine zero-arg overload: LiveConnect's periodic refresh loop finds this by reflection
@@ -160,22 +179,36 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     /// <summary>Re-reads the live player's known e-mails/notes/fish/compendium entries.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var directory = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
-        var entriesChanged = !_emailIds.SetEquals(directory.Emails)
-            || !_journalIds.SetEquals(directory.Journals)
-            || !_fishIds.SetEquals(directory.Fish)
-            || !_compendiumIds.SetEquals(directory.Compendium);
-        LoadDirectory(directory);
-        if (entriesChanged) Rebuild(_hasVocabulary ? _lastVocabulary : CodexVocabulary.Empty);
-        Status = null;
-        Changed?.Invoke();
+        string? playerId;
+        long generation;
+        lock (_targetGate) { generation = _targetGeneration; playerId = _playerId; }
+        var directory = await _channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        lock (_targetGate)
+        {
+            if (generation != _targetGeneration) return;
+            var entriesChanged = _historyGeneration != generation
+                || !_emailIds.SetEquals(directory.Emails)
+                || !_journalIds.SetEquals(directory.Journals)
+                || !_fishIds.SetEquals(directory.Fish)
+                || !_compendiumIds.SetEquals(directory.Compendium);
+            LoadDirectory(directory);
+            if (entriesChanged) Rebuild(_hasVocabulary ? _lastVocabulary : CodexVocabulary.Empty);
+            _historyGeneration = generation;
+            Status = null;
+            // The target cannot change between committing this snapshot and publishing it.
+            Changed?.Invoke();
+        }
     }
 
     /// <summary>Switches which connected player this session reads/edits and re-reads that
     /// player's codex state.</summary>
     public async Task SwitchPlayerAsync(string? playerId, CancellationToken cancellationToken = default)
     {
-        _playerId = playerId;
+        lock (_targetGate)
+        {
+            _targetGeneration++;
+            _playerId = playerId;
+        }
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -247,13 +280,36 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         return rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private IReadOnlyList<CodexRowEdit>? FindOwner(CodexRowEdit row)
-        => Emails.Contains(row) ? Emails : Journals.Contains(row) ? Journals : Fish.Contains(row) ? Fish
-            : Compendium.Contains(row) ? Compendium : null;
+    private enum CodexSection { Emails, Journals, Fish, Compendium }
 
-    private HashSet<string>? FindOwnerIds(CodexRowEdit row)
-        => ReferenceEquals(FindOwner(row), Emails) ? _emailIds
-            : ReferenceEquals(FindOwner(row), Journals) ? _journalIds
-            : ReferenceEquals(FindOwner(row), Fish) ? _fishIds
-            : ReferenceEquals(FindOwner(row), Compendium) ? _compendiumIds : null;
+    private void RequireCurrentHistory()
+    {
+        if (_historyGeneration != _targetGeneration)
+            throw new InvalidOperationException("The selected player's codex is still loading.");
+    }
+
+    private CodexSection FindSection(CodexRowEdit row)
+        => Emails.Contains(row) ? CodexSection.Emails : Journals.Contains(row) ? CodexSection.Journals
+            : Fish.Contains(row) ? CodexSection.Fish : Compendium.Contains(row) ? CodexSection.Compendium
+            : throw new InvalidOperationException("Unknown codex section.");
+
+    // Called only under the target gate. A same-player refresh may have rebuilt row objects
+    // while the RPC was in flight, so update both the caller's row and its current counterpart.
+    private void ApplyKnown(CodexRowEdit row, CodexSection section, bool known)
+    {
+        var ids = section switch
+        {
+            CodexSection.Emails => _emailIds, CodexSection.Journals => _journalIds,
+            CodexSection.Fish => _fishIds, _ => _compendiumIds,
+        };
+        var current = section switch
+        {
+            CodexSection.Emails => Emails, CodexSection.Journals => Journals,
+            CodexSection.Fish => Fish, _ => Compendium,
+        };
+        if (known) ids.Add(row.Id); else ids.Remove(row.Id);
+        row.IsKnown = known;
+        var currentRow = current.FirstOrDefault(candidate => string.Equals(candidate.Id, row.Id, StringComparison.OrdinalIgnoreCase));
+        if (currentRow is not null) currentRow.IsKnown = known;
+    }
 }

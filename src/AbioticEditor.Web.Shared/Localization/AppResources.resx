@@ -4783,12 +4783,12 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Prepare3D_StatusDone" xml:space="preserve"><value>3D view ready</value></data>
   <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Check for missed recipes</value></data>
   <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Have you missed a recipe?</value></data>
-  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Find recipes to check based on ingredients you have picked up.</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Find recipes to check from ingredients, granting emails and fish you have discovered.</value></data>
   <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Show crafting steps</value></data>
   <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Back to recipe book</value></data>
   <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Back to missed-recipe check</value></data>
   <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} recipes in this check: {1} not learned, {2} unlocked.</value></data>
-  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>These recipes were suggested because their ingredients appear in your pickup history.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Each suggestion explains the ingredient or discovery clue that brought it here.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>These are clues to investigate, not confirmed missed unlocks.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>You have picked up all {0} ingredient types for this recipe.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Which ingredients?</value></data>
@@ -4803,10 +4803,10 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Unlocking applies immediately to the running game.</value></data>
   <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>The recipe could not be unlocked.</value></data>
   <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Check the connection and try again.</value></data>
-  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Pickup history is unavailable</value></data>
-  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>This session does not include items you have picked up. Open a player save to check for missed recipes.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Discovery history is unavailable</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>This session supplies neither pickup history nor read-email/caught-fish history. Open a player save to check these clues.</value></data>
   <data name="RecipeGuide_NoClues" xml:space="preserve"><value>No recipes match this clue</value></data>
-  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Other unlearned recipes may still be worth exploring. This check only uses ingredient pickup history.</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Other unlearned recipes may still be worth exploring. This check uses only the discovery history available for this player.</value></data>
   <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>See all unlearned recipes</value></data>
   <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Other unlearned recipes have too little information for this check. They may still be worth exploring.</value></data>
   <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Recipe relationships are unavailable without game data.</value></data>
@@ -4833,4 +4833,40 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Reveal recipe</value></data>
   <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>No crafting recipe is listed for this item. Its acquisition source is unknown.</value></data>
   <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingredients per craft</value></data>
+  <data name="RecipeGuide_LearnInGame" xml:space="preserve"><value>Learn it in the game</value></data>
+  <data name="RecipeGuide_DiscoveryUnknown" xml:space="preserve"><value>How this recipe is learned is not recorded in these game tables.</value></data>
+  <data name="RecipeGuide_ReadEmail" xml:space="preserve"><value>Read email: {0}</value></data>
+  <data name="RecipeGuide_CatchFish" xml:space="preserve"><value>Catch: {0}</value></data>
+  <data name="RecipeGuide_EmailRecorded" xml:space="preserve"><value>This email is already recorded as read.</value></data>
+  <data name="RecipeGuide_EmailNotRecorded" xml:space="preserve"><value>This email is not recorded as read.</value></data>
+  <data name="RecipeGuide_FishRecorded" xml:space="preserve"><value>This fish is already recorded as caught.</value></data>
+  <data name="RecipeGuide_FishNotRecorded" xml:space="preserve"><value>This fish is not recorded as caught.</value></data>
+  <data name="RecipeGuide_DiscoveryHistoryUnknown" xml:space="preserve"><value>This discovery history is unavailable.</value></data>
+  <data name="RecipeGuide_StoryMet" xml:space="preserve"><value>Known story condition met</value></data>
+  <data name="RecipeGuide_StoryUnmet" xml:space="preserve"><value>Known story condition not met</value></data>
+  <data name="RecipeGuide_StoryUnknown" xml:space="preserve"><value>Story condition unknown</value></data>
+  <data name="RecipeGuide_SourceDlc" xml:space="preserve"><value>DLC needed: {0}. Ownership is not checked.</value></data>
+  <data name="RecipeGuide_SourceBait" xml:space="preserve"><value>Bait needed: {0}. Your bait is not checked.</value></data>
+  <data name="RecipeGuide_SourceTime" xml:space="preserve"><value>Catch chances depend on the time of day.</value></data>
+  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>Known email and fish sources are checked. Other quest or discovery conditions may not be listed.</value></data>
+  <data name="RecipeGuide_RecordedGrantClue" xml:space="preserve"><value>This recipe was suggested because a discovery that grants it is already recorded.</value></data>
+  <data name="RecipeGuide_PickupUnavailableSources" xml:space="preserve"><value>Pickup history is unavailable. This check uses recorded email and fish discoveries only.</value></data>
+  <data name="RecipeGuide_DataSource" xml:space="preserve"><value>Recipe data: {0}</value></data>
+  <data name="RecipeGuide_SourceInstalledGame" xml:space="preserve"><value>installed game</value></data>
+  <data name="RecipeGuide_SourceUserSnapshot" xml:space="preserve"><value>imported snapshot</value></data>
+  <data name="RecipeGuide_SourceBundledSnapshot" xml:space="preserve"><value>bundled snapshot</value></data>
+  <data name="RecipeGuide_SourceSuppliedSnapshot" xml:space="preserve"><value>browser snapshot</value></data>
+  <data name="RecipeGuide_SourceUnavailable" xml:space="preserve"><value>unavailable</value></data>
+  <data name="RecipeGuide_DataChecked" xml:space="preserve"><value>Data source checked: {0}. This is not the snapshot creation date.</value></data>
+  <data name="RecipeGuide_DataVersion" xml:space="preserve"><value>Recorded game version: {0}</value></data>
+  <data name="RecipeGuide_DataFallback" xml:space="preserve"><value>The installed game data could not be read completely. A snapshot is being used where available.</value></data>
+  <data name="RecipeGuide_SnapshotHelp" xml:space="preserve"><value>Snapshots describe the data shipped or imported with the editor. Install an editor update or import newer data when the game changes.</value></data>
+  <data name="RecipeGuide_AutoRefreshHelp" xml:space="preserve"><value>Game files are checked when you open crafting steps, check for missed recipes or unlock a recipe. Changed data is reloaded together.</value></data>
+  <data name="RecipeGuide_RefreshData" xml:space="preserve"><value>Refresh recipe data</value></data>
+  <data name="RecipeGuide_DataRefreshing" xml:space="preserve"><value>Checking recipe data...</value></data>
+  <data name="RecipeGuide_DiscoverySealed" xml:space="preserve"><value>Discovery details are classified.</value></data>
+  <data name="RecipeGuide_RevealDiscovery" xml:space="preserve"><value>Reveal discovery details</value></data>
+  <data name="RecipeGuide_TheseDiscoveryDetails" xml:space="preserve"><value>these discovery details</value></data>
+  <data name="RecipeGuide_SourceBlockedSealed" xml:space="preserve"><value>A known discovery source requires later story progress. Reveal its discovery details to see why.</value></data>
+  <data name="RecipeGuide_NoStoryCondition" xml:space="preserve"><value>No story condition is listed for this source.</value></data>
 </root>

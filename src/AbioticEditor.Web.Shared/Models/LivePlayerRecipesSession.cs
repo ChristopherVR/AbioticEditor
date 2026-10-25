@@ -44,6 +44,8 @@ public sealed class LivePlayerRecipesSession : IPlayerRecipesSession
     public bool AppliesImmediately => true;
     public bool CanLock { get; private set; }
     public string? Status { get; private set; }
+    /// <summary>The player whose recipe rows are currently selected, for joining read-only discovery evidence.</summary>
+    public string? SelectedPlayerId { get { lock (_targetGate) return _playerId; } }
     public string RecipeTargetIdentity
     {
         get { lock (_targetGate) return _targetGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture); }
