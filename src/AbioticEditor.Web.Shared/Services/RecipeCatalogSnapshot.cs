@@ -26,4 +26,5 @@ public sealed record RecipeCatalogSnapshot(
     public IReadOnlyList<ItemVariantDefinition>? ItemVariants { get; init; }
     /// <summary>Stock from the same installed load or registry; absent evidence never uses the unrelated built-in roster.</summary>
     public IReadOnlyList<TraderInfo> Traders { get; init; } = [];
+    public RecipeLearningCatalogData? RecipeLearning { get; init; }
 }

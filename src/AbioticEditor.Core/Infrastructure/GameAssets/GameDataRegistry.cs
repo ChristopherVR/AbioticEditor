@@ -117,6 +117,14 @@ public sealed class GameDataRegistry
     /// <summary>Every craftable recipe (<c>DT_Recipes</c> and friends); null if not dumped.</summary>
     public IReadOnlyList<RecipeInfo>? Recipes { get; init; }
 
+    /// <summary>Versioned discovery rules extracted from the same game data; null in older snapshots.</summary>
+    private RecipeLearningCatalogData? _recipeLearning;
+    public RecipeLearningCatalogData? RecipeLearning
+    {
+        get => _recipeLearning;
+        init => _recipeLearning = RecipeLearningCatalog.Validated(value);
+    }
+
     /// <summary>The item upgrade graph (<c>DT_ItemUpgrades</c>); null if not dumped.</summary>
     public IReadOnlyList<ItemUpgrade>? ItemUpgrades { get; init; }
 
@@ -225,6 +233,7 @@ public sealed class GameDataRegistry
             ItemVariants = Optional("item visual variants", () => ItemVariantCatalog.LoadFrom(provider).Entries),
             ItemTableRefs = catalog.TableRefs,
             Recipes = Optional("recipes", () => RecipeCatalog.LoadInfosFrom(provider)),
+            RecipeLearning = Optional("recipe learning", () => BuildRecipeLearning(provider)),
             ItemUpgrades = Optional("item upgrades", () => ItemUpgradeCatalog.LoadFrom(provider).Upgrades),
             Maps = Optional("maps", () => MapCatalog.LoadFrom(provider)),
             Skills = Optional("skills", () => SkillCatalog.LoadFrom(provider)),
@@ -248,6 +257,19 @@ public sealed class GameDataRegistry
             PetMutationOptions = Optional("pet mutation options", () => BuildPetMutationOptions(provider)),
             NarrativeNpcPlacements = Optional("narrative NPC placements", () => NarrativeNpcNameCatalog.BuildPlacementsFrom(provider) is { Count: > 0 } placements ? placements : null),
         };
+    }
+
+    /// <summary>Loads the standard and explicit-source discovery records together.</summary>
+    public static RecipeLearningCatalogData? BuildRecipeLearning(GameAssetProvider provider)
+    {
+        var data = RecipeLearningCatalog.LoadFrom(provider);
+        if (data is null) return null;
+        try { return data with { SpecialGrants = RecipeSpecialLearningCatalog.LoadFrom(provider) }; }
+        catch (Exception exception)
+        {
+            EditorLog.Warn("RecipeLearning", $"Explicit learning sources unavailable; keeping standard discovery metadata: {exception.Message}");
+            return data;
+        }
     }
 
     private static Dictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? BuildPetMutationOptions(GameAssetProvider provider)

@@ -27,17 +27,18 @@
                                HasPickupHistory="@(Session.RecipeItemsPickedUp is not null)" AppliesImmediately="Session.AppliesImmediately"
                                HasDiscoveryHistory="HasDiscoveryHistory" Assessment="AssessRecipe" IngredientClue="HasIngredientClue"
                                SourceConcealed="ConcealedSource" OnRevealSource="RevealSource"
+                               LearningContent="LearningContent" HasLearningCatalog="@(_catalogSnapshot?.RecipeLearning is not null)"
                                ItemName="CraftItemName" Concealed="ConcealedInfo" Learned="IsLearned" Staged="Session.IsRecipeUnlockStaged"
-                               CanUndo="CanUndoRecipe" Feedback="RecipeFeedback" Busy="_recipeWriteBusy"
+                               CanUndo="CanUndoRecipe" ResearchPending="IsResearchPending" Feedback="RecipeFeedback" Busy="_recipeWriteBusy"
                                OnBack="BackToBook" OnAllLocked="ShowAllUnlearned" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"
                                OnCrafting="OpenCrafting" OnReveal="RevealRecipe" />
     }
     else if (_workflow == RecipeWorkflow.Crafting && _craftingRecipe is { } crafting)
     {
         <RecipeCraftingSteps Graph="_recipeGraph" RootRecipe="crafting" ReturnToCheck="@(_craftingReturn == RecipeWorkflow.Check)"
-                             RevealRequest="_craftingRevealRequest"
+                             RevealRequest="_craftingRevealRequest" LearningContent="LearningContent"
                              ItemName="CraftItemName" StationName="BenchesText" RouteName="CraftRouteName" Concealed="ConcealedInfo"
-                             Learned="IsLearned" SourceHint="AcquisitionHint" Staged="Session.IsRecipeUnlockStaged" CanUndo="CanUndoRecipe" Feedback="RecipeFeedback"
+                             Learned="IsLearned" ResearchPending="IsResearchPending" SourceHint="AcquisitionHint" Staged="Session.IsRecipeUnlockStaged" CanUndo="CanUndoRecipe" Feedback="RecipeFeedback"
                              Busy="_recipeWriteBusy" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"
                              OnBack="BackFromCrafting" OnInspect="InspectCraftItem" OnReveal="RevealRecipe" />
     }
@@ -112,7 +113,7 @@
                             }
                         </span>
                         <button type="button" class="secondary recipe-book-steps" @onclick:stopPropagation @onclick="() => OpenCrafting(row.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
-                        <span class="rb-row-status">@(concealed ? L.Resource("Spoiler_ClassifiedShort") : L.Resource(row.Edit.IsUnlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked"))</span>
+                        <span class="rb-row-status">@(concealed ? L.Resource("Spoiler_ClassifiedShort") : L.Resource(IsResearchPending(row.Info.Id) ? "RecipeLearning_PendingResearch" : row.Edit.IsUnlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked"))</span>
                     </div>
                 }
             }
@@ -197,9 +198,10 @@
                     <p class="rb-detail-desc">@description</p>
                 }
                 <button type="button" class="secondary recipe-detail-steps" @onclick="() => OpenCrafting(selected.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
-                <RecipeUnlockControls RecipeId="@selected.Info.Id" Learned="@IsLearned(selected.Info.Id)" Staged="@Session.IsRecipeUnlockStaged(selected.Info.Id)"
+                <RecipeUnlockControls RecipeId="@selected.Info.Id" Learned="@IsLearned(selected.Info.Id)" ResearchPending="@IsResearchPending(selected.Info.Id)" Staged="@Session.IsRecipeUnlockStaged(selected.Info.Id)"
                                       CanUndo="@CanUndoRecipe(selected.Info.Id)" Busy="_recipeWriteBusy" Feedback="@RecipeFeedback(selected.Info.Id)" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe" />
-                <RecipeDiscoverySources Assessment="@AssessRecipe(selected.Info.Id)" Learned="@IsLearned(selected.Info.Id)" ItemName="CraftItemName" Concealed="ConcealedSource" OnReveal="RevealSource" />
+                @LearningContent(selected.Info.Id)
+                <RecipeDiscoverySources Assessment="@AssessRecipe(selected.Info.Id)" Learned="@IsLearned(selected.Info.Id)" SuppressUnknown="@(_catalogSnapshot?.RecipeLearning is not null)" ItemName="CraftItemName" Concealed="ConcealedSource" OnReveal="RevealSource" />
                 <span class="sp-label">@L.Resource("PlayerRecipes_Ingredients")</span>
                 <p class="rb-detail-value">@IngredientsText(selected.Info)</p>
                 <p class="rb-detail-output">@L.Resource("PlayerRecipes_MakesCount", selected.Info.Count > 1 ? selected.Info.Count : 1)</p>

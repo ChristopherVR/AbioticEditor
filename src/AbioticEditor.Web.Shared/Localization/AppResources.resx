@@ -4848,7 +4848,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_SourceDlc" xml:space="preserve"><value>DLC needed: {0}. Ownership is not checked.</value></data>
   <data name="RecipeGuide_SourceBait" xml:space="preserve"><value>Bait needed: {0}. Your bait is not checked.</value></data>
   <data name="RecipeGuide_SourceTime" xml:space="preserve"><value>Catch chances depend on the time of day.</value></data>
-  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>Known email and fish sources are checked. Other quest or discovery conditions may not be listed.</value></data>
+  <data name="RecipeGuide_SourceCoverage" xml:space="preserve"><value>The guide lists recorded ways to learn recipes. Some story access and alternative methods are not checked.</value></data>
   <data name="RecipeGuide_RecordedGrantClue" xml:space="preserve"><value>This recipe was suggested because a discovery that grants it is already recorded.</value></data>
   <data name="RecipeGuide_PickupUnavailableSources" xml:space="preserve"><value>Pickup history is unavailable. This check uses recorded email and fish discoveries only.</value></data>
   <data name="RecipeGuide_DataSource" xml:space="preserve"><value>Recipe data: {0}</value></data>
@@ -4889,4 +4889,50 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Sources</value></data>
   <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Sources lists known salvage, trading and fishing options. Other loot and enemy locations are not mapped here.</value></data>
   <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Already learned by this player.</value></data>
+  <data name="RecipeLearning_Title" xml:space="preserve"><value>How to learn this recipe</value></data>
+  <data name="RecipeLearning_PendingResearch" xml:space="preserve"><value>Discovered, research pending</value></data>
+  <data name="RecipeLearning_Discovered" xml:space="preserve"><value>This player has discovered this recipe. The ways to learn it are shown below.</value></data>
+  <data name="RecipeLearning_NotDiscovered" xml:space="preserve"><value>This player has not discovered this recipe yet.</value></data>
+  <data name="RecipeLearning_DiscoveryStateUnknown" xml:space="preserve"><value>This player’s recipe discovery state is unavailable.</value></data>
+  <data name="RecipeLearning_Methods" xml:space="preserve"><value>Ways to discover it</value></data>
+  <data name="RecipeLearning_PickupTypes" xml:space="preserve"><value>Pick up each required item type at least once.</value></data>
+  <data name="RecipeLearning_TypeCountHelp" xml:space="preserve"><value>For a substitute group, any one listed item is enough. Crafting amounts are not discovery requirements.</value></data>
+  <data name="RecipeLearning_NoInputs" xml:space="preserve"><value>No item types are listed for this pickup route.</value></data>
+  <data name="RecipeLearning_OneOf" xml:space="preserve"><value>Pick up any one of these {0} items</value></data>
+  <data name="RecipeLearning_UnresolvedInput" xml:space="preserve"><value>An ingredient group is unresolved. Its pickup requirement is unknown.</value></data>
+  <data name="RecipeLearning_PickedUp" xml:space="preserve"><value>Picked up before</value></data>
+  <data name="RecipeLearning_NotPickedUp" xml:space="preserve"><value>Not recorded as picked up</value></data>
+  <data name="RecipeLearning_PickupUnknown" xml:space="preserve"><value>Pickup history unavailable</value></data>
+  <data name="RecipeLearning_OutputPickup" xml:space="preserve"><value>Pick up the finished item: {0}.</value></data>
+  <data name="RecipeLearning_Starting" xml:space="preserve"><value>This is a starting recipe for new characters.</value></data>
+  <data name="RecipeLearning_LinkedSources" xml:space="preserve"><value>Other recipes that reveal this one ({0})</value></data>
+  <data name="RecipeLearning_Linked" xml:space="preserve"><value>Discover {0}.</value></data>
+  <data name="RecipeLearning_SourceSealed" xml:space="preserve"><value>This learning source is classified.</value></data>
+  <data name="RecipeLearning_RevealSource" xml:space="preserve"><value>Reveal learning source</value></data>
+  <data name="RecipeLearning_Skill" xml:space="preserve"><value>Reach {0} level {1}.</value></data>
+  <data name="RecipeLearning_ConditionMet" xml:space="preserve"><value>Requirement met</value></data>
+  <data name="RecipeLearning_ConditionUnmet" xml:space="preserve"><value>Requirement not yet met</value></data>
+  <data name="RecipeLearning_ConditionUnknown" xml:space="preserve"><value>Current state unknown</value></data>
+  <data name="RecipeLearning_MoreSources" xml:space="preserve"><value>Show {0} source actions</value></data>
+  <data name="RecipeLearning_MethodUnknown" xml:space="preserve"><value>No verified discovery action is available in this catalog.</value></data>
+  <data name="RecipeLearning_ResearchTitle" xml:space="preserve"><value>Research after discovery</value></data>
+  <data name="RecipeLearning_NoResearch" xml:space="preserve"><value>This recipe has no research minigame.</value></data>
+  <data name="RecipeLearning_ResearchPending" xml:space="preserve"><value>Open this recipe in the game’s crafting screen and finish its research minigame.</value></data>
+  <data name="RecipeLearning_ResearchAfterDiscovery" xml:space="preserve"><value>After discovering this recipe, finish its research minigame in the game’s crafting screen.</value></data>
+  <data name="RecipeLearning_ResearchDone" xml:space="preserve"><value>This player has completed research for this recipe.</value></data>
+  <data name="RecipeLearning_ResearchStateUnknown" xml:space="preserve"><value>A research minigame is listed. This player’s completion state is unavailable.</value></data>
+  <data name="RecipeLearning_ResearchUnknown" xml:space="preserve"><value>Research requirements are not available in this catalog.</value></data>
+  <data name="RecipeLearning_Object" xml:space="preserve"><value>the marked object</value></data>
+  <data name="RecipeLearning_Workbench" xml:space="preserve"><value>a workbench</value></data>
+  <data name="RecipeLearning_Character" xml:space="preserve"><value>the relevant character</value></data>
+  <data name="RecipeLearning_Conversation" xml:space="preserve"><value>Speak to {0}.</value></data>
+  <data name="RecipeLearning_ConversationHelp" xml:space="preserve"><value>This guide does not check whether that story encounter is available.</value></data>
+  <data name="RecipeLearning_Trait" xml:space="preserve"><value>This recipe comes with {0}.</value></data>
+  <data name="RecipeLearning_CompendiumKills" xml:space="preserve"><value>Unlock the compendium research for {0} ({1} kills).</value></data>
+  <data name="RecipeLearning_Compendium" xml:space="preserve"><value>Unlock the section about {0} in your compendium. Encounter requirements are not checked here.</value></data>
+  <data name="RecipeLearning_Inspect" xml:space="preserve"><value>Analyze {0}.</value></data>
+  <data name="RecipeLearning_Area" xml:space="preserve"><value>Area: {0}</value></data>
+  <data name="RecipeLearning_Cooking" xml:space="preserve"><value>Try the listed ingredients together in a cooking pot. Experimenting with similar combinations can also reveal soup recipes.</value></data>
+  <data name="RecipeLearning_Processing" xml:space="preserve"><value>Mix these ingredients at a chemistry bench.</value></data>
+  <data name="RecipeLearning_Bench" xml:space="preserve"><value>Open {0} to discover this recipe.</value></data>
 </root>

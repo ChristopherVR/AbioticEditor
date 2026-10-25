@@ -44,6 +44,60 @@ public partial class PlayerRecipesTab
     private RecipeDiscoveryAssessment AssessRecipe(string id)
         => RecipeDiscoveryAssessment.Assess(id, _catalogSnapshot?.Codex.Emails ?? [], _catalogSnapshot?.Codex.Fish ?? [], _worldFlags, ReadEmails, CaughtFish);
 
+    private RecipeLearningAssessment AssessLearning(string id)
+        => RecipeLearningAssessment.Assess(_catalogSnapshot?.RecipeLearning, id, Session.RecipeItemsPickedUp,
+            Session.Recipes.Where(row => row.IsUnlocked).Select(row => row.Id), Session.RecipeResearchPending,
+            Session is PlayerSaveSession file ? file.Skills.ToDictionary(skill => skill.Definition.Id, skill => skill.Level, StringComparer.OrdinalIgnoreCase) : null);
+
+    private RecipeSpecialGrant[] SpecialLearning(string id)
+        => _catalogSnapshot?.RecipeLearning?.SpecialGrants.Where(grant => grant.RecipeId.Equals(id, StringComparison.OrdinalIgnoreCase)).ToArray() ?? [];
+
+    private string LearningSkillName(string id) => Session is PlayerSaveSession file
+        ? file.Skills.FirstOrDefault(skill => skill.Definition.Id.Equals(id, StringComparison.OrdinalIgnoreCase))?.Name ?? PlainNames.Words(id)
+        : PlainNames.Words(id);
+
+    private bool ConcealedLinkedLearning(string id) => RowFor(id) is { } row && Concealed(row);
+
+    private static string SpecialLearningKey(RecipeSpecialGrant grant) => $"recipe-learning:{grant.Kind}:{(string.IsNullOrWhiteSpace(grant.SourceLabel) ? grant.SourceId : grant.SourceLabel)}:{grant.LevelId}:{grant.RequiredCount}";
+
+    private bool ConcealedSpecialLearning(RecipeSpecialGrant grant)
+    {
+        if (!Spoilers.Enabled || Spoilers.IsRevealed(SpecialLearningKey(grant))) return false;
+        if (grant.Kind is RecipeSpecialGrantKind.Cooking or RecipeSpecialGrantKind.Processing) return false;
+        if (grant.Kind == RecipeSpecialGrantKind.Trait && Session is PlayerSaveSession file)
+            return !file.Traits.Contains(grant.TraitId ?? grant.SourceId, StringComparer.OrdinalIgnoreCase)
+                && !string.Equals(file.Background, grant.TraitId ?? grant.SourceId, StringComparison.OrdinalIgnoreCase);
+        // A recipe being known does not establish that its alternative NPC/object source was seen.
+        return true;
+    }
+
+    private void RevealSpecialLearning(RecipeSpecialGrant grant) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"), Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("RecipeGuide_TheseDiscoveryDetails"))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Spoilers.Reveal(SpecialLearningKey(grant)); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private RenderFragment LearningContent(string id) => builder =>
+    {
+        if (_catalogSnapshot?.RecipeLearning is null) return;
+        builder.OpenComponent<RecipeLearningGuide>(0);
+        builder.AddAttribute(1, nameof(RecipeLearningGuide.Assessment), AssessLearning(id));
+        builder.AddAttribute(2, nameof(RecipeLearningGuide.SpecialGrants), SpecialLearning(id));
+        builder.AddAttribute(3, nameof(RecipeLearningGuide.ItemName), (Func<string, string>)CraftItemName);
+        builder.AddAttribute(4, nameof(RecipeLearningGuide.RecipeName), (Func<string, string>)LearningRecipeName);
+        builder.AddAttribute(5, nameof(RecipeLearningGuide.SkillName), (Func<string, string>)LearningSkillName);
+        builder.AddAttribute(6, nameof(RecipeLearningGuide.LevelName), (Func<string, string>)PlainNames.Area);
+        builder.AddAttribute(7, nameof(RecipeLearningGuide.ConcealedSpecial), (Func<RecipeSpecialGrant, bool>)ConcealedSpecialLearning);
+        builder.AddAttribute(8, nameof(RecipeLearningGuide.OnRevealSpecial), EventCallback.Factory.Create<RecipeSpecialGrant>(this, RevealSpecialLearning));
+        builder.AddAttribute(9, nameof(RecipeLearningGuide.ConcealedLinked), (Func<string, bool>)ConcealedLinkedLearning);
+        builder.AddAttribute(10, nameof(RecipeLearningGuide.OnRevealLinked), EventCallback.Factory.Create<string>(this, RevealRecipe));
+        builder.AddAttribute(11, nameof(RecipeLearningGuide.HasAdditionalSources), AssessRecipe(id).HasKnownSources);
+        builder.AddAttribute(12, nameof(RecipeLearningGuide.BenchName), (Func<string, string>)AcquisitionItemName);
+        builder.CloseComponent();
+    };
+
+    private string LearningRecipeName(string id) => ConcealedLinkedLearning(id) ? L.Resource("Spoiler_Redacted") : RecipeName(id);
+
     private bool ConcealedSource(RecipeDiscoveryRoute route)
         => Spoilers.Enabled && route.RecordedSourceState != RecipeDiscoveryState.KnownMet && !Spoilers.IsRevealed(DiscoverySpoilerKey(route));
 
@@ -93,6 +147,8 @@ public partial class PlayerRecipesTab
     private bool IsLearned(string id)
         => Session.Recipes.FirstOrDefault(row => string.Equals(row.Id, id, StringComparison.OrdinalIgnoreCase))?.IsUnlocked == true;
 
+    private bool IsResearchPending(string id) => Session.RecipeResearchPending?.Contains(id, StringComparer.OrdinalIgnoreCase) == true;
+
     private RecipeRow? RowFor(string id)
         => _rows?.FirstOrDefault(row => string.Equals(row.Info.Id, id, StringComparison.OrdinalIgnoreCase));
 
@@ -114,13 +170,18 @@ public partial class PlayerRecipesTab
     {
         get
         {
-            var ingredientRecipes = _recipeGraph.FindPossibleMissed([], Session.RecipeItemsPickedUp);
+            var ingredientRecipes = _catalogSnapshot?.RecipeLearning is { } learning
+                ? (_catalogSnapshot.Recipes.Where(recipe => RecipeLearningAssessment.Assess(learning, recipe.Id, Session.RecipeItemsPickedUp).PickupIngredientsState == RecipeDiscoveryState.KnownMet).ToArray())
+                : _recipeGraph.FindPossibleMissed([], Session.RecipeItemsPickedUp);
             _ingredientClueIds = ingredientRecipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var candidates = ingredientRecipes.Where(recipe => !IsLearned(recipe.Id));
             var discovered = _catalogSnapshot is { } snapshot
                 ? RecipeDiscoveryAssessment.FindRecordedMissing(snapshot.Recipes.Select(recipe => recipe.Id), Session.Recipes.Where(row => row.IsUnlocked).Select(row => row.Id), snapshot.Codex.Emails, snapshot.Codex.Fish, ReadEmails, CaughtFish, _worldFlags)
                 : [];
-            var currentIds = candidates.Select(recipe => recipe.Id).Concat(discovered.Select(assessment => assessment.RecipeId)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var knownLearning = _catalogSnapshot?.RecipeLearning is not null
+                ? _catalogSnapshot.Recipes.Where(recipe => !IsLearned(recipe.Id) && AssessLearning(recipe.Id).KnownRouteState == RecipeDiscoveryState.KnownMet).Select(recipe => recipe.Id)
+                : [];
+            var currentIds = candidates.Select(recipe => recipe.Id).Concat(discovered.Select(assessment => assessment.RecipeId)).Concat(knownLearning).ToHashSet(StringComparer.OrdinalIgnoreCase);
             _reviewRecipeIds.RemoveAll(id => !currentIds.Contains(id) && !(_newUnlockIds.Contains(id) && IsLearned(id)));
             foreach (var recipe in (_catalogSnapshot?.Recipes ?? []).Where(recipe => currentIds.Contains(recipe.Id)).OrderBy(recipe => RecipeName(recipe.Id), StringComparer.CurrentCultureIgnoreCase))
                 if (!_reviewRecipeIds.Contains(recipe.Id, StringComparer.OrdinalIgnoreCase)) _reviewRecipeIds.Add(recipe.Id);

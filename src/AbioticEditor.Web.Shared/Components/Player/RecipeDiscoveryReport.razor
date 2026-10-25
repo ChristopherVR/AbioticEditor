@@ -10,7 +10,7 @@
 {
     <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CatalogUnavailable")</p>
 }
-else if (!HasPickupHistory && !HasDiscoveryHistory)
+else if (!HasPickupHistory && !HasDiscoveryHistory && !HasLearningCatalog)
 {
     <h4>@L.Resource("RecipeGuide_HistoryUnavailable")</h4>
     <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_HistoryHelp")</p>
@@ -41,7 +41,7 @@ else
                     }
                     <div>
                         <h4>@(concealed ? L.Resource("Spoiler_Redacted") : ItemName(recipe.CreatesItemId ?? recipe.Id))</h4>
-                        <span class="recipe-suggestion-status" role="status">@L.Resource(unlocked ? (Staged(recipe.Id) ? "RecipeGuide_Staged" : "RecipeGuide_Unlocked") : "RecipeGuide_NotLearned")</span>
+                        <span class="recipe-suggestion-status" role="status">@L.Resource(ResearchPending(recipe.Id) ? "RecipeLearning_PendingResearch" : unlocked ? (Staged(recipe.Id) ? "RecipeGuide_Staged" : "RecipeGuide_Unlocked") : "RecipeGuide_NotLearned")</span>
                     </div>
                     @if (concealed)
                     {
@@ -63,7 +63,7 @@ else
                     {
                         <p>@L.Resource("RecipeGuide_RecordedGrantClue")</p>
                     }
-                    @if (IngredientClue(recipe.Id))
+                    @if (IngredientClue(recipe.Id) && !HasLearningCatalog)
                     {
                         <p>@L.Resource("RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
                         <details>
@@ -73,7 +73,8 @@ else
                             </ul>
                         </details>
                     }
-                    <RecipeDiscoverySources Assessment="assessment" Learned="unlocked" ItemName="ItemName" Concealed="SourceConcealed" OnReveal="OnRevealSource" />
+                    @if (LearningContent is not null) { @LearningContent(recipe.Id) }
+                    <RecipeDiscoverySources Assessment="assessment" Learned="unlocked" SuppressUnknown="HasLearningCatalog" ItemName="ItemName" Concealed="SourceConcealed" OnReveal="OnRevealSource" />
                 }
                 @if (!concealed && Feedback(recipe.Id) is { Length: > 0 } feedback)
                 {
@@ -98,8 +99,11 @@ else
     [Parameter] public bool CatalogAvailable { get; set; }
     [Parameter] public bool HasPickupHistory { get; set; }
     [Parameter] public bool HasDiscoveryHistory { get; set; }
+    [Parameter] public bool HasLearningCatalog { get; set; }
+    [Parameter] public RenderFragment<string>? LearningContent { get; set; }
     [Parameter] public Func<string, RecipeDiscoveryAssessment> Assessment { get; set; } = id => new(id, []);
     [Parameter] public Func<string, bool> IngredientClue { get; set; } = _ => true;
+    [Parameter] public Func<string, bool> ResearchPending { get; set; } = _ => false;
     [Parameter] public Func<RecipeDiscoveryRoute, bool> SourceConcealed { get; set; } = _ => false;
     [Parameter] public EventCallback<RecipeDiscoveryRoute> OnRevealSource { get; set; }
     [Parameter] public bool AppliesImmediately { get; set; }

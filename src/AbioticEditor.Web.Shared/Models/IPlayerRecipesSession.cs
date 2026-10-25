@@ -21,6 +21,9 @@ public interface IPlayerRecipesSession
     /// </summary>
     IReadOnlyCollection<string>? RecipeItemsPickedUp => null;
 
+    /// <summary>Discovered recipes still awaiting the in-game research minigame. Null means unavailable.</summary>
+    IReadOnlyCollection<string>? RecipeResearchPending => null;
+
     /// <summary>Whether this recipe's learned state differs from its loaded or last-saved state.
     /// Live sessions have no staged edits and use the default false result.</summary>
     bool IsRecipeUnlockStaged(string recipeId) => false;

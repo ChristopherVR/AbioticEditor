@@ -1,5 +1,48 @@
 # Abiotic Editor - Session history
 
+## Recipe learning catalog follows the game's discovery logic (2026-10-26)
+
+- Replaced the 26-source email/fish-only boundary with verified learning metadata from the
+  installed progression component, actual substitute groups, skill grants, starting arrays,
+  linked recipes, NPC dialogue, trait buffs, compendium sections, cooking/processing handlers,
+  workbench access arrays and placed inspectable actors. Every one of the current 584 recipe
+  definitions now has at least one recorded method. This is not complete prerequisite,
+  alternative-method, NPC availability or item-location coverage. Evidence and limits are in
+  `reference/research/recipe-learning-catalog.md`.
+- Verified the standard historical pickup scan only uses its configured main recipe table:
+  391 of 503 crafting rows allow it. It checks item types, not quantities, with one actual
+  substitute member sufficient. Soup and chemistry use separately verified handlers. Two bad
+  linked references are retained as diagnostics, and cyclic links are not recursively assessed.
+  Skill identity is mapped through real game enums and the canonical save order.
+- Details, missed checks and crafting guides now explain learning methods separately from
+  research completion. Plasma Disc specifically requires historical Grinder Disc, Detonation
+  Cord and Arcane Scrap pickups, with no research minigame. Current pending research wins over
+  an Unlocked checkbox or usual table difficulty. File history is read-only guidance; unknown
+  live history remains unknown. No new serializer, quest or research-completion writer was added.
+- The report now excludes pickup-disabled recipes from ingredient-only suggestions and uses
+  actual group membership. Learning instructions remain available after discovery, repeated NPC
+  actions consolidate, and future source names/locations and linked recipes remain separately
+  sealed. Existing explicit Unlock, staged SAVE/Undo, backups and source-refresh guards remain.
+- Added optional versioned metadata to the coherent snapshot and all ten bundled cultures.
+  `dump-registry --recipe-learning-only` validates compatible crafting definitions before
+  replacing that section; all-cultures validates every target before writes. Updating ten files
+  took 29.5 seconds. All non-learning JSON hashes are unchanged, including localized and unknown
+  fields and prior stamps. Partial/null/future metadata drops only the optional section safely.
+- Map extraction uses name/class metadata and selected exports, not full world enumeration:
+  77 level name maps, 29 selected actors and 20 grant-bearing actors. The complete typed helper
+  export took about 6.5 seconds with its existing asset cache. Extraction stays in background
+  snapshot loading; healthy unchanged snapshots are reused and renders never scan assets.
+- Final focused recipe/render verification: 170 passed. An additional overlapping 100-check
+  compatibility run covered registry, research and fixture-copy Save/revert behavior. Core,
+  CLI, Shared, net10 host, isolated Windows host and WASM builds pass with zero warnings/errors,
+  using the existing optional-native-decoder skip and unchanged compiled dependencies. Docs
+  build passes with 3,496 local link/image checks across 69 pages. Diff whitespace and changed-file
+  em-dash checks pass. No UI automation resumed after Escape and no real save was written.
+- The running native host (PID 9092) was left untouched; its DLL locks prevent replacing the
+  normal output. Latest Windows build is under ignored `artifacts/recipe-learning-build/desktop`.
+  All managed runtime entries are present and Core/Shared hashes match the current builds.
+  Nothing was launched, stopped or pushed during this work.
+
 ## Show crafting steps brings the actual tree into view (2026-10-25)
 
 - Confirmed the book-row and Details actions already opened the guide. In the user's

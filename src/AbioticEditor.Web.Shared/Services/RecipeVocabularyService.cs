@@ -130,7 +130,12 @@ public sealed class RecipeVocabularyService
                     var traders = InstalledTraders(TraderCatalog.LoadFrom(provider));
                     return new RecipeCatalogSnapshot(recipes, itemCatalog.Entries.ToArray(), vocabulary,
                         new RecipeCatalogMetadata(revision, RecipeCatalogSource.InstalledGame, checkedAt,
-                            null, culture, false)) { ItemVariants = variants, Traders = traders };
+                            null, culture, false))
+                    {
+                        ItemVariants = variants,
+                        Traders = traders,
+                        RecipeLearning = GameDataRegistry.BuildRecipeLearning(provider),
+                    };
                 }
             }
         }
@@ -152,6 +157,7 @@ public sealed class RecipeVocabularyService
             Registry = registry,
             ItemVariants = registry?.ItemVariants,
             Traders = registry?.Traders ?? [],
+            RecipeLearning = registry?.RecipeLearning is { SchemaVersion: RecipeLearningCatalog.CurrentSchemaVersion } learning ? learning : null,
         };
     }
 

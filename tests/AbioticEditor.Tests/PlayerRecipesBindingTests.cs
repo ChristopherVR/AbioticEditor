@@ -16,6 +16,35 @@ namespace AbioticEditor.Tests;
 public sealed class PlayerRecipesBindingTests
 {
     [Fact]
+    public async Task Missed_check_uses_verified_pickup_eligibility_and_current_history_instead_of_crafting_inputs_alone()
+    {
+        RecipeInfo[] recipes = [
+            new("allowed", null, 1, null, "Crafting", [new("material", 1)]),
+            new("blocked", null, 1, null, "Crafting", [new("material", 1)]),
+        ];
+        RecipeLearningInput[] inputs = [new("material", "items", null, ["material"], false, true)];
+        var learning = new RecipeLearningCatalogData(RecipeLearningCatalog.CurrentSchemaVersion,
+        [
+            new("allowed", "recipes", true, 0, inputs, [], null) { DiscoveryInputsKnown = true },
+            new("blocked", "recipes", false, 0, inputs, [], null) { DiscoveryInputsKnown = true },
+        ], [], [], []);
+        var catalog = new RecipeCatalogSnapshot(recipes, [], CodexVocabulary.Empty,
+            new RecipeCatalogMetadata(1, RecipeCatalogSource.SuppliedSnapshot, DateTimeOffset.UtcNow, null, "en", false))
+        { RecipeLearning = learning };
+        await using var harness = new BindingHarness(catalog);
+        var session = new CountingSession { RecipeItemsPickedUp = ["MATERIAL"] };
+        var view = await harness.Begin(session);
+        harness.ReleaseLoader();
+        await view.QuiescenceTask;
+
+        Assert.Equal("allowed", Assert.Single(await harness.ReviewIds()));
+        session.RecipeItemsPickedUp = [];
+        Assert.Empty(await harness.ReviewIds());
+        session.RecipeItemsPickedUp = null;
+        Assert.Empty(await harness.ReviewIds());
+    }
+
+    [Fact]
     public async Task Repeated_parent_parameters_while_loading_bind_the_recipe_catalog_once()
     {
         await using var harness = new BindingHarness();
@@ -91,7 +120,7 @@ public sealed class PlayerRecipesBindingTests
         public int InputCheckCount => Volatile.Read(ref _inputCheckCount);
         public BindingHost Host { get; private set; } = null!;
 
-        public BindingHarness()
+        public BindingHarness(RecipeCatalogSnapshot? suppliedCatalog = null)
         {
             var recipes = new RecipeVocabularyService(TimeProvider.System, () =>
             {
@@ -103,7 +132,7 @@ public sealed class PlayerRecipesBindingTests
                 LoaderEntered.TrySetResult();
                 _release.Task.GetAwaiter().GetResult();
                 if (FailFirstLoad && attempt == 1) throw new IOException("Controlled recipe load failure.");
-                return new RecipeCatalogSnapshot([new RecipeInfo("recipe_loaded", null, 1, null, "Crafting", [])],
+                return suppliedCatalog ?? new RecipeCatalogSnapshot([new RecipeInfo("recipe_loaded", null, 1, null, "Crafting", [])],
                     [], CodexVocabulary.Empty, new RecipeCatalogMetadata(revision,
                         RecipeCatalogSource.SuppliedSnapshot, at, null, "en", false));
             }, () => { });
@@ -139,6 +168,9 @@ public sealed class PlayerRecipesBindingTests
             })));
 
         public Task Update(IPlayerRecipesSession session) => _renderer.Dispatcher.InvokeAsync(() => Host.Update(session));
+        public Task<string[]> ReviewIds() => _renderer.Dispatcher.InvokeAsync(() =>
+            ((IReadOnlyList<RecipeInfo>)typeof(PlayerRecipesTab).GetProperty("ReviewRecipes", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(Host.Child)!).Select(recipe => recipe.Id).ToArray());
         public void ReleaseLoader() => _release.TrySetResult();
 
         public async ValueTask DisposeAsync()
@@ -186,6 +218,7 @@ public sealed class PlayerRecipesBindingTests
         public int RecipeCount => _recipes.Count;
         public bool AppliesImmediately => false;
         public bool CanLock => true;
+        public IReadOnlyCollection<string>? RecipeItemsPickedUp { get; set; }
         public void EnsureRecipeRows(IEnumerable<string> ids)
         {
             BindCount++;

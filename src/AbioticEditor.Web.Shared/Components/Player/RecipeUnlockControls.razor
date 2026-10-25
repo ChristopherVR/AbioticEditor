@@ -1,7 +1,7 @@
 @namespace AbioticEditor.Web.Components.Player
 
 <div class="recipe-unlock-controls">
-    <span role="status">@L.Resource(Learned ? Staged ? "RecipeGuide_Staged" : "RecipeGuide_Learned" : "RecipeGuide_NotLearned")</span>
+    <span role="status">@L.Resource(ResearchPending ? "RecipeLearning_PendingResearch" : Learned ? Staged ? "RecipeGuide_Staged" : "RecipeGuide_Learned" : "RecipeGuide_NotLearned")</span>
     @if (!Learned)
     {
         <button type="button" class="primary" disabled="@Busy" @onclick="() => OnUnlock.InvokeAsync(RecipeId)">@L.Resource(Busy ? "RecipeGuide_Unlocking" : "RecipeGuide_Unlock")</button>
@@ -13,6 +13,7 @@
 @code {
     [Parameter, EditorRequired] public string RecipeId { get; set; } = string.Empty;
     [Parameter] public bool Learned { get; set; }
+    [Parameter] public bool ResearchPending { get; set; }
     [Parameter] public bool Staged { get; set; }
     [Parameter] public bool CanUndo { get; set; }
     [Parameter] public bool Busy { get; set; }

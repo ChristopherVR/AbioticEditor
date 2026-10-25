@@ -1,5 +1,6 @@
 using System.CommandLine;
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Items;
 
 namespace AbioticEditor.Cli;
 
@@ -33,6 +34,10 @@ internal static class DumpRegistryCommand
         {
             Description = "Write one registry per language the game ships, into the --output folder.",
         };
+        var learningOnlyOpt = new Option<bool>("--recipe-learning-only")
+        {
+            Description = "Refresh only recipe-learning metadata in compatible existing registry files, preserving every other field.",
+        };
 
         var cmd = new Command("dump-registry",
             "Extract the game's data tables into a bundled registry JSON (maintainer tool; needs the game installed).");
@@ -41,18 +46,21 @@ internal static class DumpRegistryCommand
         cmd.Options.Add(gameVersionOpt);
         cmd.Options.Add(cultureOpt);
         cmd.Options.Add(allCulturesOpt);
+        cmd.Options.Add(learningOnlyOpt);
         cmd.SetAction(parseResult => Cli.Run(() => parseResult.GetValue(allCulturesOpt)
             ? DumpEveryCulture(
                 parseResult.GetValue(outOpt),
                 parseResult.GetValue(gameDirOpt),
                 parseResult.GetValue(gameVersionOpt),
-                parseResult.GetValue(quiet))
+                parseResult.GetValue(quiet),
+                parseResult.GetValue(learningOnlyOpt))
             : Dump(
                 parseResult.GetValue(outOpt),
                 parseResult.GetValue(gameDirOpt),
                 parseResult.GetValue(gameVersionOpt),
                 parseResult.GetValue(cultureOpt),
-                parseResult.GetValue(quiet))));
+                parseResult.GetValue(quiet),
+                parseResult.GetValue(learningOnlyOpt))));
         return cmd;
     }
 
@@ -64,15 +72,17 @@ internal static class DumpRegistryCommand
     /// Each culture needs its own mount: the game's translated strings are applied to the loaded
     /// tables at mount time, so one provider cannot produce two languages.
     /// </remarks>
-    private static int DumpEveryCulture(string? output, string? gameDir, string? gameVersion, bool quiet)
+    private static int DumpEveryCulture(string? output, string? gameDir, string? gameVersion, bool quiet, bool learningOnly)
     {
+        ValidateLearningOptions(learningOnly, gameVersion);
         if (!string.IsNullOrWhiteSpace(gameDir))
         {
             AfInstallLocator.OverrideInstallRoot = Cli.RequireDirectory(gameDir, "game folder");
         }
 
         var directory = Path.GetFullPath(string.IsNullOrWhiteSpace(output) ? "registry" : output);
-        Directory.CreateDirectory(directory);
+        if (learningOnly) Cli.RequireDirectory(directory, "existing registry folder");
+        else Directory.CreateDirectory(directory);
 
         IReadOnlyList<string> cultures;
         using (var probe = RequireProvider())
@@ -80,6 +90,22 @@ internal static class DumpRegistryCommand
             cultures = probe.DiscoverAvailableCultures();
         }
         Cli.Info(quiet, $"The game ships text for: {string.Join(", ", cultures)}");
+
+        if (learningOnly)
+        {
+            var targets = cultures.Prepend<string?>(null).Select(culture =>
+                (Culture: culture, Path: Cli.RequireFile(Path.Combine(directory, GameDataRegistry.FileNameFor(culture)), "existing registry"))).ToArray();
+            var updates = new List<(string Path, string Json)>();
+            foreach (var target in targets)
+            {
+                using var provider = RequireProvider(target.Culture);
+                updates.Add((target.Path, PrepareLearningUpdate(target.Path, target.Culture, provider)));
+            }
+            // Every target is checked before the first existing registry is changed.
+            foreach (var update in updates) File.WriteAllText(update.Path, update.Json);
+            Cli.Info(quiet, $"Updated recipe-learning metadata in {updates.Count} existing registry file(s) -> {directory}");
+            return Cli.Ok;
+        }
 
         // The default (no culture asked for) is written as plain registry.json, which is what
         // every host falls back to when the player's own language did not ship.
@@ -115,8 +141,9 @@ internal static class DumpRegistryCommand
         return provider;
     }
 
-    private static int Dump(string? output, string? gameDir, string? gameVersion, string? culture, bool quiet)
+    private static int Dump(string? output, string? gameDir, string? gameVersion, string? culture, bool quiet, bool learningOnly)
     {
+        ValidateLearningOptions(learningOnly, gameVersion);
         if (!string.IsNullOrWhiteSpace(gameDir))
         {
             AfInstallLocator.OverrideInstallRoot = Cli.RequireDirectory(gameDir, "game folder");
@@ -125,10 +152,19 @@ internal static class DumpRegistryCommand
         var outPath = string.IsNullOrWhiteSpace(output)
             ? Path.GetFullPath(GameDataRegistry.FileNameFor(culture))
             : Path.GetFullPath(output);
+        if (learningOnly) Cli.RequireFile(outPath, "existing registry");
 
         // Base game only: the bundled registry must stay clean and reproducible, so it never
         // picks up content from any mods installed on the maintainer's machine.
         using var provider = RequireProvider(culture);
+
+        if (learningOnly)
+        {
+            var json = PrepareLearningUpdate(outPath, culture, provider);
+            File.WriteAllText(outPath, json);
+            Cli.Info(quiet, $"Updated recipe-learning metadata -> {outPath}");
+            return Cli.Ok;
+        }
 
         var registry = GameDataRegistry.BuildFromInstall(provider, gameVersion, culture);
         registry.Save(outPath);
@@ -140,5 +176,20 @@ internal static class DumpRegistryCommand
             + $", {registry.Items?.Count ?? 0} item(s).");
         Cli.Info(quiet, "Copy it to assets/registry/ and commit to bundle it with the editor.");
         return Cli.Ok;
+    }
+
+    private static void ValidateLearningOptions(bool learningOnly, string? gameVersion)
+    {
+        if (learningOnly && !string.IsNullOrWhiteSpace(gameVersion))
+            throw new CliUserErrorException("--game-version cannot be combined with --recipe-learning-only; existing registry stamps are preserved.");
+    }
+
+    private static string PrepareLearningUpdate(string path, string? culture, GameAssetProvider provider)
+    {
+        var recipes = RecipeCatalog.LoadInfosFrom(provider);
+        var learning = GameDataRegistry.BuildRecipeLearning(provider)
+            ?? throw new CliUserErrorException("The installed game's recipe-learning data could not be read; existing registries were not changed.");
+        try { return RecipeLearningRegistryUpdater.Merge(File.ReadAllText(path), recipes, learning, culture); }
+        catch (InvalidDataException ex) { throw new CliUserErrorException($"Cannot update '{path}': {ex.Message}", ex); }
     }
 }

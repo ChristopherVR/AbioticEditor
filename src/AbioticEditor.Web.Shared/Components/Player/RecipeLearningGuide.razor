@@ -1,0 +1,211 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<div class="recipe-discovery-sources recipe-learning-guide">
+    <strong>@L.Resource("RecipeLearning_Title")</strong>
+    <p class="recipe-learning-status">@L.Resource(Assessment.IsDiscovered switch { true => "RecipeLearning_Discovered", false => "RecipeLearning_NotDiscovered", _ => "RecipeLearning_DiscoveryStateUnknown" })</p>
+    <section class="recipe-learning-phase" aria-label="@L.Resource("RecipeLearning_Methods")">
+        <strong>@L.Resource("RecipeLearning_Methods")</strong>
+        @if (Assessment.Definition is { PickupDiscoveryEnabled: true })
+        {
+            @if (!Assessment.Definition.DiscoveryInputsKnown)
+            {
+                <p>@L.Resource("RecipeLearning_UnresolvedInput")</p>
+            }
+            else
+            {
+                <p>@L.Resource("RecipeLearning_PickupTypes")</p>
+                <small>@L.Resource("RecipeLearning_TypeCountHelp")</small>
+            }
+            @if (Assessment.Inputs.Count == 0 && Assessment.Definition.DiscoveryInputsKnown)
+            {
+                <small>@L.Resource("RecipeLearning_NoInputs")</small>
+            }
+            <ul class="recipe-learning-inputs">
+                @foreach (var (input, inputKey) in RenderKeys.With(Assessment.Inputs, input => input.Input.RowId))
+                {
+                    <li @key="inputKey">
+                        @if (!input.Input.IsResolved || input.Input.AlternativeItemIds.Count == 0)
+                        {
+                            <span>@L.Resource("RecipeLearning_UnresolvedInput")</span>
+                        }
+                        else if (input.Input.IsSubstitute || input.Input.AlternativeItemIds.Count > 1)
+                        {
+                            <details>
+                                <summary>@L.Resource("RecipeLearning_OneOf", input.Input.AlternativeItemIds.Count)</summary>
+                                <ul>
+                                    @foreach (var (item, itemKey) in RenderKeys.With(input.Input.AlternativeItemIds, item => item))
+                                    {
+                                        <li @key="itemKey">@ItemName(item)</li>
+                                    }
+                                </ul>
+                            </details>
+                        }
+                        else
+                        {
+                            <span>@ItemName(input.Input.AlternativeItemIds[0])</span>
+                        }
+                        <small>@L.Resource(PickupKey(input.State))</small>
+                    </li>
+                }
+            </ul>
+        }
+        @if (Assessment.Definition is { OutputPickupDiscoveryEnabled: true, OutputItemId: { Length: > 0 } output })
+        {
+            <p>@L.Resource("RecipeLearning_OutputPickup", ItemName(output)) <small>@L.Resource(PickupKey(Assessment.OutputPickupState))</small></p>
+        }
+        @if (Assessment.StartingState == RecipeDiscoveryState.KnownMet) { <p>@L.Resource("RecipeLearning_Starting")</p> }
+        @if (Assessment.LinkedSources.Count > 0)
+        {
+            <details open="@(Assessment.LinkedSources.Count <= 4)">
+                <summary>@L.Resource("RecipeLearning_LinkedSources", Assessment.LinkedSources.Count)</summary>
+                <ul>
+                    @foreach (var (linked, linkedKey) in RenderKeys.With(Assessment.LinkedSources, linked => linked.SourceRecipeId))
+                    {
+                        <li @key="linkedKey">
+                            @if (ConcealedLinked(linked.SourceRecipeId))
+                            {
+                                <span>@L.Resource("RecipeLearning_SourceSealed")</span>
+                                <button type="button" class="secondary" @onclick="() => OnRevealLinked.InvokeAsync(linked.SourceRecipeId)">@L.Resource("RecipeLearning_RevealSource")</button>
+                            }
+                            else
+                            {
+                                <span>@L.Resource("RecipeLearning_Linked", RecipeName(linked.SourceRecipeId))</span>
+                                <small>@L.Resource(StateKey(linked.State))</small>
+                            }
+                        </li>
+                    }
+                </ul>
+            </details>
+        }
+        @if (Assessment.SkillSources.Count > 0)
+        {
+            <ul>
+                @foreach (var (skill, skillKey) in RenderKeys.With(Assessment.SkillSources, skill => $"{skill.Grant.SkillId}:{skill.Grant.Level}"))
+                {
+                    <li @key="skillKey">@L.Resource("RecipeLearning_Skill", SkillName(skill.Grant.SkillId), skill.Grant.Level)<small>@L.Resource(StateKey(skill.State))</small></li>
+                }
+            </ul>
+        }
+        @if (_displaySpecialGrants.Count > 6)
+        {
+            <details>
+                <summary>@L.Resource("RecipeLearning_MoreSources", _displaySpecialGrants.Count)</summary>
+                <ul>@foreach (var (source, sourceKey) in RenderKeys.With(_displaySpecialGrants, SpecialKey)) { @SpecialRow(source, sourceKey) }</ul>
+            </details>
+        }
+        else if (_displaySpecialGrants.Count > 0)
+        {
+            <ul>@foreach (var (source, sourceKey) in RenderKeys.With(_displaySpecialGrants, SpecialKey)) { @SpecialRow(source, sourceKey) }</ul>
+        }
+        @if (!HasListedMethod) { <p>@L.Resource("RecipeLearning_MethodUnknown")</p> }
+    </section>
+    <section class="recipe-learning-phase" aria-label="@L.Resource("RecipeLearning_ResearchTitle")">
+        <strong>@L.Resource("RecipeLearning_ResearchTitle")</strong>
+        <p>@L.Resource(ResearchKey)</p>
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RecipeLearningAssessment Assessment { get; set; } = null!;
+    [Parameter] public bool HasAdditionalSources { get; set; }
+    [Parameter] public IReadOnlyList<RecipeSpecialGrant> SpecialGrants { get; set; } = [];
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter] public Func<string, string>? BenchName { get; set; }
+    [Parameter, EditorRequired] public Func<string, string> RecipeName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> SkillName { get; set; } = null!;
+    [Parameter] public Func<RecipeSpecialGrant, bool> ConcealedSpecial { get; set; } = _ => false;
+    [Parameter] public EventCallback<RecipeSpecialGrant> OnRevealSpecial { get; set; }
+    [Parameter] public Func<string, bool> ConcealedLinked { get; set; } = _ => false;
+    [Parameter] public EventCallback<string> OnRevealLinked { get; set; }
+    [Parameter, EditorRequired] public Func<string, string> LevelName { get; set; } = null!;
+
+    private IReadOnlyList<RecipeSpecialGrant> _displaySpecialGrants = [];
+    protected override void OnParametersSet()
+        => _displaySpecialGrants = SpecialGrants.DistinctBy(grant => (grant.Kind,
+            string.IsNullOrWhiteSpace(grant.SourceLabel) ? grant.SourceId : grant.SourceLabel,
+            grant.LevelId, grant.RequiredCount)).ToArray();
+
+    private bool HasListedMethod => HasAdditionalSources || Assessment.Definition?.PickupDiscoveryEnabled == true
+        || Assessment.Definition?.OutputPickupDiscoveryEnabled == true || Assessment.StartingState == RecipeDiscoveryState.KnownMet
+        || Assessment.LinkedSources.Count > 0 || Assessment.SkillSources.Count > 0 || _displaySpecialGrants.Count > 0;
+    private string ResearchKey => Assessment.IsResearchPending == true ? "RecipeLearning_ResearchPending" : Assessment.Definition?.RequiresResearch switch
+    {
+        false => "RecipeLearning_NoResearch",
+        true when Assessment.IsDiscovered == false => "RecipeLearning_ResearchAfterDiscovery",
+        true when Assessment.IsDiscovered == true && Assessment.IsResearchPending == false => "RecipeLearning_ResearchDone",
+        true => "RecipeLearning_ResearchStateUnknown",
+        _ => "RecipeLearning_ResearchUnknown",
+    };
+    private static string PickupKey(RecipeDiscoveryState state) => state switch
+    {
+        RecipeDiscoveryState.KnownMet => "RecipeLearning_PickedUp",
+        RecipeDiscoveryState.KnownUnmet => "RecipeLearning_NotPickedUp",
+        _ => "RecipeLearning_PickupUnknown",
+    };
+    private static string StateKey(RecipeDiscoveryState state) => state switch
+    {
+        RecipeDiscoveryState.KnownMet => "RecipeLearning_ConditionMet",
+        RecipeDiscoveryState.KnownUnmet => "RecipeLearning_ConditionUnmet",
+        _ => "RecipeLearning_ConditionUnknown",
+    };
+    private static string SpecialKey(RecipeSpecialGrant grant)
+        => $"{grant.Kind}:{grant.SourceId}:{grant.SectionKind}:{grant.SectionIndex}:{grant.SourceAssetPath}";
+    private string ObjectLabel(RecipeSpecialGrant grant)
+        => string.IsNullOrWhiteSpace(grant.SourceLabel) ? L.Resource("RecipeLearning_Object") : grant.SourceLabel;
+    private string BenchLabel(RecipeSpecialGrant grant)
+    {
+        if (string.IsNullOrWhiteSpace(grant.SourceLabel)) return L.Resource("RecipeLearning_Workbench");
+        var label = (BenchName ?? ItemName)(grant.SourceLabel);
+        return label.Equals(grant.SourceLabel, StringComparison.Ordinal) && label.Contains('_', StringComparison.Ordinal)
+            ? L.Resource("RecipeLearning_Workbench") : label;
+    }
+    private string? AreaLabel(RecipeSpecialGrant grant)
+    {
+        if (string.IsNullOrWhiteSpace(grant.LevelId)) return null;
+        var label = LevelName(grant.LevelId);
+        return string.IsNullOrWhiteSpace(label) || label.Equals(grant.LevelId, StringComparison.Ordinal) && label.Contains('_', StringComparison.Ordinal) ? null : label;
+    }
+    private RenderFragment SpecialRow(RecipeSpecialGrant grant, string key) => @<li @key="key">
+        @if (ConcealedSpecial(grant))
+        {
+            <span>@L.Resource("RecipeLearning_SourceSealed")</span>
+            <button type="button" class="secondary" @onclick="() => OnRevealSpecial.InvokeAsync(grant)">@L.Resource("RecipeLearning_RevealSource")</button>
+        }
+        else
+        {
+            @switch (grant.Kind)
+            {
+                case RecipeSpecialGrantKind.Conversation:
+                    <span>@L.Resource("RecipeLearning_Conversation", string.IsNullOrWhiteSpace(grant.SourceLabel) ? L.Resource("RecipeLearning_Character") : grant.SourceLabel)</span>
+                    <small>@L.Resource("RecipeLearning_ConversationHelp")</small>
+                    break;
+                case RecipeSpecialGrantKind.Trait:
+                    <span>@L.Resource("RecipeLearning_Trait", grant.SourceLabel)</span>
+                    break;
+                case RecipeSpecialGrantKind.Compendium when grant.SectionKind == "Kill" && grant.RequiredCount is { } count:
+                    <span>@L.Resource("RecipeLearning_CompendiumKills", grant.SourceLabel, count)</span>
+                    break;
+                case RecipeSpecialGrantKind.Compendium:
+                    <span>@L.Resource("RecipeLearning_Compendium", grant.SourceLabel)</span>
+                    break;
+                case RecipeSpecialGrantKind.Inspectable:
+                    <span>@L.Resource("RecipeLearning_Inspect", ObjectLabel(grant))</span>
+                    @if (AreaLabel(grant) is { } area) { <small>@L.Resource("RecipeLearning_Area", area)</small> }
+                    break;
+                case RecipeSpecialGrantKind.Cooking:
+                    <span>@L.Resource("RecipeLearning_Cooking")</span>
+                    break;
+                case RecipeSpecialGrantKind.Processing:
+                    <span>@L.Resource("RecipeLearning_Processing")</span>
+                    break;
+                case RecipeSpecialGrantKind.BenchAccess:
+                    <span>@L.Resource("RecipeLearning_Bench", BenchLabel(grant))</span>
+                    break;
+                default:
+                    <span>@L.Resource("RecipeLearning_MethodUnknown")</span>
+                    break;
+            }
+        }
+    </li>;
+}

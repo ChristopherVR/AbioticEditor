@@ -28,7 +28,7 @@
                     }
                 </span>
             </button>
-            <span class="recipe-learned @(Learned(step.Id) ? "known" : null)">@L.Resource(Learned(step.Id) ? "RecipeGuide_Learned" : "RecipeGuide_NotLearned")</span>
+            <span class="recipe-learned @(Learned(step.Id) && !ResearchPending(step.Id) ? "known" : null)">@L.Resource(ResearchPending(step.Id) ? "RecipeLearning_PendingResearch" : Learned(step.Id) ? "RecipeGuide_Learned" : "RecipeGuide_NotLearned")</span>
             <button type="button" class="secondary recipe-inspect" @onclick="() => OnInspect.InvokeAsync(new RecipeCraftingSelection(Node.ItemId, step.Id))">@L.Resource("RecipeGuide_Details")</button>
         </div>
         @if (Expanded.Contains(Node.Path))
@@ -54,7 +54,7 @@
                     @foreach (var child in Node.Children)
                     {
                         <RecipeCraftingBranch @key="child.Path" Node="child" Expanded="Expanded" ItemName="ItemName"
-                                              StationName="StationName" RouteName="RouteName" Concealed="Concealed" Learned="Learned"
+                                              StationName="StationName" RouteName="RouteName" Concealed="Concealed" Learned="Learned" ResearchPending="ResearchPending"
                                               SourceHint="SourceHint"
                                               OnToggle="OnToggle" OnInspect="OnInspect" OnReveal="OnReveal" OnRoute="OnRoute" />
                     }
@@ -84,6 +84,7 @@
     [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
     [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
     [Parameter] public Func<string, string?> SourceHint { get; set; } = _ => null;
+    [Parameter] public Func<string, bool> ResearchPending { get; set; } = _ => false;
     [Parameter] public EventCallback<string> OnToggle { get; set; }
     [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
     [Parameter] public EventCallback<string> OnReveal { get; set; }

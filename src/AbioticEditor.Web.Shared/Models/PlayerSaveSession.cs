@@ -134,10 +134,11 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     }
 
     /// <summary>
-    /// Recipes waiting on the research bench (<c>RecipesRequiringResearch_</c>) rather than
+    /// Recipes waiting on the crafting-screen research minigame (<c>RecipesRequiringResearch_</c>) rather than
     /// fully unlocked. Shown on the RECIPES tab as a collapsed "awaiting research" list.
     /// </summary>
     public IReadOnlyList<string> ResearchQueue => _researchQueue;
+    public IReadOnlyCollection<string> RecipeResearchPending => _researchQueue;
 
     /// <summary>Adds a recipe id to the research queue; a no-op if it's already queued.</summary>
     public void AddToResearchQueue(string recipeId)

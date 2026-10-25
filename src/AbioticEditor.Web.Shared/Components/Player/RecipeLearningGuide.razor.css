@@ -1,0 +1,7 @@
+.recipe-learning-status{margin:6px 0;color:var(--ink)}
+.recipe-learning-phase{margin-top:12px;max-width:80ch}
+.recipe-learning-phase>strong{color:var(--section)}
+.recipe-learning-phase p{margin:5px 0}
+.recipe-learning-phase summary{cursor:pointer;color:var(--terminal);padding:4px 0}
+.recipe-learning-phase button{min-height:32px;font-size:11px;text-transform:none;letter-spacing:0}
+.recipe-learning-inputs details{margin-bottom:2px}

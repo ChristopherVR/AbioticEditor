@@ -126,5 +126,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Catalogs/World/WorldRegionVolumes.json" LogicalName="WorldRegionVolumes.json" />
+    <InternalsVisibleTo Include="AbioticEditor.Tests" />
   </ItemGroup>
 </Project>
