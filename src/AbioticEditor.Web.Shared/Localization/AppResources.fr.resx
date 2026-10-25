@@ -3500,4 +3500,56 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>apparaît quand : {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>part quand : {0}</value></data>
+  <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Rechercher les recettes manquées</value></data>
+  <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Avez-vous manqué une recette ?</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Trouvez des recettes à vérifier grâce aux ingrédients que vous avez ramassés.</value></data>
+  <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Voir les étapes de fabrication</value></data>
+  <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Retour au livre de recettes</value></data>
+  <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Retour aux recettes à vérifier</value></data>
+  <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} recettes à vérifier : {1} non apprises, {2} débloquées.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Ces recettes ont été suggérées parce que leurs ingrédients figurent dans votre historique d’objets ramassés.</value></data>
+  <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Ce sont des pistes à explorer, pas des recettes manquées avec certitude.</value></data>
+  <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Vous avez ramassé les {0} types d’ingrédients de cette recette.</value></data>
+  <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Quels ingrédients ?</value></data>
+  <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Recette non apprise</value></data>
+  <data name="RecipeGuide_Learned" xml:space="preserve"><value>Recette apprise</value></data>
+  <data name="RecipeGuide_Unlock" xml:space="preserve"><value>Débloquer la recette</value></data>
+  <data name="RecipeGuide_Unlocking" xml:space="preserve"><value>Déblocage en cours...</value></data>
+  <data name="RecipeGuide_Staged" xml:space="preserve"><value>Débloquée, enregistrez pour appliquer</value></data>
+  <data name="RecipeGuide_Unlocked" xml:space="preserve"><value>Débloquée</value></data>
+  <data name="RecipeGuide_Undo" xml:space="preserve"><value>Annuler le déblocage</value></data>
+  <data name="RecipeGuide_SaveHelp" xml:space="preserve"><value>Choisissez Débloquer la recette, puis ENREGISTRER dans la barre de l’éditeur pour appliquer vos modifications.</value></data>
+  <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Le déblocage s’applique immédiatement dans la partie en cours.</value></data>
+  <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>La recette n’a pas pu être débloquée.</value></data>
+  <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Vérifiez la connexion et réessayez.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Historique des objets ramassés indisponible</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Cette session ne contient pas les objets que vous avez ramassés. Ouvrez une sauvegarde de joueur pour rechercher les recettes manquées.</value></data>
+  <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Aucune recette ne correspond à cette piste</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>D’autres recettes non apprises peuvent encore mériter votre attention. Cette vérification utilise uniquement l’historique des ingrédients ramassés.</value></data>
+  <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Voir toutes les recettes non apprises</value></data>
+  <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Les informations disponibles ne suffisent pas pour vérifier les autres recettes non apprises. Elles peuvent encore mériter votre attention.</value></data>
+  <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Les liens entre recettes sont indisponibles sans les données du jeu.</value></data>
+  <data name="RecipeGuide_MakeTitle" xml:space="preserve"><value>Comment fabriquer {0}</value></data>
+  <data name="RecipeGuide_TreeHelp" xml:space="preserve"><value>Commencez par l’objet en haut. Développez une branche pour voir les éléments nécessaires à sa fabrication. Fabriquer indique une recette ; Trouver indique un matériau sans recette répertoriée.</value></data>
+  <data name="RecipeGuide_AmountHelp" xml:space="preserve"><value>Les quantités permettent de fabriquer 1 {0}.</value></data>
+  <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Tout développer</value></data>
+  <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Replier les ingrédients</value></data>
+  <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Les établis sont des outils nécessaires, pas des ingrédients consommés.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Ce guide ne vérifie pas votre stock actuel et ne débloque aucune recette.</value></data>
+  <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Fabriquer {0} × {1}</value></data>
+  <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Trouver {0} × {1}</value></data>
+  <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Fabrications : {0}. Poste : {1}. Quantité produite : {2}.</value></data>
+  <data name="RecipeGuide_Surplus" xml:space="preserve"><value>{0} en surplus</value></data>
+  <data name="RecipeGuide_ChooseInputs" xml:space="preserve"><value>Choisir les ingrédients</value></data>
+  <data name="RecipeGuide_Details" xml:space="preserve"><value>Détails</value></data>
+  <data name="RecipeGuide_SourceUnknown" xml:space="preserve"><value>Le lieu où le trouver est inconnu.</value></data>
+  <data name="RecipeGuide_GroupUnknown" xml:space="preserve"><value>Les substituts acceptés sont inconnus.</value></data>
+  <data name="RecipeGuide_Cycle" xml:space="preserve"><value>Cette recette renvoie à une étape précédente. Essayez un autre choix d’ingrédients.</value></data>
+  <data name="RecipeGuide_NodeLimit" xml:space="preserve"><value>Certaines branches ne sont pas affichées, car cette chaîne de fabrication est trop grande. Examinez une partie plus petite de la chaîne.</value></data>
+  <data name="RecipeGuide_DepthLimit" xml:space="preserve"><value>Cette branche est trop profonde pour être développée davantage.</value></data>
+  <data name="RecipeGuide_InvalidRecipe" xml:space="preserve"><value>Cette recette contient des quantités incomplètes ou incorrectes. Ses étapes de fabrication ne peuvent pas être calculées.</value></data>
+  <data name="RecipeGuide_Sealed" xml:space="preserve"><value>Cette recette est classifiée. Révélez-la pour voir son nom et ses ingrédients.</value></data>
+  <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Révéler la recette</value></data>
+  <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Aucune recette de fabrication n’est répertoriée pour cet objet. Sa provenance est inconnue.</value></data>
+  <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingrédients par fabrication</value></data>
 </root>

@@ -1,5 +1,59 @@
 # Abiotic Editor - Session history
 
+## Issue #53: crafting steps and missed-recipe unlocks implemented (2026-10-25)
+
+- RECIPES keeps the existing Book home. Show crafting steps opens a connected, expandable
+  hierarchy with ingredient quantities, output yields, stations and alternative recipes.
+  Unknown inputs/acquisition, cycles, invalid quantities and expansion limits are explicit.
+- Check for missed recipes uses the selected player's current pickup history and learned
+  recipes. Suggestions explain the clue and offer Unlock recipe through the existing
+  spoiler/progression checks. File edits stage until SAVE; Undo unlock uses the actual
+  recipe staging baseline, so Save/revert cannot leave stale completion labels. Cards keep
+  their order while showing success. Browsing never writes or sends a live unlock.
+- Added shared UI and English/French/German/Spanish/Russian resources. The existing research
+  queue stays in Book. Live sessions without pickup history show that limit. Delayed live
+  recipe writes/refreshes cannot change a newly selected player's view; generation guards
+  cover same-instance switching and acknowledgements precede successful feedback.
+- Shared, desktop and WASM builds pass. Focused verification: 81 passed. Full suite:
+  2,298 passed, one existing Lua-harness skip, one render-key policy failure; corrected that
+  key usage and verified the failed contract in the passing focused rerun.
+- Actual browser checks used only a disposable fixture copy and isolated app profile:
+  Unlock/Undo, global REVERT, SAVE plus backup, post-save feedback, stable ordering,
+  recursive amounts and selected-alternative details. Narrow layout retains learned state;
+  fixed a flex-padding overflow found at 390px. Installed-game icons were unavailable in
+  the offline test profile and use existing placeholders. No native live-game test,
+  push or deployment. The plan/mock record the approved scope and simulated unlock flow.
+
+## Issue #53: Recipe Tree investigation and interactive mock (2026-10-25)
+
+- Planning only: `docs/reference/research/recipe-tree-plan.md` records the existing
+  recipe/session boundaries, a committed-registry census, UX, phases and a 6-9 working-day
+  estimate for one developer. Recommended first release is a read-only crafting guide
+  and missed-recipe check; full progression and enemy acquisition need separate evidence.
+- `recipe-tree-wireframe.html` beside the note is self-contained. It uses 16 real recipe
+  definitions and 30 item names, with explicitly fictional player/discovery context.
+  It demonstrates dependency navigation, missing candidates, alternate routes, unresolved
+  ingredient groups, spoiler sealing and standalone/live/unavailable states. No editor
+  feature, save writer or live command changed.
+- Verified 19 browser interaction/layout checks, including sealed-name search and a narrow
+  window. Visually inspected the desktop preview. Every selectable ingredient leaf was
+  checked for producing recipes against the full English registry. Docs build and 3,440
+  link/image checks across 68 pages pass. No push or deployment.
+- After visual feedback, reviewed Claude's bundled frontend-design skill and rebuilt the
+  mock around the actual current default Dark/Hazard editor: embedded source CSS/fonts,
+  logo and item icons, current masthead/save bar, horizontal player tabs, Recipe Book
+  controls and separate DETAILS pane. File/details rails and narrow drawers work; Book
+  is a read-only sample alongside Tree/Missing. Preview scenarios sit outside app chrome.
+  Revised mock passes 26 browser checks. Fidelity sources and the first mock's mismatch
+  are documented in the plan. No application source or save behavior changed.
+- After usability feedback, removed Tree/Missing navigation and the unrelated research
+  queue from the proposal. Recipe book now offers Show crafting steps per item and a
+  distinct Check for missed recipes action. Three explained fictional suggestions are
+  separate from six unlearned recipes. The crafting guide has a connected recursive
+  hierarchy, full expansion, yield-aware amounts and clear return navigation. Initial
+  expansion shows the target, its ingredients and one nested example; the editor body
+  owns vertical scrolling. Updated the plan and checked both first-user workflows.
+
 ## Issue #49: Recipes tab opens saves with differently cased recipe names (2026-10-20)
 
 - The reporter's save stores `Recipe_238`, while the catalog uses `recipe_238`. The file

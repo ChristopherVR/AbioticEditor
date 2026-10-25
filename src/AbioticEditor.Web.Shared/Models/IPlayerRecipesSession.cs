@@ -14,6 +14,21 @@ public interface IPlayerRecipesSession
     int UnlockedRecipeCount { get; }
     int RecipeCount { get; }
 
+    /// <summary>
+    /// Item types the selected player has picked up, including staged discovery edits.
+    /// Null means this session cannot supply pickup history; an empty collection means
+    /// history is available and contains no items. This is not current inventory stock.
+    /// </summary>
+    IReadOnlyCollection<string>? RecipeItemsPickedUp => null;
+
+    /// <summary>Whether this recipe's learned state differs from its loaded or last-saved state.
+    /// Live sessions have no staged edits and use the default false result.</summary>
+    bool IsRecipeUnlockStaged(string recipeId) => false;
+
+    /// <summary>Changes when a reusable session switches its selected player.
+    /// Null is sufficient for sessions bound to one immutable save identity.</summary>
+    string? RecipeTargetIdentity => null;
+
     /// <summary>False for the file session (edits stage until Save); true live (an unlock RPC
     /// fires immediately in the running game, the same as every other immediate-apply live area).</summary>
     bool AppliesImmediately { get; }

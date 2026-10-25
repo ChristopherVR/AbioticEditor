@@ -4781,4 +4781,56 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Prepare3D_StatusFormat" xml:space="preserve"><value>3D view: {0}%</value></data>
   <data name="Prepare3D_StatusTitleFormat" xml:space="preserve"><value>Getting the 3D view ready: {0} of {1} areas done. Now reading {2}.</value></data>
   <data name="Prepare3D_StatusDone" xml:space="preserve"><value>3D view ready</value></data>
+  <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Check for missed recipes</value></data>
+  <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Have you missed a recipe?</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Find recipes to check based on ingredients you have picked up.</value></data>
+  <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Show crafting steps</value></data>
+  <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Back to recipe book</value></data>
+  <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Back to missed-recipe check</value></data>
+  <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} recipes in this check: {1} not learned, {2} unlocked.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>These recipes were suggested because their ingredients appear in your pickup history.</value></data>
+  <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>These are clues to investigate, not confirmed missed unlocks.</value></data>
+  <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>You have picked up all {0} ingredient types for this recipe.</value></data>
+  <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Which ingredients?</value></data>
+  <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Recipe not learned</value></data>
+  <data name="RecipeGuide_Learned" xml:space="preserve"><value>Recipe learned</value></data>
+  <data name="RecipeGuide_Unlock" xml:space="preserve"><value>Unlock recipe</value></data>
+  <data name="RecipeGuide_Unlocking" xml:space="preserve"><value>Unlocking...</value></data>
+  <data name="RecipeGuide_Staged" xml:space="preserve"><value>Unlocked, save to apply</value></data>
+  <data name="RecipeGuide_Unlocked" xml:space="preserve"><value>Unlocked</value></data>
+  <data name="RecipeGuide_Undo" xml:space="preserve"><value>Undo unlock</value></data>
+  <data name="RecipeGuide_SaveHelp" xml:space="preserve"><value>Choose Unlock recipe, then SAVE in the editor bar to apply your changes.</value></data>
+  <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Unlocking applies immediately to the running game.</value></data>
+  <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>The recipe could not be unlocked.</value></data>
+  <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Check the connection and try again.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Pickup history is unavailable</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>This session does not include items you have picked up. Open a player save to check for missed recipes.</value></data>
+  <data name="RecipeGuide_NoClues" xml:space="preserve"><value>No recipes match this clue</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Other unlearned recipes may still be worth exploring. This check only uses ingredient pickup history.</value></data>
+  <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>See all unlearned recipes</value></data>
+  <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Other unlearned recipes have too little information for this check. They may still be worth exploring.</value></data>
+  <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Recipe relationships are unavailable without game data.</value></data>
+  <data name="RecipeGuide_MakeTitle" xml:space="preserve"><value>How to make {0}</value></data>
+  <data name="RecipeGuide_TreeHelp" xml:space="preserve"><value>Start with the item at the top. Open a branch to see what you need to make it. Make has a recipe; Find is a material with no crafting recipe listed.</value></data>
+  <data name="RecipeGuide_AmountHelp" xml:space="preserve"><value>Amounts are for making 1 {0}.</value></data>
+  <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
+  <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Collapse ingredients</value></data>
+  <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Benches are required tools, not consumed ingredients.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>This guide does not check your current stock or unlock recipes.</value></data>
+  <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Make {0} × {1}</value></data>
+  <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Find {0} × {1}</value></data>
+  <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Crafts: {0}. Station: {1}. Produces {2}.</value></data>
+  <data name="RecipeGuide_Surplus" xml:space="preserve"><value>{0} extra</value></data>
+  <data name="RecipeGuide_ChooseInputs" xml:space="preserve"><value>Choose ingredients</value></data>
+  <data name="RecipeGuide_Details" xml:space="preserve"><value>Details</value></data>
+  <data name="RecipeGuide_SourceUnknown" xml:space="preserve"><value>Where to find it is not known.</value></data>
+  <data name="RecipeGuide_GroupUnknown" xml:space="preserve"><value>Acceptable substitutes are not known.</value></data>
+  <data name="RecipeGuide_Cycle" xml:space="preserve"><value>This recipe refers back to an earlier step. Try another ingredient route.</value></data>
+  <data name="RecipeGuide_NodeLimit" xml:space="preserve"><value>Some branches are not shown because this crafting chain is too large. Inspect a smaller part of the chain.</value></data>
+  <data name="RecipeGuide_DepthLimit" xml:space="preserve"><value>This branch is too deep to expand further.</value></data>
+  <data name="RecipeGuide_InvalidRecipe" xml:space="preserve"><value>This recipe has incomplete or invalid quantities. Its crafting steps cannot be calculated.</value></data>
+  <data name="RecipeGuide_Sealed" xml:space="preserve"><value>This recipe is classified. Reveal it to see its name and ingredients.</value></data>
+  <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Reveal recipe</value></data>
+  <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>No crafting recipe is listed for this item. Its acquisition source is unknown.</value></data>
+  <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ingredients per craft</value></data>
 </root>

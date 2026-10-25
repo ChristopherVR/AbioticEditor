@@ -187,6 +187,12 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         MarkChanged();
         return Task.CompletedTask;
     }
+
+    /// <summary>Whether the current learned state differs from the last load or successful save.</summary>
+    public bool IsRecipeUnlockStaged(string recipeId)
+        => (_recipes.FirstOrDefault(recipe => string.Equals(recipe.Id, recipeId, StringComparison.OrdinalIgnoreCase))?.IsUnlocked == true)
+            != _originalRecipes.Contains(recipeId);
+
     public List<string> Traits { get; }
     public string? Background { get; set; }
     public IReadOnlyList<string> ItemVocabulary { get; }
@@ -195,6 +201,8 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     public bool HasItemVocabulary => ItemVocabulary.Count > 0;
     public bool HasMapVocabulary => MapVocabulary.Count > 0;
     public HashSet<string> ItemsPickedUp { get; }
+    /// <summary>Current player pickup history, including edits that can still be reverted.</summary>
+    public IReadOnlyCollection<string>? RecipeItemsPickedUp => ItemsPickedUp;
     public HashSet<string> CraftedItems { get; }
     public HashSet<string> MapsUnlocked { get; }
 

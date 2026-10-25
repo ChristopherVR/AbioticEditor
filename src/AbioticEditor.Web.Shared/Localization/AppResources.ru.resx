@@ -3500,4 +3500,56 @@
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>появляется: {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>уходит: {0}</value></data>
+  <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Проверить пропущенные рецепты</value></data>
+  <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Вы не пропустили рецепт?</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Найдите рецепты для проверки по ингредиентам, которые вы подбирали.</value></data>
+  <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Показать этапы изготовления</value></data>
+  <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Назад к книге рецептов</value></data>
+  <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Назад к проверке рецептов</value></data>
+  <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>Рецепты в проверке: {0}; не изучено: {1}; разблокировано: {2}.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Эти рецепты предложены, потому что их ингредиенты есть в вашей истории подобранных предметов.</value></data>
+  <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Это подсказки для проверки, а не подтверждённые пропущенные рецепты.</value></data>
+  <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Вы подбирали все {0} типов ингредиентов для этого рецепта.</value></data>
+  <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Какие ингредиенты?</value></data>
+  <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Рецепт не изучен</value></data>
+  <data name="RecipeGuide_Learned" xml:space="preserve"><value>Рецепт изучен</value></data>
+  <data name="RecipeGuide_Unlock" xml:space="preserve"><value>Разблокировать рецепт</value></data>
+  <data name="RecipeGuide_Unlocking" xml:space="preserve"><value>Разблокировка...</value></data>
+  <data name="RecipeGuide_Staged" xml:space="preserve"><value>Разблокировано, сохраните изменения</value></data>
+  <data name="RecipeGuide_Unlocked" xml:space="preserve"><value>Разблокировано</value></data>
+  <data name="RecipeGuide_Undo" xml:space="preserve"><value>Отменить разблокировку</value></data>
+  <data name="RecipeGuide_SaveHelp" xml:space="preserve"><value>Нажмите «Разблокировать рецепт», затем «СОХРАНИТЬ» на панели редактора, чтобы применить изменения.</value></data>
+  <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Разблокировка сразу применяется в запущенной игре.</value></data>
+  <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>Не удалось разблокировать рецепт.</value></data>
+  <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Проверьте подключение и попробуйте снова.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>История подбора недоступна</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>В этой сессии нет списка подобранных предметов. Откройте сохранение игрока, чтобы проверить пропущенные рецепты.</value></data>
+  <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Нет рецептов с такой подсказкой</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Возможно, стоит проверить и другие неизученные рецепты. Эта проверка использует только историю подобранных ингредиентов.</value></data>
+  <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Показать все неизученные рецепты</value></data>
+  <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Для проверки остальных неизученных рецептов недостаточно данных. Возможно, их тоже стоит изучить.</value></data>
+  <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Связи между рецептами недоступны без данных игры.</value></data>
+  <data name="RecipeGuide_MakeTitle" xml:space="preserve"><value>Как изготовить {0}</value></data>
+  <data name="RecipeGuide_TreeHelp" xml:space="preserve"><value>Начните с предмета наверху. Раскройте ветку, чтобы увидеть необходимые ингредиенты. «Изготовить» означает наличие рецепта; «Найти» означает материал без указанного рецепта изготовления.</value></data>
+  <data name="RecipeGuide_AmountHelp" xml:space="preserve"><value>Количество указано для изготовления 1 × {0}.</value></data>
+  <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Раскрыть всё</value></data>
+  <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Свернуть ингредиенты</value></data>
+  <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Верстаки нужны как инструменты, а не расходуются как ингредиенты.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Это руководство не проверяет ваши текущие запасы и не разблокирует рецепты.</value></data>
+  <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Изготовить {0} × {1}</value></data>
+  <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Найти {0} × {1}</value></data>
+  <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Созданий: {0}. Станция: {1}. Результат: {2}.</value></data>
+  <data name="RecipeGuide_Surplus" xml:space="preserve"><value>Лишних: {0}</value></data>
+  <data name="RecipeGuide_ChooseInputs" xml:space="preserve"><value>Выбрать ингредиенты</value></data>
+  <data name="RecipeGuide_Details" xml:space="preserve"><value>Подробности</value></data>
+  <data name="RecipeGuide_SourceUnknown" xml:space="preserve"><value>Неизвестно, где это найти.</value></data>
+  <data name="RecipeGuide_GroupUnknown" xml:space="preserve"><value>Допустимые заменители неизвестны.</value></data>
+  <data name="RecipeGuide_Cycle" xml:space="preserve"><value>Этот рецепт ссылается на предыдущий этап. Попробуйте другой набор ингредиентов.</value></data>
+  <data name="RecipeGuide_NodeLimit" xml:space="preserve"><value>Некоторые ветки не показаны, поскольку цепочка изготовления слишком велика. Рассмотрите меньшую часть цепочки.</value></data>
+  <data name="RecipeGuide_DepthLimit" xml:space="preserve"><value>Эта ветка слишком глубока для дальнейшего раскрытия.</value></data>
+  <data name="RecipeGuide_InvalidRecipe" xml:space="preserve"><value>В этом рецепте указаны неполные или неверные количества. Невозможно рассчитать этапы изготовления.</value></data>
+  <data name="RecipeGuide_Sealed" xml:space="preserve"><value>Этот рецепт засекречен. Раскройте его, чтобы увидеть название и ингредиенты.</value></data>
+  <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Раскрыть рецепт</value></data>
+  <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Для этого предмета не указан рецепт изготовления. Его источник неизвестен.</value></data>
+  <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Ингредиенты на одно изготовление</value></data>
 </root>

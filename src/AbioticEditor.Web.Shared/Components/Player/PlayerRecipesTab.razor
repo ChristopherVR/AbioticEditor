@@ -17,13 +17,34 @@
    ALL/LOCKED/UNLOCKED radios, wiki category chips, the checkbox recipe list and the
    wiki-style detail pane for the selected recipe. *@
 <section class="editor-card rb-panel" aria-label="@L.Resource("PlayerRecipes_RecipeBook")">
+    @if (_workflow == RecipeWorkflow.Check)
+    {
+        <RecipeDiscoveryReport Graph="_recipeGraph" Recipes="ReviewRecipes" CatalogAvailable="@(_rows is { Count: > 0 })"
+                               HasPickupHistory="@(Session.RecipeItemsPickedUp is not null)" AppliesImmediately="Session.AppliesImmediately"
+                               ItemName="CraftItemName" Concealed="ConcealedInfo" Learned="IsLearned" Staged="Session.IsRecipeUnlockStaged"
+                               CanUndo="CanUndoRecipe" Feedback="RecipeFeedback" Busy="_recipeWriteBusy"
+                               OnBack="BackToBook" OnAllLocked="ShowAllUnlearned" OnUnlock="UnlockRecipe" OnUndo="UndoRecipe"
+                               OnCrafting="OpenCrafting" OnReveal="RevealRecipe" />
+    }
+    else if (_workflow == RecipeWorkflow.Crafting && _craftingRecipe is { } crafting)
+    {
+        <RecipeCraftingSteps Graph="_recipeGraph" RootRecipe="crafting" ReturnToCheck="@(_craftingReturn == RecipeWorkflow.Check)"
+                             ItemName="CraftItemName" StationName="BenchesText" RouteName="CraftRouteName" Concealed="ConcealedInfo"
+                             Learned="IsLearned" OnBack="BackFromCrafting" OnInspect="InspectCraftItem" OnReveal="RevealRecipe" />
+    }
+    else
+    {
     <div class="rb-header">
         <h3>@L.Resource("PlayerRecipes_RecipeBook")</h3>
         <span class="rb-count">@CountText</span>
-        <button type="button" class="rb-unlock-all" disabled="@(_rows is null || _rows.All(row => row.Edit.IsUnlocked))" @onclick="RequestUnlockAll">@L.Resource("PlayerRecipes_UnlockAll")</button>
+        <button type="button" class="rb-unlock-all" disabled="@(_recipeWriteBusy || _rows is null || _rows.All(row => row.Edit.IsUnlocked))" @onclick="RequestUnlockAll">@L.Resource("PlayerRecipes_UnlockAll")</button>
     </div>
     <div class="hazard" role="presentation"></div>
 
+    <div class="recipe-review-entry">
+        <p><strong>@L.Resource("RecipeGuide_CheckPrompt")</strong><small>@L.Resource("RecipeGuide_CheckHelp")</small></p>
+        <button type="button" class="primary" disabled="@(_rows is null || _checkingRecipes || _recipeWriteBusy)" @onclick="CheckRecipes">@L.Resource("RecipeGuide_CheckAction")</button>
+    </div>
     <div class="rb-toolbar">
         <input type="search" placeholder="@L.Resource("PlayerRecipes_SearchPlaceholder")" aria-label="@L.Resource("PlayerRecipes_SearchPlaceholder")"
                @bind="Search" @bind:event="oninput" />
@@ -65,7 +86,7 @@
                          @onclick="() => SelectRow(row)" @onkeydown="e => RowKeyDown(e, row)">
                         @* The @key includes a nonce so a progress-gated (refused) unlock recreates the
                            checkbox and it visibly snaps back to unchecked, like the native toggle. *@
-                        <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@(concealed || LockedIn(row))"
+                        <input class="rb-checkbox" type="checkbox" checked="@row.Edit.IsUnlocked" disabled="@(concealed || LockedIn(row) || _recipeWriteBusy)"
                                aria-label="@ShownName(row)" @key="@($"{recipeRowRenderKey}:{_gateNonce}")"
                                @onclick:stopPropagation @onchange="e => SetUnlocked(row, e.Value is bool value && value)" />
                         <span class="rb-row-icon">
@@ -81,6 +102,7 @@
                                 <small>@SubText(row.Info)</small>
                             }
                         </span>
+                        <button type="button" class="secondary recipe-book-steps" @onclick:stopPropagation @onclick="() => OpenCrafting(row.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
                         <span class="rb-row-status">@(concealed ? L.Resource("Spoiler_ClassifiedShort") : L.Resource(row.Edit.IsUnlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked"))</span>
                     </div>
                 }
@@ -127,6 +149,7 @@
     {
         <p class="rb-help live-warning">@L.Resource("PlayerRecipes_LiveUnlockOnlyHelp")</p>
     }
+    }
 </section>
 
 @code {
@@ -137,7 +160,14 @@
     /// </summary>
     private RenderFragment DetailContent => __builder =>
     {
-        @if (SelectedRow is { } selected)
+        @if (SelectedRow is { } hidden && Concealed(hidden))
+        {
+            <div class="detail-card detail-card--terminal">
+                <p class="detail-value">@L.Resource("RecipeGuide_Sealed")</p>
+                <button type="button" class="secondary" @onclick="() => RequestReveal(hidden)">@L.Resource("RecipeGuide_Reveal")</button>
+            </div>
+        }
+        else if (SelectedRow is { } selected)
         {
             <div class="detail-card detail-card--terminal rb-detail-card" aria-label="@DisplayName(selected)">
                 <div class="detail-head">
@@ -157,6 +187,7 @@
                 {
                     <p class="rb-detail-desc">@description</p>
                 }
+                <button type="button" class="secondary recipe-detail-steps" @onclick="() => OpenCrafting(selected.Info.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
                 <span class="sp-label">@L.Resource("PlayerRecipes_Ingredients")</span>
                 <p class="rb-detail-value">@IngredientsText(selected.Info)</p>
                 <p class="rb-detail-output">@L.Resource("PlayerRecipes_MakesCount", selected.Info.Count > 1 ? selected.Info.Count : 1)</p>
@@ -283,10 +314,13 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var source = Session is LivePlayerEditorSession live ? live.RecipesSession : Session;
-        if (ReferenceEquals(_boundSession, source) && _rows is not null) return;
+        var source = RecipeSource;
+        var targetIdentity = source.RecipeTargetIdentity;
+        if (ReferenceEquals(_boundSession, source) && string.Equals(_boundRecipeIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal) && _rows is not null) return;
         _boundSession = source;
+        _boundRecipeIdentity = source.RecipeTargetIdentity;
         _rows = null;
+        ResetWorkflow();
         CloseOwnDetail();
         // Mounting the game paks is expensive; keep it off the render path (native rule).
         // The same background hop resolves the sibling world's story flags for the unlock
@@ -297,7 +331,8 @@
         if (worldFlags is not null) Gate.Warm();
         var (infos, traders, itemUpgrades) = await Task.Run(
             () => (RecipeVocabulary.GetRecipeInfos(), TraderVocabulary.GetTraders(), ItemUpgrades.Get()));
-        if (!ReferenceEquals(_boundSession, Session is LivePlayerEditorSession current ? current.RecipesSession : Session)) return;
+        if (!ReferenceEquals(_boundSession, RecipeSource) || !string.Equals(targetIdentity, RecipeSource.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+        _recipeGraph = new RecipeGraph(infos, Items.Entries.Select(item => item.Id));
         _worldFlags = worldFlags;
         _traders = traders;
         _itemUpgrades = itemUpgrades;
@@ -337,9 +372,9 @@
             {
                 var term = Search.Trim();
                 query = query.Where(row =>
-                    DisplayName(row).Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                    row.Info.Id.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                    (row.Info.CreatesItemId?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false));
+                    ShownName(row).Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    (!Concealed(row) && (row.Info.Id.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    (row.Info.CreatesItemId?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))));
             }
             return query;
         }
@@ -402,11 +437,11 @@
         if (args.Key is "Enter" or " ") SelectRow(row);
     }
 
-    private void RequestReveal(RecipeRow row) => Modals.Show(new ModalRequest(
+    private void RequestReveal(RecipeRow row, Action? afterReveal = null) => Modals.Show(new ModalRequest(
         L.Resource("Spoiler_OverrideTitle"),
         Paragraph(L.Resource("Spoiler_OverrideMessage", L.Resource("PlayerRecipes_ThisRecipe"))),
         ConfirmText: L.Resource("Spoiler_OverrideAccept"),
-        OnConfirm: async () => { Reveal(row); await InvokeAsync(StateHasChanged); },
+        OnConfirm: async () => { Reveal(row); afterReveal?.Invoke(); ShowOwnDetail(); await InvokeAsync(StateHasChanged); },
         CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
 
     private void Reveal(RecipeRow row)
@@ -440,36 +475,88 @@
 
     private async Task SetUnlocked(RecipeRow row, bool unlocked)
     {
-        // Progress gate (native rule): recipes granted by an email in an unreached region
-        // stay locked; the refusal reason lands on the status toast and the box snaps back.
-        if (unlocked && Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block)
+        if (_recipeWriteBusy || (unlocked && IsLearned(row.Info.Id)) || (!unlocked && !Session.CanLock)) return;
+        var session = Session;
+        var source = RecipeSource;
+        var targetIdentity = source.RecipeTargetIdentity;
+        _recipeWriteBusy = true;
+        _recipeFeedback.Remove(row.Info.Id);
+        try
         {
-            Toasts.Show(GateMessage(block), ToastKind.Warning);
-            _gateNonce++;
-            return;
+            if (unlocked)
+            {
+                var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
+                if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+                _worldFlags = flags;
+                if (flags is not null) await Task.Run(Gate.Warm);
+                if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+                if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block)
+                {
+                    var message = GateMessage(block);
+                    _recipeFeedback[row.Info.Id] = message;
+                    Toasts.Show(message, ToastKind.Warning);
+                    _gateNonce++;
+                    return;
+                }
+            }
+            await session.SetUnlockedAsync(row.Info.Id, unlocked);
+            if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            var acknowledged = session.Recipes.FirstOrDefault(edit => string.Equals(edit.Id, row.Info.Id, StringComparison.OrdinalIgnoreCase));
+            if (acknowledged?.IsUnlocked != unlocked)
+            {
+                _recipeFeedback[row.Info.Id] = L.Resource("RecipeGuide_UnlockFailed");
+                Toasts.Show(_recipeFeedback[row.Info.Id], ToastKind.Warning);
+                return;
+            }
+            if (unlocked) _newUnlockIds.Add(row.Info.Id);
+            else _newUnlockIds.Remove(row.Info.Id);
+            await Changed();
+            ShowOwnDetail();
         }
-        await Session.SetUnlockedAsync(row.Info.Id, unlocked);
-        await Changed();
+        catch (Exception exception)
+        {
+            if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            var message = Errors.Present(exception, L.Resource("RecipeGuide_UnlockFailed"), L.Resource("RecipeGuide_UnlockRetry"));
+            _recipeFeedback[row.Info.Id] = message;
+            Toasts.Show(message, ToastKind.Warning);
+            _gateNonce++;
+        }
+        finally { _recipeWriteBusy = false; }
     }
 
     private async Task UnlockAll()
     {
-        // Native UNLOCK ALL runs each row through the same progress gate, so gated
-        // recipes stay locked and the last refusal reason is the one left showing.
-        RecipeGateBlock? lastBlock = null;
-        var toUnlock = new List<string>();
-        foreach (var row in _rows ?? [])
+        if (_recipeWriteBusy) return;
+        var session = Session;
+        var source = RecipeSource;
+        var targetIdentity = source.RecipeTargetIdentity;
+        _recipeWriteBusy = true;
+        try
         {
-            if (row.Edit.IsUnlocked) continue;
-            if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
-            toUnlock.Add(row.Info.Id);
+            var flags = await Gate.ResolveWorldFlagsAsync(SessionPathOrNull(session));
+            if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            _worldFlags = flags;
+            if (flags is not null) await Task.Run(Gate.Warm);
+            if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            RecipeGateBlock? lastBlock = null;
+            var toUnlock = new List<string>();
+            foreach (var row in _rows ?? [])
+            {
+                if (IsLearned(row.Info.Id)) continue;
+                if (Gate.CheckUnlock(row.Info.Id, _worldFlags) is { } block) { lastBlock = block; continue; }
+                toUnlock.Add(row.Info.Id);
+            }
+            await session.SetUnlockedManyAsync(toUnlock);
+            if (!ReferenceEquals(session, Session) || !ReferenceEquals(source, RecipeSource) || !string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal)) return;
+            if (lastBlock is not null) Toasts.Show(GateMessage(lastBlock), ToastKind.Warning);
+            await Changed();
         }
-        // One batched call live instead of one round trip per recipe - see
-        // IPlayerRecipesSession.SetUnlockedManyAsync's remarks.
-        await Session.SetUnlockedManyAsync(toUnlock);
-        if (lastBlock is not null) Toasts.Show(GateMessage(lastBlock), ToastKind.Warning);
-        await Changed();
-        await InvokeAsync(StateHasChanged);
+        catch (Exception exception)
+        {
+            if (ReferenceEquals(session, Session) && ReferenceEquals(source, RecipeSource) && string.Equals(targetIdentity, source.RecipeTargetIdentity, StringComparison.Ordinal))
+                Toasts.Show(Errors.Present(exception, L.Resource("RecipeGuide_UnlockFailed"), L.Resource("RecipeGuide_UnlockRetry")), ToastKind.Warning);
+        }
+        finally { _recipeWriteBusy = false; }
     }
 
     private string GateMessage(RecipeGateBlock block)
@@ -502,7 +589,7 @@
     private string IngredientsText(RecipeInfo info) => info.IngredientList.Count == 0
         ? L.Resource("PlayerRecipes_NoIngredientsRecorded")
         : string.Join("\n", info.IngredientList.Select(ingredient =>
-            $"{ingredient.Count}× {Items.Find(ingredient.ItemId)?.DisplayName ?? PlainNames.Words(ingredient.ItemId)}"));
+            $"{ingredient.Count}× {CraftItemName(ingredient.ItemId)}"));
 
     private string BenchesText(RecipeInfo info) => info.BenchList.Count == 0
         ? L.Resource("PlayerRecipes_HandsNoBench")
@@ -525,6 +612,7 @@
     {
         if (row.Info.CreatesItemId is not { } itemId || _usedIn is null) return string.Empty;
         return string.Join(", ", _usedIn[itemId]
+            .Where(recipe => !ConcealedInfo(recipe))
             .Select(recipe => recipe.CreatesItemId is { } created ? (Items.Find(created)?.DisplayName ?? PlainNames.Words(created)) : PlainNames.Words(recipe.Id))
             .Distinct()
             .Take(14));

@@ -1,0 +1,102 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<li class="recipe-branch">
+    @if (Node.Recipe is { } recipe && Concealed(recipe))
+    {
+        <div class="recipe-branch-sealed">
+            <span>@L.Resource("RecipeGuide_Sealed")</span>
+            <button type="button" class="secondary" @onclick="() => OnReveal.InvokeAsync(recipe.Id)">@L.Resource("RecipeGuide_Reveal")</button>
+        </div>
+    }
+    else if (Node.Recipe is { } step)
+    {
+        <div class="recipe-branch-row">
+            <button type="button" class="recipe-branch-toggle" aria-expanded="@Expanded.Contains(Node.Path)"
+                    @onclick="() => OnToggle.InvokeAsync(Node.Path)">
+                <span class="recipe-chevron" aria-hidden="true">@(Expanded.Contains(Node.Path) ? "⌄" : "›")</span>
+                <span class="recipe-branch-icon"><ItemIcon ItemId="@Node.ItemId" Alt="" /></span>
+                <span class="recipe-branch-label">
+                    <strong>@L.Resource("RecipeGuide_MakeCount", Node.RequiredCount, ItemName(Node.ItemId))</strong>
+                    @if (Node.CraftCount > 0)
+                    {
+                        <small>@L.Resource("RecipeGuide_CraftCount", Node.CraftCount, StationName(step), Node.ProducedCount)</small>
+                    }
+                    @if (Node.ProducedCount > Node.RequiredCount)
+                    {
+                        <small>@L.Resource("RecipeGuide_Surplus", Node.ProducedCount - Node.RequiredCount)</small>
+                    }
+                </span>
+            </button>
+            <span class="recipe-learned @(Learned(step.Id) ? "known" : null)">@L.Resource(Learned(step.Id) ? "RecipeGuide_Learned" : "RecipeGuide_NotLearned")</span>
+            <button type="button" class="secondary recipe-inspect" @onclick="() => OnInspect.InvokeAsync(new RecipeCraftingSelection(Node.ItemId, step.Id))">@L.Resource("RecipeGuide_Details")</button>
+        </div>
+        @if (Expanded.Contains(Node.Path))
+        {
+            @if (Node.Alternatives.Count > 1)
+            {
+                <label class="recipe-route-choice">@L.Resource("RecipeGuide_ChooseInputs")
+                    <select value="@step.Id" @onchange="ChooseRoute">
+                        @foreach (var alternative in Node.Alternatives)
+                        {
+                            <option value="@alternative.Id">@RouteName(alternative)</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (StopMessage is { } stop)
+            {
+                <p class="recipe-branch-warning" role="status">@stop</p>
+            }
+            @if (Node.Children.Count > 0)
+            {
+                <ul>
+                    @foreach (var child in Node.Children)
+                    {
+                        <RecipeCraftingBranch @key="child.Path" Node="child" Expanded="Expanded" ItemName="ItemName"
+                                              StationName="StationName" RouteName="RouteName" Concealed="Concealed" Learned="Learned"
+                                              OnToggle="OnToggle" OnInspect="OnInspect" OnReveal="OnReveal" OnRoute="OnRoute" />
+                    }
+                </ul>
+            }
+        }
+    }
+    else
+    {
+        <div class="recipe-material-row">
+            <span class="recipe-branch-icon"><ItemIcon ItemId="@Node.ItemId" Alt="" /></span>
+            <span class="recipe-branch-label">
+                <strong>@L.Resource("RecipeGuide_FindCount", Node.RequiredCount, ItemName(Node.ItemId))</strong>
+                <small>@(StopMessage ?? L.Resource("RecipeGuide_SourceUnknown"))</small>
+            </span>
+            <button type="button" class="secondary recipe-inspect" @onclick="() => OnInspect.InvokeAsync(new RecipeCraftingSelection(Node.ItemId, null))">@L.Resource("RecipeGuide_Details")</button>
+        </div>
+    }
+</li>
+
+@code {
+    [Parameter, EditorRequired] public RecipeTreeNode Node { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlySet<string> Expanded { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, string> StationName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, string> RouteName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+    [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
+    [Parameter] public EventCallback<string> OnReveal { get; set; }
+    [Parameter] public EventCallback<RecipeRouteChoice> OnRoute { get; set; }
+
+    private string? StopMessage => Node.Stop switch
+    {
+        RecipeTreeStop.UnknownIngredient => L.Resource("RecipeGuide_GroupUnknown"),
+        RecipeTreeStop.Cycle => L.Resource("RecipeGuide_Cycle"),
+        RecipeTreeStop.NodeLimit => L.Resource("RecipeGuide_NodeLimit"),
+        RecipeTreeStop.DepthLimit => L.Resource("RecipeGuide_DepthLimit"),
+        RecipeTreeStop.InvalidRecipe => L.Resource("RecipeGuide_InvalidRecipe"),
+        _ => null,
+    };
+
+    private Task ChooseRoute(ChangeEventArgs args)
+        => args.Value is string id ? OnRoute.InvokeAsync(new RecipeRouteChoice(Node.Path, id)) : Task.CompletedTask;
+}

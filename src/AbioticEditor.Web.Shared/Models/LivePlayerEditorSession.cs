@@ -149,6 +149,7 @@ public sealed class LivePlayerEditorSession : IPlayerEditorSession
     public IReadOnlyList<PlayerRecipeEdit> Recipes => RecipesSession?.Recipes ?? [];
     public int UnlockedRecipeCount => RecipesSession?.UnlockedRecipeCount ?? 0;
     public int RecipeCount => RecipesSession?.RecipeCount ?? 0;
+    public string? RecipeTargetIdentity => RecipesSession?.RecipeTargetIdentity;
     public bool CanLock => RecipesSession?.CanLock ?? false;
     public void EnsureRecipeRows(IEnumerable<string> ids) => RecipesSession?.EnsureRecipeRows(ids);
     public Task SetUnlockedAsync(string recipeId, bool unlocked) =>

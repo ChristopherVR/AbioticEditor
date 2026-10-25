@@ -8,6 +8,8 @@ New here? Start with [Getting started](./getting-started).
 
 **Your character.** Health and needs, inventory and equipment, skills, recipes, traits, appearance, transmog, respawn point, GatePal entries and carried pets.
 
+In **Recipes**, choose **Show crafting steps** to trace an item back to its materials. **Check for missed recipes** suggests unlearned recipes whose ingredients you have picked up. These are clues to investigate, not guaranteed missed discoveries. Choose **Unlock recipe** to stage one, then **SAVE**; **Undo unlock** reverses it before saving. The usual spoiler and story checks still apply.
+
 **Your world.** Containers, doors, items on the ground, story characters and creatures, pets, vehicles, story progress, traders, containment cells, garden plots, chemistry benches, resource nodes, buttons, elevators, trams and more. The world lists show a picture of each thing and where it stands.
 
 **Your base, in 3D.** See your base drawn with the game's own models, walk around it, move and copy pieces, place new ones and wire up power. **Show in 3D** takes you to anything you pick in a list. See [Bases and the 3D view](./3d-view).

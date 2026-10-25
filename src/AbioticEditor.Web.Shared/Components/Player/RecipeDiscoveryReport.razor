@@ -1,0 +1,97 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<div class="recipe-workflow-heading">
+    <h3>@L.Resource("RecipeGuide_CheckAction")</h3>
+    <button type="button" class="secondary" @onclick="OnBack">@L.Resource("RecipeGuide_BackBook")</button>
+</div>
+<div class="hazard" role="presentation"></div>
+@if (!CatalogAvailable)
+{
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CatalogUnavailable")</p>
+}
+else if (!HasPickupHistory)
+{
+    <h4>@L.Resource("RecipeGuide_HistoryUnavailable")</h4>
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_HistoryHelp")</p>
+}
+else
+{
+    <p class="recipe-workflow-copy" role="status">@L.Resource("RecipeGuide_CheckCount", Recipes.Count, Recipes.Count(recipe => !Learned(recipe.Id)), Recipes.Count(recipe => Learned(recipe.Id)))</p>
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CheckClue") @L.Resource("RecipeGuide_CheckCaution")</p>
+    <p class="recipe-workflow-copy">@L.Resource(AppliesImmediately ? "RecipeGuide_LiveHelp" : "RecipeGuide_SaveHelp")</p>
+    @if (Recipes.Count == 0)
+    {
+        <h4>@L.Resource("RecipeGuide_NoClues")</h4>
+        <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_NoCluesHelp")</p>
+    }
+    <div class="recipe-suggestions">
+        @foreach (var (recipe, recipeRenderKey) in RenderKeys.With(Recipes, recipe => recipe.Id))
+        {
+            var concealed = Concealed(recipe);
+            var unlocked = Learned(recipe.Id);
+            <article class="recipe-suggestion" @key="recipeRenderKey">
+                <div class="recipe-suggestion-heading">
+                    @if (!concealed && recipe.CreatesItemId is { } itemId)
+                    {
+                        <span class="recipe-suggestion-icon"><ItemIcon ItemId="@itemId" Alt="" /></span>
+                    }
+                    <div>
+                        <h4>@(concealed ? L.Resource("Spoiler_Redacted") : ItemName(recipe.CreatesItemId ?? recipe.Id))</h4>
+                        <span class="recipe-suggestion-status" role="status">@L.Resource(unlocked ? (Staged(recipe.Id) ? "RecipeGuide_Staged" : "RecipeGuide_Unlocked") : "RecipeGuide_NotLearned")</span>
+                    </div>
+                    @if (concealed)
+                    {
+                        <button type="button" class="secondary" @onclick="() => OnReveal.InvokeAsync(recipe.Id)">@L.Resource("RecipeGuide_Reveal")</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="primary recipe-unlock" disabled="@(unlocked || Busy)" @onclick="() => OnUnlock.InvokeAsync(recipe.Id)">@L.Resource(Busy ? "RecipeGuide_Unlocking" : unlocked ? "RecipeGuide_Unlocked" : "RecipeGuide_Unlock")</button>
+                        @if (CanUndo(recipe.Id))
+                        {
+                            <button type="button" class="secondary" disabled="@Busy" @onclick="() => OnUndo.InvokeAsync(recipe.Id)">@L.Resource("RecipeGuide_Undo")</button>
+                        }
+                        <button type="button" class="secondary" @onclick="() => OnCrafting.InvokeAsync(recipe.Id)">@L.Resource("RecipeGuide_ShowSteps")</button>
+                    }
+                </div>
+                @if (!concealed)
+                {
+                    <p>@L.Resource("RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
+                    <details>
+                        <summary>@L.Resource("RecipeGuide_WhichInputs")</summary>
+                        <ul>
+                            @foreach (var input in Graph.IngredientsFor(recipe)) { <li>@ItemName(input.ItemId)</li> }
+                        </ul>
+                    </details>
+                }
+                @if (!concealed && Feedback(recipe.Id) is { Length: > 0 } feedback)
+                {
+                    <p class="recipe-action-feedback" role="status">@feedback</p>
+                }
+            </article>
+        }
+    </div>
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_OtherRecipes")</p>
+    <button type="button" class="secondary" @onclick="OnAllLocked">@L.Resource("RecipeGuide_AllUnlearned")</button>
+}
+
+@code {
+    [Parameter, EditorRequired] public RecipeGraph Graph { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<RecipeInfo> Recipes { get; set; } = [];
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, bool> Staged { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, bool> CanUndo { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string?> Feedback { get; set; } = null!;
+    [Parameter] public bool CatalogAvailable { get; set; }
+    [Parameter] public bool HasPickupHistory { get; set; }
+    [Parameter] public bool AppliesImmediately { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnAllLocked { get; set; }
+    [Parameter] public EventCallback<string> OnUnlock { get; set; }
+    [Parameter] public EventCallback<string> OnUndo { get; set; }
+    [Parameter] public EventCallback<string> OnCrafting { get; set; }
+    [Parameter] public EventCallback<string> OnReveal { get; set; }
+}

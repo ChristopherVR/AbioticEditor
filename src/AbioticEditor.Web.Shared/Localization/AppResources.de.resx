@@ -3500,4 +3500,56 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldNpcs_NameWithAreaFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="WorldNpcs_AppearsWhenFormat" xml:space="preserve"><value>erscheint bei: {0}</value></data>
   <data name="WorldNpcs_LeavesWhenFormat" xml:space="preserve"><value>verschwindet bei: {0}</value></data>
+  <data name="RecipeGuide_CheckAction" xml:space="preserve"><value>Übersehene Rezepte suchen</value></data>
+  <data name="RecipeGuide_CheckPrompt" xml:space="preserve"><value>Hast du ein Rezept übersehen?</value></data>
+  <data name="RecipeGuide_CheckHelp" xml:space="preserve"><value>Finde Rezepte zum Überprüfen anhand der Zutaten, die du aufgehoben hast.</value></data>
+  <data name="RecipeGuide_ShowSteps" xml:space="preserve"><value>Herstellungsschritte anzeigen</value></data>
+  <data name="RecipeGuide_BackBook" xml:space="preserve"><value>Zurück zum Rezeptbuch</value></data>
+  <data name="RecipeGuide_BackCheck" xml:space="preserve"><value>Zurück zur Rezeptprüfung</value></data>
+  <data name="RecipeGuide_CheckCount" xml:space="preserve"><value>{0} Rezepte in dieser Prüfung: {1} nicht gelernt, {2} freigeschaltet.</value></data>
+  <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Diese Rezepte wurden vorgeschlagen, weil ihre Zutaten im Verlauf deiner aufgehobenen Gegenstände stehen.</value></data>
+  <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Das sind Hinweise zum Nachgehen, keine sicher übersehenen Freischaltungen.</value></data>
+  <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Du hast alle {0} Zutatenarten für dieses Rezept aufgehoben.</value></data>
+  <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Welche Zutaten?</value></data>
+  <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Rezept nicht gelernt</value></data>
+  <data name="RecipeGuide_Learned" xml:space="preserve"><value>Rezept gelernt</value></data>
+  <data name="RecipeGuide_Unlock" xml:space="preserve"><value>Rezept freischalten</value></data>
+  <data name="RecipeGuide_Unlocking" xml:space="preserve"><value>Wird freigeschaltet...</value></data>
+  <data name="RecipeGuide_Staged" xml:space="preserve"><value>Freigeschaltet, zum Anwenden speichern</value></data>
+  <data name="RecipeGuide_Unlocked" xml:space="preserve"><value>Freigeschaltet</value></data>
+  <data name="RecipeGuide_Undo" xml:space="preserve"><value>Freischaltung rückgängig machen</value></data>
+  <data name="RecipeGuide_SaveHelp" xml:space="preserve"><value>Wähle Rezept freischalten und dann SPEICHERN in der Editorleiste, um deine Änderungen anzuwenden.</value></data>
+  <data name="RecipeGuide_LiveHelp" xml:space="preserve"><value>Die Freischaltung wird sofort im laufenden Spiel angewendet.</value></data>
+  <data name="RecipeGuide_UnlockFailed" xml:space="preserve"><value>Das Rezept konnte nicht freigeschaltet werden.</value></data>
+  <data name="RecipeGuide_UnlockRetry" xml:space="preserve"><value>Prüfe die Verbindung und versuche es erneut.</value></data>
+  <data name="RecipeGuide_HistoryUnavailable" xml:space="preserve"><value>Verlauf aufgehobener Gegenstände nicht verfügbar</value></data>
+  <data name="RecipeGuide_HistoryHelp" xml:space="preserve"><value>Diese Sitzung enthält nicht die Gegenstände, die du aufgehoben hast. Öffne den Spielstand eines Spielers, um nach übersehenen Rezepten zu suchen.</value></data>
+  <data name="RecipeGuide_NoClues" xml:space="preserve"><value>Keine Rezepte passen zu diesem Hinweis</value></data>
+  <data name="RecipeGuide_NoCluesHelp" xml:space="preserve"><value>Andere noch nicht gelernte Rezepte können weiterhin interessant sein. Diese Prüfung verwendet nur den Verlauf aufgehobener Zutaten.</value></data>
+  <data name="RecipeGuide_AllUnlearned" xml:space="preserve"><value>Alle noch nicht gelernten Rezepte anzeigen</value></data>
+  <data name="RecipeGuide_OtherRecipes" xml:space="preserve"><value>Für die anderen noch nicht gelernten Rezepte fehlen Informationen für diese Prüfung. Es kann sich trotzdem lohnen, sie anzusehen.</value></data>
+  <data name="RecipeGuide_CatalogUnavailable" xml:space="preserve"><value>Ohne Spieldaten sind die Rezeptbeziehungen nicht verfügbar.</value></data>
+  <data name="RecipeGuide_MakeTitle" xml:space="preserve"><value>So stellst du {0} her</value></data>
+  <data name="RecipeGuide_TreeHelp" xml:space="preserve"><value>Beginne beim Gegenstand ganz oben. Klappe einen Zweig auf, um zu sehen, was du zur Herstellung brauchst. Herstellen hat ein Rezept; Finden ist ein Material ohne aufgeführtes Herstellungsrezept.</value></data>
+  <data name="RecipeGuide_AmountHelp" xml:space="preserve"><value>Die Mengen gelten für die Herstellung von 1 {0}.</value></data>
+  <data name="RecipeGuide_ExpandAll" xml:space="preserve"><value>Alle aufklappen</value></data>
+  <data name="RecipeGuide_Collapse" xml:space="preserve"><value>Zutaten einklappen</value></data>
+  <data name="RecipeGuide_StationHelp" xml:space="preserve"><value>Werkbänke sind benötigte Werkzeuge und keine verbrauchten Zutaten.</value></data>
+  <data name="RecipeGuide_StockHelp" xml:space="preserve"><value>Diese Anleitung prüft nicht deinen aktuellen Vorrat und schaltet keine Rezepte frei.</value></data>
+  <data name="RecipeGuide_MakeCount" xml:space="preserve"><value>Herstellen: {0} × {1}</value></data>
+  <data name="RecipeGuide_FindCount" xml:space="preserve"><value>Finden: {0} × {1}</value></data>
+  <data name="RecipeGuide_CraftCount" xml:space="preserve"><value>Herstellungen: {0}. Station: {1}. Ergibt {2}.</value></data>
+  <data name="RecipeGuide_Surplus" xml:space="preserve"><value>{0} zusätzlich</value></data>
+  <data name="RecipeGuide_ChooseInputs" xml:space="preserve"><value>Zutaten wählen</value></data>
+  <data name="RecipeGuide_Details" xml:space="preserve"><value>Details</value></data>
+  <data name="RecipeGuide_SourceUnknown" xml:space="preserve"><value>Wo es zu finden ist, ist nicht bekannt.</value></data>
+  <data name="RecipeGuide_GroupUnknown" xml:space="preserve"><value>Zulässige Ersatzstoffe sind nicht bekannt.</value></data>
+  <data name="RecipeGuide_Cycle" xml:space="preserve"><value>Dieses Rezept verweist auf einen früheren Schritt. Probiere eine andere Zutatenwahl.</value></data>
+  <data name="RecipeGuide_NodeLimit" xml:space="preserve"><value>Einige Zweige werden nicht angezeigt, da diese Herstellungskette zu groß ist. Sieh dir einen kleineren Teil der Kette an.</value></data>
+  <data name="RecipeGuide_DepthLimit" xml:space="preserve"><value>Dieser Zweig ist zu tief, um ihn weiter aufzuklappen.</value></data>
+  <data name="RecipeGuide_InvalidRecipe" xml:space="preserve"><value>Dieses Rezept enthält unvollständige oder ungültige Mengen. Seine Herstellungsschritte können nicht berechnet werden.</value></data>
+  <data name="RecipeGuide_Sealed" xml:space="preserve"><value>Dieses Rezept ist geheim. Decke es auf, um seinen Namen und seine Zutaten zu sehen.</value></data>
+  <data name="RecipeGuide_Reveal" xml:space="preserve"><value>Rezept aufdecken</value></data>
+  <data name="RecipeGuide_UnknownRecipe" xml:space="preserve"><value>Für diesen Gegenstand ist kein Herstellungsrezept aufgeführt. Seine Bezugsquelle ist unbekannt.</value></data>
+  <data name="RecipeGuide_InputsPerCraft" xml:space="preserve"><value>Zutaten pro Herstellung</value></data>
 </root>

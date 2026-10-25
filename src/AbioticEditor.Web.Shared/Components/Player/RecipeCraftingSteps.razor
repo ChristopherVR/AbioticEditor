@@ -1,0 +1,107 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Items
+
+<div class="recipe-workflow-heading">
+    <h3>@(Concealed(RootRecipe) ? L.Resource("Spoiler_Redacted") : L.Resource("RecipeGuide_MakeTitle", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id)))</h3>
+    <button type="button" class="secondary" @onclick="OnBack">@L.Resource(ReturnToCheck ? "RecipeGuide_BackCheck" : "RecipeGuide_BackBook")</button>
+</div>
+<div class="hazard" role="presentation"></div>
+@if (Concealed(RootRecipe))
+{
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_Sealed")</p>
+    <button type="button" class="secondary" @onclick="() => OnReveal.InvokeAsync(RootRecipe.Id)">@L.Resource("RecipeGuide_Reveal")</button>
+}
+else
+{
+<p class="recipe-workflow-copy">@L.Resource("RecipeGuide_TreeHelp")</p>
+<div class="recipe-expand-controls">
+    <span>@L.Resource("RecipeGuide_AmountHelp", ItemName(RootRecipe.CreatesItemId ?? RootRecipe.Id))</span>
+    <div>
+        <button type="button" class="secondary" @onclick="ExpandAll">@L.Resource("RecipeGuide_ExpandAll")</button>
+        <button type="button" class="secondary" @onclick="Collapse">@L.Resource("RecipeGuide_Collapse")</button>
+    </div>
+</div>
+@if (_tree is { } tree)
+{
+    <div class="recipe-crafting-tree" aria-label="@L.Resource("RecipeGuide_ShowSteps")">
+        <ul>
+            <RecipeCraftingBranch Node="tree" Expanded="_expanded" ItemName="ItemName" StationName="StationName" RouteName="RouteName"
+                                  Concealed="Concealed" Learned="Learned" OnToggle="Toggle" OnRoute="ChooseRoute"
+                                  OnInspect="OnInspect" OnReveal="OnReveal" />
+        </ul>
+    </div>
+}
+<p class="recipe-workflow-copy">@L.Resource("RecipeGuide_StationHelp") @L.Resource("RecipeGuide_StockHelp")</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public RecipeGraph Graph { get; set; } = null!;
+    [Parameter, EditorRequired] public RecipeInfo RootRecipe { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, string> ItemName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, string> StationName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, string> RouteName { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<RecipeInfo, bool> Concealed { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<string, bool> Learned { get; set; } = null!;
+    [Parameter] public bool ReturnToCheck { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback<RecipeCraftingSelection> OnInspect { get; set; }
+    [Parameter] public EventCallback<string> OnReveal { get; set; }
+
+    private readonly HashSet<string> _expanded = ["root", "root.0"];
+    private readonly Dictionary<string, string> _routes = new(StringComparer.Ordinal);
+    private RecipeTreeNode? _tree;
+    private RecipeGraph? _boundGraph;
+    private string? _rootId;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Graph, _boundGraph) && string.Equals(_rootId, RootRecipe.Id, StringComparison.OrdinalIgnoreCase)) return;
+        _boundGraph = Graph;
+        _rootId = RootRecipe.Id;
+        _routes.Clear();
+        _expanded.Clear();
+        _expanded.UnionWith(["root", "root.0"]);
+        Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        _tree = Graph.BuildTree(RootRecipe.Id, routeChoices: _routes);
+        // Player knowledge changes presentation defaults, never the static catalog graph.
+        // An explicit choice, including a sealed route, is kept until the player changes it.
+        for (var attempt = 0; attempt < 24; attempt++)
+        {
+            var changed = ChooseVisibleDefaults(_tree);
+            if (!changed) break;
+            _tree = Graph.BuildTree(RootRecipe.Id, routeChoices: _routes);
+        }
+    }
+    private bool ChooseVisibleDefaults(RecipeTreeNode node)
+    {
+        var changed = false;
+        if (node.Recipe is { } recipe && Concealed(recipe) && !_routes.ContainsKey(node.Path)
+            && node.Alternatives.FirstOrDefault(info => !Concealed(info)) is { } visible)
+        {
+            _routes[node.Path] = visible.Id;
+            changed = true;
+        }
+        foreach (var child in node.Children) changed |= ChooseVisibleDefaults(child);
+        return changed;
+    }
+    private void Toggle(string path) { if (!_expanded.Add(path)) _expanded.Remove(path); }
+    private void Collapse() { _expanded.Clear(); _expanded.Add("root"); }
+    private void ExpandAll()
+    {
+        if (_tree is not null) Expand(_tree);
+    }
+    private void Expand(RecipeTreeNode node)
+    {
+        _expanded.Add(node.Path);
+        foreach (var child in node.Children) Expand(child);
+    }
+    private void ChooseRoute(RecipeRouteChoice choice)
+    {
+        _routes[choice.Path] = choice.RecipeId;
+        Rebuild();
+    }
+}
