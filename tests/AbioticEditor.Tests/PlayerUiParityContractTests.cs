@@ -45,7 +45,7 @@ public sealed class PlayerUiParityContractTests
         { "PlayerSkillsTab.razor", ["skill-grid", "MaxAll", "MultiplierPercent", "milestone-track"] },
         // Faithful native contract: RECIPE BOOK header, category chips, spoiler-sealed rows
         // and the wiki-style detail pane for the selected recipe.
-        { "PlayerRecipesTab.razor", ["rb-toolbar", "VisibleRows", "SetUnlocked", "UnlockAll", "SelectRow", "rb-chip", "rb-detail", "PlayerRecipes_RecipeBook", "Gate.CheckUnlock", "Progress_RecipeGated", "TraderVocabulary"] },
+        { "PlayerRecipesTab.razor", ["rb-toolbar", "VisibleRows", "SetUnlocked", "UnlockAll", "SelectRow", "rb-chip", "rb-detail", "PlayerRecipes_RecipeBook", "Gate.CheckUnlock", "Progress_RecipeGated", "SoldByText"] },
         // GATEPal keeps the native PDA app tiles and UNREAD ONLY filter, loads the codex
         // vocabulary on demand when it opens, and its bait chips open the item's
         // encyclopedia card in the right-hand pane like the native tap.
@@ -61,6 +61,16 @@ public sealed class PlayerUiParityContractTests
     {
         var source = PlayerSource(file);
         foreach (var token in required) Assert.Contains(token, source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Recipe_trader_details_and_material_sources_use_the_same_current_catalog_snapshot()
+    {
+        var source = PlayerSource("PlayerRecipesTab.razor");
+        Assert.Contains("_traders = snapshot.Traders", source, StringComparison.Ordinal);
+        Assert.Contains("new ItemAcquisitionIndex(snapshot.Items, snapshot.Traders, snapshot.Codex.Fish)", source, StringComparison.Ordinal);
+        Assert.Contains("SoldByText(selected)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("@inject TraderVocabularyService", source, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -77,7 +77,7 @@
         catch (JSDisconnectedException) { }
         catch (Exception exception) when (exception is JSException or InvalidOperationException)
         {
-            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeLearning", $"Could not reveal the learning tree: {exception.Message}");
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeLearning", "Could not reveal the learning tree.", exception);
         }
     }
     public async ValueTask DisposeAsync()

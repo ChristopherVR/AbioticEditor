@@ -1,5 +1,24 @@
 # Abiotic Editor - Session history
 
+## Recipe release checks follow the current guide and trader data (2026-10-26)
+
+- Reproduced both reported CI failures locally. The player-copy guard correctly rejects
+  raw exception-message interpolation in Razor sources, including diagnostic-only code.
+  Both crafting and learning guide warnings now pass the exception to the existing structured
+  logger with a constant message. Diagnostic detail is preserved without relaxing the guard
+  or adding technical errors to player-facing text.
+- Replaced the retired standalone trader-vocabulary token in the recipe parity matrix with
+  the actual Sold by capability. A dedicated contract now requires recipe trader details and
+  the material-source index to use the same current snapshot, with no standalone injected
+  trader vocabulary. Existing freshness tests still verify replacement after data changes.
+- Release build and 49 focused acceptance, parity, freshness and guide checks pass using the
+  existing optional-native-decoder skip. No UI automation, editor restart or real save write.
+- Full CI-equivalent `net10.0` Release suite: 2,471 passed, zero failed and one optional Lua
+  harness skip, 2,472 total in 7 minutes 4 seconds. The TRX confirms both original guards and
+  the new coherent-trader contract pass. Report: ignored
+  `artifacts/ci-regression/release-ci-regression.trx`. Validation was local on Windows; no push
+  or remote CI rerun was performed.
+
 ## Selected recipes show connected unlock requirements (2026-10-26)
 
 - Added **How to unlock** to recipe rows, Details, missed-recipe suggestions and crafting

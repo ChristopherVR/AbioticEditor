@@ -88,7 +88,7 @@ else
         catch (JSDisconnectedException) { }
         catch (JSException exception)
         {
-            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeGuide", $"Could not reveal the crafting guide: {exception.Message}");
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("RecipeGuide", "Could not reveal the crafting guide.", exception);
         }
         catch (ObjectDisposedException) when (_disposed) { }
     }
