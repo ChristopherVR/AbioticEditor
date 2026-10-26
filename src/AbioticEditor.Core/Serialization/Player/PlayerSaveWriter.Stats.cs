@@ -34,7 +34,8 @@ public static partial class PlayerSaveWriter
             SetDeltaDouble(ps.Properties, "Continence_", newStats.Continence, FullNames.Continence);
         }
 
-        SetInt(root, "CurrentMoney_", newStats.Money, FullNames.CurrentMoney);
+        if (newStats.Money != 0 || root.FindByPrefix("CurrentMoney_") is not null)
+            SetInt(root, "CurrentMoney_", newStats.Money, FullNames.CurrentMoney);
     }
 
     /// <summary>Sets a delta-serialized double: an existing tag is always updated; a missing
@@ -130,7 +131,9 @@ public static partial class PlayerSaveWriter
     public static void ApplyPhd(PlayerSaveData data, string phd)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        SetName(root, "PhD_", phd);
+        if (root.FindByPrefix("PhD_")?.Property is StructProperty { Value: PropertiesStruct handle })
+            SetName(handle.Properties, "RowName", phd, "RowName");
+        else SetName(root, "PhD_", phd);
     }
 
     /// <summary>Patches the six limb values of <c>CharacterHealth_</c>.</summary>

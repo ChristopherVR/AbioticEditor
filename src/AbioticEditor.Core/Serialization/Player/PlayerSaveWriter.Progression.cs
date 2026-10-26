@@ -113,9 +113,11 @@ public static partial class PlayerSaveWriter
     public static bool ApplyActiveBuffs(PlayerSaveData data, IReadOnlyList<ActiveBuff> keep)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        var tag = root.FindByPrefix("CurrentBuffDebuffs_");
-        if (tag?.Property is not StructProperty sp || sp.Value is not PropertiesStruct ps
-            || ps.Properties.FindByPrefix("Buffs_")?.Property is not ArrayProperty array || array.Value is null)
+        var tag = root.FindByPrefix("ActiveBuffs") ?? root.FindByPrefix("CurrentBuffDebuffs_");
+        var array = tag?.Property as ArrayProperty;
+        if (array is null && tag?.Property is StructProperty { Value: PropertiesStruct ps })
+            array = ps.Properties.FindByPrefix("Buffs_")?.Property as ArrayProperty;
+        if (tag is null || array?.Value is null)
         {
             return false;
         }

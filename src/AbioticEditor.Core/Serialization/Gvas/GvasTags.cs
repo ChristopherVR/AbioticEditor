@@ -29,6 +29,9 @@ internal static class GvasTags
         IList<FPropertyTag> tags, string prefix, IReadOnlyList<string> values, string? createFullName = null,
         string elementType = "NameProperty")
     {
+        tags = NativeSaveSchema.ResolveOwner(tags, prefix, values.Count > 0);
+        if (NativeSaveSchema.IsNative(tags) && (values.Count > 0 || createFullName is not null))
+            createFullName = NativeSaveSchema.Name(tags, prefix);
         if (tags.FindByPrefix(prefix)?.Property is not ArrayProperty array)
         {
             if (createFullName is null) return;
@@ -73,7 +76,9 @@ internal static class GvasTags
     {
         var name = new FString(fullName);
         var itemType = new FPropertyTypeName(new FString(elementType));
-        var type = new FPropertyTypeName(new FString("ArrayProperty"), [itemType]);
+        var kind = NativeSaveSchema.IsNative(tags) && fullName is "GlobalRecipesUnlocked" or "GlobalRecipesResearched"
+            ? "SetProperty" : "ArrayProperty";
+        var type = new FPropertyTypeName(new FString(kind), [itemType]);
         var array = (ArrayProperty)FProperty.Create(name, type);
         array.ItemType = itemType;
         tags.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = array });
@@ -88,6 +93,7 @@ internal static class GvasTags
     /// </summary>
     public static FProperty? FindOrCreate(IList<FPropertyTag> tags, string prefix, string? createFullName, string typeName)
     {
+        if (NativeSaveSchema.IsNative(tags) && createFullName is not null) createFullName = NativeSaveSchema.Name(tags, prefix);
         var existing = tags.FindByPrefix(prefix)?.Property;
         if (existing is not null || createFullName is null)
         {
@@ -157,6 +163,7 @@ internal static class GvasTags
         }
         if (createFullName is null) return;
 
+        if (NativeSaveSchema.IsNative(tags)) createFullName = NativeSaveSchema.Name(tags, prefix);
         var name = new FString(createFullName);
         var structType = new FPropertyTypeName(new FString("Rotator"));
         var type = new FPropertyTypeName(new FString(nameof(StructProperty)), new[] { structType });

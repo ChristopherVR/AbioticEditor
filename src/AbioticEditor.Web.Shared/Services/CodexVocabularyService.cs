@@ -27,11 +27,11 @@ public sealed class CodexVocabularyService
 
     internal static CodexVocabulary LoadFromProvider(GameAssetProvider provider)
         => new(CodexCatalog.LoadEmails(provider), CodexCatalog.LoadJournals(provider),
-            CodexCatalog.LoadCompendium(provider), CodexCatalog.LoadFish(provider));
+            CodexCatalog.LoadCompendium(provider), CodexCatalog.LoadFish(provider)) { Quests = QuestCatalog.LoadFrom(provider) };
 
     internal static CodexVocabulary FromRegistry(GameDataRegistry? registry)
         => registry is null ? CodexVocabulary.Empty : new CodexVocabulary(
-            registry.Emails ?? [], registry.Journals ?? [], registry.Compendium ?? [], registry.Fish ?? []);
+            registry.Emails ?? [], registry.Journals ?? [], registry.Compendium ?? [], registry.Fish ?? []) { Quests = registry.Quests };
 
     private static CodexVocabulary Load()
     {

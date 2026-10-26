@@ -122,7 +122,8 @@ public static partial class WorldSaveWriter
     /// </summary>
     public static void ApplyGlobalRecipes(WorldSaveData data, IReadOnlyList<string> recipes)
     {
-        var props = WorldSaveReader.GetGlobalUnlocksProps(data.Raw);
+        var props = WorldSaveReader.GetGlobalUnlocksProps(data.Raw)
+            ?? (NativeSaveSchema.IsNative(data.Raw.Properties!) && recipes.Count > 0 ? CreateGlobalUnlocksStruct(data.Raw) : null);
         if (props is null) return;
 
         ReplaceNameArray(props, "GlobalRecipesUnlocked_", recipes);
@@ -298,6 +299,9 @@ public static partial class WorldSaveWriter
     /// </summary>
     private static IList<FPropertyTag>? CreateGlobalUnlocksStruct(SaveGame save)
     {
+        NativeSaveSchema.Register(save);
+        if (save.Properties is { } native && NativeSaveSchema.IsNative(native))
+            return NativeSaveSchema.CreateStruct(native, "GlobalUnlocks", "AbioticGlobalUnlocksSave");
         var name = new FString("GlobalUnlocks");
         var type = new FPropertyTypeName(
             new FString("StructProperty"),

@@ -49,6 +49,11 @@ public static class LiquidTypes
     public static int ParseSaveValue(string? saveValue)
     {
         if (string.IsNullOrEmpty(saveValue)) return -1;
+        if (saveValue.StartsWith("ELiquidType::", StringComparison.Ordinal))
+        {
+            var name = saveValue["ELiquidType::".Length..];
+            return All.FirstOrDefault(liquid => liquid.DisplayName.Replace(" ", string.Empty, StringComparison.Ordinal) == name)?.Enumerator ?? -1;
+        }
         var s = saveValue;
         var end = s.Length;
         var start = end;

@@ -1,0 +1,122 @@
+@namespace AbioticEditor.Web.Components.Player
+@using AbioticEditor.Core.Codex
+@using AbioticEditor.Web.Models
+@inject CodexVocabularyService CodexData
+@inject RecipeProgressGateService Progress
+
+<section class="quest-journal" aria-label="@L.Resource("PlayerQuests_Tab")">
+    <div class="quest-toolbar">
+        <label><input type="checkbox" @bind="_showCompleted" /> @L.Resource("PlayerQuests_ShowCompleted")</label>
+        <label><input type="checkbox" @bind="_showUpcoming" /> @L.Resource("PlayerQuests_ShowUpcoming")</label>
+        <button type="button" class="secondary" disabled="@_loading" @onclick="Refresh">@L.Resource("PlayerQuests_Refresh")</button>
+    </div>
+    @if (_loading) { <p role="status">@L.Resource("PlayerQuests_Loading")</p> }
+    else if (_catalog is null) { <p class="muted">@L.Resource("PlayerQuests_NoData")</p> }
+    else
+    {
+        @if (_flags is null) { <p class="muted" role="status">@L.Resource("PlayerQuests_NoWorld")</p> }
+        @if (!Session.SupportsMultipleQuests) { <p class="muted">@L.Resource("PlayerQuests_OldSave")</p> }
+        @if (Session.TrackedQuestLine is { } tracked)
+        {
+            <p class="quest-tracked">@L.Resource("PlayerQuests_Tracking", LineTitle(tracked))
+                <button type="button" class="secondary" @onclick="() => Track(null)">@L.Resource("PlayerQuests_Clear")</button>
+            </p>
+        }
+        @foreach (var (line, lineKey) in RenderKeys.With(_catalog.Lines, line => line.Id))
+        {
+            var objectives = LineObjectives(line).Where(q => Visible(q.Quest)).ToArray();
+            if (objectives.Length == 0) continue;
+            <section class="quest-line @(Session.TrackedQuestLine == line.Id ? "tracked" : null)" @key="lineKey">
+                <header>
+                    <div>
+                        @if (line.ParentLine is { } parent) { <small class="muted">@LineTitle(parent)</small> }
+                        <h4>@LineTitle(line.Id)</h4>
+                    </div>
+                    <button type="button" class="secondary" disabled="@(!Session.SupportsMultipleQuests || !objectives.Any(q => State(q.Quest) == QuestState.Active))"
+                            aria-pressed="@(Session.TrackedQuestLine == line.Id)" @onclick="() => Track(line.Id)">
+                        @L.Resource(Session.TrackedQuestLine == line.Id ? "PlayerQuests_Tracked" : "PlayerQuests_Track")
+                    </button>
+                </header>
+                <ul>
+                    @foreach (var (objective, objectiveKey) in RenderKeys.With(objectives, objective => objective.Quest.Id))
+                    {
+                        var state = State(objective.Quest);
+                        <li class="quest-objective @(objective.Depth > 0 ? "subquest" : null)" @key="objectiveKey">
+                            <span class="quest-state">@L.Resource("PlayerQuests_State" + state)</span>
+                            <div><strong>@objective.Quest.Title</strong>
+                                @if (!string.IsNullOrWhiteSpace(objective.Quest.Description)) { <p>@objective.Quest.Description</p> }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+        @if (!_catalog.Quests.Any(Visible)) { <p class="muted">@L.Resource("PlayerQuests_NoActive")</p> }
+        <p class="muted">@L.Resource("PlayerQuests_SaveHelp")</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private PlayerSaveSession? _loadedSession;
+    private QuestCatalogData? _catalog;
+    private IReadOnlySet<string>? _flags;
+    private bool _loading, _showCompleted, _showUpcoming;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_loadedSession, Session)) return;
+        _loadedSession = Session;
+        await Refresh();
+    }
+    private async Task Refresh()
+    {
+        _loading = true;
+        var session = Session;
+        try
+        {
+            var catalog = await Task.Run(() => CodexData.Get().Quests);
+            var flags = await Progress.ResolveWorldFlagsAsync(session.Path);
+            if (ReferenceEquals(session, Session)) { _catalog = catalog; _flags = flags; }
+        }
+        finally { _loading = false; }
+    }
+    private QuestState State(QuestDefinition quest)
+    {
+        if (quest.StartFlag is null && quest.CompletionFlag is null)
+        {
+            if (Session.CompletedIntro && quest.Id.StartsWith("tutorial_", StringComparison.Ordinal)) return QuestState.Completed;
+            if (quest.Id == Session.CurrentTutorialQuest) return QuestState.Active;
+        }
+        return QuestCatalog.StateOf(quest, _flags);
+    }
+    private bool Visible(QuestDefinition quest) => State(quest) switch
+    {
+        QuestState.Active => true, QuestState.Completed => _showCompleted, _ => _showUpcoming,
+    };
+    private string LineTitle(string id)
+    {
+        var title = _catalog?.Lines.FirstOrDefault(line => line.Id == id)?.Title;
+        return !string.IsNullOrWhiteSpace(title) ? title : id == "QuestLine_Primary" ? L.Resource("PlayerQuests_Main") : id;
+    }
+    private IEnumerable<(QuestDefinition Quest, int Depth)> LineObjectives(QuestLineDefinition line)
+    {
+        var byId = _catalog!.Quests.DistinctBy(q => q.Id, StringComparer.OrdinalIgnoreCase).ToDictionary(q => q.Id, StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<(string Id, int Depth)>(line.Quests.Select(id => (id, 0)));
+        var result = new List<(QuestDefinition Quest, int Depth)>();
+        while (pending.TryDequeue(out var next))
+        {
+            if (!seen.Add(next.Id) || !byId.TryGetValue(next.Id, out var quest)) continue;
+            result.Add((quest, next.Depth));
+            foreach (var child in quest.SubQuests) pending.Enqueue((child, next.Depth + 1));
+        }
+        return result.OrderBy(q => q.Quest.Priority);
+    }
+    private async Task Track(string? id)
+    {
+        if (_catalog is null) return;
+        Session.TrackQuestLine(id, _catalog);
+        await OnChanged.InvokeAsync();
+    }
+}

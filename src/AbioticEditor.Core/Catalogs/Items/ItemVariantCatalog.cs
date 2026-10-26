@@ -85,7 +85,7 @@ public sealed class ItemVariantCatalog
 
     private static string? Read(FStructFallback row, string prefix)
         => row.Properties.FirstOrDefault(property =>
-                property.Name.Text.StartsWith(prefix, StringComparison.Ordinal))
+                property.Name.Text.MatchesUnrealProperty(prefix))
             ?.Tag?.GenericValue?.ToString();
 
     private static string? NullIfEmpty(string? value)

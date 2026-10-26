@@ -4966,4 +4966,24 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="RecipeLearningTree_NodeLimit" xml:space="preserve"><value>Some paths are not shown because this learning chain is too large.</value></data>
   <data name="RecipeLearningTree_ItemSources" xml:space="preserve"><value>Inspect {0}</value></data>
   <data name="RecipeLearningTree_InspectItem" xml:space="preserve"><value>Inspect item</value></data>
+  <data name="PlayerQuests_Tab" xml:space="preserve"><value>Quests</value></data>
+  <data name="PlayerQuests_ShowCompleted" xml:space="preserve"><value>Show completed</value></data>
+  <data name="PlayerQuests_ShowUpcoming" xml:space="preserve"><value>Reveal upcoming quests</value></data>
+  <data name="PlayerQuests_Refresh" xml:space="preserve"><value>Refresh progress</value></data>
+  <data name="PlayerQuests_Loading" xml:space="preserve"><value>Loading quests...</value></data>
+  <data name="PlayerQuests_NoData" xml:space="preserve"><value>Quest data is unavailable. Refresh game data in Settings.</value></data>
+  <data name="PlayerQuests_NoWorld" xml:space="preserve"><value>Open this player from its world folder to see quest progress.</value></data>
+  <data name="PlayerQuests_OldSave" xml:space="preserve"><value>Load and save this character in game version 1.5 to select a tracked quest line.</value></data>
+  <data name="PlayerQuests_Tracking" xml:space="preserve"><value>Tracking: {0}</value></data>
+  <data name="PlayerQuests_Clear" xml:space="preserve"><value>Clear tracking</value></data>
+  <data name="PlayerQuests_Tracked" xml:space="preserve"><value>Tracked</value></data>
+  <data name="PlayerQuests_Track" xml:space="preserve"><value>Track on map</value></data>
+  <data name="PlayerQuests_StateActive" xml:space="preserve"><value>Active</value></data>
+  <data name="PlayerQuests_StateLocked" xml:space="preserve"><value>Upcoming</value></data>
+  <data name="PlayerQuests_StateCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="PlayerQuests_StateUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="PlayerQuests_NoActive" xml:space="preserve"><value>No active objectives found.</value></data>
+  <data name="PlayerQuests_SaveHelp" xml:space="preserve"><value>Tracking is saved with this character when you select Save. Quest progress follows the world story flags.</value></data>
+  <data name="PlayerQuests_Main" xml:space="preserve"><value>Main story</value></data>
+  <data name="GameDataSettings_OfficialModsHint" xml:space="preserve"><value>Choose which installed mods supply editor data. mod.io downloads start off here because the game enables mods separately for each world. Match your world's mod list, then reload game data. These switches do not change the game.</value></data>
 </root>

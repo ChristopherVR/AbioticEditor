@@ -98,13 +98,14 @@ public static class RecipeSpecialLearningCatalog
             try
             {
                 var package = provider.LoadPackageInternal(path);
-                if (!package.NameMap.Any(name => name.Name == "RecipesToUnlockOnAccess")) continue;
+                if (!package.NameMap.Any(name => name.Name is "RecipesToUnlockOnAccess" or "RecipeRowsToUnlockOnAccess")) continue;
                 var defaults = package.GetExports().FirstOrDefault(export => export.Name.StartsWith("Default__", StringComparison.Ordinal));
                 if (defaults is null) continue;
                 var label = Structure(InheritedField(defaults, "BenchDataTableRow")) is { } bench
                     ? Text(Field(bench, "RowName")) : null;
                 label ??= Text(InheritedField(defaults, "ObjectDisplayText")) ?? string.Empty;
-                result.AddRange(BenchGrants(path, label, Field(defaults, "RecipesToUnlockOnAccess")));
+                result.AddRange(BenchGrants(path, label,
+                    InheritedField(defaults, "RecipeRowsToUnlockOnAccess") ?? InheritedField(defaults, "RecipesToUnlockOnAccess")));
             }
             catch (Exception exception)
             {
@@ -154,10 +155,11 @@ public static class RecipeSpecialLearningCatalog
         }).ToArray();
 
     internal static IReadOnlyList<RecipeSpecialGrant> BenchGrants(string assetPath, string label, object? names)
-        => NameIds(names).Select(recipe => new RecipeSpecialGrant(recipe, RecipeSpecialGrantKind.BenchAccess,
+        => NameIds(names).Concat(RowIds(names)).Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(recipe => new RecipeSpecialGrant(recipe, RecipeSpecialGrantKind.BenchAccess,
             assetPath, label, assetPath)
         {
-            TriggerFunction = "RecipesToUnlockOnAccess",
+            TriggerFunction = RowIds(names).Count > 0 ? "RecipeRowsToUnlockOnAccess" : "RecipesToUnlockOnAccess",
         }).ToArray();
 
     private static object? InheritedField(UObject instance, string name)

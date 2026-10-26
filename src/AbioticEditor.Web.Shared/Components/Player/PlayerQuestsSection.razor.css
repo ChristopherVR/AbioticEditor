@@ -1,0 +1,13 @@
+.quest-toolbar, .quest-line header, .quest-tracked { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.quest-toolbar { margin: 12px 0 20px; }
+.quest-toolbar label { display: flex; align-items: center; gap: 6px; }
+.quest-line { border-left: 3px solid var(--line); padding: 12px 16px; margin: 16px 0; }
+.quest-line.tracked { border-left-color: var(--orange); }
+.quest-line h4 { margin: 3px 0; font: inherit; font-weight: 700; }
+.quest-line ul { list-style: none; padding: 0; margin: 12px 0 0; }
+.quest-objective { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.quest-objective.subquest { margin-left: 16px; }
+.quest-objective p { margin: 4px 0 0; max-width: 70ch; line-height: 1.5; }
+.quest-state { font-size: .85em; color: var(--ink-muted, var(--ink)); }
+.quest-journal button:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+@container (max-width: 500px) { .quest-objective { grid-template-columns: 1fr; gap: 4px; } .quest-line { padding: 10px; } }

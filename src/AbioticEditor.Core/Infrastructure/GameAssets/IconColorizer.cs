@@ -16,7 +16,7 @@ public static class IconColorizer
     /// mask path is returned.
     /// </summary>
     public static string Colorize(string maskPngPath, ItemCatalogEntry entry)
-        => ColorizeCore(maskPngPath, PickTint(entry), ".colored2.png");
+        => ColorizeCore(maskPngPath, PickTint(entry), ".colored3.png", preserveColor: true);
 
     /// <summary>
     /// Colorizes a mask PNG with a caller-chosen tint - used for non-item masks like the
@@ -25,7 +25,7 @@ public static class IconColorizer
     public static string ColorizeWithTint(string maskPngPath, byte r, byte g, byte b)
         => ColorizeCore(maskPngPath, new SKColor(r, g, b), $".tint{r:X2}{g:X2}{b:X2}.png");
 
-    private static string ColorizeCore(string maskPngPath, SKColor tint, string outSuffix)
+    private static string ColorizeCore(string maskPngPath, SKColor tint, string outSuffix, bool preserveColor = false)
     {
         try
         {
@@ -52,6 +52,17 @@ public static class IconColorizer
                         return maskPngPath;
                     }
                 }
+            }
+
+            // Newer icons include full-color artwork with ordinary transparency. Applying
+            // the legacy inverted-alpha mask would erase the creature and color its background.
+            if (preserveColor)
+            {
+                var coloredPixels = 0;
+                for (var index = 0; index < srcPixels.Length; index += 4)
+                    if (srcPixels[index + 3] > 32 && Math.Max(srcPixels[index], Math.Max(srcPixels[index + 1], srcPixels[index + 2])) > 32)
+                        coloredPixels++;
+                if (coloredPixels > w * h / 100) return maskPngPath;
             }
 
             // Build a vertical gradient + soft top-left highlight, masked by the source alpha.

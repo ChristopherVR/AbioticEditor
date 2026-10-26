@@ -44,18 +44,17 @@ public static class SaveVersionRegistry
     /// <summary>
     /// The game build the current version table was validated against - taken from the
     /// usmap the mappings were extracted from
-    /// (<c>AbioticFactor-5.4.4-1030002+++DF+ABF-01e0a584.usmap</c>).
+    /// (<c>AbioticFactor-5.4.4-1050002+++DF+ABF-01e0a584.usmap</c>).
     /// </summary>
-    public const string ValidatedGameBuild = "5.4.4-1030002+++DF+ABF-01e0a584";
+    public const string ValidatedGameBuild = "5.4.4-1050002+++DF+ABF-01e0a584";
 
     /// <summary>The full version table, one row per known <see cref="SaveKind"/>.</summary>
     public static IReadOnlyList<SaveVersionInfo> Entries { get; } = new[]
     {
-        // ABF_SAVE_VERSION 3 observed across every world fixture (Cascade client save,
-        // dedicated-server tree, fresh saves).
-        new SaveVersionInfo(SaveKind.World, "World save", 3, 3, ValidatedGameBuild),
+        // Legacy world fixtures carry version 3; fresh Community Update 5 fixtures carry 4.
+        new SaveVersionInfo(SaveKind.World, "World save", 3, 4, ValidatedGameBuild),
         // The metadata save shares Abiotic_WorldSave_C's header layout and version.
-        new SaveVersionInfo(SaveKind.Metadata, "World metadata save", 3, 3, ValidatedGameBuild),
+        new SaveVersionInfo(SaveKind.Metadata, "World metadata save", 3, 4, ValidatedGameBuild),
         // ABF_SAVE_VERSION 1 observed in every Player_*.sav fixture.
         new SaveVersionInfo(SaveKind.Character, "Character save", 1, 1, ValidatedGameBuild),
         // ScientistCustomization_*.sav has no ABF_SAVE_VERSION header; compatibility is
@@ -74,6 +73,8 @@ public static class SaveVersionRegistry
     /// </summary>
     public static IReadOnlyList<KnownEngineBuild> KnownEngineBuilds { get; } = new[]
     {
+        new KnownEngineBuild(5, 4, 4, 1050002, "++DF+ABF", EngineBuildStatus.Validated,
+            "Community Update 5 (1.5.0.31459): isolated player, metadata and Facility fixtures; native edit and round-trip checks."),
         // The build the mappings and every write path were validated against.
         new KnownEngineBuild(5, 4, 4, 1030002, "++DF+ABF", EngineBuildStatus.Validated,
             "Every dedicated-server fixture and most Steam fixtures."),

@@ -1,5 +1,45 @@
 # Abiotic Editor - Session history
 
+## Community Update 5 compatibility, official mods and multi-quest GATEPal (2026-10-27)
+
+- Dumped new mappings from Steam 1.5.0.31459, build 26092436, UE changelist 1050002.
+  Added isolated game-written player, metadata and Facility fixtures. Native struct names,
+  typed row handles, nested Compendium, recipe sets, equipment/liquid enums and skill perks
+  now work alongside older saves. Untouched raw-save preservation remains the contract.
+- Regenerated all ten base-game language registries: 1,624 items, 584 recipes, 585 visual
+  variants, 95 quests in four lines and 28 pets. Fog Peccary, Tie Bandana and its ten appearances
+  are included. Native pickup rules and the renamed workbench grant handles restore learning
+  coverage for all 584 recipes, including 186 explicit grants and two starting recipes.
+- Added official mod.io cache discovery and explicit editor selection using stable IDs.
+  Completed installations, paired IoStore archives, configured storage roots, official row
+  assets, prefixed additions, row replacements and LoadAfter dependencies are supported.
+  A public Windows archive for New syringes supplied 81 additional items and 81 recipes in
+  read-only extraction checks. No subscriptions, game mod settings or installed mods changed.
+- GATEPal now shows multiple active quest lines, optional completed/upcoming objectives and
+  personal tracking. Selecting a line stages only TrackedQuestLine; Save, backup and Revert
+  remain shared session operations. Tutorial objectives are not inferred active from missing
+  flags. Manual UI verification showed main story, Grayson and Kylie together in the isolated
+  world, then saved and reloaded Kylie tracking with the original player backup intact.
+- Fog Peccary's native mutation target is 17, verified from the feeding bytecode and global
+  mutation table. Older saves keep family-list numbering. First-pet dynamic arrays can be
+  created in a native save without an existing template. Pet teleport/hunger/laser/furniture
+  fixes are game behavior; no speculative save fields were added.
+- Full-color item artwork is preserved instead of applying the older inverted-mask tint.
+  Bundled icons were refreshed from the installed game. The test game, isolated editor host
+  and automation browser were closed; existing player worlds and the user's editor were left
+  untouched. Nothing was pushed.
+- Restored 81 spawn-point creature mappings through the new DT_NPCSpawns tag lookup.
+- Validation: the full regression run completed with 2,489 passes, one existing Lua skip
+  and two failures. Both failures were corrected (an old-fixture version expectation and
+  the new spawn lookup); all 41 tests in the final affected groups then passed. A separate
+  63-test targeted run passed for update fixtures, mods, recipes, icons and UI contracts.
+  The full suite was not repeated after these final corrections. Desktop, browser and
+  documentation builds passed; the documentation check covered 3,549 links on 70 pages.
+- Evidence, reproduction and remaining limits: [Community Update 5](reference/research/community-update-5.md).
+  In-game reload of edited native saves, native placed-pet transfer fixtures, generic object
+  replacement mods, world mod version enforcement and live multi-quest tracking are not claimed.
+
+
 ## Recipe release checks follow the current guide and trader data (2026-10-26)
 
 - Reproduced both reported CI failures locally. The player-copy guard correctly rejects

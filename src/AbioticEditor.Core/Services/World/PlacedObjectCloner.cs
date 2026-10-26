@@ -58,7 +58,9 @@ internal static class PlacedObjectCloner
             using var buffer = new MemoryStream();
             live.WriteTo(buffer);
             buffer.Position = 0;
-            return SaveGame.LoadFrom(buffer);
+            var donor = SaveGame.LoadFrom(buffer);
+            NativeSaveSchema.Register(donor);
+            return donor;
         }
         finally
         {

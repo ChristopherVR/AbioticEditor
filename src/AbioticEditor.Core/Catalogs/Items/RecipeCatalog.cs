@@ -190,7 +190,7 @@ public static class RecipeCatalog
         foreach (var p in row.Properties)
         {
             var name = p.Name.Text;
-            if (name.StartsWith("CraftDuration_", StringComparison.Ordinal))
+            if (name.MatchesUnrealProperty("CraftDuration_"))
             {
                 craftDuration = p.Tag?.GenericValue switch
                 {
@@ -201,15 +201,15 @@ public static class RecipeCatalog
                     _ => (double?)null,
                 };
             }
-            else if (name.StartsWith("ItemToCreate_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("ItemToCreate_"))
             {
                 createsItem = RowNameOf(p.Tag?.GenericValue);
             }
-            else if (name.StartsWith("CountToCreate_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("CountToCreate_"))
             {
                 count = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
             }
-            else if (name.StartsWith("Category_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("Category_"))
             {
                 // Enum renders as "E_RecipeCategory::NewEnumeratorX" or a friendly name
                 // depending on mappings; keep the tail segment.
@@ -220,7 +220,7 @@ public static class RecipeCatalog
                     category = idx >= 0 ? s[(idx + 1)..] : s;
                 }
             }
-            else if (name.StartsWith("RecipeItems_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("RecipeItems_"))
             {
                 // Array of { Item_ = row handle, Count_ = int }.
                 foreach (var entry in StructArray(p.Tag?.GenericValue))
@@ -229,11 +229,11 @@ public static class RecipeCatalog
                     var n = 1;
                     foreach (var ep in entry.Properties)
                     {
-                        if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                        if (ep.Name.Text.MatchesUnrealProperty("Item_"))
                         {
                             itemId = RowNameOf(ep.Tag?.GenericValue);
                         }
-                        else if (ep.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
+                        else if (ep.Name.Text.MatchesUnrealProperty("Count_"))
                         {
                             n = ep.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
                         }
@@ -241,7 +241,7 @@ public static class RecipeCatalog
                     if (!string.IsNullOrEmpty(itemId)) ingredients.Add(new RecipeIngredient(itemId!, n));
                 }
             }
-            else if (name.StartsWith("BenchesRequired_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("BenchesRequired_"))
             {
                 if (p.Tag?.GenericValue is UScriptArray arr)
                 {

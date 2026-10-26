@@ -101,12 +101,29 @@ public static class ModLoadStore
     /// True when the named mod should mount. Only reflects the per-mod choice; callers still gate on
     /// the master <see cref="ModsEnabled"/> for the effective decision.
     /// </summary>
-    public static bool IsModEnabled(string modName) => !DisabledMods.Contains(modName);
+    public static string EnabledOfficialModsPath { get; } = Path.Combine(
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "mods-official-enabled.txt");
+
+    public static bool IsModEnabled(string modName)
+    {
+        if (!modName.StartsWith(ModIoInstallLocator.KeyPrefix, StringComparison.Ordinal)) return !DisabledMods.Contains(modName);
+        try { return File.Exists(EnabledOfficialModsPath) && File.ReadAllLines(EnabledOfficialModsPath).Contains(modName, StringComparer.OrdinalIgnoreCase); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+    }
 
     /// <summary>Turns one mod on/off and persists the change.</summary>
     public static void SetModEnabled(string modName, bool enabled)
     {
         if (string.IsNullOrWhiteSpace(modName)) return;
+        if (modName.StartsWith(ModIoInstallLocator.KeyPrefix, StringComparison.Ordinal))
+        {
+            var selected = File.Exists(EnabledOfficialModsPath)
+                ? File.ReadAllLines(EnabledOfficialModsPath).ToHashSet(StringComparer.OrdinalIgnoreCase) : [];
+            if (enabled) selected.Add(modName); else selected.Remove(modName);
+            Directory.CreateDirectory(Path.GetDirectoryName(EnabledOfficialModsPath)!);
+            File.WriteAllLines(EnabledOfficialModsPath, selected.Order(StringComparer.OrdinalIgnoreCase));
+            return;
+        }
         var set = new HashSet<string>(DisabledMods, StringComparer.OrdinalIgnoreCase);
         if (enabled) set.Remove(modName);
         else set.Add(modName);

@@ -111,6 +111,15 @@ public sealed class RecipeSpecialLearningCatalogTests
         Assert.Null(grant.RequiredCount);
     }
 
+    [Fact]
+    public void Native_bench_access_reads_recipe_handles()
+    {
+        var grants = RecipeSpecialLearningCatalog.BenchGrants("bench-asset", "Deployable_Bench_Ammo",
+            Recipes("recipe_ammo_9mm", "recipe_gunpowder"));
+        Assert.Equal(["recipe_ammo_9mm", "recipe_gunpowder"], grants.Select(grant => grant.RecipeId));
+        Assert.All(grants, grant => Assert.Equal("RecipeRowsToUnlockOnAccess", grant.TriggerFunction));
+    }
+
     private static FStructFallback Row(params (string Name, object? Value)[] values)
         => new(values.Select(value => new FPropertyTag { Name = new FName(value.Name), Tag = new ValueProperty(value.Value) }).ToList());
     private static UScriptArray Array(params object?[] values)

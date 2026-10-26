@@ -62,6 +62,8 @@ public static class SectorMapCatalog
             var file = kv.Value.Properties
                 .FirstOrDefault(p => p.Name.Text.StartsWith("LevelFileName", StringComparison.Ordinal))
                 ?.Tag?.GenericValue?.ToString();
+            if (file is null && kv.Value.Properties.FirstOrDefault(p => p.Name.Text == "Level")?.Tag?.GenericValue?.ToString() is { } levelPath)
+                file = levelPath.Split('.')[0].Split('/')[^1];
             if (!string.IsNullOrEmpty(file))
             {
                 levelFiles[kv.Key.Text] = file;

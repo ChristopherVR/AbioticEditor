@@ -137,7 +137,14 @@ public static class AfInstallLocator
     /// the pak/utoc <see cref="Files"/> that make it up (an IoStore mod ships a <c>.utoc</c> next to
     /// its <c>.pak</c>; both are registered together, the <c>.ucas</c> is opened automatically).
     /// </summary>
-    public sealed record InstalledMod(string Name, IReadOnlyList<string> Files);
+    public sealed record InstalledMod(string Name, IReadOnlyList<string> Files)
+    {
+        public string DisplayName { get; init; } = Name;
+        public long? ModIoId { get; init; }
+    }
+
+    public static IReadOnlyList<InstalledMod> FindAvailableMods(string? paksDirectory)
+        => FindMods(paksDirectory).Concat(ModIoInstallLocator.FindInstalled()).ToArray();
 
     /// <summary>
     /// Groups the mod paks under <paramref name="paksDirectory"/> (see <see cref="FindModPaks"/>)

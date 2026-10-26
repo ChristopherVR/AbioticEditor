@@ -63,6 +63,7 @@ public static partial class WorldSaveReader
     public static WorldSaveData ReadFromSave(SaveGame save)
     {
         ArgumentNullException.ThrowIfNull(save);
+        NativeSaveSchema.Register(save);
         var containers = new List<WorldContainer>();
         containers.AddRange(ReadDeployedContainers(save));
         containers.AddRange(ReadCustomInventoryContainers(save));

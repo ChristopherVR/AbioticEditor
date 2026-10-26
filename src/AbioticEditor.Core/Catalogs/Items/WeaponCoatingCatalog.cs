@@ -15,7 +15,7 @@ public static class WeaponCoatingCatalog
         if (table is null || JObject.FromObject(table)["Rows"] is not JObject rows) return [];
         // The game resolves WeaponCoating through GetDataTableRowNames at this exact index.
         return rows.Properties().Select((row, index) => new WeaponCoatingDefinition(index, row.Name,
-            (string?)((JObject)row.Value).Properties().FirstOrDefault(p => p.Name.StartsWith("CoatingName_", StringComparison.Ordinal))?.Value["LocalizedString"] ?? row.Name,
-            (int?)((JObject)row.Value).Properties().FirstOrDefault(p => p.Name.StartsWith("Durability_", StringComparison.Ordinal))?.Value ?? 100)).ToArray();
+            (string?)((JObject)row.Value).Properties().FirstOrDefault(p => p.Name.MatchesUnrealProperty("CoatingName_"))?.Value["LocalizedString"] ?? row.Name,
+            (int?)((JObject)row.Value).Properties().FirstOrDefault(p => p.Name.MatchesUnrealProperty("Durability_"))?.Value ?? 100)).ToArray();
     }
 }

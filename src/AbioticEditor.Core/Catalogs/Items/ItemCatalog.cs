@@ -183,6 +183,7 @@ public sealed class ItemCatalog
 
                     if (dict.TryGetValue(id, out var existing))
                     {
+                        if (provider.IsOfficialRow(PrimaryTable, id)) continue;
                         dict[id] = RelinkLocalizedText(existing, kv.Value);
                         continue;
                     }
@@ -392,7 +393,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             return p.Tag?.GenericValue switch { float f => f, double d => d, int i => i, uint u => u, _ => 0 };
         }
         return 0;
@@ -402,7 +403,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             return p.Tag?.GenericValue is bool b && b;
         }
         return false;
@@ -413,7 +414,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             return ReadRowNameOf(Unwrap(p.Tag?.GenericValue) as FStructFallback);
         }
         return null;
@@ -427,7 +428,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             return ReadRowNameOf(Unwrap(p.Tag?.GenericValue) as FStructFallback);
         }
         return null;
@@ -448,12 +449,13 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             if (p.Tag?.GenericValue is not CUE4Parse.UE4.Assets.Objects.UScriptArray array) return Array.Empty<string>();
             var result = new List<string>(array.Properties.Count);
             foreach (var element in array.Properties)
             {
-                var s = element.GenericValue?.ToString();
+                var value = Unwrap(element.GenericValue);
+                var s = value is FStructFallback handle ? ReadRowNameOf(handle) : value?.ToString();
                 if (!string.IsNullOrEmpty(s)) result.Add(s);
             }
             return result;
@@ -470,7 +472,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in data.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             var s = p.Tag?.GenericValue?.ToString();
             if (string.IsNullOrEmpty(s)) return null;
 
@@ -481,7 +483,7 @@ public sealed class ItemCatalog
             // "Abiotic_DamageType_ParentBP" is the field's placeholder default on a non-weapon
             // row; real weapon rows always point at a specific DamageType_* class.
             if (string.Equals(name, "Abiotic_DamageType_ParentBP", StringComparison.Ordinal)) return null;
-            return name.StartsWith("DamageType_", StringComparison.Ordinal) ? name["DamageType_".Length..] : name;
+            return name.MatchesUnrealProperty("DamageType_") ? name["DamageType_".Length..] : name;
         }
         return null;
     }
@@ -496,7 +498,7 @@ public sealed class ItemCatalog
 
         foreach (var p in inner.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
             if (p.Tag?.GenericValue is not CUE4Parse.UE4.Assets.Objects.UScriptArray arr) return null;
 
             var result = new List<int>(arr.Properties.Count);
@@ -520,6 +522,7 @@ public sealed class ItemCatalog
         }
         var s = raw?.ToString();
         if (string.IsNullOrEmpty(s)) return -1;
+        if (s.StartsWith("ELiquidType::", StringComparison.Ordinal)) return LiquidTypes.ParseSaveValue(s);
         var end = s.Length;
         var start = end;
         while (start > 0 && char.IsAsciiDigit(s[start - 1])) start--;
@@ -540,7 +543,7 @@ public sealed class ItemCatalog
 
         foreach (var p in inner.Properties)
         {
-            if (!p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal)) continue;
+            if (!p.Name.Text.MatchesUnrealProperty(innerPrefix)) continue;
 
             var raw = p.Tag?.GenericValue;
             switch (raw)
@@ -551,6 +554,7 @@ public sealed class ItemCatalog
 
             var s = raw?.ToString();
             if (string.IsNullOrEmpty(s)) return 0;
+            if (s.StartsWith("EInventorySlotType::", StringComparison.Ordinal)) return EquipSlotTypes.FromNativeName(s);
 
             // "E_InventorySlotType::NewEnumerator14" -> 14 (parse the trailing digits).
             var end = s.Length;
@@ -571,7 +575,7 @@ public sealed class ItemCatalog
 
         foreach (var p in inner.Properties)
         {
-            if (p.Name.Text.StartsWith(innerPrefix, StringComparison.Ordinal))
+            if (p.Name.Text.MatchesUnrealProperty(innerPrefix))
             {
                 return p.Tag?.GenericValue switch { int i => i, byte b => b, long l => (int)l, _ => 0 };
             }
@@ -585,7 +589,7 @@ public sealed class ItemCatalog
     {
         foreach (var p in row.Properties)
         {
-            if (p.Name.Text is { } n && n.StartsWith(prefix, StringComparison.Ordinal))
+            if (p.Name.Text is { } n && n.MatchesUnrealProperty(prefix))
             {
                 tag = p;
                 return n;

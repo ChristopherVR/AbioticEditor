@@ -34,7 +34,7 @@
         {
             <label class="pet-mutation-field">Mutation target
                 <select value="@mutationValue" @onchange="OnPetMutationChanged">
-                    <option value="0">Not mutated</option>
+                    <option value="0">No mutation target</option>
                     @if (mutationValue != 0 && !MutationOptions.Any(o => o.Value == mutationValue))
                     { <option value="@mutationValue">Saved value @mutationValue</option> }
                     @foreach (var option in MutationOptions)
@@ -44,7 +44,7 @@
         }
         else if (mutationValue != 0)
         {
-            <p>Mutated into: @(MutationOptions.FirstOrDefault(o => o.Value == mutationValue)?.DisplayName ?? $"saved value {mutationValue}")</p>
+            <p>Mutation target: @(MutationOptions.FirstOrDefault(o => o.Value == mutationValue)?.DisplayName ?? $"saved value {mutationValue}")</p>
         }
     }
     @if (_loading) { <p role="status">Loading pet care...</p> }
@@ -60,6 +60,7 @@
 </details>
 @code {
     [Parameter] public string? ItemRow { get; set; }
+    [Parameter] public bool NativeMutations { get; set; } = true;
     [Parameter] public string? ClassPath { get; set; }
     [Parameter] public int? MutationProgress { get; set; }
     /// <summary>Bound by a caller that can persist the edit (offline stages it, live commits it
@@ -92,11 +93,13 @@
         || ClassPath is not null && string.Equals(c.ClassPath, ClassPath, StringComparison.OrdinalIgnoreCase));
     private string FoodNames(IReadOnlyList<string> foods) => string.Join(", ", foods.Select(id => Items.Find(id)?.DisplayName ?? id.Replace('_', ' ')));
     private string? _loadedRow;
+    private bool _loadedNative;
     protected override async Task OnParametersSetAsync()
     {
-        if (string.Equals(_loadedRow, ItemRow, StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(_loadedRow, ItemRow, StringComparison.OrdinalIgnoreCase) && _loadedNative == NativeMutations) return;
         _loadedRow = ItemRow;
-        MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow) : [];
+        _loadedNative = NativeMutations;
+        MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow, NativeMutations) : [];
     }
     private async Task Load()
     {
@@ -105,7 +108,7 @@
         try
         {
             _care = await Items.GetPetCareAsync();
-            MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow) : [];
+            MutationOptions = ItemRow is not null ? await Items.GetPetMutationOptionsAsync(ItemRow, NativeMutations) : [];
             _loaded = true;
         }
         finally { _loading = false; }

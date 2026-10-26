@@ -57,6 +57,7 @@ public static class SkillMilestoneCatalog
         try
         {
             var perks = new Dictionary<string, SkillMilestone>(StringComparer.OrdinalIgnoreCase);
+            var perkSkills = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var perkTable = provider.TryLoadDataTable(PerksTable);
             if (perkTable is null) return null;
             foreach (var kv in perkTable.RowMap)
@@ -75,6 +76,9 @@ public static class SkillMilestoneCatalog
                 if (!string.IsNullOrWhiteSpace(name) && level > 0)
                 {
                     perks[kv.Key.Text] = new SkillMilestone(level, name!, description ?? string.Empty);
+                    if (kv.Value.Properties.FirstOrDefault(p => p.Name.Text == "SkillRow")?.Tag?.GenericValue is FScriptStruct { StructType: FStructFallback handle }
+                        && handle.Properties.FirstOrDefault(p => p.Name.Text == "RowName")?.Tag?.GenericValue?.ToString() is { } skillId)
+                        perkSkills[kv.Key.Text] = skillId;
                 }
             }
 
@@ -107,8 +111,9 @@ public static class SkillMilestoneCatalog
                         }
                     }
                 }
+                rows.AddRange(perkSkills.Where(pair => pair.Value.Equals(kv.Key.Text, StringComparison.OrdinalIgnoreCase)).Select(pair => pair.Key));
                 if (string.IsNullOrWhiteSpace(display) || rows.Count == 0) continue;
-                var milestones = rows
+                var milestones = rows.Distinct(StringComparer.OrdinalIgnoreCase)
                     .Select(r => perks.TryGetValue(r, out var m) ? m
                         // A perk row the table doesn't define (typo'd handle, mod row) still
                         // shows up, prettified, rather than vanishing.

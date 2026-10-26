@@ -29,8 +29,8 @@ public static class DistillationCatalog
             foreach (var p in value.Properties)
             {
                 var name = p.Name.Text;
-                if (name.StartsWith("Item_", StringComparison.Ordinal) && RowNameOf(p.Tag?.GenericValue) is { } o) output = o;
-                else if (name.StartsWith("Count_", StringComparison.Ordinal) && p.Tag?.GenericValue is int c) count = c;
+                if (name.MatchesUnrealProperty("Item_") && RowNameOf(p.Tag?.GenericValue) is { } o) output = o;
+                else if (name.MatchesUnrealProperty("Count_") && p.Tag?.GenericValue is int c) count = c;
             }
             result.Add(new DistillationRecipe(row.Text.ToLowerInvariant(), output, count));
         }

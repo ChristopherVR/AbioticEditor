@@ -37,6 +37,7 @@ public static partial class PlayerSaveWriter
         if (tags.FindByPrefix(prefix)?.Property is ArrayProperty existing) return existing;
         if (createFullName is null) return null;
 
+        if (NativeSaveSchema.IsNative(tags)) createFullName = NativeSaveSchema.Name(tags, prefix);
         var name = new FString(createFullName);
         var itemType = new FPropertyTypeName(new FString(nameof(NameProperty)));
         var type = new FPropertyTypeName(new FString(nameof(ArrayProperty)), new[] { itemType });

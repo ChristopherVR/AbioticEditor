@@ -74,6 +74,8 @@ public sealed class PetGameData
     /// <summary>All pets the game defines, in table order.</summary>
     public IReadOnlyList<PetDefinition> Definitions { get; }
 
+    public static PetGameData FromDefinitions(IEnumerable<PetDefinition> definitions) => new(definitions.ToList());
+
     /// <summary>Lookup by <c>DT_Pets</c> row name, or null.</summary>
     public PetDefinition? ByPetRow(string? row)
         => row is not null && _byPetRow.TryGetValue(row, out var d) ? d : null;
@@ -126,11 +128,25 @@ public sealed class PetGameData
         var compendium = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var mutations = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var petRows = new List<string>();
+        var npcRows = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var itemRows = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var pets = provider.TryLoadDataTable(PetsTable);
-        ParsePetRows(pets, petRows, parents, compendium, mutations);
+        ParsePetRows(pets, petRows, parents, compendium, mutations, npcRows, itemRows);
         foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, pets?.RowStructName, new[] { PetsTable }))
         {
-            ParsePetRows(dt, petRows, parents, compendium, mutations);
+            ParsePetRows(dt, petRows, parents, compendium, mutations, npcRows, itemRows);
+        }
+        // In 1.5, the separate mutation table describes the actual feeding graph.
+        // Global row order supplies native mutation values; legacy saves retain family-list values.
+        if (PetCareCatalog.LoadMutationRules(provider) is { } rules)
+        {
+            mutations.Clear();
+            foreach (var rule in rules)
+                foreach (var source in rule.Sources)
+                {
+                    if (!mutations.TryGetValue(source, out var targets)) mutations[source] = targets = [];
+                    if (!targets.Contains(rule.Target, StringComparer.OrdinalIgnoreCase)) targets.Add(rule.Target);
+                }
         }
 
         // ----- ItemTable_Global: the Item.Pet carried forms -----
@@ -140,21 +156,24 @@ public sealed class PetGameData
         foreach (var row in petRows)
         {
             var familyRow = RootOf(row, parents);
-            var displayName = npcNames.TryGetValue(row, out var dn) && !string.IsNullOrWhiteSpace(dn)
+            var npcRow = npcRows.GetValueOrDefault(row, row);
+            var itemRow = itemRows.GetValueOrDefault(row, row);
+            var familyNpc = npcRows.GetValueOrDefault(familyRow, familyRow);
+            var displayName = npcNames.TryGetValue(npcRow, out var dn) && !string.IsNullOrWhiteSpace(dn)
                 ? dn
                 : row.Replace('_', ' ');
-            var familyName = npcNames.TryGetValue(familyRow, out var fn) && !string.IsNullOrWhiteSpace(fn)
+            var familyName = npcNames.TryGetValue(familyNpc, out var fn) && !string.IsNullOrWhiteSpace(fn)
                 ? fn
                 : familyRow.Replace('_', ' ');
 
             // Item row: same-name row first; the legacy skink pair is bridged below.
-            PetItemRow? item = petItems.FirstOrDefault(i => string.Equals(i.Row, row, StringComparison.OrdinalIgnoreCase));
+            PetItemRow? item = petItems.FirstOrDefault(i => string.Equals(i.Row, itemRow, StringComparison.OrdinalIgnoreCase));
 
             definitions.Add(new PetDefinition(
                 PetRow: row,
-                ItemRow: item?.Row,
+                ItemRow: item?.Row ?? (itemRows.TryGetValue(row, out var explicitItem) ? explicitItem : null),
                 DisplayName: displayName,
-                ClassPath: npcClasses.TryGetValue(row, out var cls) ? cls : null,
+                ClassPath: npcClasses.TryGetValue(npcRow, out var cls) ? cls : null,
                 FamilyRow: familyRow,
                 FamilyName: familyName,
                 Category: CategoryFor(familyRow, familyName),
@@ -219,11 +238,11 @@ public sealed class PetGameData
             foreach (var p in kv.Value.Properties)
             {
                 var n = p.Name.Text;
-                if (n.StartsWith("GameplayTags_", StringComparison.Ordinal))
+                if (n.MatchesUnrealProperty("GameplayTags_"))
                 {
                     tags = p.Tag?.GenericValue?.ToString();
                 }
-                else if (n.StartsWith("ItemName_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("ItemName_"))
                 {
                     name = p.Tag?.GenericValue?.ToString();
                 }
@@ -246,12 +265,12 @@ public sealed class PetGameData
             foreach (var p in kv.Value.Properties)
             {
                 var n = p.Name.Text;
-                if (n.StartsWith("DisplayName_", StringComparison.Ordinal))
+                if (n.MatchesUnrealProperty("DisplayName_"))
                 {
                     var v = p.Tag?.GenericValue?.ToString();
                     if (!string.IsNullOrWhiteSpace(v) && !names.ContainsKey(row)) names[row] = v;
                 }
-                else if (n.StartsWith("NPCSpawnClass_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("NPCSpawnClass_"))
                 {
                     var v = p.Tag?.GenericValue?.ToString();
                     if (!string.IsNullOrWhiteSpace(v) && !classes.ContainsKey(row)) classes[row] = v;
@@ -265,7 +284,8 @@ public sealed class PetGameData
         List<string> rows,
         Dictionary<string, string?> parents,
         Dictionary<string, string?> compendium,
-        Dictionary<string, List<string>> mutations)
+        Dictionary<string, List<string>> mutations,
+        Dictionary<string, string> npcRows, Dictionary<string, string> itemRows)
     {
         if (dt is null) return;
         foreach (var kv in dt.RowMap)
@@ -277,15 +297,17 @@ public sealed class PetGameData
             foreach (var p in kv.Value.Properties)
             {
                 var n = p.Name.Text;
-                if (n.StartsWith("DefaultParent_", StringComparison.Ordinal))
+                if (n == "PetNPC" && RowNameOf(p.Tag?.GenericValue) is { } npc) npcRows[row] = npc;
+                else if (n == "PetItem" && RowNameOf(p.Tag?.GenericValue) is { } item) itemRows[row] = item;
+                else if (n.MatchesUnrealProperty("DefaultParent_"))
                 {
                     parents[row] = RowNameOf(p.Tag?.GenericValue);
                 }
-                else if (n.StartsWith("PettingCompendiumUnlock_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("PettingCompendiumUnlock_"))
                 {
                     compendium[row] = RowNameOf(p.Tag?.GenericValue);
                 }
-                else if (n.StartsWith("Mutations_", StringComparison.Ordinal)
+                else if (n.MatchesUnrealProperty("Mutations_")
                          && p.Tag?.GenericValue is UScriptArray arr)
                 {
                     var targets = new List<string>();
@@ -313,7 +335,7 @@ public sealed class PetGameData
         if (value is not FStructFallback sf) return null;
         foreach (var p in sf.Properties)
         {
-            if (p.Name.Text.StartsWith(prefix, StringComparison.Ordinal)) return p.Tag?.GenericValue;
+            if (p.Name.Text.MatchesUnrealProperty(prefix)) return p.Tag?.GenericValue;
         }
         return null;
     }

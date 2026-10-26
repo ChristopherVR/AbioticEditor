@@ -43,6 +43,7 @@ internal static class PetDynamicProperties
             liveSave.WriteTo(buffer);
             buffer.Position = 0;
             clone = SaveGame.LoadFrom(buffer);
+            NativeSaveSchema.Register(clone);
         }
         if (clone.Properties?.FindByPrefix("CharacterSaveData")?.Property is not StructProperty csd
             || csd.Value is not PropertiesStruct csps)
@@ -58,7 +59,7 @@ internal static class PetDynamicProperties
                 if (arr.Value.GetValue(i) is not StructProperty slot || slot.Value is not PropertiesStruct sps) continue;
                 if (sps.Properties.FindByPrefix("ChangeableData_")?.Property is not StructProperty cd
                     || cd.Value is not PropertiesStruct cdps) continue;
-                var tag = cdps.Properties.FirstOrDefault(p => p.Name?.Value?.StartsWith("DynamicProperties_", StringComparison.Ordinal) == true);
+                var tag = cdps.Properties.FirstOrDefault(p => p.Name?.Value?.MatchesUnrealProperty("DynamicProperties_") == true);
                 if (BuildTemplate(tag) is { } t) return t;
             }
         }
@@ -104,6 +105,7 @@ internal static class PetDynamicProperties
         using var buffer = new MemoryStream();
         save.WriteTo(buffer); buffer.Position = 0;
         var clone = SaveGame.LoadFrom(buffer);
+        NativeSaveSchema.Register(clone);
         var template = FindTemplate(clone.Properties ?? []);
         if (!WriteArray(props, template, [("EDynamicProperty::" + key, value)]))
             throw new InvalidOperationException("No compatible item property layout was found in this save.");
@@ -113,7 +115,7 @@ internal static class PetDynamicProperties
     {
         foreach (var tag in tags)
         {
-            if (tag.Name?.Value?.StartsWith("DynamicProperties_", StringComparison.Ordinal) == true && BuildTemplate(tag) is { } template) return template;
+            if (tag.Name?.Value?.MatchesUnrealProperty("DynamicProperties_") == true && BuildTemplate(tag) is { } template) return template;
             if (FindNested(tag.Property) is { } nested) return nested;
         }
         return null;
@@ -166,6 +168,26 @@ internal static class PetDynamicProperties
         return sp;
     }
 
+    // Native 1.5 arrays carry complete element types in their tag and have no legacy
+    // internal prototype. This also permits the first pet/coating in a fresh save.
+    private static Template NativeTemplate()
+    {
+        var name = new FString("DynamicProperties");
+        var module = new FPropertyTypeName(new FString("/Script/AbioticFactor"));
+        var structure = new FPropertyTypeName(new FString("DynamicProperty"), [module]);
+        var element = new FPropertyTypeName(new FString("StructProperty"), [structure]);
+        var type = new FPropertyTypeName(new FString("ArrayProperty"), [element]);
+        var enumeration = new FPropertyTypeName(new FString("EDynamicProperty"), [module]);
+        return new Template
+        {
+            DetachedArrayTag = new FPropertyTag(name, type, EPropertyTagFlags.None)
+                { Property = new ArrayProperty(name, element) { Value = Array.Empty<FProperty>() } },
+            ElementName = name, ElementStructType = structure, KeyEnumType = enumeration,
+            KeyTagType = new FPropertyTypeName(new FString("EnumProperty"), [enumeration, new(new FString("ByteProperty"))]),
+            ValueTagType = new FPropertyTypeName(new FString("IntProperty")),
+        };
+    }
+
     /// <summary>
     /// Grafts a fresh DynamicProperties array (from the detached <paramref name="template"/>)
     /// carrying <paramref name="values"/> into a slot's ChangeableData, replacing any existing
@@ -173,13 +195,14 @@ internal static class PetDynamicProperties
     /// </summary>
     public static bool WriteArray(IList<FPropertyTag> changeableProps, Template? template, IReadOnlyList<(string Key, int Value)> values)
     {
+        if (NativeSaveSchema.IsNative(changeableProps)) template = NativeTemplate();
         if (template?.DetachedArrayTag.Property is not ArrayProperty arr) return false;
 
         var elems = new FProperty[values.Count];
         for (var i = 0; i < values.Count; i++) elems[i] = MakeElement(template, values[i].Key, values[i].Value);
         arr.Value = elems;
 
-        var existing = changeableProps.FirstOrDefault(p => p.Name?.Value?.StartsWith("DynamicProperties_", StringComparison.Ordinal) == true);
+        var existing = changeableProps.FirstOrDefault(p => p.Name?.Value?.MatchesUnrealProperty("DynamicProperties_") == true);
         if (existing is not null) changeableProps.Remove(existing);
         changeableProps.Add(template.DetachedArrayTag);
         return true;
@@ -192,7 +215,10 @@ internal static class PetDynamicProperties
     /// </summary>
     public static bool SetOrAdd(IList<FPropertyTag> changeableProps, string keySuffix, int value)
     {
-        var tag = changeableProps.FirstOrDefault(p => p.Name?.Value?.StartsWith("DynamicProperties_", StringComparison.Ordinal) == true);
+        var tag = changeableProps.FirstOrDefault(p => p.Name?.Value?.MatchesUnrealProperty("DynamicProperties_") == true);
+        if (NativeSaveSchema.IsNative(changeableProps)
+            && tag?.Property is not ArrayProperty { Value.Length: > 0 })
+            return WriteArray(changeableProps, null, [("EDynamicProperty::" + keySuffix, value)]);
         if (tag?.Property is not ArrayProperty ap || ap.Value is null) return false;
 
         for (var i = 0; i < ap.Value.Length; i++)

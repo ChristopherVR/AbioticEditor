@@ -22,9 +22,17 @@ public readonly record struct ActorTransform(
 /// </summary>
 public sealed partial class GameAssetProvider : IDisposable
 {
+    static GameAssetProvider()
+    {
+        CUE4Parse.UE4.Assets.ObjectTypeRegistry.RegisterClass("AbioticModDataTable",
+            typeof(CUE4Parse.UE4.Assets.Exports.Engine.UDataTable));
+    }
     private readonly DefaultFileProvider _provider;
     private readonly string _cacheDir;
     private readonly IReadOnlyList<string> _loadedMods;
+    private HashSet<string> _modFiles = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, (int Order, long? Id)> _modArchives = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CUE4Parse.UE4.Assets.Exports.Engine.UDataTable> _dataTables = new(StringComparer.OrdinalIgnoreCase);
     // CUE4Parse package loading mutates the provider's internal package cache and is not
     // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
     // once, so every package-load entry point serializes through this lock.
@@ -103,6 +111,9 @@ public sealed partial class GameAssetProvider : IDisposable
     /// <summary>Returns every mounted asset path. Use sparingly - there are ~50k.</summary>
     public IEnumerable<string> AssetPaths => _provider.Files.Keys;
 
+    internal bool IsModAsset(string path) => _provider.Files.TryGetValue(path, out var file)
+        && file is CUE4Parse.UE4.VirtualFileSystem.VfsEntry entry && _modFiles.Contains(entry.Vfs.Path);
+
     private static readonly System.Text.RegularExpressions.Regex GameLocresCulturePattern = new(
         @"^AbioticFactor/Content/Localization/Game/([^/]+)/[^/]+\.locres$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
@@ -164,6 +175,11 @@ public sealed partial class GameAssetProvider : IDisposable
     /// (non-working, for this game) <c>ChangeCulture</c>.
     /// </param>
     public static GameAssetProvider? CreateForLocalInstall(string? cacheDir = null, string? mappingsPath = null, bool? includeMods = null, string? culture = null)
+        => CreateForLocalInstall(null, cacheDir, mappingsPath, includeMods, culture);
+
+    /// <summary>Mounts an explicit mod selection without changing saved editor settings.</summary>
+    public static GameAssetProvider? CreateForLocalInstall(IReadOnlyList<AfInstallLocator.InstalledMod>? selectedMods,
+        string? cacheDir = null, string? mappingsPath = null, bool? includeMods = null, string? culture = null)
     {
         var paks = AfInstallLocator.FindPaksDirectory();
         if (paks is null)
@@ -176,7 +192,7 @@ public sealed partial class GameAssetProvider : IDisposable
         mappingsPath ??= FindConventionalMappings();
         try
         {
-            var provider = CreateForPaks(paks, cacheDir, mappingsPath, includeMods ?? ModLoadStore.ModsEnabled, culture);
+            var provider = CreateForPaks(paks, selectedMods, cacheDir, mappingsPath, includeMods ?? ModLoadStore.ModsEnabled, culture);
             Diagnostics.EditorLog.Info(
                 "Assets",
                 $"Mounted game paks at {paks} (mappings: {(provider.HasMappings ? mappingsPath : "none - raw extraction only")}; "
@@ -254,10 +270,15 @@ public sealed partial class GameAssetProvider : IDisposable
     /// <c>~mods</c>/<c>LogicMods</c> subfolders are mounted on top of the base game; otherwise only
     /// the base-game paks load. Per-mod enablement is read from <see cref="ModLoadStore"/>.
     /// </summary>
-    /// <param name="culture">See <see cref="CreateForLocalInstall"/>. Applied right after mount,
+    /// <param name="culture">See <see cref="CreateForLocalInstall(string?, string?, bool?, string?)"/>. Applied right after mount,
     /// before any caller can load a DataTable package - required, since <c>FText</c> resolves its
     /// localized string once, at deserialize time.</param>
     public static GameAssetProvider CreateForPaks(string paksDirectory, string? cacheDir = null, string? mappingsPath = null, bool includeMods = true, string? culture = null)
+        => CreateForPaks(paksDirectory, null, cacheDir, mappingsPath, includeMods, culture);
+
+    /// <summary>Mounts the selected mod archives, in the supplied order.</summary>
+    public static GameAssetProvider CreateForPaks(string paksDirectory, IReadOnlyList<AfInstallLocator.InstalledMod>? selectedMods,
+        string? cacheDir = null, string? mappingsPath = null, bool includeMods = true, string? culture = null)
     {
 #pragma warning disable CS0618 // see AssetProbeTests for context on the new ctor signature
         // Mount only the base-game paks from the top of the directory; mod paks live in subfolders
@@ -275,17 +296,21 @@ public sealed partial class GameAssetProvider : IDisposable
         // (same package path), the mod is mounted last and wins. Most mods only ADD content (new
         // paths) where order is irrelevant. A mod whose pak fails to register is skipped, not fatal.
         var loadedMods = new List<string>();
+        var modFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var modArchives = new Dictionary<string, (int Order, long? Id)>(StringComparer.OrdinalIgnoreCase);
         if (includeMods)
         {
-            foreach (var mod in AfInstallLocator.FindMods(paksDirectory))
+            foreach (var mod in selectedMods ?? AfInstallLocator.FindAvailableMods(paksDirectory))
             {
-                if (!ModLoadStore.IsModEnabled(mod.Name)) continue;
+                if (selectedMods is null && !ModLoadStore.IsModEnabled(mod.Name)) continue;
                 var any = false;
                 foreach (var file in mod.Files)
                 {
                     try
                     {
                         provider.RegisterVfs(file);
+                        modFiles.Add(file);
+                        modArchives[file] = (loadedMods.Count, mod.ModIoId);
                         any = true;
                     }
                     catch (Exception ex)
@@ -327,7 +352,7 @@ public sealed partial class GameAssetProvider : IDisposable
         // LocalizedString once, at deserialize time, not on later lookup.
         GameLocalizationLoader.Apply(provider, culture);
 
-        return new GameAssetProvider(provider, cache, loadedMods) { _paksDirectory = paksDirectory };
+        return new GameAssetProvider(provider, cache, loadedMods) { _paksDirectory = paksDirectory, _modFiles = modFiles, _modArchives = modArchives };
     }
 
     /// <summary>
@@ -504,7 +529,12 @@ public sealed partial class GameAssetProvider : IDisposable
         ThrowIfDisposed();
         using (ProviderLock())
         {
-            return _provider.LoadPackage(packagePath);
+            var package = _provider.LoadPackage(packagePath);
+            var tablePath = packagePath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? packagePath[..^7] : packagePath;
+            if (_modFiles.Count > 0 && (_officialRows ??= ReadOfficialRows()).ContainsKey(tablePath))
+                foreach (var table in package.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Engine.UDataTable>())
+                    ApplyOfficialModRows(packagePath, table);
+            return package;
         }
     }
 
@@ -518,10 +548,17 @@ public sealed partial class GameAssetProvider : IDisposable
         ThrowIfDisposed();
         using (ProviderLock())
         {
+            packagePath = packagePath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? packagePath[..^7] : packagePath;
+            if (_dataTables.TryGetValue(packagePath, out var cached)) return cached;
             if (!_provider.TryLoadPackage(packagePath, out var package)) return null;
             foreach (var export in package.GetExports())
             {
-                if (export is CUE4Parse.UE4.Assets.Exports.Engine.UDataTable dt) return dt;
+                if (export is CUE4Parse.UE4.Assets.Exports.Engine.UDataTable dt)
+                {
+                    ApplyOfficialModRows(packagePath, dt);
+                    _dataTables[packagePath] = dt;
+                    return dt;
+                }
             }
         }
         return null;

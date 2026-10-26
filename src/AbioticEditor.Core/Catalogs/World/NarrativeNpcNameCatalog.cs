@@ -1,5 +1,6 @@
 using AbioticEditor.Core.Assets;
 using CUE4Parse.UE4.Assets.Objects;
+using CUE4Parse.UE4.Assets;
 
 namespace AbioticEditor.Core.WorldSaves;
 
@@ -86,8 +87,17 @@ public static class NarrativeNpcNameCatalog
             try
             {
                 var pkg = provider.LoadPackageInternal(path);
-                foreach (var lazy in pkg.ExportsLazy)
+                for (var index = 0; index < pkg.ExportMapLength; index++)
                 {
+                    // Filter package metadata before materializing large world exports.
+                    var exportName = pkg switch
+                    {
+                        Package pak => pak.ExportMap[index].ObjectName.Text,
+                        IoPackage io => io.CreateFNameFromMappedName(io.ExportMap[index].ObjectName).Text,
+                        _ => null,
+                    };
+                    if (exportName?.StartsWith("NarrativeNPC_", StringComparison.OrdinalIgnoreCase) != true) continue;
+                    var lazy = pkg.ExportsLazy[index];
                     CUE4Parse.UE4.Assets.Exports.UObject? export;
                     try { export = lazy.Value; }
                     catch { continue; } // tolerate per-export deserialization failures
@@ -139,8 +149,17 @@ public static class NarrativeNpcNameCatalog
             try
             {
                 var pkg = provider.LoadPackageInternal(path);
-                foreach (var lazy in pkg.ExportsLazy)
+                for (var index = 0; index < pkg.ExportMapLength; index++)
                 {
+                    // Filter package metadata before materializing large world exports.
+                    var exportName = pkg switch
+                    {
+                        Package pak => pak.ExportMap[index].ObjectName.Text,
+                        IoPackage io => io.CreateFNameFromMappedName(io.ExportMap[index].ObjectName).Text,
+                        _ => null,
+                    };
+                    if (exportName?.StartsWith("NarrativeNPC_", StringComparison.OrdinalIgnoreCase) != true) continue;
+                    var lazy = pkg.ExportsLazy[index];
                     CUE4Parse.UE4.Assets.Exports.UObject? export;
                     try { export = lazy.Value; }
                     catch { continue; }

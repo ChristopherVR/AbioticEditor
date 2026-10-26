@@ -21,6 +21,15 @@ public static class EquipSlotTypes
     /// </summary>
     public const int Companion = 21;
 
+    /// <summary>Maps native 1.5 names to the stable editor slot IDs used by older registries.</summary>
+    internal static int FromNativeName(string value)
+    {
+        var name = value.Split("::", StringSplitOptions.None)[^1];
+        foreach (var (id, display) in DisplayNames)
+            if (display.Equals(name, StringComparison.Ordinal)) return id;
+        return 0;
+    }
+
     /// <summary>
     /// Editor slot role (as used by the equipment/transmog role maps) -> the
     /// E_InventorySlotType enumerator number an item must carry to fit that slot.

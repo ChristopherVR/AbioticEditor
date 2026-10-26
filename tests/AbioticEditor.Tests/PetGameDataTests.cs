@@ -120,7 +120,7 @@ public class PetGameDataTests
         using var provider = GameAssetProvider.CreateForLocalInstall();
         if (provider is null || !provider.HasMappings) return; // no install: skip
 
-        var options = PetCareCatalog.MutationOptionsFor(provider, itemRow);
+        var options = PetCareCatalog.LegacyMutationOptionsFor(provider, itemRow);
         Assert.NotEmpty(options);
         var match = options.FirstOrDefault(o => o.Value == observedPetMutation);
         Assert.NotNull(match);

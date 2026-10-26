@@ -122,9 +122,10 @@
                             <p class="muted">@R("GameDataSettings_LoadModsHint")</p>
                             <label class="settings-switch-row"><span>@R("GameDataSettings_LoadMods")</span><input type="checkbox" role="switch" checked="@HostSettings.ModsEnabled" disabled="@HostSettings.ModsLockedOff" @onchange="SetModsEnabled" /></label>
                             <p class="muted">@ModsStatus()</p>
+                            <p class="muted">@R("GameDataSettings_OfficialModsHint")</p>
                             @foreach (var mod in HostSettings.InstalledMods)
                             {
-                                <label class="settings-switch-row mod-switch-row"><span>@mod.Name</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
+                                <label class="settings-switch-row mod-switch-row"><span>@mod.DisplayName @if (mod.ModIoId is { } modId) { <small>(mod.io #@modId)</small> }</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
                             }
                         </article>
                         break;

@@ -36,7 +36,9 @@ internal static class GameDataGate
                 supplied ? "supplied" : ModLoadStore.ModsEnabled.ToString());
             string[] files = supplied ? [] : GameDataRegistry.RegistryCandidates().Concat([
                 GameAssetProvider.UserMappingsPath, Path.Combine(AppContext.BaseDirectory, "Mappings.usmap"),
-                ModLoadStore.ConfigPath, ModLoadStore.DisabledModsPath]).ToArray();
+                ModLoadStore.ConfigPath, ModLoadStore.DisabledModsPath, ModLoadStore.EnabledOfficialModsPath])
+                .Concat(ModIoInstallLocator.FindInstalled().SelectMany(mod => mod.Files.SelectMany(file =>
+                    new[] { file, Path.ChangeExtension(file, ".ucas") }))).ToArray();
             var fingerprint = GameDataFingerprint.Capture(paks, files, context);
             if (!string.Equals(_inputFingerprint, fingerprint, StringComparison.Ordinal))
             {

@@ -11,6 +11,7 @@ public sealed record CodexVocabulary(
     IReadOnlyList<CompendiumEntry> Compendium,
     IReadOnlyList<FishDefinition> Fish)
 {
+    public QuestCatalogData? Quests { get; init; }
     public static readonly CodexVocabulary Empty = new([], [], [], []);
 
     public bool IsEmpty => Emails.Count == 0 && Journals.Count == 0 && Compendium.Count == 0 && Fish.Count == 0;

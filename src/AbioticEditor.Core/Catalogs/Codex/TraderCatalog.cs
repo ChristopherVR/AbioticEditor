@@ -132,7 +132,7 @@ public static partial class TraderCatalog
             var accepts = new List<TraderOffer>();
             foreach (var p in kv.Value.Properties)
             {
-                if (p.Name.Text.StartsWith("BuyableItems_", StringComparison.Ordinal))
+                if (p.Name.Text.MatchesUnrealProperty("BuyableItems_"))
                 {
                     // { Item_2 = { Item_5 = handle, Count_6 }, WorldFlagToMakeAvailable_9, AvailableStock_13 }
                     foreach (var entry in StructArray(p.Tag?.GenericValue))
@@ -141,7 +141,7 @@ public static partial class TraderCatalog
                         var count = 1;
                         foreach (var ep in entry.Properties)
                         {
-                            if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                            if (ep.Name.Text.MatchesUnrealProperty("Item_"))
                             {
                                 var inner = ep.Tag?.GenericValue;
                                 if (inner is FScriptStruct iss) inner = iss.StructType;
@@ -149,14 +149,14 @@ public static partial class TraderCatalog
                                 {
                                     foreach (var ip in isf.Properties)
                                     {
-                                        if (ip.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                                        if (ip.Name.Text.MatchesUnrealProperty("Item_"))
                                             itemId = RowNameOf(ip.Tag?.GenericValue);
-                                        else if (ip.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
+                                        else if (ip.Name.Text.MatchesUnrealProperty("Count_"))
                                             count = ip.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
                                     }
                                 }
                             }
-                            else if (ep.Name.Text.StartsWith("WorldFlagToMakeAvailable_", StringComparison.Ordinal))
+                            else if (ep.Name.Text.MatchesUnrealProperty("WorldFlagToMakeAvailable_"))
                             {
                                 flag = RowNameOf(ep.Tag?.GenericValue);
                                 if (flag == "None") flag = null;
@@ -165,7 +165,7 @@ public static partial class TraderCatalog
                         if (!string.IsNullOrEmpty(itemId)) sells.Add(new TraderOffer(itemId!, count, flag));
                     }
                 }
-                else if (p.Name.Text.StartsWith("TradeableItems_", StringComparison.Ordinal))
+                else if (p.Name.Text.MatchesUnrealProperty("TradeableItems_"))
                 {
                     foreach (var entry in StructArray(p.Tag?.GenericValue))
                     {
@@ -173,9 +173,9 @@ public static partial class TraderCatalog
                         var count = 1;
                         foreach (var ep in entry.Properties)
                         {
-                            if (ep.Name.Text.StartsWith("Item_", StringComparison.Ordinal))
+                            if (ep.Name.Text.MatchesUnrealProperty("Item_"))
                                 itemId = RowNameOf(ep.Tag?.GenericValue);
-                            else if (ep.Name.Text.StartsWith("Count_", StringComparison.Ordinal))
+                            else if (ep.Name.Text.MatchesUnrealProperty("Count_"))
                                 count = ep.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
                         }
                         if (!string.IsNullOrEmpty(itemId)) accepts.Add(new TraderOffer(itemId!, count, null));

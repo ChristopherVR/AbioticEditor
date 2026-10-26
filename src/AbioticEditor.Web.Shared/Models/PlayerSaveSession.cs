@@ -55,6 +55,10 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _codexLocalize = codexLocalize;
         _files = files;
         _data = data;
+        var questSelection = PlayerQuestSave.Read(data);
+        SupportsMultipleQuests = questSelection.SupportsMultipleQuests;
+        CurrentTutorialQuest = questSelection.ServerQuest;
+        TrackedQuestLine = _originalTrackedQuestLine = questSelection.TrackedLine;
         _path = path;
         Vitals = ToVitals(data);
         _original = Vitals.Clone();
@@ -309,6 +313,18 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     /// Reflects the file, not unsaved edits.
     /// </summary>
     public PlayerSaveData SavedData => _data;
+    public bool SupportsMultipleQuests { get; }
+    public string? TrackedQuestLine { get; private set; }
+    public string? CurrentTutorialQuest { get; }
+    private string? _originalTrackedQuestLine;
+    private AbioticEditor.Core.Codex.QuestCatalogData? _questCatalog;
+    public void TrackQuestLine(string? id, AbioticEditor.Core.Codex.QuestCatalogData catalog)
+    {
+        if (!SupportsMultipleQuests || id is not null && !catalog.Lines.Any(line => line.Id == id)) return;
+        _questCatalog = catalog;
+        TrackedQuestLine = id;
+        MarkChanged();
+    }
 
     public IReadOnlyList<RawSaveProperty> RawProperties => RawSavePropertyEditor.List(_data.Raw)
         .Select(property => _rawEdits.TryGetValue(property.Name, out var staged)
@@ -393,6 +409,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         || LastControlRotationPitch != _originalRotationPitch
         || LastControlRotationYaw != _originalRotationYaw
         || LastControlRotationRoll != _originalRotationRoll
+        || TrackedQuestLine != _originalTrackedQuestLine
         || _rawEdits.Count > 0;
     public string? Status { get; private set; }
 
@@ -461,8 +478,11 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         PlayerSaveWriter.ApplyKillCounts(_data, Codex.CurrentKills().Select(k => new KillCount(k.Key, k.Value)).ToList());
         PlayerSaveWriter.ApplyResearchQueue(_data, _researchQueue.OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyCompletedIntro(_data, CompletedIntro);
-        PlayerSaveWriter.ApplyLastControlRotation(_data, LastControlRotationPitch, LastControlRotationYaw, LastControlRotationRoll);
+        if (LastControlRotationPitch != _originalRotationPitch || LastControlRotationYaw != _originalRotationYaw || LastControlRotationRoll != _originalRotationRoll)
+            PlayerSaveWriter.ApplyLastControlRotation(_data, LastControlRotationPitch, LastControlRotationYaw, LastControlRotationRoll);
         ApplyRawEdits(_data);
+        if (TrackedQuestLine != _originalTrackedQuestLine && _questCatalog is not null)
+            PlayerQuestSave.TrackLine(_data, TrackedQuestLine, _questCatalog);
         await AbioticEditor.Web.Services.SaveFilePersistence
             .WriteAsync(_files, _path, _data.Raw, cancellationToken).ConfigureAwait(false);
         _original = Vitals.Clone();
@@ -513,10 +533,12 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         _originalRotationRoll = LastControlRotationRoll;
         _rawEdits.Clear();
         Status = "Saved (a .bak backup was created).";
+        _originalTrackedQuestLine = TrackedQuestLine;
     }
 
     public void Revert()
     {
+        TrackedQuestLine = _originalTrackedQuestLine;
         Vitals = _original.Clone();
         foreach (var skill in Skills) skill.Revert();
         foreach (var recipe in Recipes) recipe.IsUnlocked = _originalRecipes.Contains(recipe.Id);

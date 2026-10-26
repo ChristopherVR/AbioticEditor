@@ -14,9 +14,14 @@ public static class PropertyTagExtensions
     public static FPropertyTag? FindByPrefix(this IEnumerable<FPropertyTag>? tags, string prefix)
     {
         if (tags is null) return null;
+        if (tags is IList<FPropertyTag> list)
+        {
+            tags = NativeSaveSchema.ResolveOwner(list, prefix);
+            prefix = NativeSaveSchema.Name(tags, prefix);
+        }
         foreach (var t in tags)
         {
-            if (t.Name?.Value is { } n && n.StartsWith(prefix, StringComparison.Ordinal))
+            if (t.Name?.Value is { } n && n.MatchesUnrealProperty(prefix))
             {
                 return t;
             }

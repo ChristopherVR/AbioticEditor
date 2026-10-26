@@ -149,6 +149,9 @@ public sealed class GameDataRegistry
     /// <summary>Codex journal objectives; null if not dumped.</summary>
     public IReadOnlyList<JournalEntry>? Journals { get; init; }
 
+    public QuestCatalogData? Quests { get; init; }
+    public IReadOnlyList<PetDefinition>? Pets { get; init; }
+
     /// <summary>Codex compendium lore entries; null if not dumped.</summary>
     public IReadOnlyList<CompendiumEntry>? Compendium { get; init; }
 
@@ -203,6 +206,7 @@ public sealed class GameDataRegistry
     /// (see <see cref="WorldSaves.PetCareCatalog.MutationOptionsFor"/>).
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? PetMutationOptions { get; init; }
+    public IReadOnlyDictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? LegacyPetMutationOptions { get; init; }
 
     /// <summary>
     /// What each kind of NPC spawn point makes: spawn blueprint class to the short class of the
@@ -234,6 +238,8 @@ public sealed class GameDataRegistry
             ItemTableRefs = catalog.TableRefs,
             Recipes = Optional("recipes", () => RecipeCatalog.LoadInfosFrom(provider)),
             RecipeLearning = Optional("recipe learning", () => BuildRecipeLearning(provider)),
+            Quests = Optional("quests", () => QuestCatalog.LoadFrom(provider)),
+            Pets = Optional("pets", () => PetGameData.TryLoadFrom(provider)?.Definitions),
             ItemUpgrades = Optional("item upgrades", () => ItemUpgradeCatalog.LoadFrom(provider).Upgrades),
             Maps = Optional("maps", () => MapCatalog.LoadFrom(provider)),
             Skills = Optional("skills", () => SkillCatalog.LoadFrom(provider)),
@@ -255,6 +261,7 @@ public sealed class GameDataRegistry
             WeaponCoatings = Optional("weapon coatings", () => WeaponCoatingCatalog.Load(provider) is { Count: > 0 } coatings ? coatings : null),
             PetCare = Optional("pet care", () => WorldSaves.PetCareCatalog.Load(provider) is { Count: > 0 } care ? care : null),
             PetMutationOptions = Optional("pet mutation options", () => BuildPetMutationOptions(provider)),
+            LegacyPetMutationOptions = Optional("legacy pet mutation options", () => BuildPetMutationOptions(provider, false)),
             NarrativeNpcPlacements = Optional("narrative NPC placements", () => NarrativeNpcNameCatalog.BuildPlacementsFrom(provider) is { Count: > 0 } placements ? placements : null),
         };
     }
@@ -272,7 +279,7 @@ public sealed class GameDataRegistry
         }
     }
 
-    private static Dictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? BuildPetMutationOptions(GameAssetProvider provider)
+    private static Dictionary<string, IReadOnlyList<WorldSaves.PetMutationOption>>? BuildPetMutationOptions(GameAssetProvider provider, bool native = true)
     {
         var pets = WorldSaves.PetGameData.TryLoadFrom(provider);
         if (pets is null) return null;
@@ -282,7 +289,8 @@ public sealed class GameDataRegistry
             foreach (var key in new[] { pet.ItemRow, pet.PetRow })
             {
                 if (string.IsNullOrEmpty(key) || result.ContainsKey(key)) continue;
-                var options = WorldSaves.PetCareCatalog.MutationOptionsFor(provider, key);
+                var options = native ? WorldSaves.PetCareCatalog.MutationOptionsFor(provider, key)
+                    : WorldSaves.PetCareCatalog.LegacyMutationOptionsFor(provider, key);
                 if (options.Count > 0) result[key] = options;
             }
         }

@@ -57,11 +57,11 @@ public static class NpcDisplayNameCatalog
             foreach (var p in kv.Value.Properties)
             {
                 var n = p.Name.Text;
-                if (n.StartsWith("DisplayName_", StringComparison.Ordinal))
+                if (n.MatchesUnrealProperty("DisplayName_"))
                 {
                     name = p.Tag?.GenericValue?.ToString();
                 }
-                else if (n.StartsWith("NPCSpawnClass_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("NPCSpawnClass_"))
                 {
                     spawnClass = p.Tag?.GenericValue?.ToString();
                 }

@@ -41,7 +41,7 @@ public sealed class HostSettingsService
     public string? PaksPath => AfInstallLocator.FindPaksDirectory();
     public string? MappingsPath => GameAssetProvider.FindConventionalMappings();
     public GameDataRegistry? BundledRegistry => GameDataRegistry.LoadBundled();
-    public IReadOnlyList<AfInstallLocator.InstalledMod> InstalledMods => AfInstallLocator.FindMods(PaksPath);
+    public IReadOnlyList<AfInstallLocator.InstalledMod> InstalledMods => AfInstallLocator.FindAvailableMods(PaksPath);
     public bool ModsEnabled => ModLoadStore.ModsEnabled;
     public bool ModsLockedOff => ModLoadStore.DisabledByEnv;
     public bool DiagnosticLoggingEnabled

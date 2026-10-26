@@ -137,6 +137,8 @@ public sealed class ItemCatalogService : IDisposable
                     if (_extractsIconsLive && _provider.Value is { HasMappings: true } provider)
                         AbioticEditor.Core.WorldSaves.PetCatalog.ApplyGameData(
                             AbioticEditor.Core.WorldSaves.PetGameData.TryLoadFrom(provider));
+                    else if (GameDataRegistry.LoadBundled()?.Pets is { Count: > 0 } pets)
+                        AbioticEditor.Core.WorldSaves.PetCatalog.ApplyGameData(AbioticEditor.Core.WorldSaves.PetGameData.FromDefinitions(pets));
                 }
                 catch (Exception) { /* The curated companion catalog remains available offline. */ }
                 return AbioticEditor.Core.WorldSaves.PetCatalog.BuildVariants(null);
@@ -157,15 +159,19 @@ public sealed class ItemCatalogService : IDisposable
     private readonly ConcurrentDictionary<string, Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>> _petMutationOptions = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>The valid <c>PetMutation</c> targets for a carried pet (item row) - see
     /// <see cref="AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor"/>.</summary>
-    public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>> GetPetMutationOptionsAsync(string itemRow)
-        => _petMutationOptions.GetOrAdd(itemRow, row => Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>(() =>
+    public Task<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>> GetPetMutationOptionsAsync(string itemRow, bool native = true)
+        => _petMutationOptions.GetOrAdd((native ? "native:" : "legacy:") + itemRow, _ => Task.Run<IReadOnlyList<AbioticEditor.Core.WorldSaves.PetMutationOption>>(() =>
         {
             try
             {
-                if (_extractsIconsLive && _provider.Value is { } provider && AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor(provider, row) is { Count: > 0 } live) return live;
+                if (_extractsIconsLive && _provider.Value is { } provider)
+                    return native ? AbioticEditor.Core.WorldSaves.PetCareCatalog.MutationOptionsFor(provider, itemRow)
+                        : AbioticEditor.Core.WorldSaves.PetCareCatalog.LegacyMutationOptionsFor(provider, itemRow);
             }
             catch (Exception) { /* fall through to the bundled list */ }
-            return GameDataRegistry.LoadBundled()?.PetMutationOptions is { } bundled && bundled.TryGetValue(row, out var options) ? options : [];
+            var registry = GameDataRegistry.LoadBundled();
+            var bundled = native ? registry?.PetMutationOptions : registry?.LegacyPetMutationOptions;
+            return bundled is not null && bundled.TryGetValue(itemRow, out var options) ? options : [];
         }));
 
     private readonly ConcurrentDictionary<string, Task<string?>> _characterNames = new(StringComparer.Ordinal);

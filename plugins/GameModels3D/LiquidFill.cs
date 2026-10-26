@@ -74,6 +74,14 @@ internal static class LiquidFill
 
     private static long? EnumValue(IFileProvider provider, string liquidName)
     {
+        if (provider.MappingsContainer?.MappingsForGame?.Enums.GetValueOrDefault("ELiquidType") is { } native)
+        {
+            var legacyId = AbioticEditor.Core.Items.LiquidTypes.ParseSaveValue(liquidName);
+            var option = AbioticEditor.Core.Items.LiquidTypes.All.FirstOrDefault(liquid => liquid.Enumerator == legacyId);
+            var nativeName = option?.DisplayName.Replace(" ", string.Empty, StringComparison.Ordinal);
+            foreach (var (index, name) in native)
+                if (name == nativeName) return index;
+        }
         var enumName = liquidName.Contains("::", StringComparison.Ordinal) ? liquidName[..liquidName.IndexOf("::", StringComparison.Ordinal)] : "E_LiquidType";
         var valueName = liquidName[(liquidName.LastIndexOf(':') + 1)..];
         var path = provider.Files.Keys.FirstOrDefault(k => k.EndsWith("/" + enumName + ".uasset", StringComparison.OrdinalIgnoreCase));
@@ -159,6 +167,9 @@ internal static class LiquidFill
     /// <summary>The names of the liquids a save can hold (the game's <c>E_LiquidType</c> values, as a save writes them).</summary>
     public static IReadOnlyList<string> FluidNames(IFileProvider provider)
     {
+        if (provider.MappingsContainer?.MappingsForGame?.Enums.GetValueOrDefault("ELiquidType") is { } native)
+            return native.OrderBy(entry => entry.Key).Where(entry => !entry.Value.EndsWith("_MAX", StringComparison.Ordinal))
+                .Select(entry => "ELiquidType::" + entry.Value).ToArray();
         var path = provider.Files.Keys.FirstOrDefault(k => k.EndsWith("/E_LiquidType.uasset", StringComparison.OrdinalIgnoreCase));
         if (path is null || !provider.TryLoadPackage(path, out var package)) return [];
         var uenum = package.GetExports().OfType<UEnum>().FirstOrDefault();

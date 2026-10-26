@@ -187,7 +187,7 @@ public static partial class WorldSaveWriter
 
         // A plain top-level name with no blueprint hash suffix, exactly as it appears in the
         // saves that do carry one.
-        var name = new FString("PetNPC");
+        var name = new FString(NativeSaveSchema.IsNative(properties) ? "PetNPCMap" : "PetNPC");
         var type = narrativeTag.Type.Clone();
         if (FProperty.Create(name, type) is not MapProperty created) return null;
 

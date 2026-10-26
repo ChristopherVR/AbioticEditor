@@ -79,6 +79,10 @@ public static class RecipeLearningCatalog
             var defaults = provider.LoadPackageInternal(ProgressionPackage).GetExports()
                 .FirstOrDefault(export => export.Name == "Default__Abiotic_CharacterProgressionComponent_C");
             var configuredTable = defaults is null ? null : ObjectPath(Value(defaults.Properties, "RecipeTable"));
+            // 1.5's pickup loop calls GetAllRecipeRowHandles, then GetRecipeRow.
+            // Those typed handles select DT_Recipes, including official mod row overlays.
+            if (configuredTable is null && provider.TryLoadDataTable(CraftingTable)?.RowStructName == "AbioticRecipe")
+                configuredTable = CraftingTable;
             var groups = ReadGroups(provider);
             var definitions = new List<RecipeLearningDefinition>();
             var links = new List<RecipeLearningLinkReference>();
@@ -99,7 +103,7 @@ public static class RecipeLearningCatalog
                     }
             }
             if (definitions.Count == 0) return null;
-            var starting = defaults is null ? null : Value(defaults.Properties, "RecipesUnlockedArray") as UScriptArray;
+            var starting = defaults is null ? null : (Value(defaults.Properties, "RecipesUnlockedArray") as UScriptArray ?? Value(defaults.Properties, "RecipesUnlocked") as UScriptArray);
             var research = defaults is null ? null : Value(defaults.Properties, "RecipesRequiringResearch_Array") as UScriptArray;
             var validated = ValidateLinks(definitions, links, out var rejected);
             return new(CurrentSchemaVersion, validated, Names(starting), Names(research), ReadSkillGrants(provider))
@@ -130,6 +134,12 @@ public static class RecipeLearningCatalog
                 var handle = ingredient is null ? null : Struct(Value(ingredient.Properties, "Item_"));
                 var name = handle is null ? null : Value(handle.Properties, "RowName")?.ToString();
                 var table = handle is null ? null : ObjectPath(Value(handle.Properties, "DataTable"));
+                table ??= handle is null ? null : Value(handle.Properties, "Table")?.ToString() switch
+                {
+                    "EAnyItemTable::GlobalItem" => "AbioticFactor/Content/Blueprints/Items/ItemTable_Global",
+                    "EAnyItemTable::RecipeSubstitute" => SubstituteTable,
+                    _ => null,
+                };
                 if (!Usable(name))
                 {
                     inputs.Add(new(name ?? string.Empty, table, null, [], false, false));
@@ -156,7 +166,8 @@ public static class RecipeLearningCatalog
         {
             var handle = Struct(element.GenericValue);
             var target = handle is null ? null : Value(handle.Properties, "RowName")?.ToString();
-            if (Usable(target)) yield return new(id, target!, ObjectPath(Value(handle!.Properties, "DataTable")));
+            if (Usable(target)) yield return new(id, target!, ObjectPath(Value(handle!.Properties, "DataTable"))
+                ?? (row.Properties.Any(p => p.Name.Text == "LinkedRecipesToUnlock") ? CraftingTable : null));
         }
     }
 
@@ -206,12 +217,11 @@ public static class RecipeLearningCatalog
         var recipes = provider.TryLoadDataTable(SkillRecipesTable);
         var skills = provider.TryLoadDataTable(SkillsTable);
         if (recipes is null || skills is null) return grants;
-        var blueprintEnum = provider.LoadPackageInternal("AbioticFactor/Content/Blueprints/Data/E_CharacterSkills")
-            .GetExports().OfType<UEnum>().FirstOrDefault();
+        var blueprintEnum = provider.UseFileProvider(files => files.TryLoadPackage("AbioticFactor/Content/Blueprints/Data/E_CharacterSkills", out var package)
+            ? package.GetExports().OfType<UEnum>().FirstOrDefault() : null);
         var nativeEnum = provider.UseFileProvider(files => files.MappingsContainer?.MappingsForGame?.Enums
             .GetValueOrDefault("ECharacterSkills"));
-        if (blueprintEnum is null || nativeEnum is null) return grants;
-        var names = blueprintEnum.Names.ToDictionary(pair => pair.Item1.Text, pair => pair.Item2, StringComparer.OrdinalIgnoreCase);
+        var names = blueprintEnum?.Names.ToDictionary(pair => pair.Item1.Text, pair => pair.Item2, StringComparer.OrdinalIgnoreCase);
         var byNativeName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, row) in skills.RowMap)
         {
@@ -220,11 +230,14 @@ public static class RecipeLearningCatalog
         }
         foreach (var (_, row) in recipes.RowMap)
         {
-            var recipeId = Value(row.Properties, "PerkBuffID_")?.ToString();
+            var recipeValue = Value(row.Properties, "PerkBuffID_");
+            var recipeId = Struct(recipeValue) is { } recipeHandle ? Value(recipeHandle.Properties, "RowName")?.ToString() : recipeValue?.ToString();
             var skill = Value(row.Properties, "Skill_")?.ToString();
             var level = Value(row.Properties, "LevelGainedAt_") as int?;
             if (!Usable(recipeId) || skill is null || level is not int requiredLevel || requiredLevel <= 0) continue;
-            if (!names.TryGetValue(skill, out var number) || !nativeEnum.TryGetValue(number, out var nativeName)) continue;
+            var nativeName = skill;
+            if (!skill.StartsWith("ECharacterSkills::", StringComparison.Ordinal)
+                && (names is null || nativeEnum is null || !names.TryGetValue(skill, out var number) || !nativeEnum.TryGetValue(number, out nativeName))) continue;
             if (!byNativeName.TryGetValue(nativeName.Split("::", StringSplitOptions.None)[^1], out var skillId)) continue;
             var grant = new RecipeSkillGrant(recipeId!, skillId, requiredLevel);
             if (!grants.Any(existing => existing.Level == grant.Level && existing.RecipeId.Equals(grant.RecipeId, StringComparison.OrdinalIgnoreCase)
@@ -241,7 +254,7 @@ public static class RecipeLearningCatalog
             .Select(handle => handle is null ? null : Value(handle.Properties, "RowName")?.ToString())
             .Where(Usable).Select(name => name!).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? [];
     private static object? Value(IEnumerable<FPropertyTag> properties, string prefix)
-        => properties.FirstOrDefault(property => property.Name.Text.StartsWith(prefix, StringComparison.Ordinal))?.Tag?.GenericValue;
+        => properties.FirstOrDefault(property => property.Name.Text.MatchesUnrealProperty(prefix))?.Tag?.GenericValue;
     private static FStructFallback? Struct(object? value) => (value is FScriptStruct script ? script.StructType : value) as FStructFallback;
     private static bool Usable(string? value) => !string.IsNullOrWhiteSpace(value) && !value.Equals("None", StringComparison.OrdinalIgnoreCase);
     private static string? ObjectPath(object? value)
@@ -256,6 +269,9 @@ public static class RecipeLearningCatalog
         if (value is int integer) return integer;
         var text = value?.ToString();
         if (text is null) return null;
+        if (text == "EMinigameDifficulty::Easy") return 0;
+        if (text == "EMinigameDifficulty::Medium") return 1;
+        if (text == "EMinigameDifficulty::Hard") return 2;
         const string prefix = "E_MinigameDifficulty::NewEnumerator";
         return text.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(text.AsSpan(prefix.Length), out var result) ? result : null;
     }

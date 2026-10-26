@@ -125,7 +125,7 @@ public static partial class PlayerSaveWriter
 
         if (sps.Properties.FindByPrefix("ItemDataTable_")?.Property is StructProperty rh && rh.Value is PropertiesStruct rhp)
         {
-            SetName(rhp.Properties, "RowName", EmptySlotRowName);
+            SetName(rhp.Properties, "RowName", NativeSaveSchema.IsNative(rhp.Properties) ? "None" : EmptySlotRowName);
         }
         if (sps.Properties.FindByPrefix("ChangeableData_")?.Property is StructProperty cd && cd.Value is PropertiesStruct cdps)
         {

@@ -1,5 +1,8 @@
 # Research: GATEPal UI, Inventory UI, and Story Chapters
 
+> Community Update 5 adds native multi-quest lines and personal tracking. See the
+> [2026-10-27 findings](community-update-5.md#multi-quest-gatepal) before using the legacy quest details below.
+
 Date: 2026-06-11. Sources: game paks via CUE4Parse (probe file
 `tests/AbioticEditor.Tests/GatePalQuestProbeTests.cs`, all 8 probes passing) and
 abioticfactor.wiki.gg (`/wiki/GATEPal`, `/wiki/Inventory`, `/wiki/Objectives`).

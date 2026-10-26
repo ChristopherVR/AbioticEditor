@@ -69,7 +69,7 @@ public static class PlayerSaveReader
             save, stats, inventory,
             skills: ReadSkills(root),
             traits: ReadNameArray(root, "Traits_"),
-            phd: root.GetString("PhD_"),
+            phd: root.FindByPrefix("PhD_")?.Property is StructProperty { Value: PropertiesStruct phd } ? phd.Properties.GetString("RowName") : root.GetString("PhD_"),
             health: ReadLimbHealth(root),
             recipes: ReadNameArray(root, "RecipesUnlock_"),
             emailsRead: ReadNameArray(root, "EmailsRead_"),
@@ -226,10 +226,10 @@ public static class PlayerSaveReader
     /// </summary>
     private static IReadOnlyList<ActiveBuff> ReadActiveBuffs(IList<FPropertyTag> root)
     {
-        if (root.FindByPrefix("CurrentBuffDebuffs_")?.Property is not StructProperty sp
-            || sp.Value is not PropertiesStruct ps
-            || ps.Properties.FindByPrefix("Buffs_")?.Property is not ArrayProperty array
-            || array.Value is null)
+        var array = root.FindByPrefix("ActiveBuffs")?.Property as ArrayProperty;
+        if (array is null && root.FindByPrefix("CurrentBuffDebuffs_")?.Property is StructProperty { Value: PropertiesStruct ps })
+            array = ps.Properties.FindByPrefix("Buffs_")?.Property as ArrayProperty;
+        if (array?.Value is null)
         {
             return Array.Empty<ActiveBuff>();
         }
@@ -329,6 +329,7 @@ public static class PlayerSaveReader
 
     internal static IList<FPropertyTag> GetCharacterSaveData(SaveGame save)
     {
+        NativeSaveSchema.Register(save);
         if (save.Properties is null || save.Properties.Count == 0)
         {
             throw new InvalidDataException("Save has no properties.");
@@ -477,7 +478,7 @@ public static class PlayerSaveReader
             // without game data) - never silently drop it.
             var isCompanionSlot = kind == PetSlotKind.Equipment && i == 12;
             if (!PetItemCatalog.IsPetItem(row)
-                && !(isCompanionSlot && !string.IsNullOrEmpty(row) && row != "Empty"))
+                && !(isCompanionSlot && !string.IsNullOrEmpty(row) && row is not "Empty" and not "None"))
             {
                 continue;
             }

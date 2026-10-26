@@ -31,7 +31,7 @@ public class SaveCompatibilityTests
         {
             var data = WorldSaveReader.ReadFromFile(Path.Combine(Fixtures.CascadeDir!, name));
             Assert.True(data.HasKnownSaveClass);
-            Assert.Equal(SaveCompatibility.KnownGoodWorldVersion, data.AbfVersion);
+            Assert.Equal(3, data.AbfVersion);
             Assert.Null(SaveCompatibility.WarningFor(data.Raw));
         }
     }

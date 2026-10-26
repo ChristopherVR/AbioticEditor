@@ -121,7 +121,7 @@ public static partial class PlayerSaveWriter
             if (ps.Properties.FindByPrefix("ItemDataTable_")?.Property is StructProperty rhSp
                 && rhSp.Value is PropertiesStruct rhPs)
             {
-                SetName(rhPs.Properties, "RowName", EmptySlotRowName);
+                SetName(rhPs.Properties, "RowName", NativeSaveSchema.IsNative(rhPs.Properties) ? "None" : EmptySlotRowName);
             }
 
             if (ps.Properties.FindByPrefix("ChangeableData_")?.Property is StructProperty cSp
@@ -157,7 +157,7 @@ public static partial class PlayerSaveWriter
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
                 var previousRow = rhPs.Properties.GetString("RowName");
-                SetName(rhPs.Properties, "RowName", newSlot.ItemId);
+                SetName(rhPs.Properties, "RowName", NativeSaveSchema.IsNative(rhPs.Properties) && newSlot.IsEmpty ? "None" : newSlot.ItemId);
 
                 // Point the row handle at the table that actually holds this item. An empty slot
                 // defaults to ItemTable_Pickups, which does NOT contain most catalog items, so an
@@ -175,7 +175,7 @@ public static partial class PlayerSaveWriter
                 var rowChanged = !string.Equals(previousRow, newSlot.ItemId, StringComparison.Ordinal);
                 var onEmptySlotTable = string.IsNullOrEmpty(currentTable)
                     || currentTable.EndsWith("ItemTable_Pickups", StringComparison.OrdinalIgnoreCase);
-                if (!newSlot.IsEmpty && rowChanged && onEmptySlotTable)
+                if (!NativeSaveSchema.IsNative(rhPs.Properties) && !newSlot.IsEmpty && rowChanged && onEmptySlotTable)
                 {
                     SetObjectPath(rhPs.Properties, "DataTable", knownTable ?? ItemTableGlobalPath);
                 }
@@ -226,6 +226,13 @@ public static partial class PlayerSaveWriter
         // An absent handle already means the default variant. Avoid growing every ordinary
         // slot merely because its editor field was left blank or set to None.
         if (string.Equals(rowName, "None", StringComparison.OrdinalIgnoreCase)) return;
+
+        if (NativeSaveSchema.IsNative(changeableDataProps))
+        {
+            var handle = NativeSaveSchema.CreateStruct(changeableDataProps, "TextureVariantRow", "TextureVariantRowHandle");
+            SetName(handle, "RowName", rowName, "RowName");
+            return;
+        }
 
         var name = new FString(FullNames.TextureVariantRow);
         var structType = new FPropertyTypeName(new FString("DataTableRowHandle"));

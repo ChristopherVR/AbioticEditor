@@ -82,7 +82,8 @@ public class CompatibilityRegistryTests
 
         // Exact: known kind, version in range, nothing unknown. OlderVersion: below the tested minimum.
         Assert.Equal(CompatibilitySeverity.Exact, SaveVersionRegistry.Classify(SaveKind.World, worldMax, hasUnknownContent: false));
-        Assert.Equal(CompatibilitySeverity.OlderVersion, SaveVersionRegistry.Classify(SaveKind.World, worldMax - 1, hasUnknownContent: false));
+        Assert.Equal(CompatibilitySeverity.Exact, SaveVersionRegistry.Classify(SaveKind.World, 3, hasUnknownContent: false));
+        Assert.Equal(CompatibilitySeverity.OlderVersion, SaveVersionRegistry.Classify(SaveKind.World, SaveVersionRegistry.Find(SaveKind.World)!.MinKnownVersion!.Value - 1, hasUnknownContent: false));
 
         // NewerMinor: known version but unknown content present.
         Assert.Equal(CompatibilitySeverity.NewerMinor, SaveVersionRegistry.Classify(SaveKind.World, worldMax, hasUnknownContent: true));
@@ -110,7 +111,7 @@ public class CompatibilityRegistryTests
             Path.Combine(Fixtures.CascadeDir!, "WorldSave_Facility_Office1.sav"));
 
         Assert.Equal(SaveKind.World, report.Kind);
-        Assert.Equal(SaveCompatibility.KnownGoodWorldVersion, report.VersionSeen);
+        Assert.Equal(3, report.VersionSeen);
         Assert.NotNull(report.Known);
         Assert.Empty(report.UnknownFlags);
         Assert.Null(report.UnknownStoryChapter);
@@ -132,7 +133,7 @@ public class CompatibilityRegistryTests
             Path.Combine(Fixtures.CascadeDir!, "WorldSave_MetaData.sav"));
 
         Assert.Equal(SaveKind.Metadata, report.Kind);
-        Assert.Equal(SaveCompatibility.KnownGoodWorldVersion, report.VersionSeen);
+        Assert.Equal(3, report.VersionSeen);
         Assert.Null(report.UnknownStoryChapter);
         Assert.NotNull(data.StoryProgressionRow);
         Assert.True(report.Severity is CompatibilitySeverity.Exact or CompatibilitySeverity.NewerMinor);

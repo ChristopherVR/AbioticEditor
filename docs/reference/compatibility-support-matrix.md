@@ -14,7 +14,7 @@ The editor therefore reports one of four results (`BuildIdentification`):
 | Result | Meaning |
 | --- | --- |
 | `Unknown` | No readable header evidence. The exact build is not known. Nothing is inferred from the installed game. |
-| `ValidatedEngineBuild` | Changelist 1030002, the build the mappings and write paths were validated against. |
+| `ValidatedEngineBuild` | Changelists 1030002 and 1050002; validation scope differs by fixture family below. |
 | `ObservedEngineBuild` | Changelist 1030001: seen in fixtures, byte-exact round-trip proven, no per-area edit evidence. |
 | `UnrecognizedEngineBuild` | Header parsed, build never seen. Higher than every known build: writes unverified. Lower than every known build: writes unsupported. |
 
@@ -35,10 +35,13 @@ Engine changelist counts come from `SaveHeaderEvidence` over every `.sav` under 
 | Dedicated server (`DedicatedServerSaves/Worlds/Cascade`) | 64 | 1030002 (64) | one shared table |
 | Steam client (`SteamSaves/SaveGames`) | 88 | 1030002 (66), 1030001 (22) | one shared table |
 | Steam legacy standalone world (`SteamSaves/Legacy/Cascade`) | 47 | 1030002 (45), 1030001 (2) | one shared table |
+| Community Update 5 (`Update1_5`) | 3 | 1050002 (3) | native player, world and metadata fixtures |
 | Game Pass wgs container (`GamePassSaves`) | 1 container | derived from a Steam save, see below | same as its source |
 
-All three save families share one custom-version table, so no fixture demonstrates a schema change between builds.
-"Older game build" support therefore currently means "1030001 and 1030002 only"; nothing older exists in the fixtures.
+The legacy families share one custom-version table. Community Update 5 adds a native schema migration,
+with world/metadata ABF_SAVE_VERSION 4 and player version 1. Its focused native read/edit evidence and
+remaining limitations are documented in [Community Update 5](research/community-update-5.md).
+The matrix below describes the legacy families unless explicitly marked otherwise.
 
 ## Matrix
 

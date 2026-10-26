@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AbioticEditor.Core;
 using AbioticEditor.Core.Assets;
 using AbioticEditor.Core.Plugins;
 using AbioticEditor.Plugins.Scene;
@@ -270,9 +271,9 @@ internal sealed partial class PakSceneModelProvider : ISceneModelProvider
             foreach (var prop in row.Properties)
             {
                 var propName = prop.Name.Text;
-                if (mesh is null && (propName.StartsWith("WorldStaticMesh_", StringComparison.Ordinal) || propName.StartsWith("WorldSkeletalMesh_", StringComparison.Ordinal)))
+                if (mesh is null && (propName.MatchesUnrealProperty("WorldStaticMesh_") || propName.MatchesUnrealProperty("WorldSkeletalMesh_")))
                     mesh = PathOf(prop.Tag?.GenericValue);
-                else if (propName.StartsWith("Scale_WorldMesh_", StringComparison.Ordinal) && prop.Tag?.GenericValue is { } value)
+                else if (propName.MatchesUnrealProperty("Scale_WorldMesh_") && prop.Tag?.GenericValue is { } value)
                     scale = Convert.ToSingle(value, System.Globalization.CultureInfo.InvariantCulture);
             }
             if (mesh is not null) result[name.Text] = (mesh, scale > 0f ? scale : 1f);

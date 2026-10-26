@@ -181,38 +181,38 @@ public static class CodexCatalog
         foreach (var p in row.Properties)
         {
             var name = p.Name.Text;
-            if (name.StartsWith("SubjectLineText_", StringComparison.Ordinal))
+            if (name.MatchesUnrealProperty("SubjectLineText_"))
             {
                 subject = p.Tag?.GenericValue?.ToString() ?? id;
             }
-            else if (name.StartsWith("EmailSections_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("EmailSections_"))
             {
                 foreach (var section in StructArray(p.Tag?.GenericValue))
                 {
                     string? sender = null, text = null;
                     foreach (var sp in section.Properties)
                     {
-                        if (sp.Name.Text.StartsWith("EmailSenderName_", StringComparison.Ordinal))
+                        if (sp.Name.Text.MatchesUnrealProperty("EmailSenderName_"))
                             sender = sp.Tag?.GenericValue?.ToString();
-                        else if (sp.Name.Text.StartsWith("EmailText_", StringComparison.Ordinal))
+                        else if (sp.Name.Text.MatchesUnrealProperty("EmailText_"))
                             text = sp.Tag?.GenericValue?.ToString();
                     }
                     if (!string.IsNullOrEmpty(text)) sections.Add(new EmailSection(sender, text!));
                 }
             }
-            else if (name.StartsWith("Attachments_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("Attachments_"))
             {
                 foreach (var attachment in StructArray(p.Tag?.GenericValue))
                 {
                     foreach (var ap in attachment.Properties)
                     {
-                        if (!ap.Name.Text.StartsWith("RecipeToUnlock_", StringComparison.Ordinal)) continue;
+                        if (!ap.Name.Text.MatchesUnrealProperty("RecipeToUnlock_")) continue;
                         var recipe = RowNameOf(ap.Tag?.GenericValue);
                         if (!string.IsNullOrEmpty(recipe) && recipe != "None") attachmentRecipes.Add(recipe!);
                     }
                 }
             }
-            else if (name.StartsWith("JournalEntriesToUnlock_", StringComparison.Ordinal))
+            else if (name.MatchesUnrealProperty("JournalEntriesToUnlock_"))
             {
                 if (p.Tag?.GenericValue is UScriptArray arr)
                 {
@@ -232,9 +232,9 @@ public static class CodexCatalog
         string title = id, note = string.Empty;
         foreach (var p in row.Properties)
         {
-            if (p.Name.Text.StartsWith("Title_", StringComparison.Ordinal))
+            if (p.Name.Text.MatchesUnrealProperty("Title_"))
                 title = p.Tag?.GenericValue?.ToString() ?? id;
-            else if (p.Name.Text.StartsWith("Note_", StringComparison.Ordinal))
+            else if (p.Name.Text.MatchesUnrealProperty("Note_"))
                 note = p.Tag?.GenericValue?.ToString() ?? string.Empty;
         }
         return new JournalEntry(id, title, note);

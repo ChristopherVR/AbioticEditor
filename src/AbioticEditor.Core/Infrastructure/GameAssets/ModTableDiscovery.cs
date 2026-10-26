@@ -13,8 +13,8 @@ namespace AbioticEditor.Core.Assets;
 ///
 /// The candidate set is restricted to assets named like a DataTable (the UE/AF convention,
 /// e.g. <c>DT_*</c>, <c>CDT_*</c>, <c>ItemTable_*</c>) so the scan does not have to load all
-/// ~50k mounted assets. A mod that ships a table under a non-conventional name will not be
-/// auto-discovered; its content simply degrades to raw ids, exactly as before this feature.
+/// ~50k mounted assets. Selected mod archives additionally allow arbitrary asset names,
+/// since official mod tooling does not require the legacy table filename convention.
 /// </summary>
 public static class ModTableDiscovery
 {
@@ -49,7 +49,12 @@ public static class ModTableDiscovery
         var result = new List<string>(matches.Count);
         foreach (var path in matches)
         {
-            if (!exclude.Contains(path)) result.Add(path);
+            if (exclude.Contains(path)) continue;
+            // Official tables name their target explicitly. Equal row structs alone do not
+            // make a chemistry override part of the ordinary crafting recipe table.
+            var table = provider.TryLoadDataTable(path);
+            var parent = table is null ? null : ParentTablePath(table);
+            if (parent is null || exclude.Contains(parent)) result.Add(path);
         }
         return result;
     }
@@ -94,7 +99,8 @@ public static class ModTableDiscovery
         var scanned = 0;
         foreach (var assetPath in provider.AssetPaths)
         {
-            if (!LooksLikeDataTable(assetPath)) continue;
+            if (!LooksLikeDataTable(assetPath)
+                && !(assetPath.EndsWith(AssetExtension, StringComparison.OrdinalIgnoreCase) && provider.IsModAsset(assetPath))) continue;
 
             var pkgPath = assetPath[..^AssetExtension.Length];
             try
@@ -122,6 +128,14 @@ public static class ModTableDiscovery
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Empty =
         new Dictionary<string, IReadOnlyList<string>>();
+
+    internal static string? ParentTablePath(UDataTable table)
+    {
+        var value = table.Properties.FirstOrDefault(p => p.Name.Text == "ParentTable")?.Tag?.GenericValue;
+        if (value is not CUE4Parse.UE4.Objects.UObject.FPackageIndex { ResolvedObject: { } resolved }) return null;
+        var path = resolved.GetPathName().Split('.')[0];
+        return path.StartsWith("/Game/", StringComparison.Ordinal) ? "AbioticFactor/Content/" + path[6..] : path.TrimStart('/');
+    }
 
     /// <summary>True when the mounted asset path is named like a cooked DataTable asset.</summary>
     public static bool LooksLikeDataTable(string assetPath)

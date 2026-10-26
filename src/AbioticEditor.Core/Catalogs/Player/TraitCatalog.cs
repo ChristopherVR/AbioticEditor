@@ -135,19 +135,19 @@ public static class TraitCatalog
             foreach (var p in kv.Value.Properties)
             {
                 var n = p.Name.Text;
-                if (n.StartsWith("TraitName_", StringComparison.Ordinal))
+                if (n.MatchesUnrealProperty("TraitName_"))
                 {
                     name = p.Tag?.GenericValue?.ToString();
                 }
-                else if (n.StartsWith("TraitDescription_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("TraitDescription_"))
                 {
                     description = p.Tag?.GenericValue?.ToString();
                 }
-                else if (n.StartsWith("TraitBuffRowName_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("TraitBuffRowName_"))
                 {
                     buffRowName = p.Tag?.GenericValue?.ToString();
                 }
-                else if (n.StartsWith("PointCost_", StringComparison.Ordinal))
+                else if (n.MatchesUnrealProperty("PointCost_"))
                 {
                     cost = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 0 };
                 }
@@ -159,7 +159,7 @@ public static class TraitCatalog
             // Cut traits (Dyslexia, Fumbler, ...) carry genuinely empty FText
             // descriptions - normalize to null so the UI can fall back.
             if (string.IsNullOrWhiteSpace(description)) description = null;
-            var isBackground = Backgrounds.ContainsKey(id) || !id.StartsWith("Trait_", StringComparison.Ordinal);
+            var isBackground = Backgrounds.ContainsKey(id) || !id.MatchesUnrealProperty("Trait_");
             result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart, buffRowName);
         }
     }
