@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [2.28.0] - 2026-10-26
+
+### Features
+- Show recipe unlock requirements as a tree
+- Explain how recipes are learned in the game
+- Find sources for crafting materials
+- Keep recipe checks current after game updates
+- Find missed recipes and follow their crafting steps
+
+
+### Bug Fixes
+- Keep recipe guides ready for release
+- Bring crafting steps into view
+- Keep player tabs responsive while reading recipes
+
+
 ## [2.27.9] - 2026-10-23
 
 ### Miscellaneous Tasks
