@@ -35,7 +35,7 @@ internal static class MeshBaker
             {
                 var box = sk.ImportedBounds.GetBox();
                 return new MeshInfo(
-                    sk.SkeletalMaterials.Select(m => m.Material?.ResolvedObject?.GetPathName()).ToArray(),
+                    sk.SkeletalMaterials.Select(m => m.MaterialInterface?.ResolvedObject?.GetPathName()).ToArray(),
                     new Vector3(box.Min.X, box.Min.Y, box.Min.Z), new Vector3(box.Max.X, box.Max.Y, box.Max.Z));
             }
             default:

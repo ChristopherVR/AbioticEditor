@@ -91,8 +91,8 @@ internal static class MaterialResolver
         {
             // A plain material (no instance): its referenced textures are all we have.
             var referenced = baseMaterial.ReferencedTextures
-                .Where(t => t is not null)
-                .Select(t => t!.GetPathName())
+                .Select(t => t?.ResolvedObject?.GetPathName())
+                .OfType<string>()
                 .ToList();
             texture = referenced.FirstOrDefault(IsBaseColorName) ?? referenced.FirstOrDefault(p => !LooksLikeData(p));
         }

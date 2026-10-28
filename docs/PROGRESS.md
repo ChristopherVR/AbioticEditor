@@ -21,6 +21,11 @@
   name is created on native saves when missing.
 - `ItemsDistilled` was created as a string array; every save version uses names.
 - New `NativeSaveShapeTests` (8 fail on the previous code). Full suite: 2,545 passed, 2 skipped.
+- Submodules moved to upstream latest: CUE4Parse b4e95441 to f2cd2c4b (139 commits; the 3D
+  models plugin needed `SkeletalMaterials[].MaterialInterface` and lazy `ReferencedTextures`
+  handles), GamePassStorage 7b3c633 to fddf468 (its new running-package write gate is opt-in and
+  not enabled by the editor). UeSaveGame was already current. Full suite and GamePassStorage's 194
+  tests pass on the new versions.
 - Pre-existing, not CU5: adding the first fish or map to an older save that has neither list is
   dropped (the legacy hashed names are unknown); adding a kill entry for a creature never killed is
   not supported; one Game Pass-converted Manyon player save is not byte-identical when unchanged.
