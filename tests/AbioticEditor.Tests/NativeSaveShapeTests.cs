@@ -33,7 +33,7 @@ public sealed class NativeSaveShapeTests
         "SteamSaves/Legacy/Cascade/WorldSave_MetaData.sav",
     };
 
-    private static readonly Lazy<TypeMappings?> Mappings = new(() =>
+    internal static readonly Lazy<TypeMappings?> Mappings = new(() =>
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
@@ -43,7 +43,7 @@ public sealed class NativeSaveShapeTests
         return null;
     });
 
-    private static string? Fixture(string relative)
+    internal static string? Fixture(string relative)
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
@@ -53,7 +53,7 @@ public sealed class NativeSaveShapeTests
         return null;
     }
 
-    private static byte[] Bytes(SaveGame save)
+    internal static byte[] Bytes(SaveGame save)
     {
         using var stream = new MemoryStream();
         save.WriteTo(stream);
@@ -233,7 +233,7 @@ public sealed class NativeSaveShapeTests
         Assert.Equal(before, Bytes(data.Raw));
     }
 
-    private static void AssertNoNewShapeProblems(SaveGame original, SaveGame edited)
+    internal static void AssertNoNewShapeProblems(SaveGame original, SaveGame edited)
     {
         var known = GameShape.Problems(original, Mappings.Value!).ToHashSet(StringComparer.Ordinal);
         var added = GameShape.Problems(edited, Mappings.Value!).Where(p => !known.Contains(p)).Distinct().ToList();

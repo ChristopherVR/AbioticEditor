@@ -301,11 +301,10 @@
   <data name="PlayerUi_AppearanceReverted" xml:space="preserve"><value>Appearance changes reverted.</value></data>
   <data name="PlayerUi_AppearanceSaved" xml:space="preserve"><value>Appearance saved.</value></data>
   <data name="PlayerUi_AppearanceSaveFailed" xml:space="preserve"><value>Appearance changes could not be saved.</value></data>
-  <data name="PlayerUi_ChangesRemainOpen" xml:space="preserve"><value>Your changes remain open; check file permissions and try again.</value></data>
   <data name="Workspace_SaveFailedDenied" xml:space="preserve"><value>Your system blocked the editor from writing to this file or folder. Check that the save file is not read-only and that its folder is not protected, then try again. Your changes are still open.</value></data>
   <data name="Workspace_SaveFailedInUse" xml:space="preserve"><value>Another program is using this file. Close Abiotic Factor and anything else that might be using the save (a backup or cloud sync tool can too), then try again. Your changes are still open.</value></data>
   <data name="Workspace_SaveFailedDiskFull" xml:space="preserve"><value>The drive is full. Free up some space and try again. Your changes are still open.</value></data>
-  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Your changes are still open and nothing was lost. Try again, and if it keeps happening, check that the save file is not read-only or open in another program.</value></data>
+  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Something in this save stopped the editor from writing it. Your changes are still open and your save file was not changed. Please report it from SETTINGS so it can be fixed.</value></data>
   <data name="PlayerUi_MoveSwapAria" xml:space="preserve"><value>Move or swap inventory slots</value></data>
   <data name="PlayerUi_MoveBetweenAreas" xml:space="preserve"><value>Move between areas</value></data>
   <data name="PlayerUi_MoveBetweenAreasHelp" xml:space="preserve"><value>Pick two slots to move or swap items between them - no dragging needed.</value></data>
@@ -3557,9 +3556,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   </data>
   <data name="PlayerCodex_KillsProgress" xml:space="preserve">
     <value>{0} of {1} kills for the bonus section</value>
-  </data>
-  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve">
-    <value>kills: not tracked yet · {0} required for the bonus section</value>
   </data>
   <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve">
     <value>{0} (rare)</value>

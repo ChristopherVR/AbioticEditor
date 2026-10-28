@@ -63,10 +63,16 @@ public static partial class PlayerSaveWriter
             SetDouble(p, "CurrentItemDurability_", pet.Health, FullNames.CurrentItemDurability);
             SetDouble(p, "MaxItemDurability_", pet.MaxHealth, FullNames.MaxItemDurability);
             SetString(p, "PlayerMadeString_", pet.Name, pet.Name is null ? null : FullNames.PlayerMadeString);
-            PetDynamicProperties.SetOrAdd(p, "XP", pet.Xp);
-            PetDynamicProperties.SetOrAdd(p, "MutationProgress", pet.MutationProgress);
-            PetDynamicProperties.SetOrAdd(p, "PetMutation", pet.PetMutation);
+            SetPetInt(p, "XP", pet.Xp);
+            SetPetInt(p, "MutationProgress", pet.MutationProgress);
+            SetPetInt(p, "PetMutation", pet.PetMutation);
         }
+    }
+
+    // A pet value the game left out reads as 0, its default; writing it anyway would add an entry.
+    private static void SetPetInt(IList<FPropertyTag> props, string key, int value)
+    {
+        if ((PetDynamicProperties.Read(props, key) ?? 0) != value) PetDynamicProperties.SetOrAdd(props, key, value);
     }
 
     /// <summary>

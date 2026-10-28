@@ -318,7 +318,7 @@
         }
         catch (Exception exception)
         {
-            _status = Errors.Present(exception, L.Resource("PlayerUi_AppearanceSaveFailed"), L.Resource("PlayerUi_ChangesRemainOpen"));
+            _status = Errors.Present(exception, L.Resource("PlayerUi_AppearanceSaveFailed"), AbioticEditor.Web.Services.SaveFailureGuidance.For(exception, L));
         }
     }
 

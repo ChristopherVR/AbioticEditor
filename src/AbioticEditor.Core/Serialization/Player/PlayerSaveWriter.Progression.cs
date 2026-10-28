@@ -24,14 +24,14 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         if (syncNewBadge) SyncNewBadge(root, "RecipesUnlock_", recipes, "NewestRecipes_", FullNames.NewestRecipes);
-        ReplaceNameArray(root, "RecipesUnlock_", recipes);
+        ReplaceNameArray(root, "RecipesUnlock_", recipes, CreateWhenFilled(recipes, FullNames.RecipesUnlock));
     }
 
     /// <summary>Replaces the <c>EmailsRead_</c> name array.</summary>
     public static void ApplyEmailsRead(PlayerSaveData data, IReadOnlyList<string> emails)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        ReplaceNameArray(root, "EmailsRead_", emails);
+        ReplaceNameArray(root, "EmailsRead_", emails, CreateWhenFilled(emails, FullNames.EmailsRead));
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         if (syncNewBadge) SyncNewBadge(root, "JournalEntries_", journals, "Journal_Unread_", FullNames.JournalUnread);
-        ReplaceNameArray(root, "JournalEntries_", journals);
+        ReplaceNameArray(root, "JournalEntries_", journals, CreateWhenFilled(journals, FullNames.JournalEntries));
     }
 
     /// <summary>
@@ -71,23 +71,23 @@ public static partial class PlayerSaveWriter
                 .Distinct(StringComparer.Ordinal).ToList();
             SyncNewBadgeFromSnapshot(root, before, combined, "Compendium_Unread_", FullNames.CompendiumUnread);
         }
-        ReplaceNameArray(root, "Compendium_EmailSections_", emailSections);
-        ReplaceNameArray(root, "Compendium_NarrativeSections_", narrativeSections);
-        ReplaceNameArray(root, "Compendium_ExplorationSections_", explorationSections);
+        ReplaceNameArray(root, "Compendium_EmailSections_", emailSections, CreateWhenFilled(emailSections, FullNames.CompendiumEmailSections));
+        ReplaceNameArray(root, "Compendium_NarrativeSections_", narrativeSections, CreateWhenFilled(narrativeSections, FullNames.CompendiumNarrativeSections));
+        ReplaceNameArray(root, "Compendium_ExplorationSections_", explorationSections, CreateWhenFilled(explorationSections, FullNames.CompendiumExplorationSections));
     }
 
     /// <summary>Replaces the <c>ItemsPickedUp_</c> name array (item row names).</summary>
     public static void ApplyItemsPickedUp(PlayerSaveData data, IReadOnlyList<string> items)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        ReplaceNameArray(root, "ItemsPickedUp_", items);
+        ReplaceNameArray(root, "ItemsPickedUp_", items, CreateWhenFilled(items, FullNames.ItemsPickedUp));
     }
 
     /// <summary>Replaces the <c>CraftedItems_</c> name array (item row names).</summary>
     public static void ApplyCraftedItems(PlayerSaveData data, IReadOnlyList<string> items)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        ReplaceNameArray(root, "CraftedItems_", items);
+        ReplaceNameArray(root, "CraftedItems_", items, CreateWhenFilled(items, FullNames.CraftedItems));
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         ReplaceNameArray(root, "ItemsDistilled_", items,
-            items.Count > 0 ? FullNames.ItemsDistilled : null);
+            CreateWhenFilled(items, FullNames.ItemsDistilled));
     }
 
     /// <summary>
@@ -153,37 +153,78 @@ public static partial class PlayerSaveWriter
     public static void ApplyMapsUnlocked(PlayerSaveData data, IReadOnlyList<string> maps)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
-        ReplaceNameArray(root, "MapsUnlocked_", maps);
+        ReplaceNameArray(root, "MapsUnlocked_", maps, CreateWhenFilled(maps, FullNames.MapsUnlocked));
     }
 
     /// <summary>
-    /// Patches the <c>Count</c> of existing <c>Compendium_KillCount_</c> entries, matched
-    /// by their <c>CompendiumRow.RowName</c>. Entries the save doesn't carry yet are
-    /// skipped - the array only grows when the game records a first kill.
+    /// The full name to create a missing list under, only when there is something to put in it:
+    /// the game omits an empty list, so creating one for nothing would change an untouched save.
+    /// </summary>
+    private static string? CreateWhenFilled(IReadOnlyList<string> values, string fullName)
+        => values.Count > 0 ? fullName : null;
+
+    /// <summary>
+    /// Sets kill tallies in <c>Compendium_KillCount_</c>, matched by <c>CompendiumRow.RowName</c>.
+    /// Existing entries are updated in place; a creature with no entry yet gets one appended
+    /// when its count is above zero, and the list itself is created when the save has none.
+    /// Every save version stores the entries as the native <c>CompendiumKillCount</c> struct.
     /// </summary>
     public static void ApplyKillCounts(PlayerSaveData data, IReadOnlyList<KillCount> updated)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         var tag = root.FindByPrefix("Compendium_KillCount_");
-        if (tag?.Property is not ArrayProperty array || array.Value is null) return;
+        var array = tag?.Property as ArrayProperty;
 
-        var byRow = updated.ToDictionary(k => k.CompendiumRow, k => k.Count, StringComparer.Ordinal);
-        for (var i = 0; i < array.Value.Length; i++)
+        var pending = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var kill in updated) pending[kill.CompendiumRow] = kill.Count;
+        if (array?.Value is { } existing)
         {
-            if (array.Value.GetValue(i) is not StructProperty sp || sp.Value is not PropertiesStruct ps)
-                continue;
-
-            string? row = null;
-            if (ps.Properties.FindByPrefix("CompendiumRow")?.Property is StructProperty rowSp
-                && rowSp.Value is PropertiesStruct rowPs)
+            for (var i = 0; i < existing.Length; i++)
             {
-                row = rowPs.Properties.FirstOrDefault(p2 => p2.Name?.Value == "RowName")?.Property?.Value?.ToString();
-            }
-            if (row is not null && byRow.TryGetValue(row, out var count))
-            {
-                SetInt(ps.Properties, "Count", count);
+                if (existing.GetValue(i) is not StructProperty { Value: PropertiesStruct ps }) continue;
+                var row = (ps.Properties.FindByPrefix("CompendiumRow")?.Property as StructProperty)?.Value is PropertiesStruct rowPs
+                    ? rowPs.Properties.GetString("RowName") : null;
+                if (row is null || !pending.Remove(row, out var count)) continue;
+                if (ps.Properties.GetLong("Count") != count) SetInt(ps.Properties, "Count", count, "Count");
             }
         }
+
+        var added = pending.Where(p => p.Value > 0).ToList();
+        if (added.Count == 0) return;
+        if (array is null) (tag, array) = CreateKillCountArray(root);
+        var items = new List<FProperty>(array.Value?.Cast<FProperty>() ?? []);
+        foreach (var (row, count) in added) items.Add(NewKillCount(tag!.Name, row, count));
+        array.Value = items.ToArray();
+    }
+
+    private static readonly FPropertyTypeName KillCountStruct =
+        new(new FString("CompendiumKillCount"), [new(new FString("/Script/AbioticFactor"))]);
+
+    private static (FPropertyTag Tag, ArrayProperty Array) CreateKillCountArray(IList<FPropertyTag> root)
+    {
+        var owner = NativeSaveSchema.ResolveOwner(root, "Compendium_KillCount_", create: true);
+        var name = new FString(NativeSaveSchema.IsNative(owner)
+            ? NativeSaveSchema.Name(owner, "Compendium_KillCount_")
+            : FullNames.CompendiumKillCount);
+        var element = new FPropertyTypeName(new FString(nameof(StructProperty)), [KillCountStruct]);
+        var array = new ArrayProperty(name, element) { Value = Array.Empty<FProperty>() };
+        var tag = new FPropertyTag(name, new FPropertyTypeName(new FString(nameof(ArrayProperty)), [element]), EPropertyTagFlags.None) { Property = array };
+        owner.Add(tag);
+        return (tag, array);
+    }
+
+    private static StructProperty NewKillCount(FString arrayName, string row, int count)
+    {
+        var handleType = new FPropertyTypeName(new FString("CompendiumEntryRowHandle"), [new(new FString("/Script/AbioticFactor"))]);
+        var handleBody = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+        SetName(handleBody.Properties, "RowName", row, "RowName");
+        var handleName = new FString("CompendiumRow");
+        var handle = new StructProperty(handleName) { StructType = handleType, StructGuid = Guid.Empty, Value = handleBody };
+
+        var body = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+        body.Properties.Add(new FPropertyTag(handleName, new FPropertyTypeName(new FString(nameof(StructProperty)), [handleType]), EPropertyTagFlags.None) { Property = handle });
+        SetInt(body.Properties, "Count", count, "Count");
+        return new StructProperty(arrayName) { StructType = KillCountStruct, StructGuid = Guid.Empty, Value = body };
     }
 
     /// <summary>
@@ -195,6 +236,6 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         if (syncNewBadge) SyncNewBadge(root, "Compendium_Fish_", fish, "Fish_Unread_", FullNames.FishUnread);
-        ReplaceNameArray(root, "Compendium_Fish_", fish);
+        ReplaceNameArray(root, "Compendium_Fish_", fish, CreateWhenFilled(fish, FullNames.CompendiumFish));
     }
 }

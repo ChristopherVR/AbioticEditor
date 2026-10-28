@@ -26,9 +26,26 @@
   handles), GamePassStorage 7b3c633 to fddf468 (its new running-package write gate is opt-in and
   not enabled by the editor). UeSaveGame was already current. Full suite and GamePassStorage's 194
   tests pass on the new versions.
-- Pre-existing, not CU5: adding the first fish or map to an older save that has neither list is
-  dropped (the legacy hashed names are unknown); adding a kill entry for a creature never killed is
-  not supported; one Game Pass-converted Manyon player save is not byte-identical when unchanged.
+- Follow-ups, resolved the same day:
+  - Save-failed toast: `SaveFailureGuidance` (shared by the workspace save and the appearance
+    editor) shows the write guard's own reason for a blocked save, and an unexpected error now says
+    the save file was not changed and asks for a report from SETTINGS instead of blaming file
+    permissions. `PlayerUi_ChangesRemainOpen` removed.
+  - First entries on older saves: the legacy hashed names for recipes, emails, journals, the three
+    compendium sections, fish, kill counts, items picked up, crafted items and maps were harvested
+    from every older player save on hand and added to `FullNames`; a list is created only when it
+    gets an entry, so untouched saves stay byte-identical.
+  - Kill counts: `ApplyKillCounts` appends a `CompendiumKillCount` entry (the same native struct in
+    every save version) for a creature with no tally and creates the list when missing. The codex
+    starts kill-required creatures at 0 instead of a disabled field; `PlayerCodex_KillsNotTracked`
+    removed.
+  - Game Pass-converted Manyon save: re-applying a carried pet added `MutationProgress`/`PetMutation`
+    entries the game had left out at 0; carried pets now only write changed values (like world
+    pets). All four Manyon player saves are byte-identical when unchanged.
+  - Tests: `FirstEntryAndPetTests` covers first entries (old and native), no empty lists created,
+    first kills, the codex tally, native pet rename and first name (synthesized Base-text pet), a
+    full hotbar refusing a pet without touching the save, the trimmed carried pet, and the toast
+    wording. Full suite: 2,555 passed, 2 skipped.
 
 ## Player saves with traits could not be saved after Community Update 5 (2026-10-28)
 

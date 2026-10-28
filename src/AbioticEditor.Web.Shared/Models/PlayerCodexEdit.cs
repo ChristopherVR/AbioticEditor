@@ -91,7 +91,9 @@ public sealed class PlayerCodexEdit
             journalIds, id => new CodexRowEdit(id, id, "Unknown journal", "This entry is retained from the save.", journalsKnown.Contains(id), true, []) { SaveOnly = saveOnly });
         Compendium = Merge(vocabulary.Compendium.Select(c => new CodexRowEdit(c.Id, c.Title, c.Subtitle ?? c.Tag,
             string.Join("\n\n", c.SectionTexts), compendiumKnown.Contains(c.Id), true, c.SectionTypes, c.KillRequired,
-            kills.TryGetValue(c.Id, out var count) ? count : null) { Tag = c.Tag }), compendiumIds,
+            // A creature never killed has no entry in the save; it starts at zero so a first
+            // tally can be set (the writer adds the entry only once it is above zero).
+            kills.TryGetValue(c.Id, out var count) ? count : c.KillRequired is not null ? 0 : null) { Tag = c.Tag }), compendiumIds,
             id => new CodexRowEdit(id, id, "Unknown compendium entry", "This entry is retained from the save.", compendiumKnown.Contains(id), true, []) { SaveOnly = saveOnly });
         Fish = Merge(vocabulary.Fish.Select(f => new CodexRowEdit(f.Id, f.Id + (f.IsRare ? " (rare)" : ""), f.Location,
             FishBody(f), fishKnown.Contains(f.Id), true, []) { ItemId = f.ItemId }), fishIds,

@@ -939,13 +939,7 @@
             _writing = false;
         }
     }
-    private string SaveFailureGuidance(Exception exception) => exception switch
-    {
-        UnauthorizedAccessException => L.Resource("Workspace_SaveFailedDenied"),
-        IOException io when (io.HResult & 0xFFFF) is 112 or 39 => L.Resource("Workspace_SaveFailedDiskFull"),
-        IOException => L.Resource("Workspace_SaveFailedInUse"),
-        _ => L.Resource("Workspace_SaveFailedGeneric"),
-    };
+    private string SaveFailureGuidance(Exception exception) => AbioticEditor.Web.Services.SaveFailureGuidance.For(exception, L);
     private void Revert() { InventorySelection.Clear(); Workspace.RevertSelected(); }
     private void ToggleFilePane()
     {

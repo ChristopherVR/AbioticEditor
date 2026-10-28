@@ -2934,9 +2934,6 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="PlayerCodex_KillsProgress" xml:space="preserve">
     <value>{0} de {1} bajas para la sección extra</value>
   </data>
-  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve">
-    <value>bajas: aún sin registrar · se requieren {0} para la sección extra</value>
-  </data>
   <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve">
     <value>{0} (raro)</value>
   </data>
@@ -3191,11 +3188,10 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="PlayerAchievements_TapToRevealTooltip" xml:space="preserve"><value>Toca para revelar este logro oculto</value></data>
   <data name="PlayerUi_SaveNotReplaced" xml:space="preserve"><value>La partida no se reemplazó; revisa el RAW JSON e inténtalo de nuevo.</value></data>
   <data name="PlayerUi_DropStageFailed" xml:space="preserve"><value>El objeto no se pudo colocar en el suelo. Este mundo necesita antes al menos un objeto ya tirado en el suelo.</value></data>
-  <data name="PlayerUi_ChangesRemainOpen" xml:space="preserve"><value>Tus cambios siguen abiertos; revisa los permisos del archivo e inténtalo de nuevo.</value></data>
   <data name="Workspace_SaveFailedDenied" xml:space="preserve"><value>Tu sistema impidió que el editor escribiera en este archivo o carpeta. Comprueba que el archivo de guardado no sea de solo lectura y que su carpeta no esté protegida, e inténtalo de nuevo. Tus cambios siguen abiertos.</value></data>
   <data name="Workspace_SaveFailedInUse" xml:space="preserve"><value>Otro programa está usando este archivo. Cierra Abiotic Factor y cualquier otra cosa que pueda usar el guardado (una herramienta de copias de seguridad o sincronización en la nube también puede), e inténtalo de nuevo. Tus cambios siguen abiertos.</value></data>
   <data name="Workspace_SaveFailedDiskFull" xml:space="preserve"><value>La unidad está llena. Libera espacio e inténtalo de nuevo. Tus cambios siguen abiertos.</value></data>
-  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Tus cambios siguen abiertos y no se perdió nada. Inténtalo de nuevo y, si sigue ocurriendo, comprueba que el archivo de guardado no sea de solo lectura ni esté abierto en otro programa.</value></data>
+  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Algo en este guardado impidió que el editor lo escribiera. Tus cambios siguen abiertos y tu archivo de guardado no se modificó. Infórmalo desde AJUSTES para que se pueda corregir.</value></data>
   <data name="CreateWorld_StatusFailedHelp" xml:space="preserve"><value>Revisa los detalles del mundo y los ID de jugador, e inténtalo de nuevo.</value></data>
   <data name="Ini_WorkbenchEyebrow" xml:space="preserve"><value>ARCHIVOS DE AJUSTES</value></data>
   <data name="Ini_EditorDescription" xml:space="preserve"><value>Edita los ajustes del juego, incluidas las opciones de servidor y de sandbox.</value></data>

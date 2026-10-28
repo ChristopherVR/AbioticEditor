@@ -72,6 +72,20 @@ public static partial class PlayerSaveWriter
         public const string RecipesRequiringResearch = "RecipesRequiringResearch_89_0A2778A74B6F1090075D8A9BEE7A0361";
         public const string CompletedIntro = "CompletedIntro_26_7F0FCDEA4BA0DD4D229BF38724FF442C";
         public const string LastControlRotation = "LastControlRotation_69_33E2359F425EBFDFB5CE2D84DCE6AD1B";
+
+        // Unlock and codex lists the game omits until the first entry, harvested from every
+        // older player save on hand (identical wherever the tag appears).
+        public const string RecipesUnlock = "RecipesUnlock_41_C6D066A3416620A76188D2A39E4D8DF9";
+        public const string EmailsRead = "EmailsRead_82_C3961BBA4AC266EDE4EC7A85E176A75E";
+        public const string JournalEntries = "JournalEntries_79_C0F0FF544DFD1060769BBF9D2D90127C";
+        public const string CompendiumEmailSections = "Compendium_EmailSections_117_5AF84C14476FC99020114C93ED0DBDA0";
+        public const string CompendiumNarrativeSections = "Compendium_NarrativeSections_116_2FC6C70144FEDF460E5FE89B7CEA6B40";
+        public const string CompendiumExplorationSections = "Compendium_ExplorationSections_118_50A35DD9425836A07E8AB1A66CB9A8DE";
+        public const string CompendiumFish = "Compendium_Fish_130_F3328DBD41952E919E4BF48486764935";
+        public const string CompendiumKillCount = "Compendium_KillCount_137_580C4765460383FB00B3A0B49694B010";
+        public const string ItemsPickedUp = "ItemsPickedUp_40_201286D74B6DA7CECD1480A56F844497";
+        public const string CraftedItems = "CraftedItems_102_5D7DF1C8402AF7997BA975ACE8206FAB";
+        public const string MapsUnlocked = "MapsUnlocked_93_E9A91D554F338AD17C73E7A6EC41EB87";
     }
 
     /// <summary>

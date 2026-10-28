@@ -2933,9 +2933,6 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="PlayerCodex_KillsProgress" xml:space="preserve">
     <value>{0} éliminations sur {1} pour la section bonus</value>
   </data>
-  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve">
-    <value>éliminations : pas encore suivies · {0} requises pour la section bonus</value>
-  </data>
   <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve">
     <value>{0} (rare)</value>
   </data>
@@ -3190,11 +3187,10 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="PlayerAchievements_TapToRevealTooltip" xml:space="preserve"><value>Touchez pour révéler ce succès caché</value></data>
   <data name="PlayerUi_SaveNotReplaced" xml:space="preserve"><value>La sauvegarde n'a pas été remplacée ; vérifiez le RAW JSON et réessayez.</value></data>
   <data name="PlayerUi_DropStageFailed" xml:space="preserve"><value>L'objet n'a pas pu être posé au sol. Ce monde doit d'abord contenir au moins un objet déjà posé au sol.</value></data>
-  <data name="PlayerUi_ChangesRemainOpen" xml:space="preserve"><value>Vos modifications restent ouvertes; vérifiez les autorisations du fichier et réessayez.</value></data>
   <data name="Workspace_SaveFailedDenied" xml:space="preserve"><value>Votre système a empêché l'éditeur d'écrire dans ce fichier ou ce dossier. Vérifiez que le fichier de sauvegarde n'est pas en lecture seule et que son dossier n'est pas protégé, puis réessayez. Vos modifications restent ouvertes.</value></data>
   <data name="Workspace_SaveFailedInUse" xml:space="preserve"><value>Un autre programme utilise ce fichier. Fermez Abiotic Factor et tout ce qui pourrait utiliser la sauvegarde (un outil de sauvegarde ou de synchronisation cloud aussi), puis réessayez. Vos modifications restent ouvertes.</value></data>
   <data name="Workspace_SaveFailedDiskFull" xml:space="preserve"><value>Le disque est plein. Libérez de l'espace et réessayez. Vos modifications restent ouvertes.</value></data>
-  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Vos modifications restent ouvertes et rien n'a été perdu. Réessayez et, si le problème persiste, vérifiez que le fichier de sauvegarde n'est pas en lecture seule ni ouvert dans un autre programme.</value></data>
+  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Un élément de cette sauvegarde a empêché l'éditeur de l'écrire. Vos modifications restent ouvertes et votre fichier de sauvegarde n'a pas été modifié. Signalez-le depuis les PARAMETRES pour qu'il puisse être corrigé.</value></data>
   <data name="CreateWorld_StatusFailedHelp" xml:space="preserve"><value>Vérifiez les détails du monde et les ID des joueurs, puis réessayez.</value></data>
   <data name="Ini_WorkbenchEyebrow" xml:space="preserve"><value>FICHIERS DE RÉGLAGES</value></data>
   <data name="Ini_EditorDescription" xml:space="preserve"><value>Modifiez les paramètres du jeu, y compris les options de serveur et de sandbox.</value></data>

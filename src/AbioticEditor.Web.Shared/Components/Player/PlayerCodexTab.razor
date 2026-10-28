@@ -154,7 +154,7 @@
                     {
                         <div class="codex-kills">
                             <label>@L.Resource("PlayerCodex_Kills")
-                                <input type="number" min="0" disabled="@(detail.KillCount is null)" @bind="detail.KillCount" @bind:after="Changed" />
+                                <input type="number" min="0" @bind="detail.KillCount" @bind:after="Changed" />
                             </label>
                             <span class="muted">@KillText(detail)</span>
                         </div>
@@ -301,9 +301,7 @@
     private string? RowSubtitle(CodexRowEdit row) => FishFor(row) is not null ? row.Id : row.Subtitle;
 
     private string KillText(CodexRowEdit row) => row.KillRequired is not { } required ? string.Empty
-        : row.KillCount is not { } count
-            ? L.Resource("PlayerCodex_KillsNotTracked", required)
-            : L.Resource("PlayerCodex_KillsProgress", count, required);
+        : L.Resource("PlayerCodex_KillsProgress", row.KillCount ?? 0, required);
 
     private FishDefinition? FishFor(CodexRowEdit row)
     {

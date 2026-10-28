@@ -2933,9 +2933,6 @@
   <data name="PlayerCodex_KillsProgress" xml:space="preserve">
     <value>{0} из {1} убийств для бонусного раздела</value>
   </data>
-  <data name="PlayerCodex_KillsNotTracked" xml:space="preserve">
-    <value>убийства: пока не отслеживаются · для бонусного раздела нужно {0}</value>
-  </data>
   <data name="PlayerCodex_RareTitleSuffix" xml:space="preserve">
     <value>{0} (редкая)</value>
   </data>
@@ -3190,11 +3187,10 @@
   <data name="PlayerAchievements_TapToRevealTooltip" xml:space="preserve"><value>Нажмите, чтобы показать это скрытое достижение</value></data>
   <data name="PlayerUi_SaveNotReplaced" xml:space="preserve"><value>Сохранение не заменено; проверьте RAW JSON и попробуйте снова.</value></data>
   <data name="PlayerUi_DropStageFailed" xml:space="preserve"><value>Не удалось положить предмет на землю. В этом мире сначала должен лежать на земле хотя бы один предмет.</value></data>
-  <data name="PlayerUi_ChangesRemainOpen" xml:space="preserve"><value>Ваши изменения не потеряны; проверьте права доступа к файлу и попробуйте снова.</value></data>
   <data name="Workspace_SaveFailedDenied" xml:space="preserve"><value>Система не позволила редактору записать этот файл или папку. Убедитесь, что файл сохранения не доступен только для чтения, а его папка не защищена, и попробуйте снова. Ваши изменения не потеряны.</value></data>
   <data name="Workspace_SaveFailedInUse" xml:space="preserve"><value>Этот файл используется другой программой. Закройте Abiotic Factor и всё, что может использовать сохранение (например, программу резервного копирования или облачную синхронизацию), и попробуйте снова. Ваши изменения не потеряны.</value></data>
   <data name="Workspace_SaveFailedDiskFull" xml:space="preserve"><value>Диск заполнен. Освободите место и попробуйте снова. Ваши изменения не потеряны.</value></data>
-  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Ваши изменения не потеряны. Попробуйте снова, а если ошибка повторяется, проверьте, что файл сохранения не доступен только для чтения и не открыт в другой программе.</value></data>
+  <data name="Workspace_SaveFailedGeneric" xml:space="preserve"><value>Что-то в этом сохранении помешало редактору записать его. Ваши изменения не потеряны, а файл сохранения не изменён. Пожалуйста, сообщите об этом через НАСТРОЙКИ, чтобы это исправили.</value></data>
   <data name="CreateWorld_StatusFailedHelp" xml:space="preserve"><value>Проверьте данные мира и ID игроков, затем попробуйте снова.</value></data>
   <data name="Ini_WorkbenchEyebrow" xml:space="preserve"><value>ФАЙЛЫ НАСТРОЕК</value></data>
   <data name="Ini_EditorDescription" xml:space="preserve"><value>Меняйте настройки игры, включая параметры сервера и песочницы.</value></data>
