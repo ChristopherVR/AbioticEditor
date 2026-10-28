@@ -187,14 +187,13 @@ public class CompatibilityRegistryTests
             Assert.Equal(CompatibilitySeverity.NewerVersion, report.Severity);
             Assert.NotNull(report.Warning);
             Assert.Contains($"version {bumped}", report.Warning, StringComparison.Ordinal);
-            Assert.Contains(".bak", report.Warning, StringComparison.Ordinal);
+            Assert.Contains("not saved", report.Warning, StringComparison.Ordinal);
             Assert.NotNull(SaveCompatibility.WarningFor(data.Raw));
 
-            // Writers don't refuse a parseable future save: a re-write must succeed and
-            // keep the bumped version.
-            WorldSaveWriter.WriteToFile(data, path);
-            var reread = WorldSaveReader.ReadFromFile(path);
-            Assert.Equal(bumped, reread.AbfVersion);
+            // ...and the writers refuse it: a newer save is viewable but never rewritten.
+            var before = File.ReadAllBytes(path);
+            Assert.Throws<SaveWriteBlockedException>(() => WorldSaveWriter.WriteToFile(data, path));
+            Assert.Equal(before, File.ReadAllBytes(path));
         }
         finally
         {

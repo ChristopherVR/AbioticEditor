@@ -75,6 +75,7 @@ public sealed class CompatibilityReport
         CompatibilitySeverity.NewerVersion => CompatibilityMessages.NewerVersionWarning(
             VersionSeen ?? 0, Known?.MaxKnownVersion ?? 0),
         CompatibilitySeverity.NewerMinor => CompatibilityMessages.NewerMinorWarning(this),
+        CompatibilitySeverity.LayoutChanged => CompatibilityMessages.LayoutChangedWarning(),
         CompatibilitySeverity.OlderVersion => CompatibilityMessages.OlderVersionWarning(
             VersionSeen ?? 0, Known?.MinKnownVersion ?? 0),
         _ => null,
@@ -114,7 +115,13 @@ internal static class CompatibilityMessages
     internal static string NewerVersionWarning(int versionSeen, int knownGoodVersion)
         => $"This save is version {versionSeen}; this editor was built against version {knownGoodVersion} " +
            $"(game build {SaveVersionRegistry.ValidatedGameBuild}). " +
-           "Newer fields may be invisible and could be lost on edit - a .bak backup is always kept.";
+           "The game changed how this save is laid out, so it can be viewed but not saved until the editor is updated. " +
+           "Your save file has not been changed.";
+
+    internal static string LayoutChangedWarning()
+        => "This save was written by a newer version of the game, and this editor cannot read most of it yet. " +
+           "It can be viewed but not saved until the editor is updated, because saving could damage it. " +
+           "Your save file has not been changed.";
 
     internal static string NewerMinorWarning(CompatibilityReport report)
     {

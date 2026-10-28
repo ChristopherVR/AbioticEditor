@@ -2391,3 +2391,7 @@ img[data-zoom]{cursor:zoom-in}
 .prepare-3d-status-bar>span{display:block;height:100%;background:var(--orange,#f08418);transition:width .4s ease-out}
 .prepare-3d-status-area{overflow:hidden;text-overflow:ellipsis;max-width:220px;color:var(--faint)}
 @media (max-width:900px){.prepare-3d-status-area{display:none}}
+
+.save-readonly-notice{margin:0 0 12px;padding:12px 14px;border:1px solid var(--alert);border-left-width:4px;background:var(--panel);color:var(--ink);font:13px var(--font-ui)}
+.save-readonly-notice strong{display:block;margin-bottom:4px;color:var(--alert-text);letter-spacing:.04em}
+.save-readonly-notice p{margin:0}

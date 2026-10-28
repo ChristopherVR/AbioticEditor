@@ -116,8 +116,9 @@ public sealed class OperationSupport
 /// <summary>
 /// Turns a <see cref="CompatibilityReport"/> into an <see cref="OperationSupport"/>. The rules,
 /// most restrictive first: an unrecognized save class or a version/engine build older than
-/// anything in the fixtures is Unsupported for writes; a newer version, an unrecognized or
-/// unidentified build, or a build seen only in round-trip fixtures is Unverified; only a save
+/// anything in the fixtures, a newer version, or a restructured layout is Unsupported for
+/// writes; an unrecognized or unidentified build, or a build seen only in round-trip fixtures
+/// is Unverified; only a save
 /// on the validated engine build with a known version is Supported.
 /// </summary>
 public static class OperationSupportEvaluator
@@ -174,6 +175,16 @@ public static class OperationSupportEvaluator
         if (report.Severity == CompatibilitySeverity.Unknown)
             return (OperationSupportLevel.Unsupported, "The save's version header could not be read.");
 
+        if (report.Severity == CompatibilitySeverity.LayoutChanged)
+            return (OperationSupportLevel.Unsupported,
+                $"{report.UnknownPropertyKeys.Count} top-level properties are not ones this editor models, so the game has restructured this save. " +
+                "Writes are blocked; inspection stays available.");
+
+        if (report.Severity == CompatibilitySeverity.NewerVersion)
+            return (OperationSupportLevel.Unsupported,
+                $"The save is version {report.VersionSeen}, newer than the tested version {report.Known?.MaxKnownVersion}. " +
+                "The game changes the layout when it bumps this number, so writes are blocked; inspection stays available.");
+
         switch (report.BuildIdentification)
         {
             case BuildIdentification.UnrecognizedEngineBuild when IsBelowKnownBuilds(report):
@@ -189,10 +200,6 @@ public static class OperationSupportEvaluator
                 return (OperationSupportLevel.Unverified,
                     "The exact game build cannot be identified from this save (no readable header evidence).");
         }
-
-        if (report.Severity == CompatibilitySeverity.NewerVersion)
-            return (OperationSupportLevel.Unverified,
-                $"The save is version {report.VersionSeen}, newer than the tested version {report.Known?.MaxKnownVersion}. Newer fields may be lost on edit.");
 
         return report.Severity == CompatibilitySeverity.NewerMinor
             ? (OperationSupportLevel.Supported, "Validated build. Unknown content is preserved untouched but is not editable.")

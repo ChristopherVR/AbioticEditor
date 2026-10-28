@@ -41,9 +41,11 @@ public enum SaveKind
 /// enum values, an unknown story chapter). Everything unknown is preserved verbatim on
 /// save; it just isn't visible or editable in the UI.</item>
 /// <item><see cref="NewerVersion"/> - ABF_SAVE_VERSION is above anything this build was
-/// validated against. The save still parsed, so edits are possible but at the user's own
-/// risk; writers do not refuse (a structurally unreadable save already throws at parse
-/// time, which is the only hard refusal).</item>
+/// validated against. The game bumps this number when it changes a save's field layout, so
+/// writes are blocked (see <see cref="SaveWriteGuard"/>); inspection still works.</item>
+/// <item><see cref="LayoutChanged"/> - the version header is unremarkable but a large share of the
+/// save's properties are unmodeled. The game restructured the save without bumping the
+/// version, so writes are blocked exactly as for <see cref="NewerVersion"/>.</item>
 /// <item><see cref="Unknown"/> - the save class is not recognized at all (or a versioned
 /// kind's version could not be read). Editing is not recommended.</item>
 /// </list>
@@ -56,7 +58,7 @@ public enum CompatibilitySeverity
     /// <summary>Known version but the save carries content this build doesn't model.</summary>
     NewerMinor,
 
-    /// <summary>ABF_SAVE_VERSION above the validated range - edit at your own risk.</summary>
+    /// <summary>ABF_SAVE_VERSION above the validated range - writes are blocked, inspection still works.</summary>
     NewerVersion,
 
     /// <summary>Unrecognized save class (or unreadable version) - editing not recommended.</summary>
@@ -68,4 +70,13 @@ public enum CompatibilitySeverity
     /// Appended last so the numeric values of the existing members do not change.
     /// </summary>
     OlderVersion,
+
+    /// <summary>
+    /// The version header looks familiar but many top-level properties are ones this build has no
+    /// model for, which means the game renamed or restructured its fields. The readers would find
+    /// nothing (money, skills and recipes read as empty) and an edit would write fields the game
+    /// ignores, so writes are blocked and inspection stays available.
+    /// Appended last so the numeric values of the existing members do not change.
+    /// </summary>
+    LayoutChanged,
 }

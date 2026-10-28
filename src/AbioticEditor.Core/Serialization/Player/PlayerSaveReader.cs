@@ -141,6 +141,19 @@ public static class PlayerSaveReader
     public static bool IsModeledKey(string propertyName)
         => ConsumedPrefixes.Any(p => propertyName.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// As <see cref="IsModeledKey(string)"/>, but also true for the native (suffix-free) spelling
+    /// of a consumed field when <paramref name="owner"/> is a native property list, and for the
+    /// native <c>Compendium</c> container the codex sections moved into.
+    /// </summary>
+    internal static bool IsModeledKey(string propertyName, IList<FPropertyTag> owner)
+    {
+        if (IsModeledKey(propertyName)) return true;
+        if (!NativeSaveSchema.IsNative(owner)) return false;
+        return string.Equals(propertyName, "Compendium", StringComparison.Ordinal)
+            || ConsumedPrefixes.Any(p => string.Equals(NativeSaveSchema.Name(owner, p), propertyName, StringComparison.Ordinal));
+    }
+
     private static void LogUnmodeledKeys(IList<FPropertyTag> root)
     {
         foreach (var tag in root)

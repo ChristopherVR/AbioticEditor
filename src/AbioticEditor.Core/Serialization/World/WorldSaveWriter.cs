@@ -21,6 +21,7 @@ public static partial class WorldSaveWriter
     /// </summary>
     public static void WriteToFile(WorldSaveData data, string path)
     {
+        Compatibility.SaveWriteGuard.EnsureWritable(data.Raw);
         Diagnostics.EditorLog.Info("WorldSave", $"Writing {path} (previous content kept as {Path.GetFileName(path)}.bak)");
         try
         {

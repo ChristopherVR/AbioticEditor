@@ -72,6 +72,11 @@ public static class SaveOperationRunner
             save = SaveGame.LoadFrom(fs);
         }
 
+        if (!dryRun && Compatibility.SaveWriteGuard.BlockReason(save) is { } blocked)
+        {
+            return new RunOutcome(SaveOperationResult.Failed(blocked), false, kind);
+        }
+
         var context = new SaveOperationContext(filePath, kind, save, resolved, dryRun, log);
 
         SaveOperationResult result;

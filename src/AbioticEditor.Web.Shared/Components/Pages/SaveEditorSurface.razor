@@ -19,6 +19,13 @@
                     <strong>@Workspace.BusyOperation</strong>
                 </section>
             }
+            @if ((workspace.PlayerSession?.WriteBlockReason ?? workspace.WorldSession?.WriteBlockReason) is { } readOnlyReason)
+            {
+                <section class="save-readonly-notice" role="alert">
+                    <strong>@Languages.Resource("SaveReadOnly_Title")</strong>
+                    <p>@readOnlyReason</p>
+                </section>
+            }
             @if (workspace.PlayerSession is { } player)
             {
                 <PlayerEditor Title="@workspace.SelectedSave!.Name" Session="@player" TransferWorldSession="@Workspace.TransferWorldSession" OnChanged="PlayerChanged" />

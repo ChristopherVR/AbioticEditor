@@ -50,7 +50,7 @@ public class SaveCompatibilityTests
         Assert.NotNull(warning);
         Assert.Contains($"version {SaveCompatibility.KnownGoodWorldVersion + 1}", warning);
         Assert.Contains($"built against version {SaveCompatibility.KnownGoodWorldVersion}", warning);
-        Assert.Contains(".bak", warning);
+        Assert.Contains("not saved", warning);
     }
 
     [Fact]

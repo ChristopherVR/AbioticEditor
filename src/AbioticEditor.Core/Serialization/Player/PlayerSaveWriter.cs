@@ -80,6 +80,7 @@ public static partial class PlayerSaveWriter
     /// </summary>
     public static void WriteToFile(PlayerSaveData data, string path)
     {
+        Compatibility.SaveWriteGuard.EnsureWritable(data.Raw);
         Diagnostics.EditorLog.Info("PlayerSave", $"Writing {path} (previous content kept as {Path.GetFileName(path)}.bak)");
         try
         {

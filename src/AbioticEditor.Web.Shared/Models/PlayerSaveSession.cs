@@ -413,9 +413,13 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         || _rawEdits.Count > 0;
     public string? Status { get; private set; }
 
+    /// <summary>Why this save can be viewed but not saved (a layout this editor does not understand), or null.</summary>
+    public string? WriteBlockReason => Core.Compatibility.SaveWriteGuard.BlockReason(_data.Raw);
+
     public async ValueTask SaveAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        Core.Compatibility.SaveWriteGuard.EnsureWritable(_data.Raw);
         PlayerSaveWriter.ApplyStats(_data, new CharacterStats(
             Vitals.Hunger, Vitals.Thirst, Vitals.Sanity, Vitals.Fatigue, Vitals.Continence,
             (int)Math.Round(Vitals.Money)));

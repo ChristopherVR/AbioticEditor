@@ -4328,6 +4328,8 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_NoWorldMatches" xml:space="preserve"><value>No matching worlds. Try another name or clear the search.</value></data>
   <data name="Editing_OpenWorld" xml:space="preserve"><value>Open {0}</value></data>
   <data name="Editing_WorldOverview" xml:space="preserve"><value>World details and time</value></data>
+  <data name="SaveReadOnly_Title" xml:space="preserve"><value>This save can be viewed but not changed</value></data>
+
   <data name="Editing_SelectNpc" xml:space="preserve"><value>Select a character to edit it.</value></data>
   <data name="Editing_FindSetting" xml:space="preserve"><value>Find a setting or section</value></data>
   <data name="Editing_NoSettingMatches" xml:space="preserve"><value>No matching settings. Try another name or clear the search.</value></data>

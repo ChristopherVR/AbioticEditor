@@ -1227,10 +1227,14 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
         return WorldEditResult.Failure(string.Empty);
     }
 
+    /// <summary>Why this save can be viewed but not saved (a layout this editor does not understand), or null.</summary>
+    public string? WriteBlockReason => Core.Compatibility.SaveWriteGuard.BlockReason(_data.Raw);
+
     public async ValueTask SaveAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsDirty) return;
+        Core.Compatibility.SaveWriteGuard.EnsureWritable(_data.Raw);
         // Edits are applied to the loaded tree itself, with its bytes kept as a restore point: a
         // rejected writer or failed disk write puts the untouched baseline back, so no partial
         // mutation leaks into the session. (Serializing is a fraction of the cost of the full

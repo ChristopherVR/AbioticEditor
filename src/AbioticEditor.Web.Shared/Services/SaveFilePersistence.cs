@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Compatibility;
 using AbioticEditor.Core.Diagnostics;
 using AbioticEditor.Core.Saves;
 using UeSaveGame;
@@ -25,6 +26,7 @@ internal static class SaveFilePersistence
         SaveGame save,
         CancellationToken cancellationToken = default)
     {
+        SaveWriteGuard.EnsureWritable(save);
         if (files is null)
         {
             SaveBackup.WriteWithBackup(path, save.WriteTo);

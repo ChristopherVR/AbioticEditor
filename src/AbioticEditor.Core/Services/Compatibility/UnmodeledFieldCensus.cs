@@ -49,7 +49,7 @@ public sealed record CensusLeafRow(
 /// Names are normalised by stripping the <c>_&lt;n&gt;_&lt;32 hex&gt;</c> blueprint-compiler suffix
 /// so two game builds of the same field count as one row. "Modeled" is decided only by the
 /// top-level readers' own tests (<see cref="WorldSaveReader.IsModeledTopLevelKey"/> and
-/// <see cref="PlayerSaveReader.IsModeledKey"/>); a modeled map can still hold members nothing
+/// <see cref="PlayerSaveReader.IsModeledKey(string)"/>); a modeled map can still hold members nothing
 /// reads, which is what <see cref="CollectLeaves"/> is for.
 /// </remarks>
 public static partial class UnmodeledFieldCensus

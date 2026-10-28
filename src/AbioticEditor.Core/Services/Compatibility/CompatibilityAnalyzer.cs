@@ -95,11 +95,19 @@ public static class CompatibilityAnalyzer
             ? storyProgressionRow
             : null;
 
-        var unknownKeys = collected?.UnknownPropertyKeys ?? Array.Empty<string>();
+        var probedKeys = SaveLayoutProbe.UnmodeledKeys(save);
+        var unknownKeys = collected?.UnknownPropertyKeys ?? probedKeys;
         var unknownEnums = collected?.UnknownEnumValues ?? Array.Empty<string>();
 
         var hasUnknownContent = unknownFlags.Length > 0 || unknownChapter is not null
                                 || unknownKeys.Count > 0 || unknownEnums.Count > 0;
+
+        var severity = SaveVersionRegistry.Classify(kind, version, hasUnknownContent);
+        if (severity is CompatibilitySeverity.Exact or CompatibilitySeverity.NewerMinor
+            && SaveLayoutProbe.IndicatesChangedLayout(probedKeys.Count))
+        {
+            severity = CompatibilitySeverity.LayoutChanged;
+        }
 
         return new CompatibilityReport
         {
@@ -107,7 +115,7 @@ public static class CompatibilityAnalyzer
             SaveClassName = save.SaveClass?.Value,
             VersionSeen = version,
             Known = known,
-            Severity = SaveVersionRegistry.Classify(kind, version, hasUnknownContent),
+            Severity = severity,
             Header = header,
             BuildIdentification = identification,
             MatchedEngineBuild = matchedBuild,

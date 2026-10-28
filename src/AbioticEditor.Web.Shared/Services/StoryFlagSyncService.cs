@@ -1,3 +1,4 @@
+using AbioticEditor.Core.Compatibility;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 
@@ -61,6 +62,7 @@ public sealed class StoryFlagSyncService(ISaveFileSystem files, SaveWorkspaceSes
             var written = await Task.Run(() =>
             {
                 var data = PlayerSaveReader.ReadFromStream(new MemoryStream(bytes, writable: false));
+                SaveWriteGuard.EnsureWritable(data.Raw);
                 PlayerRespawnRevert.Apply(data, terminal);
                 using var buffer = new MemoryStream();
                 data.Raw.WriteTo(buffer);
@@ -89,6 +91,7 @@ public sealed class StoryFlagSyncService(ISaveFileSystem files, SaveWorkspaceSes
             var result = plan(data);
             if (result.Flags is null) return (null, result.Count, result.Message);
 
+            SaveWriteGuard.EnsureWritable(data.Raw);
             WorldSaveWriter.ApplyFlags(data, result.Flags);
             using var buffer = new MemoryStream();
             data.Raw.WriteTo(buffer);
