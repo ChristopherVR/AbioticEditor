@@ -367,9 +367,11 @@ reads/writes `PlayerMadeString` (a replicated `Net | RepNotify` `StrProperty` de
 the exact same mark-dirty + `NewPlayerMadeString()` refresh `containers.rename` already uses, and
 which matches the save file's own `CustomTextDisplay_` leaf
 (`WorldSaveWriter.ApplyDeployableCustomText`/`ApplyContainerCustomName`). A deployable class with no
-`PlayerMadeString` at all (not Furniture-derived - lights, turrets, and similar non-nameable
-placeables) still reports `AlternativeObjectName` as a read-only fallback so it does not regress to
-showing nothing, but `bases.set` no longer writes that field for a class that has `PlayerMadeString`.
+`PlayerMadeString` at all uses `AlternativeObjectName` as a host-only fallback, written through
+`ctx.setText` so the engine constructs the FText. Check for a readable string before selecting
+the furniture path: UE4SS silently ignores writes to absent properties, so a successful write
+`pcall` is insufficient. The fallback is not replicated or persisted. On CU5, wall lamps are
+furniture; the fallback was tested with a temporary `Deployed_FloorPoop_C` actor instead.
 
 **Not region-scoped** (unchanged, round 121 investigation). `bases.list` sweeps every currently
 loaded `AbioticDeployed_ParentBP_C` instance with no filter on the actor's map/level path, exactly
@@ -515,8 +517,9 @@ hardcoded `hasInventory: false`. **Not yet exercised in the running game.**
 "supportsSpeciesChange":true,"supportsRemoval":true,"reason":"..."}`. Capability fields come
 from the agent; an older agent that omits them leaves the corresponding controls hidden.
 
-On Community Update 5, all tamed creatures match their save records through
-`BuffActor_Follower_C.Guid`, including Peccaries and Lamogi. Name and XP are read from the
+On Community Update 5, all tamed creatures expose stable identities through
+`BuffActor_Follower_C.Guid`, including Peccaries and Lamogi. This is the PetNPCMap key for a
+free-roaming pet or the backing item's AssetID for an equipped/contained pet. Name and XP are read from the
 follower's `FollowerName` and `DynamicProperties`; health comes from `CharacterNPC`. Actors
 pending destruction are excluded with the engine's `KismetSystemLibrary.IsValid`, since UE4SS
 can still discover their pointers before garbage collection. Fetch that UFunction through
@@ -543,7 +546,10 @@ CU5 writes:
   The game's replacement carries name, XP and identity; health follows its mutation rules.
 
 `pets.remove` takes `{"id"}`. On CU5 it calls the follower's `DespawnPet`, which removes the
-saved pet and despawns the actor. It falls back to `K2_DestroyActor` if needed. Removal is
+saved pet and despawns the actor. Equipped pets and pets in beds/traps first have their backing
+inventory slot cleared, but only if its AssetID still matches the requested Guid. The inventory
+notification runs the game's despawn/container-save path, preventing respawn on reload.
+It falls back to `K2_DestroyActor` if needed. Removal is
 immediate, host only, and has no undo.
 
 On older builds, Pest/Skink pets match through their own Guid; other tamed creatures found by

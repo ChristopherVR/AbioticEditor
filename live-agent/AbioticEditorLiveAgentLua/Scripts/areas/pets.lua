@@ -480,7 +480,7 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     -- Community Update 5 keeps a pet's identity on its follower buff (BuffActor_Follower_C: Guid,
     -- FollowerName, DynamicProperties, CharacterNPC) and leaves the creature's own Guid, PetName and
     -- DynamicProperties empty. Every tamed creature has one, Peccaries included, so on that build
-    -- every pet matches its save record (the save's PetNPCMap key is this Guid).
+    -- every pet has a saved identity (PetNPCMap key, or backing item AssetID for a companion).
     local FOLLOWER_CLASS = "BuffActor_Follower_C"
     function followers()
         local result = {}
@@ -791,6 +791,29 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
             if payload.id then npc, _, record = findPet(payload.id) end
             if not npc then error("pet not found (it may already be gone)") end
             if record ~= nil and record ~= npc then
+                -- A CU5 follower may be backed by an equipped pet item or a pet bed/trap slot,
+                -- rather than PetNPCMap. DespawnPet alone leaves that item to respawn on reload.
+                -- Clear only the slot whose AssetID still matches this follower's Guid, then let
+                -- the inventory notification run the game's own despawn and container save.
+                local okCompanion, companion = pcall(function() return record:IsCompanion() end)
+                if okCompanion and companion then
+                    local target = record.CompanionInventoryTarget
+                    local inv = target.Inventory_2_B69CD60741EFD551F09ED5AFF44B1E46
+                    local index = target.Index_5_6BDC7B3944A5DE0B319F9FA20720872F
+                    if not inv or not inv:IsValid() or type(index) ~= "number" or index < 0 or index % 1 ~= 0 then
+                        error("this pet's inventory slot is unavailable; refresh and retry")
+                    end
+                    local slot = inv.CurrentInventory[index + 1]
+                    local data = slot and ctx.slotFields.get(slot, "ChangeableData")
+                    local assetId = data and ctx.slotFields.get(data, "AssetID")
+                    if assetId ~= nil and type(assetId) ~= "string" then assetId = assetId:ToString() end
+                    if assetId ~= payload.id then error("this pet's inventory slot changed; refresh and retry") end
+                    local helper = replication.requireHelper()
+                    ctx.writeSlot(slot, { clear = true })
+                    replication.mark(helper, inv, "CurrentInventory")
+                    inv:OnRep_CurrentInventory()
+                    if not actorAvailable(npc) then return nil end
+                end
                 -- Community Update 5: the game's own DespawnPet on the follower buff removes the pet
                 -- from the world save (SaveNpcAsPet(true)), despawns it through its AI controller and
                 -- destroys the creature.

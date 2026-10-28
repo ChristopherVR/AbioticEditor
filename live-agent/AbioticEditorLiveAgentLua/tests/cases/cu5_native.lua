@@ -265,6 +265,30 @@ return function(H)
     H.ok(H.dispatch("pets.remove", { id = "905CBB934EBE13FDEB3901AF1E48930C" }), "follower removal")
     H.eq(despawned, 1, "removed through the game's own DespawnPet")
 
+    -- Pets in traps, beds and equipment are backed by an inventory item. Despawning just
+    -- the actor leaves the item to spawn it again on reload. Verify identity before clearing.
+    rawset(replacement, "__valid", true)
+    local petItem = { ItemDataTable = { RowName = H.fname("Pet_Pest") }, ChangeableData = {
+        AssetID = H.fstring("different-pet"), CurrentStack = 1,
+    } }
+    local petInventory = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = { petItem } }, {
+        OnRep_CurrentInventory = function() rawset(replacement, "__valid", false) end,
+    })
+    rawget(newFollower, "__methods").IsCompanion = function() return true end
+    rawget(newFollower, "__fields").CompanionInventoryTarget = {
+        Inventory_2_B69CD60741EFD551F09ED5AFF44B1E46 = petInventory,
+        Index_5_6BDC7B3944A5DE0B319F9FA20720872F = 0,
+    }
+    H.world.static("/Script/Engine.Default__NetPushModelHelpers", H.object("Replication", {}, { MarkPropertyDirty = function() end }))
+    H.fails(H.dispatch("pets.remove", { id = "905CBB934EBE13FDEB3901AF1E48930C" }),
+        "inventory slot changed", "mismatched pet item is refused")
+    H.eq(petItem.ItemDataTable.RowName:ToString(), "Pet_Pest", "unrelated item remains intact")
+    petItem.ChangeableData.AssetID = H.fstring("905CBB934EBE13FDEB3901AF1E48930C")
+    H.ok(H.dispatch("pets.remove", { id = "905CBB934EBE13FDEB3901AF1E48930C" }), "remove inventory-backed pet")
+    H.eq(petItem.ItemDataTable.RowName:ToString(), "Empty", "matching pet item cleared")
+    H.eq(H.calls(petInventory, "OnRep_CurrentInventory"), 1, "inventory change notifies the game's own despawn path")
+    H.eq(despawned, 1, "already-despawned actor is not touched again")
+
     -- Appearance: every customization field is a typed row handle.
     local pawnAppearance = H.hostSession()
     local handles, methods = {}, {}

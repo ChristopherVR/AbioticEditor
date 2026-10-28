@@ -1,5 +1,5 @@
 -- World bases / deployables (areas/bases.lua): PlayerMadeString (round 121) rename with an
--- AlternativeObjectName read-only fallback, container-backed deployables reporting
+-- AlternativeObjectName host-only fallback, container-backed deployables reporting
 -- hasInventory/storedItemCount via the same slot helpers containers.list already uses, and
 -- PaintedColor (plain EPaintColor property + OnRep) reads/writes.
 return function(H)
@@ -43,7 +43,7 @@ return function(H)
     }))
 
     -- Round 121: a class with no PlayerMadeString at all (not Furniture-derived) still reports
-    -- whatever AlternativeObjectName carries, read-only - see deployableCustomName's own remarks.
+    -- whatever AlternativeObjectName carries - see deployableCustomName's own remarks.
     local altNameOnly = H.world.add(H.object("Deployed_Light_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" },
         AlternativeObjectName = H.fstring("Porch Light"),
@@ -73,7 +73,7 @@ return function(H)
     H.eq(lockerRow.customName, "Loot Locker", "the locker's custom name read from PlayerMadeString, converted from FString-like userdata")
     H.eq(lockerRow.hasInventory, true, "the locker has a container inventory")
     H.eq(lockerRow.storedItemCount, 1, "one non-empty slot counted")
-    H.eq(altNameOnlyRow.customName, "Porch Light", "a class with no PlayerMadeString still reports AlternativeObjectName, read-only")
+    H.eq(altNameOnlyRow.customName, "Porch Light", "a class with no PlayerMadeString still reports AlternativeObjectName")
     H.eq(benchRow.paintColor, nil, "EPaintColor::None reads as unpainted (nil), not 12")
     H.eq(lockerRow.paintColor, 5, "a real paint colour value reads through as a number")
 
@@ -90,6 +90,16 @@ return function(H)
     for _, row in ipairs(afterRename.deployables) do
         if row.id == lockerId then H.eq(row.customName, "Renamed Locker", "the new name is reported back through bases.list") end
     end
+
+    -- A successful write pcall cannot establish that PlayerMadeString exists: UE4SS can
+    -- silently ignore an absent property. Such objects must use the engine text importer.
+    H.ok(H.dispatch("bases.set", { id = altNameOnlyId, customName = 'Fallback "Name"' }), "rename text-only object")
+    H.eq(H.writes(altNameOnly, "PlayerMadeString"), 0, "absent string field is never written")
+    H.eq(altNameOnly.AlternativeObjectName:ToString(), 'Fallback "Name"', "text fallback preserves quotes")
+    H.eq(rawget(altNameOnly.AlternativeObjectName, "__importedText"), true, "fallback uses engine text import")
+    H.ok(H.dispatch("bases.set", { id = altNameOnlyId, customName = "" }), "clear text-only name")
+    H.eq(altNameOnly.AlternativeObjectName:ToString(), "", "fallback can clear the name")
+    H.eq(H.calls(netHelper, "MarkPropertyDirty"), marksBeforeRename + 1, "text-only name does not mark an absent replicated field")
 
     local upgradedBench = H.world.add(H.object("AbioticDeployed_CraftingBench_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" }, SupportsUpgrades = true,

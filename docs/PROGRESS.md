@@ -1,5 +1,40 @@
 # Abiotic Editor - Session history
 
+## CU5 monitor-off verification and persistence fixes (2026-10-28)
+
+- Continued with the monitor off through a temporary local `diag.cu5` handler, using the game's
+  own APIs on its game thread. Selected only `CU5LiveTest` via `ActiveWorldSaveName`, opened
+  Facility with `GameplayStatics.OpenLevel`, and saved with `SaveCurrentWorld.Activate`.
+  These calls follow the installed game's Blueprint bytecode. Launch through Steam with
+  `-applaunch 427410 -RenderOffscreen -windowed -nosound` to avoid display-dependent startup.
+  Wait for the main-menu map to finish loading before issuing game-thread commands.
+- **Final combined XP/type fix verified after a full restart:** Peccary
+  `905CBB934EBE13FDEB3901AF1E48930C` changed Alpha -> Sow with XP 72 in one request. Only one
+  live actor remained, disk held the correct type/XP, and the next process loaded the same
+  Sow, XP 72 and name `CU5 Sow`. The final engine-validity lookup works live.
+- **Actual AlternativeObjectName path fixed and verified:** a temporary, non-saved
+  `Deployed_FloorPoop_C` exposed that UE4SS silently ignores writes to absent properties.
+  The old `pcall` therefore reported success writing a nonexistent `PlayerMadeString` and
+  never entered the fallback. Now require a readable string before choosing that path.
+  Live fallback writes read back `CU5 fallback "Test"`, then `Second text`, without crashing.
+  The test actor was destroyed afterwards. This fallback is host-only and not persisted.
+- **Pet removal persistence fix:** the previously removed Pest was in a trap, not PetNPCMap.
+  `DespawnPet` left its backing item to spawn it again on reload. Equipped pets and pets in
+  beds/traps now clear only the inventory slot whose AssetID matches the follower Guid,
+  mark the inventory dirty and notify it. The game's inventory callback handles despawn and
+  container saving. An identity mismatch refuses the operation without changing the item.
+  Verified the free-roaming removal path and trap-slot removal across reloads; the new
+  `pets.remove` path also removed a bed pet and the equipped Peccary. A final full process
+  restart confirmed all four removed identities stayed absent and the Sow type/XP edit held.
+- Validation: 1,519 Lua checks pass; all 368 live-editing C# tests pass. New regressions cover
+  text-only names (including quotes/clearing), matching-item removal, mismatched-item refusal
+  and avoiding a second call on an actor already destroyed by its inventory notification.
+- Cleanup: returned to the main menu and stopped the test game; restored installed `main.lua`
+  to the repository version, removing the temporary diagnostic handler. Installed pet/base
+  scripts match the final sources. The original Cascade file list and SHA256 hashes match the
+  pre-test backup. The test world and diagnostic script in `%TEMP%\opencode\cu5-headless.lua`
+  remain available for reproducing the checks; hot reload remains off.
+
 ## CU5 pet replacement crash fixed and live follow-up (2026-10-28)
 
 Tested Steam 1.5.0.31650 as host in `CU5LiveTest`, an isolated copy of Cascade. Full saves

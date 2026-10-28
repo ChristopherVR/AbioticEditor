@@ -4,7 +4,8 @@ namespace AbioticEditor.Core.LiveEditing.World;
 /// Live pet editing. On Community Update 5, all tamed pets match by their follower buff's Guid.
 /// Names use engine text import; XP uses SetTotalXP; species changes use the engine's argument
 /// parser to invoke ReplaceCharacter with a constructed native row handle. DespawnPet removes
-/// both the actor and its saved record. See the live-editing protocol for verified CU5 behavior.
+/// both the actor and its saved record; equipped/contained pets also clear their matching item.
+/// See the live-editing protocol for verified CU5 behavior.
 /// The following describes the compatibility path for older game builds.
 /// Pest- and Skink-family pets are matched to a stable id (see
 /// <c>pets.list</c> in <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/pets.lua</c> for the
@@ -96,8 +97,8 @@ public sealed record LivePetSetResult(IReadOnlyList<string> Warnings);
 /// <summary>One live pet row. When <paramref name="Matched"/> is true (all CU5 pets, or the
 /// Pest/Skink family on older builds), <paramref name="Id"/> is the follower buff's or pet's
 /// <c>Guid</c> string field - the same stable id the save's
-/// <c>PetNPC</c> map uses as its key, so a live row and a file row for the same pet share the same
-/// id. When <paramref name="Matched"/> is false (round 105: any tamed creature the
+/// <c>PetNPC</c> map uses as its key, or the backing item's AssetID for an equipped/contained pet.
+/// When <paramref name="Matched"/> is false (round 105: any tamed creature the
 /// <c>AbioticFunctionLibrary::IsTamedPet</c> sweep found with no <c>Guid</c> of its own - Peccary
 /// and Lamogi families on older builds), <paramref name="Id"/> is the live actor's own full path instead
 /// (stable only for that actor's current lifetime, never a save key) and <paramref name="CustomName"/>

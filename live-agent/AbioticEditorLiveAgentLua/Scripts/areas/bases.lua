@@ -27,7 +27,7 @@
 -- game's own NewPlayerMadeString()/OnRep_PlayerMadeString() pair exactly like containers.rename
 -- already does, and the one that matches the save file's own leaf for this data
 -- (CustomTextDisplay_ - see WorldSaveWriter.ApplyDeployableCustomText/ApplyContainerCustomName and
--- WorldSaveReader's matching read). AlternativeObjectName is kept below as a READ-ONLY fallback
+-- WorldSaveReader's matching read). AlternativeObjectName is kept below as a host-only fallback
 -- for a deployable class with no PlayerMadeString at all (anything not Furniture-derived - lights,
 -- turrets, and similar non-nameable placeables); bases.set no longer writes it for a class that
 -- does have PlayerMadeString, and a bench renamed under the old code may still read back its old
@@ -66,7 +66,7 @@ return function(ctx)
     end
 
     -- See the header comment: PlayerMadeString is the real, networked name field (matches
-    -- containers.rename's own read); AlternativeObjectName is a read-only fallback for a
+    -- containers.rename's own read); AlternativeObjectName is a host-only fallback for a
     -- deployable class that has no PlayerMadeString at all.
     local function deployableCustomName(obj)
         local ok, value = pcall(function() return obj.PlayerMadeString end)
@@ -263,8 +263,14 @@ return function(ctx)
                 -- PlayerMadeString, so a bench/container/furniture rename never regresses to the
                 -- non-networked field again.
                 local text = payload.customName
-                local ok = pcall(function() obj.PlayerMadeString = text end)
-                if not ok then ok = pcall(function() obj.PlayerMadeString = FString(text) end) end
+                -- UE4SS silently ignores writes to absent properties, so a successful pcall
+                -- does not prove this field exists. Read an actual string before choosing it.
+                local hasName, currentName = pcall(function() return textValue(obj.PlayerMadeString) end)
+                local ok = false
+                if hasName and currentName ~= nil then
+                    ok = pcall(function() obj.PlayerMadeString = text end)
+                    if not ok then ok = pcall(function() obj.PlayerMadeString = FString(text) end) end
+                end
                 if ok then
                     local markOk = pcall(function()
                         local helper = replication.requireHelper()
