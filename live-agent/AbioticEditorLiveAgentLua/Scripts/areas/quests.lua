@@ -31,12 +31,13 @@ return function(ctx)
         return nil
     end
 
+    -- Returns the active quest rows, or nil plus the reason it could not be read.
     local function activeQuests()
         local subsystem = ctx.worldFlagSubsystem()
-        if not subsystem then return nil end
+        if not subsystem then return nil, "no world flag subsystem" end
         local out = {}
-        local ok = pcall(function() return subsystem:FindAllActiveQuests(out) end)
-        if not ok then return nil end
+        local ok, err = pcall(function() return subsystem:FindAllActiveQuests(out) end)
+        if not ok then return nil, tostring(err) end
         local result = { __forceArray = true }
         for i = 1, #out do
             local okHandle, handle = pcall(function() return out[i]:get() end)
@@ -68,12 +69,14 @@ return function(ctx)
         if gameOk and gameState and gameState:IsValid() then
             result.currentQuestLine = rowOf(function() return gameState.CurrentQuestline end) or "None"
         end
-        local active = activeQuests()
+        local active, reason = activeQuests()
+        if reason and ctx.logLine then ctx.logLine("[AbioticEditorLiveAgentLua] quests: FindAllActiveQuests unavailable: " .. reason .. "\n") end
         if active then
             result.activeQuestsKnown = true
             result.activeQuests = active
         else
             result.activeQuestsKnown = false
+            result.activeQuestsError = reason
             result.activeQuests = { __forceArray = true }
         end
         return result
