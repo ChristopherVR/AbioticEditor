@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.1] - 2026-10-28
+
+### Bug Fixes
+- Clearer message when a save can't be written
+
+
 ## [2.30.0] - 2026-10-28
 
 ### Features
