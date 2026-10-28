@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.0] - 2026-10-28
+
+### Features
+- Tell players when the game data is out of date
+- Live editing now shows your quest lines and lets you pick the one you track
+- Tell web users when a save has content from mods
+
+
+### Bug Fixes
+- Quest line tracking shows a friendly message when it cannot be changed
+- Live editing now asks the game for active quest steps the right way
+- Live editing explains why it cannot list active quests
+- Protect saves from future game updates
+
+
 ## [2.29.0] - 2026-10-28
 
 ### Features
