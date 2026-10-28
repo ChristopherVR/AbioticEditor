@@ -3859,6 +3859,11 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="GameData_StatusNotLoaded" xml:space="preserve"><value>Game data has not been loaded yet.</value></data>
   <data name="GameData_StatusReady" xml:space="preserve"><value>Game data loaded.</value></data>
   <data name="GameData_Title" xml:space="preserve"><value>Game data</value></data>
+  <data name="GameDataNotice_Title" xml:space="preserve"><value>Game data may be out of date</value></data>
+  <data name="GameDataNotice_Body" xml:space="preserve"><value>The editor found Abiotic Factor but could not read its data tables. The game has most likely been updated since this version of the editor was released, so item, recipe and quest lists may be empty or incomplete. Your saves are safe and the editor's built-in names still work.</value></data>
+  <data name="GameDataNotice_Steps" xml:space="preserve"><value>To fix it, install the latest editor update when it is out. Until then, open Settings, choose Game data, open Advanced game data and press IMPORT DATA FILE to load a Mappings.usmap made for your game version. The editor uses it straight away.</value></data>
+  <data name="GameDataNotice_OpenSettings" xml:space="preserve"><value>Open Settings</value></data>
+  <data name="GameDataSettings_MappingsOutdated" xml:space="preserve"><value>The game was found, but its data tables could not be read with the mappings file in use. Press IMPORT DATA FILE to load a Mappings.usmap made for your game version, or update the editor.</value></data>
   <data name="IniEditor_StatusReloaded" xml:space="preserve"><value>Reloaded {0} from disk.</value></data>
   <data name="IniEditor_StatusSaveFailed" xml:space="preserve"><value>Save failed: {0}</value></data>
   <data name="IniEditor_StatusSaved" xml:space="preserve"><value>Saved {0} (previous version kept as {1}.bak).</value></data>

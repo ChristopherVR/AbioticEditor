@@ -24,11 +24,23 @@ Without the game, missing pictures use a plain fallback and the 3D view is not o
 
 Update the editor too. A new game patch can add things an older editor does not know yet. The start page will also offer to [get the 3D view ready](./3d-view#get-the-3d-view-ready) again, because the game's files have changed.
 
+### The game data out of date notice
+
+If a red **Game data may be out of date** notice appears across the top of the editor, the editor found your game but could not read its data tables. That almost always means the game has updated since your version of the editor was released. Item, recipe and quest lists may then be empty or incomplete, and item pictures may be missing.
+
+Your saves are not affected. The editor's built-in names still work, and you can keep editing. If a save is from a game version the editor cannot read yet, it opens read-only and tells you so, rather than risk damaging it.
+
+To get rid of the notice:
+
+1. Install the latest editor update as soon as it is out. This is the normal fix.. Or, while you wait, load a mappings file made for your game version. Choose **SETTINGS**, then **Game data**, open **Advanced game data** and press **IMPORT DATA FILE**. See [The usmap](#the-usmap-matching-the-game-build) below.
+
+The notice goes away by itself once the editor can read your game again. **Open Settings** on the notice takes you straight there.
+
 ## The usmap (matching the game build)
 
-This is an advanced step most players never need. If names or pictures still look incomplete after updating the editor, you can give it a `Mappings.usmap` file that matches your game build.
+This is an advanced step most players never need. If the [out of date notice](#the-game-data-out-of-date-notice) stays after updating the editor, or names or pictures still look incomplete, you can give it a `Mappings.usmap` file that matches your game build.
 
-Make one with [Dumper-7](https://github.com/Encryqed/Dumper-7) or [FModel](https://fmodel.app/), then either:
+Make one with [Dumper-7](https://github.com/Encryqed/Dumper-7), [FModel](https://fmodel.app/) or the usmap dumper that comes with UE4SS, then either:
 
 1. Choose **Settings ▸ Game data ▸ IMPORT DATA FILE**, or
 2. Copy it to `%LOCALAPPDATA%\AbioticEditor\mappings\Mappings.usmap`.

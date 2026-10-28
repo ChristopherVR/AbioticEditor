@@ -106,6 +106,10 @@
        never runs at all, which is what actually stops save discovery, Steam/Game Pass scanning
        and everything else the "choose a world" screen kicks off from starting in the background
        before the player has answered the language and mode questions. *@
+    @if (!_firstRunPending)
+    {
+        <GameDataNotice Inert="@(_modeSelectOpen || _settingsOpen || _releaseNotesOpen)" OnOpenSettings="OpenGameDataSettings" />
+    }
     <main id="main-content" tabindex="-1" inert="@((_modeSelectOpen || _settingsOpen || _releaseNotesOpen) ? "" : null)">
         @if (!_firstRunPending)
         {
@@ -240,6 +244,7 @@
     private bool _releaseNotesPendingAfterModeSelect;
     private IReadOnlyList<ChangelogRelease> _releaseNotesToShow = [];
     private void OpenSettings() => _settingsOpen = true;
+    private void OpenGameDataSettings() { HostSettings.RequestGameDataSettingsTab(); _settingsOpen = true; }
     private void CloseSettings() => _settingsOpen = false;
     // Refuses while a confirm dialog (e.g. the "you have unsaved changes" prompt a save switch
     // in the sidebar shows) is still waiting on an answer, rather than piling a second overlay

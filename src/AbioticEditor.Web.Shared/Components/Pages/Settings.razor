@@ -112,7 +112,7 @@
                             <h2>@R("Settings_GameData")</h2>
                             <p class="muted">@R("GameDataSettings_CardHint")</p>
                             <div class="game-data-path-row"><span>@R("GameDataSettings_GameFolderLabel", HostSettings.SavedGamePath ?? HostSettings.PaksPath ?? R("GameDataSettings_FolderNotFound"))</span><button class="primary" type="button" @onclick="PickGameFolderAsync" disabled="@GameDataBusy">@R("GameDataSettings_SetGameFolder")</button>@if (HostSettings.SavedGamePath is not null) { <button class="secondary" type="button" @onclick="ClearGamePathAsync" disabled="@GameDataBusy">@R("GameDataSettings_UseAutoDetect")</button> }</div>
-                            <details class="editor-disclosure"><summary>@R("Editing_AdvancedGameData")</summary>
+                            <details class="editor-disclosure" open="@_startOnGameData"><summary>@R("Editing_AdvancedGameData")</summary>
                             <div class="game-data-path-row"><span>@R("GameDataSettings_UsmapLabel", HostSettings.MappingsPath is null ? R("GameDataSettings_UsmapNotFound") : Path.GetFileName(HostSettings.MappingsPath))</span><button class="secondary" type="button" @onclick="ImportMappingsAsync" disabled="@GameDataBusy">@R("GameDataSettings_ImportDataFile")</button></div>
                             </details>
                             @if (_gameDataStatus is not null) { <p class="muted" role="status">@_gameDataStatus</p> }
@@ -210,6 +210,7 @@
         ? AllTabs
         : AllTabs.Where(tab => tab.Id is SettingsTab.General or SettingsTab.Editor).ToArray();
     private SettingsTab _selectedTab;
+    private bool _startOnGameData;
     private string? _error;
     private string? _gameDataStatus;
     private string? _logFolderStatus;
@@ -223,6 +224,8 @@
     {
         Languages.Changed += Refresh;
         Theme.Changed += Refresh;
+        _startOnGameData = HostSettings.ConsumeGameDataSettingsTabRequest() && Workspace.HasLocalPaths;
+        if (_startOnGameData) _selectedTab = SettingsTab.GameData;
     }
 
     private string R(string key, params object?[] args) => Languages.Resource(key, args);
@@ -355,6 +358,7 @@
             GameDataReloadOutcome.Reloaded or GameDataReloadOutcome.MappingsInstalled => R("GameDataSettings_GameDataLoadedMessage"),
             GameDataReloadOutcome.MissingMappings => R("GameDataSettings_UsmapNotFound"),
             GameDataReloadOutcome.NoInstall => R("GameDataSettings_FolderNotFound"),
+            GameDataReloadOutcome.MappingsOutdated => R("GameDataSettings_MappingsOutdated"),
             GameDataReloadOutcome.ImportFailed => R("GameDataSettings_FolderPickerFailedTitle"),
             _ => R("GameDataSettings_NoGameDataTitle"),
         };

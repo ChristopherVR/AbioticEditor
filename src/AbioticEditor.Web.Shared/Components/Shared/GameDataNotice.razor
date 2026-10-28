@@ -1,0 +1,33 @@
+@using AbioticEditor.Core.Assets
+@implements IDisposable
+@inject HostLanguageService Languages
+@inject HostSettingsService HostSettings
+
+@if (HostSettings.GameDataHealth == GameDataHealthStatus.MappingsOutdated)
+{
+    <section class="game-data-notice" role="alert" inert="@(Inert ? "" : null)">
+        <div>
+            <strong>@Languages.Resource("GameDataNotice_Title")</strong>
+            <p>@Languages.Resource("GameDataNotice_Body")</p>
+            <p>@Languages.Resource("GameDataNotice_Steps")</p>
+        </div>
+        <button type="button" class="secondary" @onclick="OnOpenSettings">@Languages.Resource("GameDataNotice_OpenSettings")</button>
+    </section>
+}
+
+@code {
+    /// <summary>Set while a dialog is open, so the notice stays out of the keyboard order like the rest of the page.</summary>
+    [Parameter] public bool Inert { get; set; }
+
+    [Parameter] public EventCallback OnOpenSettings { get; set; }
+
+    protected override void OnInitialized()
+    {
+        HostSettings.GameDataHealthChanged += Changed;
+        HostSettings.EnsureGameDataHealthChecked();
+    }
+
+    private void Changed() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => HostSettings.GameDataHealthChanged -= Changed;
+}

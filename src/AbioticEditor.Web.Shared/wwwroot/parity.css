@@ -2399,3 +2399,10 @@ img[data-zoom]{cursor:zoom-in}
 .save-modded-notice strong{display:block;margin-bottom:4px;letter-spacing:.04em}
 .save-modded-notice p{margin:0 0 6px;color:var(--muted)}
 .save-modded-notice ul{margin:6px 0 0;padding-left:18px;max-height:160px;overflow:auto;font:12px ui-monospace,monospace}
+
+.game-data-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:12px 16px;border-bottom:1px solid var(--alert);border-left:4px solid var(--alert);background:var(--panel);color:var(--ink);font:13px var(--font-ui)}
+.game-data-notice strong{display:block;margin-bottom:4px;color:var(--alert-text);letter-spacing:.04em}
+.game-data-notice p{margin:0 0 4px}
+
+.app-frame:has(>.game-data-notice){grid-template-rows:78px 3px auto minmax(0,1fr) 49px}
+@media(max-width:900px){.app-frame:has(>.game-data-notice){grid-template-rows:auto 3px auto 1fr auto}}

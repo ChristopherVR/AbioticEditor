@@ -53,7 +53,7 @@ public sealed class SaveWriteGuardTests : IDisposable
         return data;
     }
 
-    [Fact]
+    [SkippableFact]
     public void Saves_the_editor_understands_are_not_blocked_and_still_write()
     {
         Skip.If(Fixtures.CascadeDir is null, "the Steam fixture is not in this checkout");
@@ -65,7 +65,7 @@ public sealed class SaveWriteGuardTests : IDisposable
         Assert.True(File.Exists(path + ".bak"));
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData("PlayerData/Player_76561197993781479.sav")]
     [InlineData("Validation/Player_76561197993781479.sav")]
     [InlineData("WorldSave_Facility.sav")]
@@ -84,7 +84,7 @@ public sealed class SaveWriteGuardTests : IDisposable
         Assert.Null(SaveWriteGuard.BlockReason(save));
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_restructured_layout_is_reported_and_its_writes_are_refused_without_touching_the_file()
     {
         Skip.If(Fixtures.CascadeDir is null, "the Steam fixture is not in this checkout");
@@ -104,7 +104,7 @@ public sealed class SaveWriteGuardTests : IDisposable
         Assert.False(File.Exists(path + ".bak"));
     }
 
-    [Fact]
+    [SkippableFact]
     public void A_newer_save_version_is_refused_for_world_saves()
     {
         Skip.If(Fixtures.ServerWorldsDir is null, "the dedicated-server fixture is not in this checkout");
@@ -118,7 +118,7 @@ public sealed class SaveWriteGuardTests : IDisposable
         Assert.Equal(before, File.ReadAllBytes(path));
     }
 
-    [Fact]
+    [SkippableFact]
     public void The_override_variable_lets_an_advanced_user_write_anyway()
     {
         Skip.If(Fixtures.CascadeDir is null, "the Steam fixture is not in this checkout");

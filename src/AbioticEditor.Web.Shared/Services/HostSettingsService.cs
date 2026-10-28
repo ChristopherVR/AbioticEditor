@@ -25,6 +25,53 @@ public sealed class HostSettingsService
         InventoryDismantleService dismantle, HostLanguageService languages, ILogger<HostSettingsService> logger)
         => (_recipes, _progression, _codex, _dismantle, _languages, _logger) = (recipes, progression, codex, dismantle, languages, logger);
 
+    /// <summary>
+    /// Whether the installed game's tables read back with the mappings in use. Stays
+    /// <see cref="GameDataHealthStatus.Healthy"/> until a check says otherwise, so the notice never
+    /// flashes up before the first answer.
+    /// </summary>
+    public GameDataHealthStatus GameDataHealth { get; private set; }
+
+    /// <summary>Raised on the thread that finished a game-data check, whenever <see cref="GameDataHealth"/> changes.</summary>
+    public event Action? GameDataHealthChanged;
+
+    private int _healthCheckStarted;
+
+    private int _gameDataTabRequested;
+
+    /// <summary>Asks the next Settings sheet to open on Game data (used by the out of date notice).</summary>
+    public void RequestGameDataSettingsTab() => Volatile.Write(ref _gameDataTabRequested, 1);
+
+    /// <summary>True once per request; reading it clears it so later opens start on General again.</summary>
+    public bool ConsumeGameDataSettingsTabRequest() => Interlocked.Exchange(ref _gameDataTabRequested, 0) == 1;
+
+    /// <summary>Runs the first game-data check in the background; later calls do nothing. Reloads re-check on their own.</summary>
+    public void EnsureGameDataHealthChecked()
+    {
+        if (Interlocked.Exchange(ref _healthCheckStarted, 1) != 0) return;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
+                if (provider is not null) SetGameDataHealth(Core.Assets.GameDataHealth.Check(provider));
+            }
+            catch (Exception exception)
+            {
+                LogSettingsActionFailure(_logger, "Check game data", exception);
+            }
+        });
+    }
+
+    private void SetGameDataHealth(GameDataHealthStatus status)
+    {
+        // An unreadable check says nothing, so it must not clear a notice that an earlier check raised.
+        if (status == GameDataHealthStatus.Unreadable) return;
+        if (GameDataHealth == status) return;
+        GameDataHealth = status;
+        GameDataHealthChanged?.Invoke();
+    }
+
     public void EnsurePluginsLoaded()
     {
         lock (_sync)
@@ -71,7 +118,10 @@ public sealed class HostSettingsService
         {
             var installed = GameAssetProvider.InstallUserMappings(sourcePath);
             var status = ReloadGameData();
-            return status with { Outcome = GameDataReloadOutcome.MappingsInstalled, Path = installed };
+            // An imported file that still cannot read the game must say so, not "installed".
+            return status.CatalogsAvailable
+                ? status with { Outcome = GameDataReloadOutcome.MappingsInstalled, Path = installed }
+                : status;
         }
         catch (Exception exception)
         {
@@ -87,11 +137,21 @@ public sealed class HostSettingsService
             GameDataGate.Invalidate();
             var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
             _recipes.Reload(); _progression.Reload(); _codex.Reload(); _dismantle.Reload();
-            return provider is null
-                ? new(false, GameDataReloadOutcome.NoInstall)
-                : new(provider.HasMappings, provider.HasMappings
-                    ? GameDataReloadOutcome.Reloaded
-                    : GameDataReloadOutcome.MissingMappings, PaksPath);
+            if (provider is null)
+            {
+                SetGameDataHealth(GameDataHealthStatus.Healthy);
+                return new(false, GameDataReloadOutcome.NoInstall);
+            }
+            if (!provider.HasMappings)
+            {
+                SetGameDataHealth(GameDataHealthStatus.Healthy);
+                return new(false, GameDataReloadOutcome.MissingMappings, PaksPath);
+            }
+            var health = Core.Assets.GameDataHealth.Check(provider);
+            SetGameDataHealth(health);
+            return health == GameDataHealthStatus.MappingsOutdated
+                ? new(false, GameDataReloadOutcome.MappingsOutdated, PaksPath)
+                : new(true, GameDataReloadOutcome.Reloaded, PaksPath);
         }
         catch (Exception exception)
         {
@@ -115,4 +175,4 @@ public sealed class HostSettingsService
 
 public sealed record GameDataReloadStatus(bool CatalogsAvailable, GameDataReloadOutcome Outcome, string? Path = null);
 
-public enum GameDataReloadOutcome { Reloaded, MissingMappings, NoInstall, MappingsInstalled, ImportFailed, ReloadFailed }
+public enum GameDataReloadOutcome { Reloaded, MissingMappings, NoInstall, MappingsInstalled, ImportFailed, ReloadFailed, MappingsOutdated }
