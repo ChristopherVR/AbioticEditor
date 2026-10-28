@@ -132,7 +132,7 @@ public class GameMeshProbe
                 if (mat is null) continue;
                 var p = new CUE4Parse.UE4.Assets.Exports.Material.CMaterialParams2();
                 mat.GetParams(p, EMaterialDepth.AllLayers);
-                foreach (var (k, v) in p.Textures.Take(6)) _output.WriteLine($"               tex {k} = {v.GetPathName()}");
+                foreach (var (k, v) in p.Textures.Take(6)) _output.WriteLine($"               tex {k} = {v.Load()?.GetPathName()}");
                 foreach (var (k, v) in p.Colors.Take(4)) _output.WriteLine($"               col {k} = {v}");
             }
         }
@@ -247,7 +247,7 @@ public class GameMeshResolveProbe
                         if (mat is null) continue;
                         var p = new CMaterialParams2();
                         mat.GetParams(p, EMaterialDepth.AllLayers);
-                        foreach (var (k, v) in p.Textures.Take(8)) _output.WriteLine($"         tex {k} = {v.GetPathName()}");
+                        foreach (var (k, v) in p.Textures.Take(8)) _output.WriteLine($"         tex {k} = {v.Load()?.GetPathName()}");
                         foreach (var (k, v) in p.Colors.Take(4)) _output.WriteLine($"         col {k} = {v}");
                     }
                 }

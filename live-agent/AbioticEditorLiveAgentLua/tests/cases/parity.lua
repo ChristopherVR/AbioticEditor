@@ -67,7 +67,7 @@ return function(H)
     local variantKey = "TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636"
     local tablePath = "/Game/Blueprints/DataTables/Customization/DT_TextureVariants.DT_TextureVariants"
     local variants = H.itemTable(tablePath, { Poster_Art = true })
-    data[variantKey] = { RowName = H.fname("None") }
+    data[variantKey] = { RowName = H.fname("None"), DataTable = false }
     local details = { liquidLevel = 25, liquidType = liquids[3], dynamicState = true,
         playerMadeString = "My item", assetId = "instance-guid", variantRowName = "Poster_Art" }
     -- A real itemId (round 79: an empty slot's details are no longer read/reported at all - see

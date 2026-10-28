@@ -37,15 +37,45 @@ return function(ctx)
     -- Same indexed iteration + :ToString() the reference mod's "traits" console command uses on
     -- progressionComponen.Traits, applied here to DIFFERENT array properties with no precedent of
     -- their own, hence the pcall.
+    -- An array entry as its row name: a plain FName, or (Community Update 5) a typed row handle
+    -- such as AnyTraitRowHandle whose name lives in RowName.
+    local function entryName(entry)
+        local ok, name = pcall(function()
+            if entry.RowName == nil then error("not a row handle") end
+            return entry.RowName:ToString()
+        end)
+        if ok and name then return name end
+        ok, name = pcall(function() return entry:ToString() end)
+        if ok then return name end
+        return nil
+    end
+
     local function readNameArray(getArray)
         local result = { __forceArray = true }
         local ok, arr = pcall(getArray)
         if not ok or not arr then return result end
         for i = 1, #arr do
-            local okName, name = pcall(function() return arr[i]:ToString() end)
-            if okName and name and name ~= "" then table.insert(result, name) end
+            local name = entryName(arr[i])
+            if name and name ~= "" and name ~= "None" then table.insert(result, name) end
         end
         return result
+    end
+
+    -- True when the trait list holds row-handle structs (Community Update 5) rather than names.
+    local function traitsAreHandles(component)
+        local traits = component.Traits
+        if #traits == 0 then
+            local ok, isNative = pcall(function()
+                return StaticFindObject("/Script/AbioticFactor.AnyTraitRowHandle") ~= nil
+                    and StaticFindObject("/Script/AbioticFactor.AnyTraitRowHandle"):IsValid()
+            end)
+            return ok and isNative == true
+        end
+        local ok, name = pcall(function()
+            if traits[1].RowName == nil then error("not a row handle") end
+            return traits[1].RowName:ToString()
+        end)
+        return ok and name ~= nil
     end
 
     local function traitRuntime(payload)
@@ -74,30 +104,43 @@ return function(ctx)
             local targetName = FName(payload.id, EFindName.FNAME_Find)
             if targetName:ToString() == "None" then error("unknown trait row: " .. payload.id) end
             local targetId = targetName:ToString():lower()
+            -- Community Update 5 stores traits as AnyTraitRowHandle structs; older builds as names.
+            local asHandles = traitsAreHandles(component)
+            local function entry(name) if asHandles then return { RowName = name } end return name end
             local current, replacement, present = {}, {}, false
             for index = 1, #component.Traits do
-                local name = FName(component.Traits[index]:ToString(), EFindName.FNAME_Find)
-                current[#current + 1] = name
+                local name = FName(entryName(component.Traits[index]) or "None", EFindName.FNAME_Find)
+                current[#current + 1] = entry(name)
                 local matches = name:ToString():lower() == targetId
                 if matches then present = true end
-                if payload.enabled or not matches then replacement[#replacement + 1] = name end
+                if payload.enabled or not matches then replacement[#replacement + 1] = entry(name) end
             end
             if present == payload.enabled then return nil end
-            if payload.enabled then replacement[#replacement + 1] = targetName end
+            if payload.enabled then replacement[#replacement + 1] = entry(targetName) end
             local handle
             if payload.buffRowName ~= "" and payload.buffRowName ~= "None" then
                 local buffName = FName(payload.buffRowName, EFindName.FNAME_Find)
                 if buffName:ToString() == "None" then error("unknown trait buff row: " .. payload.buffRowName) end
                 handle = library:MakeBuffDebuffRowHandle(buffName)
-                local path = handle.DataTablePath:ToString()
-                path = path:match("'([^']+)'$") or path
-                local dataTable = StaticFindObject(path)
-                local tables = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
-                if not dataTable or not dataTable:IsValid() or not tables or not tables:IsValid() then
-                    error("trait buff table is unavailable")
-                end
-                if not tables:DoesDataTableRowExist(dataTable, handle.RowName) then
-                    error("unknown trait buff row: " .. payload.buffRowName)
+                local okPath, path = pcall(function() return handle.DataTablePath:ToString() end)
+                if okPath and path then
+                    -- Older builds: check the row against the handle's own table.
+                    path = path:match("'([^']+)'$") or path
+                    local dataTable = StaticFindObject(path)
+                    local tables = StaticFindObject("/Script/Engine.Default__DataTableFunctionLibrary")
+                    if not dataTable or not dataTable:IsValid() or not tables or not tables:IsValid() then
+                        error("trait buff table is unavailable")
+                    end
+                    if not tables:DoesDataTableRowExist(dataTable, handle.RowName) then
+                        error("unknown trait buff row: " .. payload.buffRowName)
+                    end
+                else
+                    -- Community Update 5: typed handles carry no table; ask the game for its buff rows.
+                    local known = false
+                    for _, name in ipairs(ctx.outNames(function(out) library:GetAllBuffDebuffRowNames(out) end)) do
+                        if name == payload.buffRowName then known = true; break end
+                    end
+                    if not known then error("unknown trait buff row: " .. payload.buffRowName) end
                 end
             end
             local function applyBuff(enabled)
@@ -126,7 +169,8 @@ return function(ctx)
             local background = nil
             local state = getPlayerState(payload)
             if state then
-                local ok, phd = pcall(function() return state.PhD:ToString() end)
+                -- A PhDRowHandle since Community Update 5; a plain name before.
+                local ok, phd = pcall(function() return entryName(state.PhD) end)
                 if ok and phd and phd ~= "" and phd ~= "None" then background = phd end
             end
             return {
@@ -166,8 +210,14 @@ return function(ctx)
             if payload.background and payload.background ~= "" then
                 local state = getPlayerState(payload)
                 if state then
-                    -- Direct field write, no OnRep to call (see the file header comment).
-                    pcall(function() state.PhD = FName(payload.background, EFindName.FNAME_Find) end)
+                    -- Direct field write, no OnRep to call (see the file header comment). A
+                    -- PhDRowHandle since Community Update 5; a plain name before.
+                    local name = FName(payload.background, EFindName.FNAME_Find)
+                    local okHandle = pcall(function()
+                        if state.PhD.RowName == nil then error("not a row handle") end
+                        state.PhD = { RowName = name }
+                    end)
+                    if not okHandle then pcall(function() state.PhD = name end) end
                 end
             end
             -- Trait edits use their dedicated command with an installed catalog buff row.

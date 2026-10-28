@@ -266,7 +266,8 @@ function H.hostSession()
         local slots = {}
         for i = 1, count do
             slots[i] = {
-                ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
+                -- Legacy layout: a DataTableRowHandle always has its DataTable field (false = null).
+                ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty"), DataTable = false },
                 ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = {
                     CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0,
                     CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0,

@@ -1,5 +1,6 @@
 -- HumanCustomizationComponent's exported Server_ApplyCustomizationChange assigns
--- these FNames and marks their replicated properties. Use the same field writes on
+-- these rows (plain FNames before Community Update 5, typed row handles since) and marks their
+-- replicated properties. Use the same field writes on
 -- the host, then call their exact RepNotify so the local meshes refresh as well.
 return function(ctx)
     local replication = require("replication")
@@ -40,6 +41,16 @@ return function(ctx)
         return instance, profile
     end
     local function saveProperty(id) return id == "customization_beard" and "Customization_Beard" or id end
+    -- Community Update 5 turned the component's fields into typed row handles
+    -- (CustomizationHeadRowHandle, ...); the profile save object still stores plain names.
+    local function isHandle(value)
+        local ok, row = pcall(function() return value.RowName end)
+        return ok and row ~= nil
+    end
+    local function rowText(value)
+        if isHandle(value) then return value.RowName:ToString() end
+        return value:ToString()
+    end
     ctx.handlers["appearance.save"] = function(payload, respond)
         ctx.runOnGameThread(function()
             local instance, profile = profileFor(payload)
@@ -55,7 +66,7 @@ return function(ctx)
             for id, field in pairs(fields) do
                 local property = saveProperty(id)
                 old[property] = FName(profile[property]:ToString(), EFindName.FNAME_Find)
-                replacement[property] = FName(component[field[1]]:ToString(), EFindName.FNAME_Find)
+                replacement[property] = FName(rowText(component[field[1]]), EFindName.FNAME_Find)
             end
             -- Back up through the game's own save API so its storage provider also handles
             -- platform-specific profiles. The backup slot ends in .bak (typically .bak.sav).
@@ -78,7 +89,7 @@ return function(ctx)
         ctx.runOnGameThread(function()
             local component = componentFor(payload)
             local result = {}
-            for id, field in pairs(fields) do result[id] = component[field[1]]:ToString() end
+            for id, field in pairs(fields) do result[id] = rowText(component[field[1]]) end
             local canSave, _, profile = pcall(profileFor, payload)
             local profileChanges = false
             if canSave then
@@ -107,17 +118,19 @@ return function(ctx)
             local row = FName(payload.rowName, EFindName.FNAME_Find)
             if not library:DoesDataTableRowExist(dataTable, row) then error("unknown appearance row: " .. payload.rowName) end
             local property = field[1]
-            local original = FName(component[property]:ToString(), EFindName.FNAME_Find)
+            local current = component[property]
+            local original = FName(rowText(current), EFindName.FNAME_Find)
             if original:ToString() == row:ToString() then return nil end
+            local asHandle = isHandle(current)
             local notify = "OnRep_" .. property
             local ok, err = pcall(function()
-                component[property] = row
+                component[property] = asHandle and { RowName = row } or row
                 replication.mark(helper, component, property)
                 component[notify](component)
             end)
             if not ok then
                 pcall(function()
-                    component[property] = original
+                    component[property] = asHandle and { RowName = original } or original
                     replication.mark(helper, component, property)
                     component[notify](component)
                 end)

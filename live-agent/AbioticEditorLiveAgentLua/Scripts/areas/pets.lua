@@ -168,6 +168,8 @@ return function(ctx)
     -- parent class main.lua's npcs.list already sweeps for the whole CREATURES tab.
     local ALL_NPC_CLASS = "NPC_Base_ParentBP_C"
     local FUNCTION_LIBRARY_PATH = "/Script/AbioticFactor.Default__AbioticFunctionLibrary"
+-- Community Update 5 moved IsTamedPet to its own PetFunctionLibrary.
+local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     local LIMB_PROPERTY = {
         Head = "CurrentHealth_Head", Torso = "CurrentHealth_Torso",
         LeftArm = "CurrentHealth_LeftArm", RightArm = "CurrentHealth_RightArm",
@@ -225,6 +227,12 @@ return function(ctx)
         return tail and tail:upper() or nil
     end
 
+    -- True on builds whose SpawnPet takes an NPC row handle (Community Update 5 and later).
+    local function speciesChangeUnsupported()
+        local ok, handleType = pcall(function() return StaticFindObject("/Script/AbioticFactor.NPCRowHandle") end)
+        return ok and handleType ~= nil and handleType:IsValid()
+    end
+
     -- Round 109: live species change for a MATCHED (Pest/Skink-family) pet - see this file's own
     -- header comment for the full reasoning on why the one previously-blocking piece
     -- (SpawnTransform, an FTransform) is safe to attempt now: the OLD actor's own transform is read
@@ -235,6 +243,12 @@ return function(ctx)
     -- false, "reason" on failure (never throws - this is applied the same non-fatal way the round-
     -- 78 XP/name fields already are, see pets.set below).
     local function trySpeciesChange(npc, guid, npcClassPath)
+        -- Community Update 5 changed SpawnPet's first argument from a class to an NPC row handle.
+        -- A class passed where a struct is expected is a native call mismatch that can crash the
+        -- game rather than raise a catchable error, so the change is refused on that build.
+        if speciesChangeUnsupported() then
+            return false, "changing a pet's creature type live is not supported on this game version yet"
+        end
         local gm = gameMode()
         if not gm then return false, "no authoritative game mode (are you the host, and is the world loaded?)" end
 
@@ -286,14 +300,24 @@ return function(ctx)
     -- Same {Key, Value} enum-tail matching companions.lua already uses for carried-pet XP -
     -- reused here against DynamicProperties directly on the NPC actor (no hash suffix, unlike
     -- the inventory-slot ChangeableData version companions.lua reads).
+    -- An EDynamicProperty key as its name. UE4SS can hand an enum property back as a plain number,
+    -- which has no ToString, so numbers go through the enum itself (as item_metadata.lua does).
+    local function dynamicKeyName(keyValue)
+        if type(keyValue) == "number" then
+            local enum = StaticFindObject("/Script/AbioticFactor.EDynamicProperty")
+            if enum and enum:IsValid() then return enum:GetNameByValue(keyValue):ToString() end
+            return tostring(keyValue)
+        end
+        return keyValue.ToString and keyValue:ToString() or tostring(keyValue)
+    end
+
     local function dynamicInt(npc, keySuffix)
         local ok, array = pcall(function() return npc.DynamicProperties end)
         if not ok or not array then return 0 end
         for i = 1, #array do
             local okEntry, key, value = pcall(function()
                 local entry = array[i]
-                local keyValue = entry.Key
-                return (keyValue.ToString and keyValue:ToString() or tostring(keyValue)), entry.Value
+                return dynamicKeyName(entry.Key), entry.Value
             end)
             if okEntry and key and tostring(key):match(keySuffix .. "$") then return value or 0 end
         end
@@ -306,8 +330,7 @@ return function(ctx)
         for i = 1, #array do
             local okEntry, matched = pcall(function()
                 local entry = array[i]
-                local keyValue = entry.Key
-                local keyString = keyValue.ToString and keyValue:ToString() or tostring(keyValue)
+                local keyString = dynamicKeyName(entry.Key)
                 if tostring(keyString):match(keySuffix .. "$") then entry.Value = value return true end
                 return false
             end)
@@ -388,8 +411,10 @@ return function(ctx)
     end
 
     local function functionLibrary()
-        local ok, lib = pcall(function() return StaticFindObject(FUNCTION_LIBRARY_PATH) end)
-        if ok and lib and lib:IsValid() then return lib end
+        for _, path in ipairs({ PET_LIBRARY_PATH, FUNCTION_LIBRARY_PATH }) do
+            local ok, lib = pcall(function() return StaticFindObject(path) end)
+            if ok and lib and lib:IsValid() then return lib end
+        end
         return nil
     end
 
@@ -481,7 +506,7 @@ return function(ctx)
                 -- field, which LivePetsSession reads as false (see that class's remarks), so the
                 -- app's creature-type control stays hidden against an older agent automatically.
                 -- Only MATCHED (Pest/Skink-family) rows can actually use it - see pets.set.
-                supportsSpeciesChange = true,
+                supportsSpeciesChange = not speciesChangeUnsupported(),
                 -- Round 78: real removal, evidenced by the reference CheatConsoleCommands mod's
                 -- own "deleteobject" command destroying an arbitrary world actor with
                 -- `actor:K2_DestroyActor()` (CommandsManager.lua) - see pets.remove below. There

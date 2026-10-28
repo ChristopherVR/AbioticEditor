@@ -23,7 +23,10 @@ public sealed class WorldLivePetsSpeciesChangeContractTests
     public void pets_lua_reports_the_new_capability_and_never_a_hardcoded_leaf_class_list()
     {
         var source = PetsLuaSource();
-        Assert.Contains("supportsSpeciesChange = true", source, StringComparison.Ordinal);
+        // Offered unless the running game's SpawnPet takes an NPC row (Community Update 5), where
+        // passing a class could crash the game instead of failing.
+        Assert.Contains("supportsSpeciesChange = not speciesChangeUnsupported()", source, StringComparison.Ordinal);
+        Assert.Contains("/Script/AbioticFactor.NPCRowHandle", source, StringComparison.Ordinal);
         // No hardcoded leaf class list: the target species class is resolved from whatever path
         // pets.set's own payload carries, not a table of known species names.
         Assert.Contains("local function resolveClass(path)", source, StringComparison.Ordinal);

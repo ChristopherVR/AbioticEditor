@@ -41,4 +41,5 @@ return {
     "recipes",
     "npcspawns",
     "triggers",
+    "cu5_native",
 }

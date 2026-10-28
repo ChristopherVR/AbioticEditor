@@ -114,6 +114,13 @@ return function(ctx)
     -- matching main.lua's own SKILL_XP_FIELD precedent: a struct-instance field name is only ever
     -- hardcoded against a real confirmed dump, never guessed.
     local PRESSED_ONCE_LEAF = "ButtonHasBeenPressedOnce_110_C4AE20D34162FCD3FA3323907300CB1F"
+    -- Community Update 5 made ButtonSaveData the native AbioticButtonSave, whose field is
+    -- bPressedOnce; the hash-suffixed leaf is the fallback for older builds.
+    local function pressedOnceLeaf(data)
+        local ok, value = pcall(function() return data.bPressedOnce end)
+        if ok and value ~= nil then return "bPressedOnce" end
+        return PRESSED_ONCE_LEAF
+    end
 
     -- The literal SaveType byte UpdateButtonSaveData's own bytecode passes to
     -- GameMode:UpdateActorToWorldSave for a button - see the ROUND-110 header note for the
@@ -163,7 +170,7 @@ return function(ctx)
     local function readPressedOnce(button)
         local okData, data = pcall(function() return button.ButtonSaveData end)
         if not okData or data == nil then return nil end
-        local ok, value = pcall(function() return data[PRESSED_ONCE_LEAF] end)
+        local ok, value = pcall(function() return data[pressedOnceLeaf(data)] end)
         return boolOrNil(ok, value)
     end
 
@@ -187,7 +194,7 @@ return function(ctx)
     local function writePressedOnce(button, wanted)
         local okData, data = pcall(function() return button.ButtonSaveData end)
         if not okData or data == nil then return false end
-        local okWrite = pcall(function() data[PRESSED_ONCE_LEAF] = wanted end)
+        local okWrite = pcall(function() data[pressedOnceLeaf(data)] = wanted end)
         if not okWrite then return false end
         local gm = gameMode()
         if not gm then return false end

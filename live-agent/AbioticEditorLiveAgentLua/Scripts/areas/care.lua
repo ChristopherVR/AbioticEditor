@@ -46,7 +46,7 @@ return function(ctx)
         return result
     end
     local function charge(obj)
-        return obj.ChangeableData.LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A
+        return ctx.slotFields.get(obj.ChangeableData, "LiquidLevel")
     end
     local function fieldsFor(feature, obj, host)
         local fields = { __forceArray = true }
@@ -127,7 +127,7 @@ return function(ctx)
             if feature == "garden-plots" then
                 if id == "water" then
                     value = number(value, capacity(obj))
-                    obj:Server_ModifyFillState(obj.ChangeableData.CurrentLiquid_19_3E1652F448223AAE5F405FB510838109, value, false, nil)
+                    obj:Server_ModifyFillState(ctx.slotFields.get(obj.ChangeableData, "CurrentLiquid"), value, false, nil)
                 else
                     local kind, index = tostring(id):match("^(%a+):(%d+)$")
                     local spot = index and spots(obj)[tonumber(index)]
@@ -155,7 +155,11 @@ return function(ctx)
                         -- the game's own planting flow always pairs these two functions: a spot
                         -- that already HasPlant() keeps its old PlantProxy actor otherwise.
                         spot:ClearPlant()
-                        local planted = spot:SetPlantFromItemData({ DataTable = dataTable, RowName = name }, {}, false)
+                        -- A GlobalItemRowHandle (row name only) since Community Update 5; a
+                        -- DataTableRowHandle, which needs its table, before.
+                        local okType, handleType = pcall(function() return StaticFindObject("/Script/AbioticFactor.GlobalItemRowHandle") end)
+                        local typed = okType and handleType ~= nil and handleType:IsValid()
+                        local planted = spot:SetPlantFromItemData(typed and { RowName = name } or { DataTable = dataTable, RowName = name }, {}, false)
                         if planted ~= true then error("the game rejected the new crop") end
                         -- Fresh planting: reset back to the very start, same as file-mode edits.
                         spot:SetCurrentGrowthStage(0, false)

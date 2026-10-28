@@ -13,14 +13,15 @@
 -- not a blanket "this class supports upgrades" check.
 local M = {}
 local replication = require("replication")
-local SAVED_TAGS = "GameplayTags_45_1A018E824E25CC7BA608A6B2835209A1"
+-- Native GameplayTags since Community Update 5, hash-suffixed before (see slot_fields.lua).
+local slotFields = require("slot_fields")
 local function readable(container)
     return container and container.GameplayTags and container.ParentTags
 end
 function M.available(obj)
     local ok, value = pcall(function()
         return replication.available() and readable(obj.UpgradeTagContainer) ~= nil
-            and readable(obj.ChangeableData[SAVED_TAGS]) ~= nil
+            and readable(slotFields.get(obj.ChangeableData, "GameplayTags")) ~= nil
     end)
     return ok and value == true
 end
@@ -54,7 +55,7 @@ function M.set(obj, row, installed)
     -- All three Item Transporter table rows share one gameplay tag in DT_BenchUpgrades.
     local tag = "BenchUpgrade." .. (row:match("^ItemTransporter") and "ItemTransporter" or row)
     local helper = replication.requireHelper()
-    local saved = obj.ChangeableData[SAVED_TAGS]
+    local saved = slotFields.get(obj.ChangeableData, "GameplayTags")
     local currentPlan, savedPlan = prepare(obj.UpgradeTagContainer, tag, installed), prepare(saved, tag, installed)
     obj.UpgradeTagContainer.GameplayTags = currentPlan.tags
     obj.UpgradeTagContainer.ParentTags = currentPlan.parents

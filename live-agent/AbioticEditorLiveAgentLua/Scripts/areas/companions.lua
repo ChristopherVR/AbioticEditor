@@ -82,7 +82,7 @@ return function(ctx)
     end
 
     local function dynamicInt(changeableData, keySuffix)
-        local ok, array = pcall(function() return changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 end)
+        local ok, array = pcall(function() return ctx.slotFields.get(changeableData, "DynamicProperties") end)
         if not ok or not array then return 0 end
         for i = 1, #array do
             local okEntry, key, value = pcall(function()
@@ -98,7 +98,7 @@ return function(ctx)
 
     -- Sets or adds an integer using the reflected EDynamicProperty enum, following item_metadata.lua.
     local function setDynamicInt(changeableData, keySuffix, value)
-        local ok, array = pcall(function() return changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 end)
+        local ok, array = pcall(function() return ctx.slotFields.get(changeableData, "DynamicProperties") end)
         if not ok or not array then return false end
         for i = 1, #array do
             local okEntry, matched = pcall(function()
@@ -123,7 +123,7 @@ return function(ctx)
         local replacement = {}
         for i = 1, #array do replacement[#replacement + 1] = { Key = array[i].Key, Value = array[i].Value } end
         replacement[#replacement + 1] = { Key = enumValue, Value = value }
-        changeableData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = replacement
+        ctx.slotFields.set(changeableData, "DynamicProperties", replacement)
         return true
     end
 
@@ -140,11 +140,11 @@ return function(ctx)
                         local slot = inv.CurrentInventory[i]
                         local rowName = ctx.slotRowName(slot)
                         if rowName ~= "" and rowName ~= "Empty" and rowName ~= "None" then
-                            local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                            local changeableData = ctx.slotFields.get(slot, "ChangeableData")
                             -- PlayerMadeString is an FString userdata - convert it, or json.encode
                             -- rejects the whole reply (found live, round 76).
                             local okName, name = pcall(function()
-                                local value = changeableData.PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9
+                                local value = ctx.slotFields.get(changeableData, "PlayerMadeString")
                                 return value and value:ToString() or ""
                             end)
                             table.insert(result, {
@@ -152,8 +152,8 @@ return function(ctx)
                                 slotIndex = i - 1,
                                 itemId = rowName,
                                 name = (okName and name ~= "" and name) or nil,
-                                health = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
-                                maxHealth = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
+                                health = changeableData and ctx.slotFields.get(changeableData, "CurrentItemDurability") or 0,
+                                maxHealth = changeableData and ctx.slotFields.get(changeableData, "MaxItemDurability") or 0,
                                 xp = dynamicInt(changeableData, "XP"),
                                 mutationProgress = dynamicInt(changeableData, "MutationProgress"),
                                 petMutation = dynamicInt(changeableData, "PetMutation"),
@@ -179,7 +179,7 @@ return function(ctx)
                 and inv.CurrentInventory[payload.slotIndex + 1]
             if not slot then error("slot not found") end
 
-            local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+            local changeableData = ctx.slotFields.get(slot, "ChangeableData")
             if payload.requireEmpty then
                 local row = ctx.slotRowName(slot)
                 if row ~= "Empty" and row ~= "None" and row ~= "" then
@@ -204,10 +204,10 @@ return function(ctx)
                 details = payload.requireEmpty and {
                     dynamicState = true, assetId = payload.assetId,
                 } or nil })
-            if payload.health ~= nil then changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = payload.health end
-            if payload.maxHealth ~= nil then changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = payload.maxHealth end
+            if payload.health ~= nil then ctx.slotFields.set(changeableData, "CurrentItemDurability", payload.health) end
+            if payload.maxHealth ~= nil then ctx.slotFields.set(changeableData, "MaxItemDurability", payload.maxHealth) end
             if payload.name ~= nil then
-                pcall(function() changeableData.PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9 = payload.name end)
+                pcall(function() ctx.slotFields.set(changeableData, "PlayerMadeString", payload.name) end)
             end
             if payload.xp ~= nil then setDynamicInt(changeableData, "XP", math.floor(payload.xp)) end
             if payload.mutationProgress ~= nil then setDynamicInt(changeableData, "MutationProgress", math.floor(payload.mutationProgress)) end

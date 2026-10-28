@@ -48,7 +48,7 @@ return function(ctx)
                 local handle = handles[flagName]
                 if not handle then error("unknown quest flag " .. tostring(flagName)) end
                 local okCall = pcall(function()
-                    subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, true, instigator)
+                    subsystem:SetWorldFlag(ctx.rowHandleTable(handle), true, instigator)
                 end)
                 if not okCall then subsystem:SetWorldFlag(handle, true, instigator) end
             end

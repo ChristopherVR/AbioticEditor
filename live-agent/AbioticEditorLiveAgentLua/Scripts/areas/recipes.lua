@@ -53,9 +53,13 @@ return function(ctx)
             local ids = payload.unlockIds or {}
             for i = 1, #ids do
                 if ids[i] and ids[i] ~= "" then
-                    -- Same FName-from-string pattern main.lua's writeSlot() uses for item ids:
-                    -- FName(str, EFindName.FNAME_Find).
-                    component:Request_UnlockNewRecipe(FName(ids[i], EFindName.FNAME_Find))
+                    local name = FName(ids[i], EFindName.FNAME_Find)
+                    -- Community Update 5 takes an AnyRecipeRowHandle: the row name plus which recipe
+                    -- table it is in (EAnyRecipeTable: 0 crafting, 1 soup, 2 chemistry). Older builds
+                    -- took the bare name.
+                    local tableIndex = ids[i]:match("^srecipe_") and 1 or ids[i]:match("^crecipe_") and 2 or 0
+                    local ok = pcall(function() component:Request_UnlockNewRecipe({ Table = tableIndex, RowName = name }) end)
+                    if not ok then component:Request_UnlockNewRecipe(name) end
                 end
             end
             return nil

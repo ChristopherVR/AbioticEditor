@@ -1,13 +1,11 @@
--- Exact fields from Abiotic_InventoryChangeableDataStruct and native FDynamicProperty.
+-- Fields of the item-instance data (native AbioticInventoryChangeableData since Community Update 5,
+-- Abiotic_InventoryChangeableDataStruct before; see slot_fields.lua) and native FDynamicProperty.
 -- UE4SS push_structproperty/push_arrayproperty convert Lua tables using reflected types:
 -- https://github.com/UE4SS-RE/RE-UE4SS/blob/main/UE4SS/src/LuaType/LuaUObject.cpp
 -- Snapshot scalar values before any batch writes. Keeping UScriptStruct/TArray references
 -- would alias the source and destroy the second half of a swap when the first is written.
 local M = {}
-local DYNAMIC = "DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7"
-local TAGS = "GameplayTags_45_1A018E824E25CC7BA608A6B2835209A1"
-local ITEM = "ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B"
-local VARIANT = "TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636"
+local fields = require("slot_fields")
 local function text(value)
     if type(value) == "string" then return value end
     return value:ToString()
@@ -26,20 +24,25 @@ local function readTags(array)
     for i = 1, #array do result[#result + 1] = text(array[i].TagName) end
     return result
 end
+local function tablePath(handle)
+    -- Native typed row handles (Community Update 5) carry no DataTable reference.
+    if not handle or not fields.handleHasTable(handle) then return nil end
+    return path(handle.DataTable)
+end
 function M.read(data, slot)
-    if not data or not data[DYNAMIC] or not data[TAGS] then return nil end
+    local dynamic, tags = fields.get(data, "DynamicProperties"), fields.get(data, "GameplayTags")
+    if not data or not dynamic or not tags then return nil end
     local properties = { __forceArray = true }
-    for i = 1, #data[DYNAMIC] do
-        local entry = data[DYNAMIC][i]
+    for i = 1, #dynamic do
+        local entry = dynamic[i]
         local name = type(entry.Key) == "number" and text(enum():GetNameByValue(entry.Key)) or text(entry.Key)
         properties[#properties + 1] = { key = name, value = entry.Value }
     end
-    local tags = data[TAGS]
     if not tags.GameplayTags or not tags.ParentTags then return nil end
     return { dynamicProperties = properties, gameplayTags = readTags(tags.GameplayTags),
         parentGameplayTags = readTags(tags.ParentTags),
-        itemDataTable = slot and path(slot[ITEM].DataTable),
-        variantDataTable = data[VARIANT] and path(data[VARIANT].DataTable) }
+        itemDataTable = slot and tablePath(fields.get(slot, "ItemDataTable")),
+        variantDataTable = tablePath(fields.get(data, "TextureVariantRow")) }
 end
 local function prepareTags(values)
     if type(values) ~= "table" then error("invalid item gameplay tags") end
@@ -55,7 +58,9 @@ end
 function M.prepare(data, metadata)
     if metadata == nil then return nil end
     if type(metadata) ~= "table" or type(metadata.dynamicProperties) ~= "table"
-        or not data[DYNAMIC] or not data[TAGS] then error("complete item metadata is unavailable") end
+        or not fields.get(data, "DynamicProperties") or not fields.get(data, "GameplayTags") then
+        error("complete item metadata is unavailable")
+    end
     local properties, enumValues, seen = {}, {}, {}
     if #metadata.dynamicProperties > 0 then
         enum():ForEachName(function(name, value) enumValues[text(name)] = value end)
@@ -80,15 +85,17 @@ function M.prepare(data, metadata)
 end
 function M.apply(data, prepared)
     if not prepared then return end
-    data[DYNAMIC] = prepared.properties
-    data[TAGS].GameplayTags = prepared.tags
-    data[TAGS].ParentTags = prepared.parents
+    fields.set(data, "DynamicProperties", prepared.properties)
+    local tags = fields.get(data, "GameplayTags")
+    tags.GameplayTags = prepared.tags
+    tags.ParentTags = prepared.parents
 end
 function M.clear(data)
-    if data[DYNAMIC] then data[DYNAMIC] = {} end
-    if data[TAGS] then
-        data[TAGS].GameplayTags = {}
-        data[TAGS].ParentTags = {}
+    if fields.get(data, "DynamicProperties") then fields.set(data, "DynamicProperties", {}) end
+    local tags = fields.get(data, "GameplayTags")
+    if tags then
+        tags.GameplayTags = {}
+        tags.ParentTags = {}
     end
 end
 return M

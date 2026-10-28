@@ -431,7 +431,17 @@ local FileIndexToLiveSkillId = {
 -- scanning (as opposed to UObject scanning) has no confirmed-working precedent from that mod to
 -- copy - if this breaks on a future game patch, that is the trade-off to revisit then, with a
 -- real error message pointing at exactly which field name stopped resolving.
+-- Community Update 5 made the skill struct native (AbioticCharacterSkill: Skill, CurrentXP,
+-- XPMultiplier); the hash-suffixed name is the fallback for older builds.
 local SKILL_XP_FIELD = "CurrentSkillXP_20_8F7934CD4A4542F036AE5C9649362556"
+local function skillField(skill, native, legacy)
+    local ok, value = pcall(function() return skill[native] end)
+    if ok and value ~= nil then return value end
+    if not legacy then return nil end
+    ok, value = pcall(function() return skill[legacy] end)
+    if ok then return value end
+    return nil
+end
 
 ---@return userdata? progressionComponent
 local function getProgressionComponent(payload)
@@ -465,15 +475,15 @@ handlers["skills.get"] = function(payload, respond)
         local result = { __forceArray = true }
         for fileIndex = 0, 14 do
             local liveId = FileIndexToLiveSkillId[fileIndex]
-            local xp = 0
+            local xp, multiplier = 0, 1
             for i = 1, #keys do
                 if skillKeyToNumber(keys[i]) == liveId then
-                    local ok, value = pcall(function() return values[i][SKILL_XP_FIELD] end)
-                    if ok and value then xp = value end
+                    xp = skillField(values[i], "CurrentXP", SKILL_XP_FIELD) or 0
+                    multiplier = skillField(values[i], "XPMultiplier", nil) or 1
                     break
                 end
             end
-            table.insert(result, { index = fileIndex, xp = xp, xpMultiplier = 1 })
+            table.insert(result, { index = fileIndex, xp = xp, xpMultiplier = multiplier })
         end
         return result
     end, respond)
@@ -821,16 +831,19 @@ local function inventoryComponent(player, kind)
     return inv
 end
 
+local slotFields = require("slot_fields")
+
 local function slotRowName(slot)
     local ok, rowName = pcall(function()
-        return slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B.RowName:ToString()
+        return slotFields.get(slot, "ItemDataTable").RowName:ToString()
     end)
     if ok and rowName then return rowName end
     return ""
 end
 
--- FDataTableRowHandle needs BOTH its UObject table and its row name. Keeping the old
--- table (often ItemTable_Pickups on an empty slot) makes a newly assigned item invisible.
+-- Before Community Update 5 an item handle was an FDataTableRowHandle that needed BOTH its UObject
+-- table and its row name (keeping the old table, often ItemTable_Pickups on an empty slot, made a
+-- newly assigned item invisible). The native GlobalItemRowHandle carries only the row name.
 local ITEM_TABLE_GLOBAL = "/Game/Blueprints/Items/ItemTable_Global.ItemTable_Global"
 local function isDataTable(value)
     local ok, valid = pcall(function() return value and value:IsValid() and value:IsA("/Script/Engine.DataTable") end)
@@ -873,34 +886,60 @@ local function resolveItemHandle(slot, row)
         if not ok then error("cannot validate the item's DataTable on this game build") end
         return exists == true
     end
-    local handle = slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
+    local handle = slotFields.get(slot, "ItemDataTable")
     local name = FName(row.itemId, EFindName.FNAME_Find)
     -- Preserve a working instance table for a same-item edit, including mod overrides.
-    if not (row.details and row.details.instanceMetadata and row.details.instanceMetadata.itemDataTable)
+    if slotFields.handleHasTable(handle)
+        and not (row.details and row.details.instanceMetadata and row.details.instanceMetadata.itemDataTable)
         and slotRowName(slot) == row.itemId and hasRow(handle.DataTable, name) then
         return handle.DataTable, name
     end
     return resolveDataTableRow(row.dataTable or ITEM_TABLE_GLOBAL, row.itemId)
 end
 
--- Field names and types are verified against Abiotic_InventoryChangeableDataStruct's
--- exported schema. Use UEnum values rather than assuming NewEnumerator suffixes are ordinals.
-local LIQUID_FIELD = "CurrentLiquid_19_3E1652F448223AAE5F405FB510838109"
-local LEVEL_FIELD = "LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A"
-local TEXT_FIELD = "PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9"
-local ASSET_FIELD = "AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB"
-local STATE_FIELD = "DynamicState_39_7597AC6549E292B931C61BB13C9E42EB"
-local VARIANT_FIELD = "TextureVariantRow_28_1C7CF7A0441335E8AC4EA7B5CA91F636"
+-- Item-instance fields resolve through slot_fields (native names since Community Update 5, hash-
+-- suffixed Blueprint names before). Use UEnum values rather than assuming NewEnumerator suffixes
+-- are ordinals.
+local LIQUID_FIELD, LEVEL_FIELD, TEXT_FIELD = "CurrentLiquid", "LiquidLevel", "PlayerMadeString"
+local ASSET_FIELD, STATE_FIELD, VARIANT_FIELD = "AssetID", "DynamicState", "TextureVariantRow"
+local function getField(data, field) return slotFields.get(data, field) end
+local function setField(data, field, value) slotFields.set(data, field, value) end
 local VARIANT_TABLE = "/Game/Blueprints/DataTables/Customization/DT_TextureVariants.DT_TextureVariants"
 local function textValue(value)
     if value == nil then return nil end
     if type(value) == "string" then return value end
     return value:ToString()
 end
+-- The editor speaks the older E_LiquidType::NewEnumeratorN names. Community Update 5 replaced that
+-- Blueprint enum with native ELiquidType, whose names are readable and whose numbers DIFFER (Fuel
+-- was 6 and is now 5), so liquids are translated by name, never by number.
+local LEGACY_LIQUID_NAMES = {
+    [0] = "Empty", [1] = "Water", [2] = "Feces", [3] = "RadioactiveWaste", [4] = "MoltenMaterial",
+    [6] = "Fuel", [7] = "Vomit", [8] = "Battery", [9] = "Blood", [11] = "Antejuice",
+    [13] = "TaintedWater", [14] = "Soup", [15] = "Laser", [16] = "Ink",
+}
 local function liquidEnum()
-    local enum = StaticFindObject("/Game/Blueprints/Data/E_LiquidType.E_LiquidType")
+    local enum = StaticFindObject("/Script/AbioticFactor.ELiquidType")
+    if enum and enum:IsValid() then return enum, true end
+    enum = StaticFindObject("/Game/Blueprints/Data/E_LiquidType.E_LiquidType")
     if not enum or not enum:IsValid() then error("liquid enum is unavailable on this game build") end
-    return enum
+    return enum, false
+end
+-- A game liquid name in the form the editor uses.
+local function editorLiquidName(name)
+    local native = name:match("^ELiquidType::(.+)$")
+    if not native then return name end
+    for number, known in pairs(LEGACY_LIQUID_NAMES) do
+        if known == native then return "E_LiquidType::NewEnumerator" .. number end
+    end
+    return name
+end
+-- An editor liquid name in the form the running game uses.
+local function gameLiquidName(name, isNative)
+    if not isNative then return name end
+    local number = tonumber(name:match("^E_LiquidType::NewEnumerator(%d+)$") or "")
+    if number and LEGACY_LIQUID_NAMES[number] then return "ELiquidType::" .. LEGACY_LIQUID_NAMES[number] end
+    return name
 end
 local itemMetadata = require("item_metadata")
 -- skipMetadata (round 79): itemMetadata.read() walks the DynamicProperties array (a fresh
@@ -916,18 +955,18 @@ local itemMetadata = require("item_metadata")
 -- container; inventory.list (one player's own ~50 slots, inherently bounded) keeps full detail.
 local function readItemDetails(data, slot, skipMetadata)
     if not data then return nil end
-    local liquid = data[LIQUID_FIELD]
-    local liquidName = liquid ~= nil and liquidEnum():GetNameByValue(liquid):ToString() or nil
-    local variant = data[VARIANT_FIELD]
+    local liquid = getField(data, LIQUID_FIELD)
+    local liquidName = liquid ~= nil and editorLiquidName(liquidEnum():GetNameByValue(liquid):ToString()) or nil
+    local variant = getField(data, VARIANT_FIELD)
     -- Not "skipMetadata and nil or itemMetadata.read(...)": that classic Lua ternary idiom
     -- breaks the moment the "true" branch is nil/false, since `nil` is itself falsy and the
     -- `or` then always falls through to the right-hand side regardless of skipMetadata - it was
     -- silently reading metadata every time despite this flag (caught by the Lua test suite).
     local metadata = nil
     if not skipMetadata then metadata = itemMetadata.read(data, slot) end
-    return { liquidLevel = data[LEVEL_FIELD] or 0, liquidType = liquidName,
-        dynamicState = data[STATE_FIELD] == true, playerMadeString = textValue(data[TEXT_FIELD]),
-        assetId = textValue(data[ASSET_FIELD]), variantRowName = variant and textValue(variant.RowName) or nil,
+    return { liquidLevel = getField(data, LEVEL_FIELD) or 0, liquidType = liquidName,
+        dynamicState = getField(data, STATE_FIELD) == true, playerMadeString = textValue(getField(data, TEXT_FIELD)),
+        assetId = textValue(getField(data, ASSET_FIELD)), variantRowName = variant and textValue(variant.RowName) or nil,
         instanceMetadata = metadata }
 end
 local function prepareItemDetails(data, details)
@@ -941,13 +980,15 @@ local function prepareItemDetails(data, details)
         if details[field] ~= nil and type(details[field]) ~= "string" then error("invalid " .. field) end
     end
     if details.liquidType ~= nil then
-        liquidEnum():ForEachName(function(name, value)
-            if name:ToString() == details.liquidType then result.liquid = value; return true end
+        local enum, isNative = liquidEnum()
+        local wanted = gameLiquidName(details.liquidType, isNative)
+        enum:ForEachName(function(name, value)
+            if name:ToString() == wanted then result.liquid = value; return true end
         end)
         if result.liquid == nil then error("unknown liquid type: " .. details.liquidType) end
     end
     if details.variantRowName ~= nil then
-        if not data[VARIANT_FIELD] then error("texture variant field is unavailable") end
+        if not getField(data, VARIANT_FIELD) then error("texture variant field is unavailable") end
         if details.variantRowName == "" or details.variantRowName == "None" then
             result.variantName = FName("None", EFindName.FNAME_Find)
         else
@@ -971,14 +1012,15 @@ local function applyItemDetails(data, prepared)
     if not prepared then return end
     itemMetadata.apply(data, prepared.metadata)
     local d = prepared.details
-    if d.liquidLevel ~= nil then data[LEVEL_FIELD] = d.liquidLevel end
-    if prepared.liquid ~= nil then data[LIQUID_FIELD] = prepared.liquid end
-    if d.dynamicState ~= nil then data[STATE_FIELD] = d.dynamicState end
-    if d.playerMadeString ~= nil then data[TEXT_FIELD] = d.playerMadeString end
-    if d.assetId ~= nil then data[ASSET_FIELD] = d.assetId end
+    if d.liquidLevel ~= nil then setField(data, LEVEL_FIELD, d.liquidLevel) end
+    if prepared.liquid ~= nil then setField(data, LIQUID_FIELD, prepared.liquid) end
+    if d.dynamicState ~= nil then setField(data, STATE_FIELD, d.dynamicState) end
+    if d.playerMadeString ~= nil then setField(data, TEXT_FIELD, d.playerMadeString) end
+    if d.assetId ~= nil then setField(data, ASSET_FIELD, d.assetId) end
     if prepared.variantName then
-        if prepared.variantTable then data[VARIANT_FIELD].DataTable = prepared.variantTable end
-        data[VARIANT_FIELD].RowName = prepared.variantName
+        local variant = getField(data, VARIANT_FIELD)
+        if prepared.variantTable and slotFields.handleHasTable(variant) then variant.DataTable = prepared.variantTable end
+        variant.RowName = prepared.variantName
     end
 end
 
@@ -988,8 +1030,8 @@ local function prepareSlotWrite(slot, row)
         or row.ammoInMagazine < 0 or row.ammoInMagazine > 2147483647 or row.ammoInMagazine % 1 ~= 0) then
         error("ammo in magazine must be a non-negative integer")
     end
-    if not slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
-        or not slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 then
+    local data = slotFields.get(slot, "ChangeableData")
+    if not slotFields.get(slot, "ItemDataTable") or not data then
         error("item slot data is unavailable")
     end
     if not row.clear and row.itemId ~= nil and row.itemId ~= "" then
@@ -998,42 +1040,41 @@ local function prepareSlotWrite(slot, row)
         end
         prepared.dataTable, prepared.name = resolveItemHandle(slot, row)
     end
-    if row.clear and slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313[LIQUID_FIELD] ~= nil then
-        prepared.defaultLiquid = prepareItemDetails(slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313, { liquidType = "E_LiquidType::NewEnumerator0" }).liquid
+    if row.clear and getField(data, LIQUID_FIELD) ~= nil then
+        prepared.defaultLiquid = prepareItemDetails(data, { liquidType = "E_LiquidType::NewEnumerator0" }).liquid
     end
-    if not row.clear then prepared.details = prepareItemDetails(slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313, row.details) end
+    if not row.clear then prepared.details = prepareItemDetails(data, row.details) end
     return prepared
 end
 
 local function applySlotWrite(prepared)
     local slot, row = prepared.slot, prepared.row
-    local handle = slot.ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B
-    local data = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    local handle = slotFields.get(slot, "ItemDataTable")
+    local data = slotFields.get(slot, "ChangeableData")
     if row.clear then
         itemMetadata.clear(data)
         handle.RowName = FName("Empty", EFindName.FNAME_Find)
-        data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0
-        data.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D = 0
-        data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0
-        data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0
-        data[LEVEL_FIELD] = -1
-        if prepared.defaultLiquid ~= nil then data[LIQUID_FIELD] = prepared.defaultLiquid end
-        data[TEXT_FIELD] = ""
-        data[ASSET_FIELD] = "-1"
-        data[STATE_FIELD] = false
-        if data[VARIANT_FIELD] then data[VARIANT_FIELD].RowName = FName("None", EFindName.FNAME_Find) end
+        setField(data, "CurrentStack", 0)
+        setField(data, "CurrentAmmoInMagazine", 0)
+        setField(data, "CurrentItemDurability", 0)
+        setField(data, "MaxItemDurability", 0)
+        setField(data, LEVEL_FIELD, -1)
+        if prepared.defaultLiquid ~= nil then setField(data, LIQUID_FIELD, prepared.defaultLiquid) end
+        setField(data, TEXT_FIELD, "")
+        setField(data, ASSET_FIELD, "-1")
+        setField(data, STATE_FIELD, false)
+        local variant = getField(data, VARIANT_FIELD)
+        if variant then variant.RowName = FName("None", EFindName.FNAME_Find) end
         return
     end
     if prepared.name then
-        handle.DataTable = prepared.dataTable
+        if slotFields.handleHasTable(handle) then handle.DataTable = prepared.dataTable end
         handle.RowName = prepared.name
     end
-    if row.stack ~= nil then data.CurrentStack_9_D443B69044D640B0989FD8A629801A49 = row.stack end
-    if row.ammoInMagazine ~= nil then
-        data.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D = row.ammoInMagazine
-    end
-    if row.durability ~= nil then data.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = row.durability end
-    if row.maxDurability ~= nil then data.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = row.maxDurability end
+    if row.stack ~= nil then setField(data, "CurrentStack", row.stack) end
+    if row.ammoInMagazine ~= nil then setField(data, "CurrentAmmoInMagazine", row.ammoInMagazine) end
+    if row.durability ~= nil then setField(data, "CurrentItemDurability", row.durability) end
+    if row.maxDurability ~= nil then setField(data, "MaxItemDurability", row.maxDurability) end
     applyItemDetails(data, prepared.details)
 end
 
@@ -1053,7 +1094,7 @@ handlers["inventory.list"] = function(payload, respond)
                 for i = 1, #inv.CurrentInventory do
                     local slot = inv.CurrentInventory[i]
                     local rowName = slotRowName(slot)
-                    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+                    local changeableData = slotFields.get(slot, "ChangeableData")
                     -- "Empty" (confirmed real, capitalized) is this game's own empty-slot
                     -- sentinel. Accept None as well for uninitialized slots.
                     local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
@@ -1074,10 +1115,10 @@ handlers["inventory.list"] = function(payload, respond)
                         slotIndex = i - 1,
                         itemId = rowName,
                         isEmpty = isEmpty,
-                        stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
-                        durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
-                        maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
-                        ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
+                        stack = changeableData and slotFields.get(changeableData, "CurrentStack") or 0,
+                        durability = changeableData and slotFields.get(changeableData, "CurrentItemDurability") or 0,
+                        maxDurability = changeableData and slotFields.get(changeableData, "MaxItemDurability") or 0,
+                        ammoInMagazine = changeableData and slotFields.get(changeableData, "CurrentAmmoInMagazine") or 0,
                         details = details,
                     })
                 end
@@ -1229,9 +1270,15 @@ local function weatherLibrary()
     return nil
 end
 
-local function weatherRowHandleToTable(handle)
-    return { RowName = handle.RowName, DataTablePath = handle.DataTablePath }
+-- A row handle as a plain struct table. Community Update 5's typed handles (weather, world flags,
+-- buffs, ...) carry only RowName; older builds also had DataTablePath, kept when present.
+local function rowHandleTable(handle)
+    local result = { RowName = handle.RowName }
+    local ok, path = pcall(function() return handle.DataTablePath end)
+    if ok and path ~= nil then result.DataTablePath = path end
+    return result
 end
+local weatherRowHandleToTable = rowHandleTable
 
 local function triggerWeather(manager, eventName)
     local lib = weatherLibrary()
@@ -1380,7 +1427,9 @@ local function currentWorldFlags()
         pcall(function()
             local flags = gameState.WorldFlags
             for i = 1, #flags do
-                local okName, name = pcall(function() return flags[i]:ToString() end)
+                -- WorldFlagRowHandle structs since Community Update 5; plain names before.
+                local okName, name = pcall(function() return flags[i].RowName:ToString() end)
+                if not okName then okName, name = pcall(function() return flags[i]:ToString() end) end
                 if okName and name then set[name] = true end
             end
         end)
@@ -1446,7 +1495,7 @@ local function applyWorldFlagRows(rows)
             -- Same struct-as-table pattern the reference mod uses for TriggerWeatherEvent; the
             -- raw handle userdata is the fallback if the table form is rejected.
             local okCall = pcall(function()
-                subsystem:SetWorldFlag({ RowName = handle.RowName, DataTablePath = handle.DataTablePath }, value, instigator)
+                subsystem:SetWorldFlag(rowHandleTable(handle), value, instigator)
             end)
             if not okCall then subsystem:SetWorldFlag(handle, value, instigator) end
         end
@@ -1462,8 +1511,9 @@ handlers["flags.set"] = function(payload, respond)
 end
 
 -- ===== Doors (SimpleDoor_ParentBP_C / SecurityDoor_C) =====
--- SimpleDoor: DoorState (byte, the same E_DoorStates the file editor writes: 0 closed, 1 open,
--- 2 locked, ...), OneWayDoor_HasBeenUnlocked, DoorDisabled, OnRep_DoorState, DoorUpdateState.
+-- SimpleDoor: DoorState (the same numbering as the file editor's E_DoorStates, native EDoorState
+-- since Community Update 5: 0 closed, 1 open inwards, 2 open outwards, 3 destroyed, ...),
+-- OneWayDoor_HasBeenUnlocked, DoorDisabled, OnRep_DoorState, DoorUpdateState.
 -- SecurityDoor: IsDoorOpen, OnRep_IsDoorOpen. Direct write + OnRep is the exact shape every other
 -- confirmed area here uses (vitals, NPCs); DoorUpdateState is what the door's own blueprint
 -- runs after a state change, so it is called too (pcall - no mod precedent).
@@ -1498,7 +1548,7 @@ local function doorRows()
                 table.insert(result, {
                     id = name, label = classLabel(name), kind = "simple",
                     state = okState and tonumber(state) or 0,
-                    isOpen = okState and tonumber(state) == 1,
+                    isOpen = okState and (tonumber(state) == 1 or tonumber(state) == 2),
                     oneWayUnlocked = okOneWay and oneWay or false,
                     disabled = okDisabled and disabled or false,
                     x = x, y = y, z = z,
@@ -1588,7 +1638,7 @@ end
 -- at a time is never the expensive case a bulk world listing is.
 local function slotRow(slot, index, skipMetadata)
     local rowName = slotRowName(slot)
-    local changeableData = slot.ChangeableData_12_2B90E1F74F648135579D39A49F5A2313
+    local changeableData = slotFields.get(slot, "ChangeableData")
     -- "Empty" is the sentinel the game writes; "None" also shows up on loot-spill bags in a
     -- real world (confirmed live, round 75) and the file editor treats both as empty.
     local isEmpty = rowName == "" or rowName == "Empty" or rowName == "None"
@@ -1603,10 +1653,10 @@ local function slotRow(slot, index, skipMetadata)
         slotIndex = index,
         itemId = rowName,
         isEmpty = isEmpty,
-        stack = changeableData and changeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49 or 0,
-        durability = changeableData and changeableData.CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 or 0,
-        maxDurability = changeableData and changeableData.MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B or 0,
-        ammoInMagazine = changeableData and changeableData.CurrentAmmoInMagazine_12_D68C190F4B2FA78A4B1D57835B95C53D or 0,
+        stack = changeableData and slotFields.get(changeableData, "CurrentStack") or 0,
+        durability = changeableData and slotFields.get(changeableData, "CurrentItemDurability") or 0,
+        maxDurability = changeableData and slotFields.get(changeableData, "MaxItemDurability") or 0,
+        ammoInMagazine = changeableData and slotFields.get(changeableData, "CurrentAmmoInMagazine") or 0,
         details = details,
     }
 end
@@ -2075,7 +2125,7 @@ handlers["dropped.list"] = function(_, respond)
                     local x, y, z = actorLocation(item)
                     local okRow, rowName = pcall(function() return item.ItemDataRow.RowName:ToString() end)
                     local okStack, stack = pcall(function()
-                        return item.ChangeableData.CurrentStack_9_D443B69044D640B0989FD8A629801A49
+                        return slotFields.get(item.ChangeableData, "CurrentStack")
                     end)
                     table.insert(result, {
                         id = name,
@@ -2329,6 +2379,8 @@ local ctx = {
     worldFlagLibrary = worldFlagLibrary,
     currentWorldFlags = currentWorldFlags,
     applyWorldFlagRows = applyWorldFlagRows,
+    rowHandleTable = rowHandleTable,
+    slotFields = slotFields,
     containerInventory = containerInventory,
     voidChestSiblings = voidChestSiblings,
     resolveDataTableRow = resolveDataTableRow,

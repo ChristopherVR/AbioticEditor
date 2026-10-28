@@ -4,7 +4,7 @@
 --   Abiotic_PlayerController_C  prop TrackedQuestLine : FStructProperty (a QuestLineRowHandle)
 --                               func OnRep_TrackedQuestLine, Request_ChangeTrackedQuestLine(QuestLine)
 --   Abiotic_Survival_GameState_C prop CurrentQuestline : FStructProperty, func OnRep_CurrentQuestline
---   Abiotic_PlayerState_C       prop ServerQuestLine : FStructProperty
+--   Abiotic_PlayerState_C       no quest property in 1.5 (only FindServerQuest/SetQuestLineFromLoad)
 --   The BP graph of Abiotic_PlayerState.SetQuestLineFromLoad calls two native functions on the
 --   world flag subsystem: FindAllActiveQuests(TArray<FQuestRowHandle>&) -> bool and
 --   FindQuestLineForQuest(FQuestRowHandle, FQuestLineRowHandle&) -> bool.
@@ -14,7 +14,9 @@
 -- GetAllWorldFlagRowHandles, so the game itself says which objectives are active (several at once
 -- in 1.5). It is pcall-guarded and its failure reason is logged and returned as
 -- activeQuestsError: when it cannot be called the desktop app falls back to the world flags.
--- The personal tutorial objective (Abiotic_PlayerState_C.ServerQuest) is reported as serverQuest.
+-- The personal tutorial objective is reported as serverQuest where the player state still carries
+-- ServerQuest (older builds). 1.5 computes it in the Blueprint FindServerQuest from a quest-line
+-- filter compiled into that function, so it is left unreported there rather than guessed.
 --
 -- Tracking is PER PLAYER, so it only ever touches the local player's controller. The struct
 -- argument is passed as a table holding RowName, the same shape SetWorldFlag takes. The result is

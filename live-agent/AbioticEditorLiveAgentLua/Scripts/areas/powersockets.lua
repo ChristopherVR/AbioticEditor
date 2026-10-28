@@ -105,11 +105,16 @@ return function(ctx)
     -- Struct-nested leaf read, same shape as buttons.lua's readPressedOnce: LatestSaveData is a
     -- struct VALUE on the actor, not a separate UObject, so it is indexed by the leaf's exact
     -- hash-suffixed name once the struct itself resolves.
-    local function readSaveDataLeaf(socket, leaf)
+    -- Community Update 5 made LatestSaveData the native AbioticPowerSocketSave (bHasTimer,
+    -- TimerMode); the hash-suffixed leaf is the fallback for older builds.
+    local function readSaveDataLeaf(socket, native, leaf)
         local okData, data = pcall(function() return socket.LatestSaveData end)
         if not okData or data == nil then return nil end
-        local ok, value = pcall(function() return data[leaf] end)
-        return ok, value
+        for _, name in ipairs({ native, leaf }) do
+            local ok, value = pcall(function() return data[name] end)
+            if ok and value ~= nil then return true, value end
+        end
+        return false, nil
     end
 
     local function describeDevice(socket)
@@ -129,8 +134,8 @@ return function(ctx)
                 if name then
                     local x, y, z = ctx.actorLocation(socket)
                     local okId, socketId = pcall(function() return socket:GetPowerSocketID() end)
-                    local okHasTimer, hasTimerRaw = readSaveDataLeaf(socket, HAS_TIMER_LEAF)
-                    local okTimerMode, timerModeRaw = readSaveDataLeaf(socket, TIMER_MODE_LEAF)
+                    local okHasTimer, hasTimerRaw = readSaveDataLeaf(socket, "bHasTimer", HAS_TIMER_LEAF)
+                    local okTimerMode, timerModeRaw = readSaveDataLeaf(socket, "TimerMode", TIMER_MODE_LEAF)
                     local okPowered, powered = pcall(function() return socket:IsPowered() end)
                     table.insert(result, {
                         id = name,

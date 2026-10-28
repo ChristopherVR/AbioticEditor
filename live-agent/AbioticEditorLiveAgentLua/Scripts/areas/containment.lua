@@ -50,6 +50,16 @@ return function(ctx)
         local propName = row == KRASUE_ROW and "KrasueDirectorComponent" or "LeyakDirectorComponent"
         local okComponent, component = pcall(function() return director[propName] end)
         if okComponent and component and component:IsValid() then return component end
+        -- Community Update 5 dropped those named properties (the director keeps its components in
+        -- ClassManagerDirectors); the game itself finds them by component class, as does this.
+        -- KrasueDirectorComponent_C derives from LeyakDirectorComponent_C, so the Leyak lookup
+        -- skips Krasue components.
+        for _, candidate in ipairs(ctx.findAll(row == KRASUE_ROW and "KrasueDirectorComponent_C" or "LeyakDirectorComponent_C")) do
+            local name = ctx.fullName(candidate) or ""
+            local isKrasue = name:find("KrasueDirectorComponent", 1, true) ~= nil
+            local isDefault = name:find("Default__", 1, true) ~= nil
+            if candidate:IsValid() and not isDefault and (row == KRASUE_ROW) == isKrasue then return candidate end
+        end
         return nil
     end
 

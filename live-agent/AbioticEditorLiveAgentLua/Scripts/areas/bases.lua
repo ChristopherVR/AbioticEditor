@@ -120,7 +120,7 @@ return function(ctx)
     -- The saved side of a paint colour: {Key = EDynamicProperty::PaintColor, Value = colour} in
     -- the deployable's ChangeableData dynamic-property array (same struct and field names as an
     -- inventory item's ChangeableData - see item_metadata.lua and DeployablePaintCatalog).
-    local SAVED_DYNAMIC = "DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7"
+    -- Field names resolve through slot_fields (native names since Community Update 5).
     local savedPaint = {}
     local function paintKey()
         local enum = StaticFindObject("/Script/AbioticFactor.EDynamicProperty")
@@ -137,7 +137,7 @@ return function(ctx)
     function savedPaint.write(obj, colour)
         local okData, data = pcall(function() return obj.ChangeableData end)
         if not okData or not data then return false end
-        local okArray, array = pcall(function() return data[SAVED_DYNAMIC] end)
+        local okArray, array = pcall(function() return ctx.slotFields.get(data, "DynamicProperties") end)
         if not okArray or not array then return false end
         local key = paintKey()
         if key == nil then error("dynamic property enum is unavailable") end
@@ -152,7 +152,7 @@ return function(ctx)
             end
         end
         if not replaced then entries[#entries + 1] = { Key = key, Value = colour } end
-        data[SAVED_DYNAMIC] = entries
+        ctx.slotFields.set(data, "DynamicProperties", entries)
         return true
     end
 
@@ -373,7 +373,7 @@ return function(ctx)
             if not actor or not actor:IsValid() then error("the game could not place this object") end
             local ok, failure = pcall(function()
                 actor.SpawnedAssetID = payload.assetId
-                actor.ChangeableData.AssetID_25_06DB7A12469849D19D5FC3BA6BEDEEAB = payload.assetId
+                ctx.slotFields.set(actor.ChangeableData, "AssetID", payload.assetId)
                 actor.DeployedByPlayer = true
                 actor.NoSave = false
                 actor.CulledByWorldLoad = false

@@ -112,18 +112,20 @@ public sealed class LiveSpawnCompanionsContractTests
     }
 
     [Fact]
-    public void Companions_lua_reuses_the_exact_hash_suffixed_fields_the_file_writer_uses()
+    public void Companions_lua_resolves_item_fields_for_both_game_layouts()
     {
         var companions = LuaSource("areas", "companions.lua");
         Assert.Contains("handlers[\"companions.list\"]", companions, StringComparison.Ordinal);
         Assert.Contains("handlers[\"companions.set\"]", companions, StringComparison.Ordinal);
-        // The exact hash-suffixed field names PlayerSaveWriter.FullNames also uses for the same
-        // struct members - see Serialization/Player/PlayerSaveWriter.cs.
-        Assert.Contains("PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9", companions, StringComparison.Ordinal);
-        Assert.Contains("CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8", companions, StringComparison.Ordinal);
-        Assert.Contains("MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B", companions, StringComparison.Ordinal);
-        // The genuinely new, unverified access path (see the file's own header comment).
-        Assert.Contains("DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7", companions, StringComparison.Ordinal);
+        // Item fields go through slot_fields: native names since Community Update 5, the hash-
+        // suffixed names PlayerSaveWriter.FullNames also uses for older builds.
+        foreach (var field in new[] { "PlayerMadeString", "CurrentItemDurability", "MaxItemDurability", "DynamicProperties" })
+            Assert.Contains($"ctx.slotFields.get(changeableData, \"{field}\")", companions, StringComparison.Ordinal);
+        var slotFields = LuaSource("slot_fields.lua");
+        Assert.Contains("PlayerMadeString_42_CC0B72B24DBEAB2CC04454AAFFD4BBE9", slotFields, StringComparison.Ordinal);
+        Assert.Contains("CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8", slotFields, StringComparison.Ordinal);
+        Assert.Contains("MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B", slotFields, StringComparison.Ordinal);
+        Assert.Contains("DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7", slotFields, StringComparison.Ordinal);
     }
 
     [Fact]
