@@ -18,7 +18,7 @@ public sealed class LiveQuestsTests
     {
         var channel = new FakeChannel();
         channel.Replies["quests.get"] = new { trackedLine = "QuestLine_Primary", currentQuestLine = "None", activeQuestsKnown = true,
-            activeQuests = new[] { "quest_a", "quest_b" }, canTrack = true, isHost = true };
+            activeQuests = new[] { "quest_a", "quest_b" }, canTrack = true, isHost = true, serverQuest = "tutorial_find_bed" };
 
         var state = await new LiveQuestsChannel(channel).GetAsync();
 
@@ -27,6 +27,7 @@ public sealed class LiveQuestsTests
         Assert.Equal(2, state.ActiveQuests!.Count);
         Assert.Contains("QUEST_A", state.ActiveQuests);
         Assert.True(state.CanTrack);
+        Assert.Equal("tutorial_find_bed", state.ServerQuest);
     }
 
     [Fact]

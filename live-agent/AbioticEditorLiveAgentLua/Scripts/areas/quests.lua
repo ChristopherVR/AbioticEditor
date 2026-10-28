@@ -9,10 +9,12 @@
 --   world flag subsystem: FindAllActiveQuests(TArray<FQuestRowHandle>&) -> bool and
 --   FindQuestLineForQuest(FQuestRowHandle, FQuestLineRowHandle&) -> bool.
 --
--- FindAllActiveQuests is read with the exact out-array pattern applyWorldFlagRows (main.lua)
--- already uses for GetAllWorldFlagRowHandles, so the game itself says which objectives are active
--- (several at once in 1.5). It is pcall-guarded: when it cannot be called the desktop app falls
--- back to deriving objective state from the world flags.
+-- FindAllActiveQuests takes a line filter, an out array of handles and two flags (see
+-- activeQuests below); the out array is read like applyWorldFlagRows reads
+-- GetAllWorldFlagRowHandles, so the game itself says which objectives are active (several at once
+-- in 1.5). It is pcall-guarded and its failure reason is logged and returned as
+-- activeQuestsError: when it cannot be called the desktop app falls back to the world flags.
+-- The personal tutorial objective (Abiotic_PlayerState_C.ServerQuest) is reported as serverQuest.
 --
 -- Tracking is PER PLAYER, so it only ever touches the local player's controller. The struct
 -- argument is passed as a table holding RowName, the same shape SetWorldFlag takes. The result is
@@ -32,18 +34,24 @@ return function(ctx)
     end
 
     -- Returns the active quest rows, or nil plus the reason it could not be read.
+    -- The PDB shows the native signature is FindAllActiveQuests(FQuestLineRowHandle QuestLineFilter,
+    -- TArray<FQuestRowHandle>& QuestRowHandles, bool bIgnoreSubQuests, bool bOnlyLatest) -> bool,
+    -- so a call with only the out array (the first attempt) could never match. An empty line
+    -- filter means "every line"; sub-objectives are kept because the quests view lists them.
     local function activeQuests()
         local subsystem = ctx.worldFlagSubsystem()
         if not subsystem then return nil, "no world flag subsystem" end
+        local okName, none = pcall(function() return FName("None", EFindName.FNAME_Find) end)
+        if not okName then none = nil end
         local out = {}
-        local ok, err = pcall(function() return subsystem:FindAllActiveQuests(out) end)
+        local ok, err = pcall(function() return subsystem:FindAllActiveQuests({ RowName = none }, out, false, false) end)
         if not ok then return nil, tostring(err) end
         local result = { __forceArray = true }
         for i = 1, #out do
             local okHandle, handle = pcall(function() return out[i]:get() end)
             if okHandle and handle then
-                local okName, name = pcall(function() return handle.RowName:ToString() end)
-                if okName and name and name ~= "" and name ~= "None" then table.insert(result, name) end
+                local okRow, name = pcall(function() return handle.RowName:ToString() end)
+                if okRow and name and name ~= "" and name ~= "None" then table.insert(result, name) end
             end
         end
         return result
@@ -65,6 +73,10 @@ return function(ctx)
             trackedLine = isLocal and rowOf(function() return controller.TrackedQuestLine end) or "None",
             canTrack = isLocal,
         }
+        if isLocal then
+            local serverQuest = rowOf(function() return controller.PlayerState.ServerQuest end)
+            if serverQuest then result.serverQuest = serverQuest end
+        end
         local gameOk, gameState = pcall(function() return ctx.UEHelpers.GetGameStateBase() end)
         if gameOk and gameState and gameState:IsValid() then
             result.currentQuestLine = rowOf(function() return gameState.CurrentQuestline end) or "None"

@@ -16,7 +16,8 @@ return function(H)
     H.eq(state.activeQuestsKnown, false, "active objectives unknown without the subsystem")
 
     H.world.add(H.object("WorldFlagSubsystem", {}, {
-        FindAllActiveQuests = function(_, out)
+        FindAllActiveQuests = function(_, filter, out, ignoreSub, onlyLatest)
+            H.check(filter ~= nil and ignoreSub == false and onlyLatest == false, "native signature: filter, out array, two flags")
             out[1] = H.outParam({ RowName = H.fname("quest_a") })
             out[2] = H.outParam({ RowName = H.fname("quest_b") })
             return true

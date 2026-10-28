@@ -60,9 +60,9 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession, IPlayerQuestsS
     bool IPlayerQuestsSession.CanTrackQuestLines => _questState?.CanTrack == true;
     bool IPlayerQuestsSession.AppliesImmediately => true;
     string? IPlayerQuestsSession.TrackedQuestLine => _questState?.TrackedLine;
-    // The personal tutorial objective is not reported live; tutorial rows stay "unknown".
+    // Whether the intro is finished is not reported live; the personal tutorial objective is.
     bool IPlayerQuestsSession.CompletedIntro => false;
-    string? IPlayerQuestsSession.CurrentTutorialQuest => null;
+    string? IPlayerQuestsSession.CurrentTutorialQuest => _questState?.ServerQuest;
     string? IPlayerQuestsSession.SavePath => null;
 
     /// <summary>An agent build without <c>quests.get</c> (or a momentary read failure) leaves the
