@@ -5031,4 +5031,19 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="ModsSettings_Downloading" xml:space="preserve">
     <value>Not downloaded yet: {0}. Start Abiotic Factor (or load a world that uses them) and the game finishes the download.</value>
   </data>
+  <data name="WorldMods_PromptTitle" xml:space="preserve">
+    <value>Switch on this world's mods?</value>
+  </data>
+  <data name="WorldMods_PromptAllOff" xml:space="preserve">
+    <value>This world was played with mods, but loading mods is switched off in Settings: {0}. Switch them on so their items, recipes and pictures show properly? This only changes the editor, not the game.</value>
+  </data>
+  <data name="WorldMods_PromptSomeOff" xml:space="preserve">
+    <value>This world was played with mods that are switched off in Settings: {0}. Switch them on so their items, recipes and pictures show properly? This only changes the editor, not the game.</value>
+  </data>
+  <data name="WorldMods_PromptConfirm" xml:space="preserve">
+    <value>SWITCH ON</value>
+  </data>
+  <data name="WorldMods_PromptDecline" xml:space="preserve">
+    <value>Not now</value>
+  </data>
 </root>

@@ -3639,4 +3639,19 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="ModsSettings_Downloading" xml:space="preserve">
     <value>Aún sin descargar: {0}. Inicia Abiotic Factor (o carga un mundo que los use) y el juego terminará la descarga.</value>
   </data>
+  <data name="WorldMods_PromptTitle" xml:space="preserve">
+    <value>¿Activar los mods de este mundo?</value>
+  </data>
+  <data name="WorldMods_PromptAllOff" xml:space="preserve">
+    <value>Este mundo se jugó con mods, pero la carga de mods está desactivada en Ajustes: {0}. ¿Activarlos para que sus objetos, recetas e imágenes se vean bien? Solo cambia el editor, no el juego.</value>
+  </data>
+  <data name="WorldMods_PromptSomeOff" xml:space="preserve">
+    <value>Este mundo se jugó con mods que están desactivados en Ajustes: {0}. ¿Activarlos para que sus objetos, recetas e imágenes se vean bien? Solo cambia el editor, no el juego.</value>
+  </data>
+  <data name="WorldMods_PromptConfirm" xml:space="preserve">
+    <value>ACTIVAR</value>
+  </data>
+  <data name="WorldMods_PromptDecline" xml:space="preserve">
+    <value>Ahora no</value>
+  </data>
 </root>

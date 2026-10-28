@@ -26,7 +26,9 @@ The desktop app reads mods you downloaded from mod.io in the game, and mods in t
 
 By default the editor loads the same mod.io mods the game has switched on. **Settings ▸ Game data ▸ Mods** lets you turn single mods on or off for the editor. These switches never change the game.
 
-When you open a world that was played with mods, a **Mods in this world** box lists them:
+When you open a world (or a player in it) that was played with mods you have switched off in the editor, it asks whether to switch them on. **SWITCH ON** turns on mod loading and those mods, and leaves your other mods as they were. **Not now** keeps things as they are, and the editor does not ask again about that world until you restart it.
+
+The world (and each player in it) also shows a **Mods in this world** box listing them:
 
 - **loaded**: the editor knows everything the mod adds.
 - **installed, but switched off in Settings**: press **USE THIS WORLD'S MODS** to load exactly this world's mods.

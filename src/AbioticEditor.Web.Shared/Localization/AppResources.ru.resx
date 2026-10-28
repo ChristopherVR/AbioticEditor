@@ -3638,4 +3638,19 @@
   <data name="ModsSettings_Downloading" xml:space="preserve">
     <value>Ещё не скачаны: {0}. Запустите Abiotic Factor (или загрузите мир, который их использует), и игра докачает их.</value>
   </data>
+  <data name="WorldMods_PromptTitle" xml:space="preserve">
+    <value>Включить моды этого мира?</value>
+  </data>
+  <data name="WorldMods_PromptAllOff" xml:space="preserve">
+    <value>В этот мир играли с модами, но загрузка модов выключена в настройках: {0}. Включить их, чтобы их предметы, рецепты и картинки отображались правильно? Это меняет только редактор, а не игру.</value>
+  </data>
+  <data name="WorldMods_PromptSomeOff" xml:space="preserve">
+    <value>В этот мир играли с модами, которые выключены в настройках: {0}. Включить их, чтобы их предметы, рецепты и картинки отображались правильно? Это меняет только редактор, а не игру.</value>
+  </data>
+  <data name="WorldMods_PromptConfirm" xml:space="preserve">
+    <value>ВКЛЮЧИТЬ</value>
+  </data>
+  <data name="WorldMods_PromptDecline" xml:space="preserve">
+    <value>Не сейчас</value>
+  </data>
 </root>

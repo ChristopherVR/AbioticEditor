@@ -199,6 +199,19 @@ public sealed class HostSettingsService
         return ReloadGameData();
     }
 
+    /// <summary>
+    /// Switches on mod loading and the installed mod.io mods this world uses, leaving every other
+    /// mod as it was, then reloads game data. Answers "yes" to the prompt on opening a modded save.
+    /// </summary>
+    public GameDataReloadStatus EnableWorldMods(IReadOnlyList<long> worldModIds)
+    {
+        var used = worldModIds.ToHashSet();
+        foreach (var mod in ModIoInstallLocator.FindInstalled())
+            if (mod.ModIoId is { } id && used.Contains(id)) ModLoadStore.SetModEnabled(mod.Name, true);
+        if (!ModLoadStore.PersistedEnabled) ModLoadStore.SetPersistedEnabled(true);
+        return ReloadGameData();
+    }
+
     public bool SetPluginEnabled(PluginDescriptor plugin, bool enabled) => plugin.SetEnabled(enabled);
 }
 

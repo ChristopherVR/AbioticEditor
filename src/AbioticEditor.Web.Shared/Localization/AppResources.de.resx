@@ -3638,4 +3638,19 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="ModsSettings_Downloading" xml:space="preserve">
     <value>Noch nicht heruntergeladen: {0}. Starte Abiotic Factor (oder lade eine Welt, die sie nutzt), dann schließt das Spiel den Download ab.</value>
   </data>
+  <data name="WorldMods_PromptTitle" xml:space="preserve">
+    <value>Mods dieser Welt einschalten?</value>
+  </data>
+  <data name="WorldMods_PromptAllOff" xml:space="preserve">
+    <value>Diese Welt wurde mit Mods gespielt, aber das Laden von Mods ist in den Einstellungen ausgeschaltet: {0}. Einschalten, damit ihre Gegenstände, Rezepte und Bilder richtig angezeigt werden? Das ändert nur den Editor, nicht das Spiel.</value>
+  </data>
+  <data name="WorldMods_PromptSomeOff" xml:space="preserve">
+    <value>Diese Welt wurde mit Mods gespielt, die in den Einstellungen ausgeschaltet sind: {0}. Einschalten, damit ihre Gegenstände, Rezepte und Bilder richtig angezeigt werden? Das ändert nur den Editor, nicht das Spiel.</value>
+  </data>
+  <data name="WorldMods_PromptConfirm" xml:space="preserve">
+    <value>EINSCHALTEN</value>
+  </data>
+  <data name="WorldMods_PromptDecline" xml:space="preserve">
+    <value>Nicht jetzt</value>
+  </data>
 </root>

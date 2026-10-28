@@ -29,6 +29,7 @@
             @if (workspace.PlayerSession is { } scannedPlayer)
             {
                 <ModdedContentNotice Player="@scannedPlayer" />
+                <WorldModsNotice Player="@scannedPlayer" />
             }
             @if (workspace.WorldSession is { } scannedWorld)
             {

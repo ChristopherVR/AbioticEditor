@@ -2,10 +2,13 @@
 @using AbioticEditor.Web.Models
 @inject HostLanguageService Languages
 @inject HostSettingsService HostSettings
+@inject ModalService Modals
 
 @* The mods this world last ran with (the game keeps them in WorldSave_MetaData.sav), next to
    what the editor loads. Things from a mod the editor has not loaded show as unknown but are
-   kept exactly as they are. Silent for an unmodded world with no mods loaded. *@
+   kept exactly as they are. Silent for an unmodded world with no mods loaded, and in the browser
+   build, which cannot see the player's mods at all. When installed mods the world uses are
+   switched off, it asks once per world whether to switch them on. *@
 @if (_usage is { } usage && (usage.WorldMods.Count > 0 || usage.ExtraLoaded.Count > 0))
 {
     <section class="save-modded-notice world-mods-notice" role="status">
@@ -39,22 +42,33 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public WorldSaveSession World { get; set; } = null!;
+    // A world whose mods the player chose not to switch on is not asked about again until the
+    // editor restarts, however often its saves are reopened.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> Declined = new(StringComparer.OrdinalIgnoreCase);
 
-    private WorldSaveSession? _read;
+    /// <summary>The open world save; its own or its sibling metadata save lists the mods.</summary>
+    [Parameter] public WorldSaveSession? World { get; set; }
+
+    /// <summary>The open player save; the world it lives in lists the mods.</summary>
+    [Parameter] public PlayerSaveSession? Player { get; set; }
+
+    private object? _read;
     private IReadOnlyList<long> _ids = [];
     private WorldModUsage? _usage;
     private bool _busy;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (ReferenceEquals(World, _read)) return;
-        _read = World;
+        object? current = (object?)World ?? Player;
+        if (ReferenceEquals(current, _read)) return;
+        _read = current;
         _usage = null;
+        if (current is null || OperatingSystem.IsBrowser()) return;
         try
         {
-            _ids = await World.WorldModIdsAsync();
+            _ids = World is { } world ? await world.WorldModIdsAsync() : await PlayerWorldModIdsAsync(Player!.Path);
             _usage = await Task.Run(() => HostSettings.WorldMods(_ids));
+            if (ReferenceEquals(current, _read)) OfferToSwitchOn(current);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -62,6 +76,53 @@
             AbioticEditor.Core.Diagnostics.EditorLog.Warn("Mods", "Could not compare this world's mods with the editor's.", exception);
         }
     }
+
+    /// <summary>
+    /// Player saves sit in <c>&lt;World&gt;/PlayerData/</c>; the world's metadata save is one folder up.
+    /// </summary>
+    private static async Task<IReadOnlyList<long>> PlayerWorldModIdsAsync(string playerPath)
+    {
+        if (Path.GetDirectoryName(Path.GetDirectoryName(playerPath)) is not { Length: > 0 } world) return [];
+        var metadata = Path.Combine(world, "WorldSave_MetaData.sav");
+        if (!File.Exists(metadata)) return [];
+        var bytes = await File.ReadAllBytesAsync(metadata);
+        return await Task.Run(() => AbioticEditor.Core.WorldSaves.WorldSaveReader.ReadLastUsedModIds(new MemoryStream(bytes, writable: false)));
+    }
+
+    /// <summary>Asks whether to switch on the installed mods this world uses that the editor has off.</summary>
+    private void OfferToSwitchOn(object session)
+    {
+        if (_usage is null || HostSettings.ModsLockedOff) return;
+        var off = _usage.WorldMods.Where(mod => mod.State == WorldModState.Off).ToArray();
+        if (off.Length == 0) return;
+        var key = WorldKey(session);
+        if (Declined.ContainsKey(key) || Modals.Current is not null) return;
+        var names = string.Join(", ", off.Select(mod => mod.DisplayName));
+        var body = Languages.Resource(HostSettings.ModsEnabled ? "WorldMods_PromptSomeOff" : "WorldMods_PromptAllOff", names);
+        Modals.Show(new ModalRequest(
+            Languages.Resource("WorldMods_PromptTitle"),
+            builder => builder.AddMarkupContent(0, $"<p>{System.Net.WebUtility.HtmlEncode(body)}</p>"),
+            Languages.Resource("WorldMods_PromptConfirm"),
+            async () =>
+            {
+                _busy = true;
+                try
+                {
+                    await Task.Run(() => HostSettings.EnableWorldMods(_ids));
+                    _usage = await Task.Run(() => HostSettings.WorldMods(_ids));
+                }
+                finally { _busy = false; await InvokeAsync(StateHasChanged); }
+            },
+            Languages.Resource("WorldMods_PromptDecline"),
+            OnCancel: () => { Declined.TryAdd(key, 0); return Task.CompletedTask; }));
+    }
+
+    private string WorldKey(object session) => session switch
+    {
+        WorldSaveSession world => Path.GetDirectoryName(world.Path) ?? world.Path,
+        PlayerSaveSession player => Path.GetDirectoryName(Path.GetDirectoryName(player.Path)) ?? player.Path,
+        _ => string.Empty,
+    };
 
     private async Task UseWorldModsAsync()
     {

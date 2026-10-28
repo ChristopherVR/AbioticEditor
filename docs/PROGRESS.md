@@ -22,6 +22,11 @@
 - Verified headless (isolated `ABIOTIC_APPDATA_DIR` / `ABIOTIC_GAME_CONFIG_DIR` /
   `ABIOTIC_MODIO_ROOT`, CU5 fixture world with injected `LastUsedModIds`): the notice
   showed the right states, and the button switched on exactly the world's mods.
+- Follow-up: opening a world or player save whose installed mods are off (master switch or
+  per mod) asks once per world per editor run to switch them on (`EnableWorldMods`: master
+  on + those mods, others untouched). Player saves read `../WorldSave_MetaData.sav`. The notice
+  is hidden in the browser build (it cannot see mods). Verified headless: prompt with master
+  off, Not now not repeated for the same world's player save, SWITCH ON loads the three.
 - Open: no world played with Linked Deployables yet, so how its placed benches serialize
   (extra plug component?) is unchecked. The game was not run with any mod installed.
 

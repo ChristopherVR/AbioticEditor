@@ -3638,4 +3638,19 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="ModsSettings_Downloading" xml:space="preserve">
     <value>Pas encore téléchargés : {0}. Lancez Abiotic Factor (ou chargez un monde qui les utilise) et le jeu terminera le téléchargement.</value>
   </data>
+  <data name="WorldMods_PromptTitle" xml:space="preserve">
+    <value>Activer les mods de ce monde ?</value>
+  </data>
+  <data name="WorldMods_PromptAllOff" xml:space="preserve">
+    <value>Ce monde a été joué avec des mods, mais le chargement des mods est désactivé dans les paramètres : {0}. Les activer pour que leurs objets, recettes et images s'affichent correctement ? Cela ne change que l'éditeur, pas le jeu.</value>
+  </data>
+  <data name="WorldMods_PromptSomeOff" xml:space="preserve">
+    <value>Ce monde a été joué avec des mods désactivés dans les paramètres : {0}. Les activer pour que leurs objets, recettes et images s'affichent correctement ? Cela ne change que l'éditeur, pas le jeu.</value>
+  </data>
+  <data name="WorldMods_PromptConfirm" xml:space="preserve">
+    <value>ACTIVER</value>
+  </data>
+  <data name="WorldMods_PromptDecline" xml:space="preserve">
+    <value>Pas maintenant</value>
+  </data>
 </root>
