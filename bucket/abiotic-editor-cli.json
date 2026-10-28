@@ -1,12 +1,12 @@
 {
-  "version": "2.28.0",
+  "version": "2.29.0",
   "description": "A save-game editor for Abiotic Factor (command-line tool).",
   "homepage": "https://github.com/ChristopherVR/AbioticEditor",
   "license": "Apache-2.0",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v2.28.0/AbioticEditor-cli-win-x64-v2.28.0.zip",
-      "hash": "bffab2e57954d2c307d668ea0a5470ea229057c7ee14fb0096218286e811bcf5"
+      "url": "https://github.com/ChristopherVR/AbioticEditor/releases/download/v2.29.0/AbioticEditor-cli-win-x64-v2.29.0.zip",
+      "hash": "2a7e9ff4ab9c711c523ca8c099857489c49f71829e0a737ae66a347af50af948"
     }
   },
   "bin": "abioticeditor.exe",
