@@ -91,6 +91,18 @@ public sealed class CommunityUpdateFiveTests
     }
 
     [Fact]
+    public void Installed_native_catalogs_read_trader_stock_trait_buffs_and_npc_states()
+    {
+        using var provider = GameAssetProvider.CreateForLocalInstall(includeMods: false);
+        if (provider is not { HasMappings: true }) return;
+        var blacksmith = Assert.Single(AbioticEditor.Core.Codex.TraderCatalog.LoadFrom(provider), t => t.Id == "Blacksmith");
+        Assert.NotEmpty(blacksmith.Sells);
+        Assert.All(blacksmith.Sells, offer => Assert.False(string.IsNullOrEmpty(offer.ItemId)));
+        Assert.Contains(TraitCatalog.LoadDetailsFrom(provider).Values, t => !string.IsNullOrEmpty(t.BuffRowName));
+        Assert.Contains("FirstContactMade", NpcStateCatalog.LoadFrom(provider));
+    }
+
+    [Fact]
     public void First_native_pet_keeps_xp_and_mutation_without_a_legacy_template()
     {
         var data = Player();

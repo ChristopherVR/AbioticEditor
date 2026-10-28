@@ -147,6 +147,13 @@ public static class TraitCatalog
                 {
                     buffRowName = p.Tag?.GenericValue?.ToString();
                 }
+                else if (n == "TraitBuff")
+                {
+                    // Native 1.5: a BuffDebuffRowHandle struct instead of a bare row name.
+                    var handle = p.Tag?.GenericValue is CUE4Parse.UE4.Assets.Objects.FScriptStruct ss ? ss.StructType : p.Tag?.GenericValue;
+                    if (handle is CUE4Parse.UE4.Assets.Objects.FStructFallback sf)
+                        buffRowName = sf.Properties.FirstOrDefault(rp => rp.Name.Text == "RowName")?.Tag?.GenericValue?.ToString();
+                }
                 else if (n.MatchesUnrealProperty("PointCost_"))
                 {
                     cost = p.Tag?.GenericValue switch { int i => i, byte b => b, _ => 0 };

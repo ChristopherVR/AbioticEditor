@@ -134,26 +134,28 @@ public static partial class TraderCatalog
             {
                 if (p.Name.Text.MatchesUnrealProperty("BuyableItems_"))
                 {
-                    // { Item_2 = { Item_5 = handle, Count_6 }, WorldFlagToMakeAvailable_9, AvailableStock_13 }
+                    // Older: { Item_2 = { Item_5 = handle, Count_6 }, WorldFlagToMakeAvailable_9, AvailableStock_13 }.
+                    // Native 1.5 (TraderItemWF): { Output = InstancedStruct of AbioticItemCount { Item, Count },
+                    // WorldFlagToMakeAvailable, AvailableStock }.
                     foreach (var entry in StructArray(p.Tag?.GenericValue))
                     {
                         string? itemId = null, flag = null;
                         var count = 1;
                         foreach (var ep in entry.Properties)
                         {
-                            if (ep.Name.Text.MatchesUnrealProperty("Item_"))
+                            var raw = ep.Tag?.GenericValue is FScriptStruct wrapped ? wrapped.StructType : ep.Tag?.GenericValue;
+                            var inner = ep.Name.Text.MatchesUnrealProperty("Item_") ? ep.Tag?.GenericValue
+                                : ep.Name.Text == "Output" && raw is FInstancedStruct output ? output.NonConstStruct
+                                : null;
+                            if (inner is FScriptStruct iss) inner = iss.StructType;
+                            if (inner is FStructFallback isf)
                             {
-                                var inner = ep.Tag?.GenericValue;
-                                if (inner is FScriptStruct iss) inner = iss.StructType;
-                                if (inner is FStructFallback isf)
+                                foreach (var ip in isf.Properties)
                                 {
-                                    foreach (var ip in isf.Properties)
-                                    {
-                                        if (ip.Name.Text.MatchesUnrealProperty("Item_"))
-                                            itemId = RowNameOf(ip.Tag?.GenericValue);
-                                        else if (ip.Name.Text.MatchesUnrealProperty("Count_"))
-                                            count = ip.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
-                                    }
+                                    if (ip.Name.Text.MatchesUnrealProperty("Item_"))
+                                        itemId = RowNameOf(ip.Tag?.GenericValue);
+                                    else if (ip.Name.Text.MatchesUnrealProperty("Count_"))
+                                        count = ip.Tag?.GenericValue switch { int i => i, byte b => b, _ => 1 };
                                 }
                             }
                             else if (ep.Name.Text.MatchesUnrealProperty("WorldFlagToMakeAvailable_"))

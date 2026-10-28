@@ -1,5 +1,47 @@
 # Abiotic Editor - Session history
 
+## Community Update 5 live-editing and game-data audit (2026-10-28)
+
+- Method: `tests/AbioticEditor.Probes/LiveNameOracleProbe.cs` (set `LIVE_NAME_ORACLE_OUT`, and
+  optionally `LIVE_NAME_ORACLE_OLD_USMAP`) dumps every Blueprint class/struct member, function
+  parameter and type from the installed paks, the native mappings with enum values, identifiers
+  in the game executable, and a native diff against older mappings. Every name the Lua agent uses
+  was checked against it, class by class. `CatalogHealthProbe.cs` (`CATALOG_HEALTH_OUT`) loads
+  every catalog and flags fields that are empty for almost every row.
+- Main live breakages found and fixed (all silent or loud failures on CU5):
+  - Item slots everywhere (inventory, containers, dropped items, companions, bases, garden,
+    power chairs, bench upgrades, item metadata) used the hash-suffixed Blueprint field names;
+    CU5 slots are native with plain names. New `Scripts/slot_fields.lua` resolves either layout
+    (native first, cached). Typed row handles have no `DataTable`, so it is only written when
+    present.
+  - Liquids: native `ELiquidType` is renumbered (Fuel 6 -> 5, Blood 9 -> 8, Ink 16 -> 13). The
+    agent translates to and from the editor's `E_LiquidType::NewEnumeratorN` names by name.
+  - Skills read native `CurrentXP` and `XPMultiplier`; traits, background (`PhD`) and all 13
+    appearance fields are row handles now; trait buff rows are checked against
+    `GetAllBuffDebuffRowNames` (`DataTablePath` is gone); world-flag/weather handles no longer
+    carry `DataTablePath`; the world-flag fallback reads `RowName`.
+  - Non-host recipe unlock passes an `AnyRecipeRowHandle` (table from the `srecipe_`/`crecipe_`
+    prefix). Garden planting passes a `GlobalItemRowHandle` when that type exists.
+  - Tamed Peccary/Lamogi detection uses `PetFunctionLibrary`. Live species change is refused on
+    CU5: `SpawnPet` now takes an `NPCRowHandle`, and passing a class could crash the game.
+  - Leyak containment finds directors by component class (the AI director's named properties
+    are gone); before, assign/swap failed after freeing the creatures.
+  - Power-socket timers read native `bHasTimer`/`TimerMode`; buttons read/write `bPressedOnce`.
+  - Doors: `isOpen` now also counts state 2 (open outwards); the comment called it "locked".
+- Game data: trader stock (now an `InstancedStruct` `Output`) and trait buffs (`TraitBuff` row
+  handle) were empty in every bundled registry; NPC states read the native `ENarrativeNPCState`.
+  Registries regenerated for all 10 languages (only RecipeLearning, Traits and Traders changed
+  in content). `PlacedObjectCloner` writes `ELiquidType::Empty` into native saves; `DoorMap` is
+  no longer reported as unmodeled content.
+- Probes project fixed for the CUE4Parse update (`GameMeshProbe`).
+- Tests: new Lua suite `tests/cases/cu5_native.lua` (CU5-shaped fixtures; fails against the old
+  agent); legacy harness handles now carry `DataTable`; 1,449 Lua checks pass. C#: bundled
+  registry must carry trader stock and trait buffs; installed-game check for traders, trait buffs
+  and NPC states. Two source-contract tests updated to the new shapes.
+- Still unverified in a running game: everything above was checked against the game's own
+  definitions and fakes, not live. Unreported on CU5: the personal tutorial quest (`serverQuest`),
+  which the game now computes inside a Blueprint function.
+
 ## Community Update 5 save audit (2026-10-28)
 
 - Audited every save writer against game-written CU5 saves (the checked-in Update1_5 fixtures

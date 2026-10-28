@@ -92,8 +92,9 @@ public static partial class WorldSaveReader
     private static readonly string[] ConsumedPrefixes =
     {
         "DeployedObjectMap", "CustomInventoryMap", "WorldFlags",
-        // The door maps' real key names; a bare "Door" prefix matches neither.
-        "SimpleDoorMap", "SecurityDoorMap",
+        // The door maps' real key names; a bare "Door" prefix matches neither. Native 1.5 saves
+        // name the hinged-door map plain "DoorMap" (read through NativeSaveSchema).
+        "SimpleDoorMap", "SecurityDoorMap", "DoorMap",
         "StoryProgressionRow", "MinutesPassed", "GlobalRecipesUnlocked", "GlobalRecipesResearched",
         "DroppedItemMap", "NarrativeNPCMap", "LevelGUID",
         "TimeOfDay", "DayDiscovered", "LeyakContainmentIDs",

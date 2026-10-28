@@ -389,7 +389,9 @@ internal static class PlacedObjectCloner
         SetIfPresent(p, "LiquidLevel_", -1);
         SetIfPresent(p, "DynamicState_", false);
         SetIfPresent(p, "PlayerMadeString_", new FString(string.Empty));
-        if (p.FindByPrefix("CurrentLiquid_") is not null) WorldMapAccessor.SetEnumByte(p, "CurrentLiquid_", "E_LiquidType::NewEnumerator0");
+        // Native 1.5 saves use the native ELiquidType enum, whose empty value is named, not numbered.
+        if (p.FindByPrefix("CurrentLiquid_") is not null)
+            WorldMapAccessor.SetEnumByte(p, "CurrentLiquid_", NativeSaveSchema.IsNative(p) ? "ELiquidType::Empty" : "E_LiquidType::NewEnumerator0");
         if (p.FindByPrefix("TextureVariantRow_")?.Property is StructProperty { Value: PropertiesStruct variant })
         {
             WorldMapAccessor.SetName(variant.Properties, "RowName", "None");

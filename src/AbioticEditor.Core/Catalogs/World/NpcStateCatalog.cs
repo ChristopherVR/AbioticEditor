@@ -29,7 +29,23 @@ public static class NpcStateCatalog
                     result.Add(text);
                 }
             }
-            return result;
+            return result.Count > 0 ? result : NativeStates(provider);
+        }
+        catch
+        {
+            return NativeStates(provider);
+        }
+    }
+
+    // Native 1.5 replaced the Blueprint enum asset with ENarrativeNPCState, which has real names.
+    private static IReadOnlyList<string> NativeStates(GameAssetProvider provider)
+    {
+        try
+        {
+            var values = provider.UseFileProvider(files => files.MappingsContainer?.MappingsForGame?.Enums.GetValueOrDefault("ENarrativeNPCState"));
+            return values is null
+                ? Array.Empty<string>()
+                : values.OrderBy(v => v.Key).Select(v => v.Value).Where(v => !v.EndsWith("_MAX", StringComparison.OrdinalIgnoreCase)).ToList();
         }
         catch
         {

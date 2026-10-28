@@ -57,6 +57,10 @@ public sealed class BundledGameDataTests
         AssertHas(registry.Fish?.Count, 20, "fish");
         AssertHas(registry.Traders?.Count, 5, "traders");
         AssertHas(registry.SectorMaps?.Count, 5, "sector maps");
+        // Row contents, not just row counts: Community Update 5 reshaped trader stock (an instanced
+        // struct) and trait buffs (a row handle), and both once shipped empty behind full row counts.
+        AssertHas(registry.Traders?.Sum(t => t.Sells.Count), 30, "items traders sell");
+        AssertHas(registry.Traits?.Values.Count(t => !string.IsNullOrEmpty(t.BuffRowName)), 20, "trait buffs");
 
         static void AssertHas(int? actual, int atLeast, string what)
             => Assert.True(actual >= atLeast,

@@ -100945,6 +100945,102 @@
         "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_ProcessingBench_ParentBP"
       },
       {
+        "RecipeId": "recipe_gardenplot_small",
+        "Kind": 1,
+        "SourceId": "PhD_Agriculture",
+        "SourceLabel": "Phytogenetic Botanist",
+        "SourceAssetPath": "/Game/Blueprints/BuffsDebuffs/Traits/Buff_Job_Agriculture",
+        "TraitId": "PhD_Agriculture"
+      },
+      {
+        "RecipeId": "recipe_gardenplot_round",
+        "Kind": 1,
+        "SourceId": "PhD_Agriculture",
+        "SourceLabel": "Phytogenetic Botanist",
+        "SourceAssetPath": "/Game/Blueprints/BuffsDebuffs/Traits/Buff_Job_Agriculture",
+        "TraitId": "PhD_Agriculture"
+      },
+      {
+        "RecipeId": "recipe_gardenplot_small",
+        "Kind": 1,
+        "SourceId": "Trait_Gardener",
+        "SourceLabel": "Gardener",
+        "SourceAssetPath": "/Game/Blueprints/BuffsDebuffs/Traits/Buff_Trait_Gardener",
+        "TraitId": "Trait_Gardener"
+      },
+      {
+        "RecipeId": "recipe_gardenplot_round",
+        "Kind": 1,
+        "SourceId": "Trait_Gardener",
+        "SourceLabel": "Gardener",
+        "SourceAssetPath": "/Game/Blueprints/BuffsDebuffs/Traits/Buff_Trait_Gardener",
+        "TraitId": "Trait_Gardener"
+      },
+      {
+        "RecipeId": "recipe_ammo_9mm",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_ammo_12g",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_ammo_magnum",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_ammo_556",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_ammo_308",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_gunpowder",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "SourceLabel": "Deployable_Bench_Ammo",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_screws",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
+        "SourceLabel": "Deployable_Bench_Repair",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
+        "RecipeId": "recipe_circuitboard",
+        "Kind": 6,
+        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
+        "SourceLabel": "Deployable_Bench_Repair",
+        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
+        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
+      },
+      {
         "RecipeId": "recipe_barricade_office",
         "Kind": 6,
         "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Default.uasset",
@@ -101001,128 +101097,44 @@
         "TriggerFunction": "RecipeRowsToUnlockOnAccess"
       },
       {
-        "RecipeId": "recipe_screws",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
-        "SourceLabel": "Deployable_Bench_Repair",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_circuitboard",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
-        "SourceLabel": "Deployable_Bench_Repair",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_CraftingBench_Repair.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_ammo_9mm",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_ammo_12g",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_ammo_magnum",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_ammo_556",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_ammo_308",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_gunpowder",
-        "Kind": 6,
-        "SourceId": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "SourceLabel": "Deployable_Bench_Ammo",
-        "SourceAssetPath": "AbioticFactor/Content/Blueprints/DeployedObjects/Furniture/Deployed_Bench_AmmoStation.uasset",
-        "TriggerFunction": "RecipeRowsToUnlockOnAccess"
-      },
-      {
-        "RecipeId": "recipe_cauldron",
+        "RecipeId": "recipe_trinket_ogredoll",
         "Kind": 3,
-        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_0",
-        "SourceLabel": "\u9B54\u5973\u306E\u5927\u91DC",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
-        "LevelId": "V_Salem",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_0"
-      },
-      {
-        "RecipeId": "recipe_armor_helmet_hex",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u898B\u6163\u308C\u306A\u3044\u30DE\u30B9\u30AF",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
-        "LevelId": "V_Salem",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_1"
-      },
-      {
-        "RecipeId": "recipe_trinket_cornhusk",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_3",
+        "SourceId": "/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.InteractableProp_BP_C_1",
         "SourceLabel": "",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
-        "LevelId": "V_Salem",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_DarkFusion.umap",
+        "LevelId": "Facility_DarkFusion",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_3"
+        "SourceObjectPath": "/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
-        "RecipeId": "recipe_megalight",
+        "RecipeId": "recipe_laser_reflector",
         "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_3",
-        "SourceLabel": "X\u7DDA\u30B7\u30FC\u30EB\u30C9\u653E\u5C04\u4F53",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs.umap",
-        "LevelId": "Facility_Labs",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_3"
-      },
-      {
-        "RecipeId": "recipe_paint_yellow",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_4",
-        "SourceLabel": "\u7279\u7570\u306A\u7D75\u7B46",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs.umap",
-        "LevelId": "Facility_Labs",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_4"
-      },
-      {
-        "RecipeId": "recipe_fieldbattery",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Security.Facility_Security:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceId": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_0",
         "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Security.umap",
-        "LevelId": "Facility_Security",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs_Adjustment.umap",
+        "LevelId": "Facility_Labs_Adjustment",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Security.Facility_Security:PersistentLevel.InteractableProp_BP_C_1"
+        "SourceObjectPath": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_0"
+      },
+      {
+        "RecipeId": "recipe_backpack_research",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs_Adjustment.umap",
+        "LevelId": "Facility_Labs_Adjustment",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_1"
+      },
+      {
+        "RecipeId": "recipe_pestdummy",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/V_Dummy.V_Dummy:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u7815\u304B\u308C\u305F\u30DA\u30B9\u30C8\u30C0\u30DF\u30FC",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Dummy.umap",
+        "LevelId": "V_Dummy",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/V_Dummy.V_Dummy:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
         "RecipeId": "recipe_megalight_turret",
@@ -101155,84 +101167,44 @@
         "SourceObjectPath": "/Game/Maps/V_Signal.V_Signal:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
-        "RecipeId": "recipe_pestdummy",
+        "RecipeId": "recipe_fieldbattery",
         "Kind": 3,
-        "SourceId": "/Game/Maps/V_Dummy.V_Dummy:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u7815\u304B\u308C\u305F\u30DA\u30B9\u30C8\u30C0\u30DF\u30FC",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Dummy.umap",
-        "LevelId": "V_Dummy",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/V_Dummy.V_Dummy:PersistentLevel.InteractableProp_BP_C_1"
-      },
-      {
-        "RecipeId": "recipe_laser_reflector",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_0",
+        "SourceId": "/Game/Maps/Facility_Security.Facility_Security:PersistentLevel.InteractableProp_BP_C_1",
         "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs_Adjustment.umap",
-        "LevelId": "Facility_Labs_Adjustment",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Security.umap",
+        "LevelId": "Facility_Security",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_0"
+        "SourceObjectPath": "/Game/Maps/Facility_Security.Facility_Security:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
-        "RecipeId": "recipe_backpack_research",
+        "RecipeId": "recipe_megalight",
         "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs_Adjustment.umap",
-        "LevelId": "Facility_Labs_Adjustment",
+        "SourceId": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_3",
+        "SourceLabel": "X\u7DDA\u30B7\u30FC\u30EB\u30C9\u653E\u5C04\u4F53",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs.umap",
+        "LevelId": "Facility_Labs",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Labs_Adjustment.Facility_Labs_Adjustment:PersistentLevel.InteractableProp_BP_C_1"
-      },
-      {
-        "RecipeId": "recipe_thermocell",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u4E0D\u5B8C\u5168\u306A\u30B5\u30FC\u30E2\u30BB\u30EB",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Residence.umap",
-        "LevelId": "Facility_Residence",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1"
-      },
-      {
-        "RecipeId": "recipe_flamethrower",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u4E0D\u5B8C\u5168\u306A\u30B5\u30FC\u30E2\u30BB\u30EB",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Residence.umap",
-        "LevelId": "Facility_Residence",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1"
+        "SourceObjectPath": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_3"
       },
       {
         "RecipeId": "recipe_paint_yellow",
         "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_DF_RadWaste.Facility_DF_RadWaste:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_DF_RadWaste.umap",
-        "LevelId": "Facility_DF_RadWaste",
+        "SourceId": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_4",
+        "SourceLabel": "\u7279\u7570\u306A\u7D75\u7B46",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Labs.umap",
+        "LevelId": "Facility_Labs",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_DF_RadWaste.Facility_DF_RadWaste:PersistentLevel.InteractableProp_BP_C_1"
+        "SourceObjectPath": "/Game/Maps/Facility_Labs.Facility_Labs:PersistentLevel.InteractableProp_BP_C_4"
       },
       {
-        "RecipeId": "recipe_trinket_ogredoll",
+        "RecipeId": "recipe_puffycoat",
         "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_DarkFusion.umap",
-        "LevelId": "Facility_DarkFusion",
+        "SourceId": "/Game/Maps/Facility_Reservoir.Facility_Reservoir:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Reservoir.umap",
+        "LevelId": "Facility_Reservoir",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_DarkFusion.Facility_DarkFusion:PersistentLevel.InteractableProp_BP_C_1"
-      },
-      {
-        "RecipeId": "srecipe_solder",
-        "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.InteractableProp_SetSkillLevel_C_1",
-        "SourceLabel": "\u7279\u7570\u306A\u6CB8\u9A30\u3057\u3066\u3044\u308B\u934B",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_MFWest.umap",
-        "LevelId": "Facility_MFWest",
-        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.InteractableProp_SetSkillLevel_C_1"
+        "SourceObjectPath": "/Game/Maps/Facility_Reservoir.Facility_Reservoir:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
         "RecipeId": "recipe_suit_powerC",
@@ -101255,14 +101227,44 @@
         "SourceObjectPath": "/Game/Maps/V_TheWall.V_TheWall:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
-        "RecipeId": "recipe_puffycoat",
+        "RecipeId": "recipe_thermocell",
         "Kind": 3,
-        "SourceId": "/Game/Maps/Facility_Reservoir.Facility_Reservoir:PersistentLevel.InteractableProp_BP_C_1",
-        "SourceLabel": "\u8208\u5473\u6DF1\u3044\u30C0\u30A4\u30A2\u30B0\u30E9\u30E0",
-        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Reservoir.umap",
-        "LevelId": "Facility_Reservoir",
+        "SourceId": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u4E0D\u5B8C\u5168\u306A\u30B5\u30FC\u30E2\u30BB\u30EB",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Residence.umap",
+        "LevelId": "Facility_Residence",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
-        "SourceObjectPath": "/Game/Maps/Facility_Reservoir.Facility_Reservoir:PersistentLevel.InteractableProp_BP_C_1"
+        "SourceObjectPath": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1"
+      },
+      {
+        "RecipeId": "recipe_flamethrower",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u4E0D\u5B8C\u5168\u306A\u30B5\u30FC\u30E2\u30BB\u30EB",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_Residence.umap",
+        "LevelId": "Facility_Residence",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/Facility_Residence.Facility_Residence:PersistentLevel.InteractableProp_BP_C_1"
+      },
+      {
+        "RecipeId": "srecipe_solder",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.InteractableProp_SetSkillLevel_C_1",
+        "SourceLabel": "\u7279\u7570\u306A\u6CB8\u9A30\u3057\u3066\u3044\u308B\u934B",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_MFWest.umap",
+        "LevelId": "Facility_MFWest",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/Facility_MFWest.Facility_MFWest:PersistentLevel.InteractableProp_SetSkillLevel_C_1"
+      },
+      {
+        "RecipeId": "recipe_paint_yellow",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/Facility_DF_RadWaste.Facility_DF_RadWaste:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/Facility_DF_RadWaste.umap",
+        "LevelId": "Facility_DF_RadWaste",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/Facility_DF_RadWaste.Facility_DF_RadWaste:PersistentLevel.InteractableProp_BP_C_1"
       },
       {
         "RecipeId": "recipe_xmastree",
@@ -101283,6 +101285,36 @@
         "LevelId": "Facility_Dam_Waterfall",
         "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
         "SourceObjectPath": "/Game/Maps/Facility_Dam_Waterfall.Facility_Dam_Waterfall:PersistentLevel.InteractableProp_BP_C_0"
+      },
+      {
+        "RecipeId": "recipe_cauldron",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_0",
+        "SourceLabel": "\u9B54\u5973\u306E\u5927\u91DC",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
+        "LevelId": "V_Salem",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_0"
+      },
+      {
+        "RecipeId": "recipe_armor_helmet_hex",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_1",
+        "SourceLabel": "\u898B\u6163\u308C\u306A\u3044\u30DE\u30B9\u30AF",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
+        "LevelId": "V_Salem",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_1"
+      },
+      {
+        "RecipeId": "recipe_trinket_cornhusk",
+        "Kind": 3,
+        "SourceId": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_3",
+        "SourceLabel": "",
+        "SourceAssetPath": "AbioticFactor/Content/Maps/V_Salem.umap",
+        "LevelId": "V_Salem",
+        "TriggerFunction": "InteractableProp_BP_C.ExecuteUbergraph_InteractableProp_BP",
+        "SourceObjectPath": "/Game/Maps/V_Salem.V_Salem:PersistentLevel.InteractableProp_BP_C_3"
       }
     ],
     "RejectedLinks": [
@@ -103618,7 +103650,8 @@
       "Description": "\u3042\u306A\u305F\u306F\u65B0\u5165\u308A\u3067\u3001\u672A\u719F\u8005\u3067\u3001\u77E5\u8B58\u3082\u8DB3\u308A\u3066\u3044\u306A\u3044\u3067\u3057\u3087\u3046\u3002\u3067\u3059\u304C\u3001\u6280\u8853\u306E\u4E0D\u8DB3\u306F\u3001\u91CE\u5FC3\u3067\u88DC\u3046\u3053\u3068\u304C\u3067\u304D\u308B\u306E\u3067\u3059\u3002\u3053\u308C\u306F\u30C1\u30E3\u30EC\u30F3\u30B8\u597D\u304D\u3001\u307E\u305F\u306F\u307E\u3063\u3055\u3089\u306A\u30B9\u30BF\u30FC\u30C8\u3092\u597D\u307F\u3001\u30B9\u30C6\u30EB\u30B9\u3092\u6975\u3081\u3066\u3044\u304D\u305F\u3044\u79D1\u5B66\u8005\u5411\u3051\u306E\u4ED5\u4E8B\u3067\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30B9\u30C6\u30EB\u30B9\uFF09",
       "PointCost": 10,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_LabAssistant"
     },
     "PhD_Medicine": {
       "Id": "PhD_Medicine",
@@ -103626,7 +103659,8 @@
       "Description": "\u751F\u304D\u3066\u3044\u308B\u88AB\u9A13\u8005\u306E\u7814\u7A76\u304B\u3089\u3001\u3042\u306A\u305F\u306F\u4EBA\u4F53\u3001\u7279\u306B\u75C5\u3084\u602A\u6211\u3001\u305D\u306E\u4ED6\u3042\u3089\u3086\u308B\u7570\u5E38\u306B\u3064\u3044\u3066\u5B66\u3073\u307E\u3057\u305F\u3002\u3042\u306A\u305F\u306E\u533B\u7642\u6280\u8853\u306F\u3001\u540C\u50DA\u305F\u3061\u3088\u308A\u3082\u304B\u306A\u308A\u9032\u3093\u3060\u5834\u6240\u306B\u3042\u308A\u307E\u3059\u3002\u533B\u7642\u30A2\u30A4\u30C6\u30E0\u3092\u30AF\u30E9\u30D5\u30C8\u6642\u3001\u8FFD\u52A0\u306E\u5FDC\u6025\u51E6\u7F6EXP\u304C\u5F97\u3089\u308C\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30E1\u30C7\u30A3\u30C3\u30AF\uFF09",
       "PointCost": 9,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_Medicine"
     },
     "PhD_HumanBio": {
       "Id": "PhD_HumanBio",
@@ -103634,7 +103668,8 @@
       "Description": "\u535A\u58EB\u53F7\u30922\u3064\u3082\u6301\u3063\u3066\u3044\u308B\u306B\u3057\u3066\u306F\u3001\u3042\u306A\u305F\u306F\u9A5A\u304F\u307B\u3069\u306B\u4E08\u592B\u3067\u3059\u3002\u7D20\u65E9\u304F\u3001\u904B\u52D5\u80FD\u529B\u3082\u9AD8\u304F\u3001\u4F53\u683C\u3082\u3044\u3044\u3002\u591A\u5C11\u306E\u6253\u6483\u306B\u3082\u8010\u3048\u3089\u308C\u308B\u3067\u3057\u3087\u3046\u3002\u3042\u306A\u305F\u306E\u81EA\u5F8B\u795E\u7D4C\u7CFB\u306F\u5236\u5FA1\u4E0B\u306B\u3042\u308A\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30BF\u30F3\u30AF\uFF09",
       "PointCost": 8,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_HumanBio"
     },
     "PhD_MechEng": {
       "Id": "PhD_MechEng",
@@ -103642,7 +103677,8 @@
       "Description": "\u3042\u306A\u305F\u304C\u3053\u3053\u306B\u3044\u308B\u306E\u306F\u3001\u305D\u306E\u5916\u898B\u3084\u83EF\u3005\u3057\u3044\u4F1A\u8A71\u3067\u3082\u306A\u304F\u3001\u305D\u306E\u9A5A\u304F\u307B\u3069\u306E\u88FD\u9020\u65BD\u8A2D\u3068\u5DE5\u5177\u304C\u3042\u3063\u305F\u304B\u3089\u3067\u3059\u3002\u5BB6\u5177\u3084\u305D\u306E\u4ED6\u306E\u5EFA\u9020\u7269\u3092\u30AF\u30E9\u30D5\u30C8\u6642\u3001\u8FFD\u52A0\u3067\u5EFA\u8A2DXP\u304C\u5F97\u3089\u308C\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30D3\u30EB\u30C0\u30FC\uFF09",
       "PointCost": 7,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_MechEng"
     },
     "PhD_Agriculture": {
       "Id": "PhD_Agriculture",
@@ -103650,7 +103686,8 @@
       "Description": "\u3042\u306A\u305F\u306F\u8FB2\u5834\u3067\u306A\u304F\u7814\u7A76\u5BA4\u3092\u9078\u3073\u307E\u3057\u305F\u304C\u3001\u690D\u7269\u3068\u306E\u89E6\u308C\u5408\u3044\u3092\u5931\u3046\u3053\u3068\u306F\u3042\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3042\u306A\u305F\u306F\u751F\u7269\u79D1\u5B66\u3001\u907A\u4F1D\u5B66\u306B\u3064\u3044\u3066\u77E5\u8B58\u3092\u6301\u3063\u3066\u304A\u308A\u3001GATE\u306E\u6700\u3082\u30A8\u30AD\u30BE\u30C1\u30C3\u30AF\u306A\u6A19\u672C\u3067\u3059\u3089\u3069\u306E\u3088\u3046\u306B\u6210\u9577\u3059\u308B\u304B\u3092\u77E5\u3063\u3066\u3044\u307E\u3059\u3002\u8FB2\u696D\u7528\u30A2\u30A4\u30C6\u30E0\u3092\u30AF\u30E9\u30D5\u30C8\u6642\u3001\u8FFD\u52A0\u3067\u8FB2\u696DXP\u304C\u5F97\u3089\u308C\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30AC\u30FC\u30C7\u30CA\u30FC\uFF09",
       "PointCost": 9,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_Agriculture"
     },
     "PhD_NutritonalSci": {
       "Id": "PhD_NutritonalSci",
@@ -103658,7 +103695,8 @@
       "Description": "\u6804\u990A\u5B66\u3001\u751F\u7406\u5B66\u3001\u751F\u5316\u5B66\u306B\u5BFE\u3059\u308B\u6DF1\u3044\u7406\u89E3\u306B\u3088\u308A\u3001\u3042\u306A\u305F\u306F\u81EA\u5DF1\u7BA1\u7406\u306B\u3064\u3044\u3066\u3088\u304F\u77E5\u3063\u3066\u3044\u307E\u3059\u3002\u53D6\u308A\u5165\u308C\u305F\u3082\u306E\u306F\u6392\u51FA\u3055\u308C\u308B\u306E\u3060\u3068\u3044\u3046\u3053\u3068\u306F\u3001\u9593\u9055\u3044\u306A\u3044\u306E\u3067\u3059\u3002\u8ABF\u7406\u30A2\u30A4\u30C6\u30E0\u3092\u30AF\u30E9\u30D5\u30C8\u6642\u3001\u8FFD\u52A0\u306E\u8ABF\u7406XP\u3092\u5F97\u3089\u308C\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30B7\u30A7\u30D5\uFF09",
       "PointCost": 9,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_NutritonalSci"
     },
     "PhD_TheoreticalPhys": {
       "Id": "PhD_TheoreticalPhys",
@@ -103666,7 +103704,8 @@
       "Description": "\u3042\u306A\u305F\u306E\u77E5\u8B58\u306F\u7406\u8AD6\u4E0A\u306E\u3082\u306E\u3067\u3057\u304B\u306A\u3044\u304B\u3082\u3057\u308C\u307E\u305B\u3093\u304C\u3001\u7269\u4F53\u306E\u7A7A\u9593\u3067\u306E\u79FB\u52D5\u65B9\u6CD5\u306B\u3064\u3044\u3066\u306F\u3042\u3089\u3086\u308B\u3053\u3068\u3092\u77E5\u3063\u3066\u304A\u308A\u3001\u65B0\u3057\u3044\u30AC\u30B8\u30A7\u30C3\u30C8\u3084\u767A\u660E\u306E\u8003\u6848\u306B\u306F\u305F\u304F\u3055\u3093\u306E\u6642\u9593\u3092\u8CBB\u3084\u3057\u3066\u3044\u307E\u3059\u3002\u30A2\u30A4\u30C6\u30E0\u30EC\u30B7\u30D4\u3092\u767A\u660E\u6642\u3001\u8FFD\u52A0\u306E\u30AF\u30E9\u30D5\u30C8XP\u3092\u5F97\u3089\u308C\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u6295\u64F2/\u30E6\u30FC\u30C6\u30A3\u30EA\u30C6\u30A3\uFF09",
       "PointCost": 8,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_TheoreticalPhys"
     },
     "PhD_DefenseSecurity": {
       "Id": "PhD_DefenseSecurity",
@@ -103674,7 +103713,8 @@
       "Description": "\u3042\u306A\u305F\u306F\u9632\u885B\u30C1\u30FC\u30E0\u306B\u304A\u3051\u308B\u6700\u512A\u79C0\u58EB\u5B98\u3067\u3042\u308A\u3001\u79D1\u5B66\u8005\u306B\u306A\u308B\u53EF\u80FD\u6027\u3082\u3042\u308A\u307E\u3057\u305F\u3002\u3042\u306A\u305F\u3068\u9593\u306E\u629C\u3051\u305F\u540C\u50DA\u305F\u3061\u306E\u9593\u306B\u306F\u5DEE\u304C\u3042\u308A\u307E\u3059\u304C\u3001\u5F7C\u3089\u306F\u3042\u306A\u305F\u306E\u9632\u5FA1\u6280\u8853\u3068\u30AF\u30FC\u30EB\u306A\u30D8\u30EB\u30E1\u30C3\u30C8\u3092\u5C0A\u656C\u3057\u3066\u3044\u307E\u3059\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30B3\u30F3\u30D0\u30C3\u30C8\uFF09",
       "PointCost": 3,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_DefenseSecurity"
     },
     "PhD_Intern": {
       "Id": "PhD_Intern",
@@ -103682,7 +103722,8 @@
       "Description": "\u3042\u306A\u305F\u306F\u307E\u3060\u535A\u58EB\u53F7\u3092\u53D6\u5F97\u3057\u3066\u304A\u3089\u305A\u3001\u73FE\u72B6\u304B\u3089\u5224\u65AD\u3059\u308B\u306B\u3001\u3059\u3050\u306B\u53D6\u5F97\u3067\u304D\u308B\u3053\u3068\u3082\u306A\u3044\u3067\u3057\u3087\u3046\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u767D\u7D19\uFF09",
       "PointCost": 12,
       "IsBackground": true,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_PhD_Intern"
     },
     "PhD_Iron": {
       "Id": "PhD_Iron",
@@ -103690,7 +103731,8 @@
       "Description": "\u30A6\u30EB\u30C8\u30E9\u30CF\u30FC\u30C9\u30B3\u30A2\u30E2\u30FC\u30C9:\u3042\u306A\u305F\u306F\u3001\u79D1\u5B66\u7684\u3067\u3042\u308B\u3068\u540C\u6642\u306B\u975E\u5E38\u8B58\u7684\u3067\u3082\u3042\u308A\u307E\u3059\u3002\u958B\u59CB\u6642\u306E\u30D1\u30FC\u30AF\u30DD\u30A4\u30F3\u30C8\u304C\u306A\u304F\u3001\u8907\u6570\u306E\u30D1\u30FC\u30AF\u304C\u5229\u7528\u4E0D\u53EF\u3068\u306A\u308A\u307E\u3059\u3002\u30D8\u30EB\u30B9\u304C\u81EA\u52D5\u56DE\u5FA9\u305B\u305A\u3001\u4ED6\u306E\u79D1\u5B66\u8005\u3068\u306E\u5171\u6709\u30EC\u30B7\u30D4\u3092\u53D7\u3051\u53D6\u308B\u3053\u3068\u304C\u3067\u304D\u307E\u305B\u3093\u3002\uFF08\u63A8\u5968\u30ED\u30FC\u30EB\uFF1A\u30DE\u30BE\u30D2\u30B9\u30C8\uFF09",
       "PointCost": 0,
       "IsBackground": true,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Buff_PhD_Iron"
     },
     "Trait_Decathlon": {
       "Id": "Trait_Decathlon",
@@ -103698,7 +103740,8 @@
       "Description": "You trained for and participated in the GATE Foundation Decathlon. You gain all fitness-related skills at a faster rate. (Sprinting, Strength, Throwing)",
       "PointCost": 5,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Decathlon"
     },
     "Trait_FormerGuard": {
       "Id": "Trait_FormerGuard",
@@ -103706,7 +103749,8 @@
       "Description": "You\u0027re a bit more stalwart than most. You lose sanity at a 50% slower rate.",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Buff_Trait_FormerGuard"
     },
     "Trait_WrinklyBrainmeat": {
       "Id": "Trait_WrinklyBrainmeat",
@@ -103714,7 +103758,8 @@
       "Description": "You have more pliable neurological pathways. You gain 20% more XP than normal.",
       "PointCost": 4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_WrinklyBrainmeat"
     },
     "Trait_NightOwl": {
       "Id": "Trait_NightOwl",
@@ -103722,7 +103767,8 @@
       "Description": "You frequently work late into the night, becoming fatigued 50% slower than the average scientist.",
       "PointCost": 4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_NightOwl"
     },
     "Trait_Chef": {
       "Id": "Trait_Chef",
@@ -103730,7 +103776,8 @@
       "Description": "You have a love of cooking. You gain Cooking skill twice as fast.",
       "PointCost": 2,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Chef"
     },
     "Trait_Inconspicuous": {
       "Id": "Trait_Inconspicuous",
@@ -103738,7 +103785,8 @@
       "Description": "You are meek and quiet. You attract enemy attention twice as slow as others.",
       "PointCost": 4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Inconspicuous"
     },
     "Trait_Outdoorsman": {
       "Id": "Trait_Outdoorsman",
@@ -103746,7 +103794,8 @@
       "Description": "When not deep underground, you like to be out in the wild. You\u2019re affected less by temperature changes. ",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Outdoorsman"
     },
     "Trait_FannyPack": {
       "Id": "Trait_FannyPack",
@@ -103754,7 +103803,8 @@
       "Description": "You never leave home without it. You permanently gain 2 extra Hotbar Slots.",
       "PointCost": 10,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_FannyPack"
     },
     "Trait_ThickSkinned": {
       "Id": "Trait_ThickSkinned",
@@ -103762,7 +103812,8 @@
       "Description": "You have a 50% lower chance of receiving bleeding injuries.",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_ThickSkinned"
     },
     "Trait_FirstAidCert": {
       "Id": "Trait_FirstAidCert",
@@ -103770,7 +103821,8 @@
       "Description": "You took the GATE-provided First Aid Certification course. You start with 5 bandages.",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_FirstAidCert"
     },
     "Trait_Gardener": {
       "Id": "Trait_Gardener",
@@ -103778,7 +103830,8 @@
       "Description": "You gain Agriculture-related experience twice as fast and receive recipes for basic garden plots right from the outset.",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Gardener"
     },
     "Trait_LightEater": {
       "Id": "Trait_LightEater",
@@ -103786,7 +103839,8 @@
       "Description": "You require 20% less food than others do.",
       "PointCost": 3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_LightEater"
     },
     "Trait_Moist": {
       "Id": "Trait_Moist",
@@ -103794,7 +103848,8 @@
       "Description": "You are naturally moist and get thirsty 20% slower than others.",
       "PointCost": 4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Moist"
     },
     "Trait_SelfDefense": {
       "Id": "Trait_SelfDefense",
@@ -103802,7 +103857,8 @@
       "Description": "You took the GATE-provided self-defense course. You deal \u002B3 damage with all melee weapons.",
       "PointCost": 5,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_SelfDefense"
     },
     "Trait_SteelBladder": {
       "Id": "Trait_SteelBladder",
@@ -103810,7 +103866,8 @@
       "Description": "You can hold it for quite some time. Your toilet needs are reduced by 20%.",
       "PointCost": 2,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_SteelBladder"
     },
     "Trait_Strong": {
       "Id": "Trait_Strong",
@@ -103818,7 +103875,8 @@
       "Description": "You can carry 15% more weight than other scientists.",
       "PointCost": 4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_Strong"
     },
     "Trait_LeadBelly": {
       "Id": "Trait_LeadBelly",
@@ -103826,7 +103884,8 @@
       "Description": "You can drink tainted water without getting sick. Gross.",
       "PointCost": 8,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Buff_Trait_LeadBelly"
     },
     "Trait_FearOfViolence": {
       "Id": "Trait_FearOfViolence",
@@ -103834,7 +103893,8 @@
       "Description": "You refuse to engage with most combat-related skill past Level 5. (Accuracy, Reloading, Blunt Melee, Sharp Melee, Throwing)",
       "PointCost": -4,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_FearOfViolence"
     },
     "Trait_EasilyStartled": {
       "Id": "Trait_EasilyStartled",
@@ -103842,7 +103902,8 @@
       "Description": "You lose sanity 20% faster than normal.",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_EasilyStartled"
     },
     "Trait_Feeble": {
       "Id": "Trait_Feeble",
@@ -103850,7 +103911,8 @@
       "Description": "You are an exceptionally frail individual. You have 25% lower maximum health and break your bones more frequently from falls and blunt trauma.",
       "PointCost": -6,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Feeble"
     },
     "Trait_Narcoleptic": {
       "Id": "Trait_Narcoleptic",
@@ -103858,21 +103920,24 @@
       "Description": "You grow fatigued 75% faster than others and never feel truly rested. This affliction is a constant part of your life.",
       "PointCost": -6,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Narcoleptic"
     },
     "Trait_Agoraphobic": {
       "Id": "Trait_Agoraphobic",
       "DisplayName": "Agoraphobic",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Agoraphobic"
     },
     "Trait_Fumbler": {
       "Id": "Trait_Fumbler",
       "DisplayName": "Fumbler",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Fumbler"
     },
     "Trait_Asthmatic": {
       "Id": "Trait_Asthmatic",
@@ -103880,21 +103945,24 @@
       "Description": "You lose stamina 40% faster than others.",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Asthmatic"
     },
     "Trait_Claustrophobic": {
       "Id": "Trait_Claustrophobic",
       "DisplayName": "Claustrophobic",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Claustrophobic"
     },
     "Trait_Clumsy": {
       "Id": "Trait_Clumsy",
       "DisplayName": "Clumsy",
       "PointCost": -1,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Clumsy"
     },
     "Trait_Conspicuous": {
       "Id": "Trait_Conspicuous",
@@ -103902,7 +103970,8 @@
       "Description": "You stand out, to your detriment. You attract enemy attention 45% faster than others.",
       "PointCost": -3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Conspicuous"
     },
     "Trait_HeartyAppetite": {
       "Id": "Trait_HeartyAppetite",
@@ -103910,7 +103979,8 @@
       "Description": "You have a wild metabolism. You get hungry 60% faster than others.",
       "PointCost": -3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_HeartyAppetite"
     },
     "Trait_Dry": {
       "Id": "Trait_Dry",
@@ -103918,35 +103988,40 @@
       "Description": "You are naturally dry, getting thirsty 20% faster than others.",
       "PointCost": -3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Dry"
     },
     "Trait_Hemophobic": {
       "Id": "Trait_Hemophobic",
       "DisplayName": "Hemophobic",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Hemophobic"
     },
     "Trait_Dyslexia": {
       "Id": "Trait_Dyslexia",
       "DisplayName": "Dyslexia",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Dyslexia"
     },
     "Trait_RestlessSleeper": {
       "Id": "Trait_RestlessSleeper",
       "DisplayName": "Restless Sleeper",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_RestlessSleeper"
     },
     "Trait_Smoker": {
       "Id": "Trait_Smoker",
       "DisplayName": "Smoker",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Smoker"
     },
     "Trait_SlowHealer": {
       "Id": "Trait_SlowHealer",
@@ -103954,7 +104029,8 @@
       "Description": "Your healing interval is 1.5 seconds slower than everyone else.",
       "PointCost": -3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_SlowHealer"
     },
     "Trait_SlowLearner": {
       "Id": "Trait_SlowLearner",
@@ -103962,7 +104038,8 @@
       "Description": "You have very stiff neurological pathways. You learn skills 20% slower than normal and can\u0027t learn recipes via sharing nor by picking up things others have crafted.",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_SlowLearner"
     },
     "Trait_Hemophilia": {
       "Id": "Trait_Hemophilia",
@@ -103970,14 +104047,16 @@
       "Description": "You are twice as likely to bleed from a wound, and potentially quite severely.",
       "PointCost": -3,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_Hemophilia"
     },
     "Trait_Unlucky": {
       "Id": "Trait_Unlucky",
       "DisplayName": "Unlucky",
       "PointCost": -2,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Unlucky"
     },
     "Trait_WeakBladder": {
       "Id": "Trait_WeakBladder",
@@ -103985,7 +104064,8 @@
       "Description": "You can\u0027t hold it very long. Your toilet needs are increased by 15%, and you have to sit on the toilet for a longer duration than others.",
       "PointCost": -1,
       "IsBackground": false,
-      "AvailableOnStart": true
+      "AvailableOnStart": true,
+      "BuffRowName": "Debuff_Trait_WeakBladder"
     },
     "Trait_Cannibal": {
       "Id": "Trait_Cannibal",
@@ -103993,7 +104073,8 @@
       "Description": "You crave human flesh. It\u0027s the only thing keeping you sane.",
       "PointCost": 0,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Debuff_Trait_Cannibal"
     },
     "Trait_SunDisk": {
       "Id": "Trait_SunDisk",
@@ -104001,7 +104082,8 @@
       "Description": "Your core is fueled by a warmth unlike any other.",
       "PointCost": 0,
       "IsBackground": false,
-      "AvailableOnStart": false
+      "AvailableOnStart": false,
+      "BuffRowName": "Buff_Sundisk"
     }
   },
   "Customization": {
@@ -115276,7 +115358,53 @@
       "RequiredFlags": [
         "MF_ManufacturingOpen"
       ],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "gravitycube",
+          "Count": 1,
+          "RequiredFlag": "Labs_Containment_Entered"
+        },
+        {
+          "ItemId": "hose_reinforced",
+          "Count": 1,
+          "RequiredFlag": "TrainCompletedOnce"
+        },
+        {
+          "ItemId": "key_porcelain",
+          "Count": 1,
+          "RequiredFlag": "Fog_Completed"
+        },
+        {
+          "ItemId": "powercell",
+          "Count": 1,
+          "RequiredFlag": "Fog_Completed"
+        },
+        {
+          "ItemId": "scrap_composer",
+          "Count": 1,
+          "RequiredFlag": "Fog_Completed"
+        },
+        {
+          "ItemId": "organ_partial",
+          "Count": 1,
+          "RequiredFlag": "Fog_Completed"
+        },
+        {
+          "ItemId": "pens",
+          "Count": 1,
+          "RequiredFlag": "Fog_Completed"
+        },
+        {
+          "ItemId": "carapace_plutonic",
+          "Count": 1,
+          "RequiredFlag": "Plant_ExitOpened"
+        },
+        {
+          "ItemId": "shotgun_doublebarrel",
+          "Count": 1,
+          "RequiredFlag": "Security_ExitOpened"
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "trinket_order",
@@ -115320,7 +115448,38 @@
       "Id": "Warren",
       "ImageAssetPath": "/Game/Textures/GUI/Trading/T_UI_Trader_Warren.T_UI_Trader_Warren",
       "RequiredFlags": [],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "key_security",
+          "Count": 1,
+          "RequiredFlag": "NightRealm_Entered"
+        },
+        {
+          "ItemId": "magalloy",
+          "Count": 1,
+          "RequiredFlag": "Security_Gate2Opened"
+        },
+        {
+          "ItemId": "gunrepairkit_t1",
+          "Count": 1,
+          "RequiredFlag": "MF_MetBlacksmith"
+        },
+        {
+          "ItemId": "food_cannedpeas",
+          "Count": 1,
+          "RequiredFlag": "Office_TalkedToWarren"
+        },
+        {
+          "ItemId": "trinket_friendfinder",
+          "Count": 1,
+          "RequiredFlag": "Office_TalkedToWarren"
+        },
+        {
+          "ItemId": "stapler",
+          "Count": 1,
+          "RequiredFlag": "Office_ThirdFloorReached"
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "seed_nyxshade",
@@ -115352,7 +115511,63 @@
       "Id": "Blacksmith",
       "ImageAssetPath": "/Game/Textures/GUI/Trading/T_UI_Trader_Blacksmith.T_UI_Trader_Blacksmith",
       "RequiredFlags": [],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "lens",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "diode",
+          "Count": 1,
+          "RequiredFlag": "MF_MetFrake"
+        },
+        {
+          "ItemId": "cable_fibre",
+          "Count": 1,
+          "RequiredFlag": "MF_MetFrake"
+        },
+        {
+          "ItemId": "suit_fire",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "cementbag",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "anvil",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "steelcable",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "acid",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "rebar",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "armor_helmet_weldingmask",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "armor_arms_blacksmithinggloves",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "hose_reinforced",
@@ -115404,7 +115619,16 @@
       "Id": "Larva",
       "ImageAssetPath": "/Game/Textures/GUI/Trading/T_UI_Trader_Larva.T_UI_Trader_Larva",
       "RequiredFlags": [],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "fig_larvabigorange",
+          "Count": 1
+        },
+        {
+          "ItemId": "bait_crab_gem",
+          "Count": 1
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "fish_crab_gem",
@@ -115429,7 +115653,64 @@
       "RequiredFlags": [
         "Security_Entered"
       ],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "cookbook",
+          "Count": 1
+        },
+        {
+          "ItemId": "fryingpan",
+          "Count": 1
+        },
+        {
+          "ItemId": "cookingpot",
+          "Count": 1
+        },
+        {
+          "ItemId": "seed_lettuce",
+          "Count": 1
+        },
+        {
+          "ItemId": "seed_rice",
+          "Count": 1
+        },
+        {
+          "ItemId": "food_porkchop",
+          "Count": 1
+        },
+        {
+          "ItemId": "food_potato",
+          "Count": 1
+        },
+        {
+          "ItemId": "food_seaweed",
+          "Count": 3,
+          "RequiredFlag": "MapReveal_Dams"
+        },
+        {
+          "ItemId": "food_latte_vanilla",
+          "Count": 1
+        },
+        {
+          "ItemId": "food_latte_pumpkin",
+          "Count": 1,
+          "RequiredFlag": "Salem_Complete"
+        },
+        {
+          "ItemId": "food_cider_apple",
+          "Count": 1,
+          "RequiredFlag": "Salem_Complete"
+        },
+        {
+          "ItemId": "food_tea_shadowberry",
+          "Count": 1,
+          "RequiredFlag": "MapReveal_Shadowgate"
+        },
+        {
+          "ItemId": "soda_energy",
+          "Count": 1
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "heater",
@@ -115492,7 +115773,53 @@
         "Grayson_Wandering",
         "Manufacturing_Arrived"
       ],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "armor_helmet_hardhat",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "armor_chest_highvisvest",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "constructionsign",
+          "Count": 1,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "ammo_9mm",
+          "Count": 6,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "ammo_12g",
+          "Count": 2,
+          "RequiredFlag": "Labs_Containment_Entered"
+        },
+        {
+          "ItemId": "ammo_Magnum",
+          "Count": 3,
+          "RequiredFlag": "Manufacturing_Arrived"
+        },
+        {
+          "ItemId": "ammo_308",
+          "Count": 3,
+          "RequiredFlag": "Dams_ReachedCentral"
+        },
+        {
+          "ItemId": "ammo_556",
+          "Count": 10,
+          "RequiredFlag": "Dams_ReachedCentral"
+        },
+        {
+          "ItemId": "gunrepairkit_t2",
+          "Count": 1,
+          "RequiredFlag": "Dams_ReachedCentral"
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "salt",
@@ -115536,7 +115863,12 @@
       "Id": "Jimmy",
       "ImageAssetPath": "/Game/Textures/GUI/Trading/T_UI_Trader_Jimmy.T_UI_Trader_Jimmy",
       "RequiredFlags": [],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "food_taco",
+          "Count": 1
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "anomaly",
@@ -115558,7 +115890,20 @@
       "RequiredFlags": [
         "EndBossDefeated"
       ],
-      "Sells": [],
+      "Sells": [
+        {
+          "ItemId": "carbonplating",
+          "Count": 2
+        },
+        {
+          "ItemId": "liquidcrystal",
+          "Count": 2
+        },
+        {
+          "ItemId": "seed_antelight_pink",
+          "Count": 1
+        }
+      ],
       "Accepts": [
         {
           "ItemId": "coffee",
@@ -115753,23 +116098,43 @@
     "NPC_Monster_Peccary_Fog": "\u30D5\u30A9\u30B0\u30DA\u30C3\u30AB\u30EA\u30FC"
   },
   "NarrativeNpcNames": {
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_0": "\u91E3\u308A\u4EBA",
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_2": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_3": "\u6CBC\u306E\u9B54\u5973",
-    "Facility_Labs:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_1": "\u30D2\u30E5\u30FC\u30B9\u30C8\u30F3\u535A\u58EB",
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_4": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_6": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Security:NarrativeNPC_Human_ParentBP_C_1": "\u30BB\u30EA\u30FC\u30CC",
-    "Facility_Security:NarrativeNPC_Human_ParentBP_C_2": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_Plant:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Plant:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Plant:NarrativeNPC_Waterbot_C_1": "\u30A6\u30A9\u30FC\u30BF\u30FC\u30DC\u30C3\u30C8",
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_0": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "V_RISE:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_RISE:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_HastaTria_C_1": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_8": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_2": "\u30C0\u30B0\u30E9\u30B9",
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_3": "\u30D5\u30EC\u30FC\u30AF",
+    "Facility_MFFoundry:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_1": "\u30F4\u30A1\u30FC\u30B7\u30E3",
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_2": "\u30D5\u30EC\u30FC\u30AF",
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_3": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_4": "\u30D2\u30EB\u535A\u58EB",
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_6": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u30E8\u30C8\u30A5\u30F3",
+    "Facility_DF_Central:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Central:NarrativeNPC_Human_ParentBP_C_0": "\u30D2\u30EB\u535A\u58EB",
+    "V_Anteverse_A:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": "\u30DA\u30F3\u30C9\u30EB\u30C8\u30F3\u535A\u58EB",
+    "MainMenu_Offices:NarrativeNPC_Human_ParentBP_C_0": "\u30A6\u30A9\u30FC\u30EC\u30F3",
     "Facility_Pens:NarrativeNPC_Ela_C_1": "\u30A8\u30E9",
     "Facility_Pens:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Pens:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
@@ -115784,11 +116149,24 @@
     "Facility_Pens:NarrativeNPC_Human_ParentBP_C_1": "\u30B8\u30E3\u30CD\u30C3\u30C8",
     "Facility_Pens:NarrativeNPC_Human_ParentBP_C_2": "\u30A8\u30A4\u30D6",
     "Facility_Pens:NarrativeNPC_Human_ParentBP_C_3": "\u30A8\u30A4\u30D6",
-    "V_Inq:NarrativeNPC_HastaTria_C_0": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
-    "V_Inq:NarrativeNPC_Human_Hologram_C_1": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
-    "V_Inq:NarrativeNPC_Human_Hologram_C_3": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
-    "V_Inq:NarrativeNPC_Human_Hologram_C_5": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
-    "V_Inq:NarrativeNPC_Human_Hologram_C_7": "\u30D3\u30CF\u30EA",
+    "V_Anteverse_C:NarrativeNPC_ExorChieftain_C_0": "\u30AD\u30F3\u30FB\u30CF\u30FC\u30AF\u30FB\u30B8\u30E3\u30FC\u30EB\u30FB\u30C0",
+    "V_Anteverse_C:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Lower:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30A4\u30EA\u30FC",
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_1": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_2": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_3": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_5": "\u30B8\u30E3\u30CD\u30C3\u30C8",
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_1": "\u30CF\u30C3\u30C9\u535A\u58EB",
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_2": "\u30CF\u30C3\u30C9\u535A\u58EB",
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_6": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_1": "\u30BB\u30EA\u30FC\u30CC",
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_2": "\u30AB\u30FC\u30F3\u535A\u58EB",
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_1": "\u30B7\u30A7\u30A4\u30C9",
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_10": "\u30B7\u30A7\u30A4\u30C9",
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_11": "\u30B7\u30A7\u30A4\u30C9",
@@ -115807,9 +116185,103 @@
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_7": "\u30B7\u30A7\u30A4\u30C9",
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_8": "\u30B7\u30A7\u30A4\u30C9",
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_9": "\u30B7\u30A7\u30A4\u30C9",
-    "Facility_Dam_Lower:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30A4\u30EA\u30FC",
-    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
+    "V_Train:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_Train:NarrativeNPC_Human_ParentBP_C_0": "\u6D3B\u52D5\u5BB6",
+    "V_Train:NarrativeNPC_Human_ParentBP_C_1": "\u30CF\u30E2\u30F3\u30C9\u535A\u58EB",
+    "V_Intro:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_0": "\u30D6\u30EB\u30FC\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_1": "\u30B8\u30E3\u30AF\u30BD\u30F3",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_14": "\u30E9\u30F3\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_17": "\u30E9\u30F3\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30EC\u30A4\u30B7\u30FC",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_20": "\u30E9\u30F3\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_21": "\u30E9\u30F3\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_22": "\u30E9\u30F3\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_4": "\u30D6\u30EB\u30FC\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_5": "\u30D6\u30EB\u30FC\u30B9",
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_6": "\u30D6\u30EB\u30FC\u30B9",
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_1": "\u30D2\u30E5\u30FC\u30B9\u30C8\u30F3\u535A\u58EB",
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_4": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
+    "Facility_Reservoir:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Reservoir:NarrativeNPC_Human_ParentBP_C_0": "\u30B1\u30EB\u30B7\u30FC\u535A\u58EB",
+    "V_Winter:NarrativeNPC_Penguin_VWinter_C_1": "\u30D5\u30A3\u30FC\u30EA\u53F8\u4EE4\u5B98",
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_0": "\u30A4\u30A7\u30FC\u30AC\u30FC\u535A\u58EB",
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_1": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_3": "\u30A2\u30EA\u30B9",
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_4": "\u30A6\u30A9\u30FC\u30EC\u30F3",
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u6298\u7573\u300D\u306E\u30E8\u30C8\u30A5\u30F3",
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_2": "\u4E0D\u660E\u306A\u97F3\u58F0",
+    "Facility:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "Facility:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
+    "Facility:NarrativeNPC_Human_ParentBP_C_2": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_HastaTria_C_1": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_1": "\u30A8\u30A4\u30D6",
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_3": "\u30B7\u30A7\u30D1\u30FC\u30C9\u535A\u58EB",
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_ParentBP_C_0": "\u30BF\u30F3\u535A\u58EB",
+    "Facility_MFMaggot:NarrativeNPC_Larva_C_1": "\u30E9\u30EB\u30F4\u30A1",
+    "V_FOG:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_FOG:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_FOG:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "V_FOG:NarrativeNPC_Human_ParentBP_C_1": "\u30DE\u30EA\u30AA\u30F3",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_6": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Labs_Control:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_1": "\u30E9\u30B8\u30AA",
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_2": "\u30B3\u30F4\u30A1\u30C3\u30AF",
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_3": "\u30CF\u30F3\u30AF",
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_5": "\u30B8\u30E5\u30EA\u30A2",
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_0": "\u935B\u51B6\u5E2B",
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_1": "\u935B\u51B6\u5E2B",
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_1": "\u30B7\u30A7\u30D1\u30FC\u30C9\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_5": "\u30ED\u30D0\u30FC\u30C4\u535A\u58EB",
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_7": "\u30AE\u30E3\u30BA",
+    "Facility_MFHQ:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Labs:NarrativeNPC_Human_ParentBP_C_1": "\u30C6\u30F3\u30AF\u535A\u58EB",
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_0": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_1": "\u30B8\u30E7\u30CA\u30B9",
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_7": "\u30A2\u30A4\u30B6\u30A4\u30A2",
+    "V_BOTANICAL:NarrativeNPC_Human_Hologram_C_0": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Plant:NarrativeNPC_Waterbot_C_1": "\u30A6\u30A9\u30FC\u30BF\u30FC\u30DC\u30C3\u30C8",
+    "Facility_Office4:NarrativeNPC_Human_ParentBP_C_2": "\u30B9\u30C6\u30E5\u30EF\u30FC\u30C8\u535A\u58EB",
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_1": "\u30D2\u30EB\u535A\u58EB",
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_2": "\u30A8\u30A4\u30D6",
     "Facility_Office3:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Office3:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Office3:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
@@ -115818,33 +116290,19 @@
     "Facility_Office3:NarrativeNPC_Human_ParentBP_C_3": "\u30E1\u30A4\u30D5\u30A3\u30FC\u30EB\u30C9\u535A\u58EB",
     "Facility_Office3:NarrativeNPC_Human_ParentBP_C_4": "\u30EA\u30FC\u30AC\u30EB\u535A\u58EB",
     "Facility_Office3:NarrativeNPC_Human_ParentBP_C_6": "\u30A8\u30A4\u30D6",
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_1": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_2": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_3": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_5": "\u30B8\u30E3\u30CD\u30C3\u30C8",
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_1": "\u30A8\u30A4\u30D6",
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_2": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
-    "V_Winter:NarrativeNPC_Penguin_VWinter_C_1": "\u30D5\u30A3\u30FC\u30EA\u53F8\u4EE4\u5B98",
-    "Facility_MFMines:NarrativeNPC_HastaTria_C_1": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_8": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_2": "\u30C0\u30B0\u30E9\u30B9",
-    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_3": "\u30D5\u30EC\u30FC\u30AF",
-    "V_Signal:NarrativeNPC_Human_ParentBP_C_1": "\u30CF\u30C3\u30C9\u535A\u58EB",
-    "V_Signal:NarrativeNPC_Human_ParentBP_C_2": "\u30CF\u30C3\u30C9\u535A\u58EB",
-    "V_RISE:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_RISE:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_Anteverse_C:NarrativeNPC_ExorChieftain_C_0": "\u30AD\u30F3\u30FB\u30CF\u30FC\u30AF\u30FB\u30B8\u30E3\u30FC\u30EB\u30FB\u30C0",
-    "V_Anteverse_C:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Botanical:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_0": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_2": "\u30B8\u30DF\u30FC",
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_3": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
+    "Facility_Botanical:NarrativeNPC_UnlostMage_C_0": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u79D8\u5100\u4F1D\u6388\u8005",
+    "Facility_DF_RadWaste:NarrativeNPC_Human_ParentBP_C_0": "\u30D5\u30EC\u30FC\u30AF",
+    "Facility_DF_War:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_DF_War:NarrativeNPC_Human_ParentBP_C_0": "\u30C0\u30B0\u30E9\u30B9",
+    "V_Inq:NarrativeNPC_HastaTria_C_0": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
+    "V_Inq:NarrativeNPC_Human_Hologram_C_1": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
+    "V_Inq:NarrativeNPC_Human_Hologram_C_3": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
+    "V_Inq:NarrativeNPC_Human_Hologram_C_5": "\u30A2\u30EB\u30C6\u30E0\u795E\u5B98",
+    "V_Inq:NarrativeNPC_Human_Hologram_C_7": "\u30D3\u30CF\u30EA",
     "Facility_Containment:NarrativeNPC_Human_Hologram_C_0": "\u30B9\u30BF\u30FC\u30F3\u535A\u58EB",
     "Facility_Containment:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Containment:NarrativeNPC_Human_Hologram_C_10": "\u30DE\u30F3\u30BA\u535A\u58EB",
@@ -115861,192 +116319,158 @@
     "Facility_Containment:NarrativeNPC_Human_Hologram_C_8": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Containment:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
     "Facility_Containment:NarrativeNPC_Human_ParentBP_C_2": "\u30D4\u30FC\u30BF\u30FC\u30BA\u535A\u58EB",
-    "Facility_Office4:NarrativeNPC_Human_ParentBP_C_2": "\u30B9\u30C6\u30E5\u30EF\u30FC\u30C8\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": "\u30DA\u30F3\u30C9\u30EB\u30C8\u30F3\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_HastaTria_C_1": "\u30CF\u30B9\u30BF\u30FB\u30C8\u30EA\u30A2",
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_1": "\u30A8\u30A4\u30D6",
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_3": "\u30B7\u30A7\u30D1\u30FC\u30C9\u535A\u58EB",
-    "Facility_DF_RadWaste:NarrativeNPC_Human_ParentBP_C_0": "\u30D5\u30EC\u30FC\u30AF",
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_ParentBP_C_0": "\u30BF\u30F3\u535A\u58EB",
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_1": "\u30D2\u30EB\u535A\u58EB",
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_2": "\u30A8\u30A4\u30D6",
-    "MainMenu_Offices:NarrativeNPC_Human_ParentBP_C_0": "\u30A6\u30A9\u30FC\u30EC\u30F3",
-    "V_Anteverse_A:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFFoundry:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_1": "\u30F4\u30A1\u30FC\u30B7\u30E3",
-    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_2": "\u30D5\u30EC\u30FC\u30AF",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_6": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Labs_Control:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_3": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_4": "\u30D2\u30EB\u535A\u58EB",
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_6": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u30E8\u30C8\u30A5\u30F3",
-    "Facility:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
-    "Facility:NarrativeNPC_Human_ParentBP_C_2": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_0": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_7": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_0": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
-    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_1": "\u30AB\u30FC\u30F3\u535A\u58EB",
-    "Facility_MFHQ:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Labs:NarrativeNPC_Human_ParentBP_C_1": "\u30C6\u30F3\u30AF\u535A\u58EB",
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_1": "\u30E9\u30B8\u30AA",
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_2": "\u30B3\u30F4\u30A1\u30C3\u30AF",
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_3": "\u30CF\u30F3\u30AF",
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_5": "\u30B8\u30E5\u30EA\u30A2",
-    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_0": "\u935B\u51B6\u5E2B",
-    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_1": "\u935B\u51B6\u5E2B",
-    "V_TheWall:NarrativeNPC_Human_ParentBP_C_1": "\u300C\u6298\u7573\u300D\u306E\u30E8\u30C8\u30A5\u30F3",
-    "V_TheWall:NarrativeNPC_Human_ParentBP_C_2": "\u4E0D\u660E\u306A\u97F3\u58F0",
-    "Facility_DF_War:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_War:NarrativeNPC_Human_ParentBP_C_0": "\u30C0\u30B0\u30E9\u30B9",
-    "Facility_Office1:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office1:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_0": "\u30A4\u30A7\u30FC\u30AC\u30FC\u535A\u58EB",
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_1": "\u30C8\u30A5\u30FC\u30EB\u535A\u58EB",
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_3": "\u30A2\u30EA\u30B9",
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_4": "\u30A6\u30A9\u30FC\u30EC\u30F3",
-    "V_Train:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_Train:NarrativeNPC_Human_ParentBP_C_0": "\u6D3B\u52D5\u5BB6",
-    "V_Train:NarrativeNPC_Human_ParentBP_C_1": "\u30CF\u30E2\u30F3\u30C9\u535A\u58EB",
-    "V_BOTANICAL:NarrativeNPC_Human_Hologram_C_0": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
-    "Facility_Reservoir:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Reservoir:NarrativeNPC_Human_ParentBP_C_0": "\u30B1\u30EB\u30B7\u30FC\u535A\u58EB",
-    "V_Intro:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_0": "\u30D6\u30EB\u30FC\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_1": "\u30B8\u30E3\u30AF\u30BD\u30F3",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_14": "\u30E9\u30F3\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_17": "\u30E9\u30F3\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_2": "\u30C8\u30EC\u30A4\u30B7\u30FC",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_20": "\u30E9\u30F3\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_21": "\u30E9\u30F3\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_22": "\u30E9\u30F3\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_4": "\u30D6\u30EB\u30FC\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_5": "\u30D6\u30EB\u30FC\u30B9",
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_6": "\u30D6\u30EB\u30FC\u30B9",
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_0": "\u30B8\u30E3\u30CD\u30C3\u30C8",
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_1": "\u30A8\u30A4\u30D6",
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_2": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
     "V_Alps:NarrativeNPC_Human_ParentBP_C_1": "\u30C7\u30E5\u30DD\u30F3\u535A\u58EB",
     "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_0": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Dam_Waterfall:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
     "Facility_Dam_Waterfall:NarrativeNPC_Human_ParentBP_C_0": "\u30DB\u30D5\u535A\u58EB",
-    "V_FOG:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_FOG:NarrativeNPC_Human_Hologram_C_3": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_FOG:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "V_FOG:NarrativeNPC_Human_ParentBP_C_1": "\u30DE\u30EA\u30AA\u30F3",
-    "Facility_Botanical:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_0": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u59C9\u59B9",
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_2": "\u30B8\u30DF\u30FC",
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_3": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
-    "Facility_Botanical:NarrativeNPC_UnlostMage_C_0": "\u300C\u8FF7\u3044\u306A\u304D\u3082\u306E\u300D\u306E\u79D8\u5100\u4F1D\u6388\u8005",
-    "Facility_MFMaggot:NarrativeNPC_Larva_C_1": "\u30E9\u30EB\u30F4\u30A1",
-    "Facility_DF_Central:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_DF_Central:NarrativeNPC_Human_ParentBP_C_0": "\u30D2\u30EB\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_1": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_2": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_4": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_5": "\u30DE\u30F3\u30BA\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_1": "\u30B7\u30A7\u30D1\u30FC\u30C9\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_5": "\u30ED\u30D0\u30FC\u30C4\u535A\u58EB",
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_7": "\u30AE\u30E3\u30BA",
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_0": "\u30CB\u30E5\u30FC\u30DE\u30F3\u535A\u58EB",
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_1": "\u30B8\u30E7\u30CA\u30B9",
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_7": "\u30A2\u30A4\u30B6\u30A4\u30A2"
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_0": "\u91E3\u308A\u4EBA",
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_2": "\u30EA\u30C3\u30B0\u30B9\u535A\u58EB",
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_3": "\u6CBC\u306E\u9B54\u5973"
   },
   "NarrativeNpcPlacements": {
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Canaan_Fisherman"
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_GK_01"
     },
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Canaan_Witch",
-      "DisappearFlag": "Residence_Entered"
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ex_05"
     },
-    "V_Salem:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "SalemSwampMegaphone",
-      "DisappearFlag": "Salem_MetRiggs"
+    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_CaptiveGod"
     },
-    "Facility_Labs:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_AG"
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Riggs_Mall",
+      "DisappearFlag": "Residence_Fracture_Complete"
     },
-    "Facility_Labs:NarrativeNPC_Human_Hologram_C_4": {
-      "Row": "Manse_TI"
+    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Cahn_DarkLens",
+      "AppearFlag": "Fracture_Forcefield_Complete",
+      "DisappearFlag": "Residence_Fracture_Complete"
     },
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Res_Houston"
+    "Facility_Fracture:NarrativeNPC_SignPost_VWinter_C_1": {
+      "Row": "Res_Fili_FractureSignPost_01"
     },
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "LABS_Thule_AdustmentWing",
-      "DisappearFlag": "LABS_OpenVacuumDoor"
+    "V_RISE:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Bv"
     },
-    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_4": {
-      "Row": "LABS_Elanor",
+    "V_RISE:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Z_03"
+    },
+    "Facility_MFMines:NarrativeNPC_HastaTria_C_1": {
+      "Row": "MF_Crazy_Soldier",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Pr_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Tr_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Or_02"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ps_02"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_As_01"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_8": {
+      "Row": "Manse_Ex_2"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Douglas_01",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "MF_Frake_Fortress",
+      "DisappearFlag": "MF_PumpsFixed"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Lk_01"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MF_Varsha_Foundry",
+      "AppearFlag": "Manufacturing_Arrived",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Frake_Foundry",
+      "AppearFlag": "MF_PumpsFixed",
+      "DisappearFlag": "Security_Entered"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_GK3"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ass_04"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "REACTORS_Cahn_Entry",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_S1Labs_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "REACTORS_Cahn_Platform1",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_AllStations_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Reactors_Witch",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Reactors_DrHill_01",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_S4RadWaste_Complete"
+    },
+    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Reactors_Heavy",
+      "AppearFlag": "Reactors_S1Labs_Complete",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DF_Central:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Shd"
+    },
+    "Facility_DF_Central:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_DrHill_03",
+      "AppearFlag": "Reactors_AllStations_Complete",
+      "DisappearFlag": "Reactors_SG_Interior"
+    },
+    "V_Anteverse_A:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_A_01"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Cp_03"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Lk_04"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ref"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_DL_02"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_TT_01"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Ss_01"
+    },
+    "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "LABS_AdjustWing_RT_01",
       "DisappearFlag": "Security_ExitOpened"
     },
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Rp_01"
-    },
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Rp_02"
-    },
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Z_04"
-    },
-    "Facility_Security:NarrativeNPC_Human_Hologram_C_6": {
-      "Row": "Manse_Or_04"
-    },
-    "Facility_Security:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "SEC_CelineAhmed",
-      "DisappearFlag": "Dams_DarkWaterDrained"
-    },
-    "Facility_Security:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "SECURITY_Cahn_1",
-      "AppearFlag": "LABS_OpenVacuumDoor",
-      "DisappearFlag": "Security_ExitOpened"
-    },
-    "Facility_Plant:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "PLANT_ManseHologram"
-    },
-    "Facility_Plant:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_GK2"
-    },
-    "Facility_Plant:NarrativeNPC_Waterbot_C_1": {
-      "Row": "PLANT_Waterbot"
+    "MainMenu_Offices:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Warren"
     },
     "Facility_Pens:NarrativeNPC_Ela_C_1": {
       "Row": "Labs_Ela_Pest",
@@ -116095,22 +116519,72 @@
       "Row": "Labs_Abe_Pest",
       "DisappearFlag": "Labs_AbeJanetElectroPestScene"
     },
-    "V_Inq:NarrativeNPC_HastaTria_C_0": {
-      "Row": "Res_HastaTria_Sundisk",
-      "AppearFlag": "V_INQ_SunDiskTouched",
-      "DisappearFlag": "Residence_Entered"
+    "V_Anteverse_C:NarrativeNPC_ExorChieftain_C_0": {
+      "Row": "AnteverseC_ExorChief"
     },
-    "V_Inq:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Res_ClericusArtem_01"
+    "V_Anteverse_C:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "ANTEVERSE_C_ManseHologram"
     },
-    "V_Inq:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Res_ClericusArtem_02"
+    "Facility_Dam_Lower:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_WRb"
     },
-    "V_Inq:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Res_ClericusArtem_03"
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Dams_Kylie_01"
     },
-    "V_Inq:NarrativeNPC_Human_Hologram_C_7": {
-      "Row": "Res_Interfector_01"
+    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Dams_Witch",
+      "DisappearFlag": "Plant_ExitOpened"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Cahn_SouthIsland_PostBoss",
+      "AppearFlag": "EndBossDefeated",
+      "DisappearFlag": "End_CahnDisappears"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Thule_SouthIsland",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Riggs_Endgame",
+      "AppearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Cahn_SouthIsland_PreBoss",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Res_Janet_Endgame",
+      "AppearFlag": "EndBossDefeated"
+    },
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MX_Hud_Encounter_01",
+      "DisappearFlag": "V_Signal_FixedFinalDish"
+    },
+    "V_Signal:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MX_Hud_Radio_UFOAppears",
+      "AppearFlag": "V_Signal_FixedFinalDish",
+      "DisappearFlag": "V_Signal_Complete"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Rp_01"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Rp_02"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Z_04"
+    },
+    "Facility_Security:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Manse_Or_04"
+    },
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "SEC_CelineAhmed",
+      "DisappearFlag": "Dams_DarkWaterDrained"
+    },
+    "Facility_Security:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "SECURITY_Cahn_1",
+      "AppearFlag": "LABS_OpenVacuumDoor",
+      "DisappearFlag": "Security_ExitOpened"
     },
     "V_NIGHT:NarrativeNPC_Human_ParentBP_C_1": {
       "Row": "Night_Soul_01",
@@ -116170,15 +116644,358 @@
       "AppearFlag": "NightRealm_ShadowD_Destroyed",
       "DisappearFlag": "NightRealm_LakeVisitor"
     },
-    "Facility_Dam_Lower:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_WRb"
+    "V_Train:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_T_02"
     },
-    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Dams_Kylie_01"
+    "V_Train:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Train_Soldier",
+      "DisappearFlag": "TrainCompletedOnce"
     },
-    "Facility_Dam_Lower:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Dams_Witch",
-      "DisappearFlag": "Plant_ExitOpened"
+    "V_Train:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Train_Scientist"
+    },
+    "V_Intro:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Intro_Manse_OrdoContainment_01"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Intro_Guard_3_Welcome"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Intro_Guard_1"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_14": {
+      "Row": "Intro_Driver_3",
+      "AppearFlag": "Intro_Driver_Exit"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_17": {
+      "Row": "Intro_Driver_3",
+      "AppearFlag": "Intro_Driver_FinishedTalking",
+      "DisappearFlag": "Intro_Driver_Arrived"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Intro_Guard_2"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_20": {
+      "Row": "Intro_Driver_2",
+      "AppearFlag": "Intro_Driver_Talks",
+      "DisappearFlag": "Intro_Driver_FinishedTalking"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_21": {
+      "Row": "Intro_Driver",
+      "DisappearFlag": "Intro_Driver_Talks"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_22": {
+      "Row": "Intro_Driver_4",
+      "AppearFlag": "Intro_Driver_Arrived",
+      "DisappearFlag": "Intro_Driver_Exit"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Intro_Guard_3_Net"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Intro_Guard_3_SmashCrate"
+    },
+    "V_Intro:NarrativeNPC_Human_ParentBP_C_6": {
+      "Row": "Intro_Guard_3_ActivateDevice"
+    },
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_AG"
+    },
+    "Facility_Labs:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_TI"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Houston"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "LABS_Thule_AdustmentWing",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_Labs:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "LABS_Elanor",
+      "DisappearFlag": "Security_ExitOpened"
+    },
+    "Facility_Reservoir:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Yt_01"
+    },
+    "Facility_Reservoir:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Quercy",
+      "DisappearFlag": "DAMS_CompletedVoussoir"
+    },
+    "V_Winter:NarrativeNPC_Penguin_VWinter_C_1": {
+      "Row": "Winter_Penny"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_1": {
+      "Row": "VWinter_SignPost_01"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_3": {
+      "Row": "VWinter_SignPost_02"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_5": {
+      "Row": "VWinter_SignPost_03"
+    },
+    "V_Winter:NarrativeNPC_SignPost_VWinter_C_7": {
+      "Row": "VWinter_SignPost_04"
+    },
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cb_01"
+    },
+    "Facility_Office1:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ab"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Jager"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Thule",
+      "DisappearFlag": "Office_Silo3Opened"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "OFFICE_Alice",
+      "DisappearFlag": "Office_Silo3Opened"
+    },
+    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_4": {
+      "Row": "Warren"
+    },
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Res_Wall_Jotun_01"
+    },
+    "V_TheWall:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Wall_AG_01"
+    },
+    "Facility:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_Cahn_Res",
+      "DisappearFlag": "Residence_IceWallRemoved"
+    },
+    "Facility:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Labs_Witch",
+      "AppearFlag": "LABS_OpenVacuumDoor",
+      "DisappearFlag": "Security_Gate2Opened"
+    },
+    "Facility:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "SECURITY_Cahn_2",
+      "AppearFlag": "Security_ExitOpened",
+      "DisappearFlag": "Dams_ActivatedPump1"
+    },
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "SHADOWGATE_Cahn",
+      "DisappearFlag": "Reactors_SG_Interior"
+    },
+    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "SHADOWGATE_Cahn_02",
+      "AppearFlag": "Reactors_SG_Interior",
+      "DisappearFlag": "Reactors_SG_ExitOpened"
+    },
+    "Facility_Residence:NarrativeNPC_HastaTria_C_1": {
+      "Row": "Res_HastaTria_Laser",
+      "AppearFlag": "Res_HastaTria_PortalTriggered",
+      "DisappearFlag": "Res_HastaTria_EndCutscene"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_AW_03"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cn_05"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Or_05"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Hat"
+    },
+    "Facility_Residence:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_EndPortal"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Residences_Janet",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Residences_Abe",
+      "DisappearFlag": "EndBossDefeated"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Thule_Res",
+      "DisappearFlag": "Residence_IceWallRemoved"
+    },
+    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Shepherd_Res",
+      "DisappearFlag": "Residence_Wall"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_TT_03"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_DWB_02"
+    },
+    "Facility_Dam_Hydroplant:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Tang",
+      "DisappearFlag": "Plant_AnteC_Entered"
+    },
+    "Facility_MFMaggot:NarrativeNPC_Larva_C_1": {
+      "Row": "Mgt_Maggot"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_F_02"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_F_01"
+    },
+    "V_FOG:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Cp_02"
+    },
+    "V_FOG:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Flathill_Marion",
+      "DisappearFlag": "MF_ManufacturingOpen"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_Or_03"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Athresh"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Ref"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ldg"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_As_02"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Pw"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_6": {
+      "Row": "Manse_Dbr"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Manse_Tbr"
+    },
+    "Facility_Labs_Control:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "LABS_Cahn_Freed_01",
+      "AppearFlag": "LABS_TurretsDeactivated",
+      "DisappearFlag": "LABS_OpenVacuumDoor"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_DL_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_Ps_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_X_01"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "MF_Crane_Guy"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "MF_Frake_Minion_2"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "MF_FrakeMinionRadiation",
+      "DisappearFlag": "Security_SurfaceElevatorEvent"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "MF_FrakeMinionVent",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_0": {
+      "Row": "MF_Blacksmith_Quest",
+      "AppearFlag": "MF_MetFrake"
+    },
+    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_1": {
+      "Row": "MF_Blacksmith_PreQuest",
+      "DisappearFlag": "MF_MetFrake"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cb_02"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Pe_02"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_4": {
+      "Row": "Manse_Cb_03"
+    },
+    "Facility_Office2:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_Pe_01"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "OFFICE_DrShepherd",
+      "DisappearFlag": "Office_ForkliftDoorOpened"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_5": {
+      "Row": "Dr_Roberts",
+      "DisappearFlag": "LABS_EnteredLabs"
+    },
+    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_7": {
+      "Row": "Receptionist_Offices"
+    },
+    "Facility_MFHQ:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Or_01"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_AW_01"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Manse_C_03"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Manse_TT_02"
+    },
+    "Facility_DF_Labs:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Reactors_Tengku_01",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Entered"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Elwyn_Pumps",
+      "DisappearFlag": "Dams_SpillwayOpen"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Dams_Jonas",
+      "DisappearFlag": "Dams_MetElwyn"
+    },
+    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_7": {
+      "Row": "DAMS_Isaiah_Entry",
+      "DisappearFlag": "Dams_SpillwayOpen"
+    },
+    "V_BOTANICAL:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Res_Riggs_Holo_BotanicalWing"
+    },
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "PLANT_ManseHologram"
+    },
+    "Facility_Plant:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_GK2"
+    },
+    "Facility_Plant:NarrativeNPC_Waterbot_C_1": {
+      "Row": "PLANT_Waterbot"
+    },
+    "Facility_Office4:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Dr_Sukov_Offices",
+      "DisappearFlag": "MF_ExitOpened"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Vol_04"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_Vol_02"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Janet",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Opened"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "Reactors_DrHill_02",
+      "AppearFlag": "Reactors_S4RadWaste_Complete",
+      "DisappearFlag": "Reactors_AllStations_Complete"
+    },
+    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Reactors_Abe",
+      "AppearFlag": "Plant_ExitOpened",
+      "DisappearFlag": "Reactors_SG_Opened"
     },
     "Facility_Office3:NarrativeNPC_Human_Hologram_C_1": {
       "Row": "Manse_Vr_01"
@@ -116209,114 +117026,51 @@
       "AppearFlag": "Fog_Completed",
       "DisappearFlag": "MF_MetBlacksmith"
     },
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Res_Cahn_SouthIsland_PostBoss",
-      "AppearFlag": "EndBossDefeated",
-      "DisappearFlag": "End_CahnDisappears"
+    "Facility_Botanical:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_TT_04"
     },
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Res_Thule_SouthIsland",
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Res_SisterUnlost_PreWall",
+      "DisappearFlag": "Residence_Fracture_Complete"
+    },
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Res_Jimmy_Mall",
       "DisappearFlag": "EndBossDefeated"
     },
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Res_Riggs_Endgame",
-      "AppearFlag": "EndBossDefeated"
+    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "Res_Newman",
+      "DisappearFlag": "Residence_Wall"
     },
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "Res_Cahn_SouthIsland_PreBoss",
-      "DisappearFlag": "EndBossDefeated"
+    "Facility_Botanical:NarrativeNPC_UnlostMage_C_0": {
+      "Row": "Res_MageUnlost_PreWall",
+      "DisappearFlag": "Residence_Fracture_Complete"
     },
-    "V_ISLAND:NarrativeNPC_Human_ParentBP_C_5": {
-      "Row": "Res_Janet_Endgame",
-      "AppearFlag": "EndBossDefeated"
+    "Facility_DF_RadWaste:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Frake",
+      "DisappearFlag": "Reactors_AllStations_Complete"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_DWB_01"
+    "Facility_DF_War:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_C_04"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Cp_04"
+    "Facility_DF_War:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Reactors_Douglas"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_ND_01"
+    "V_Inq:NarrativeNPC_HastaTria_C_0": {
+      "Row": "Res_HastaTria_Sundisk",
+      "AppearFlag": "V_INQ_SunDiskTouched",
+      "DisappearFlag": "Residence_Entered"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "DAMS_Janet",
-      "DisappearFlag": "Plant_EnteredPlant"
+    "V_Inq:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Res_ClericusArtem_01"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "DAMS_Abe",
-      "DisappearFlag": "Plant_EnteredPlant"
+    "V_Inq:NarrativeNPC_Human_Hologram_C_3": {
+      "Row": "Res_ClericusArtem_02"
     },
-    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Dams_Elwyn_SpillwayOpen",
-      "AppearFlag": "Dams_SpillwayOpen",
-      "DisappearFlag": "Dams_MetWitch"
+    "V_Inq:NarrativeNPC_Human_Hologram_C_5": {
+      "Row": "Res_ClericusArtem_03"
     },
-    "V_Winter:NarrativeNPC_Penguin_VWinter_C_1": {
-      "Row": "Winter_Penny"
-    },
-    "V_Winter:NarrativeNPC_SignPost_VWinter_C_1": {
-      "Row": "VWinter_SignPost_01"
-    },
-    "V_Winter:NarrativeNPC_SignPost_VWinter_C_3": {
-      "Row": "VWinter_SignPost_02"
-    },
-    "V_Winter:NarrativeNPC_SignPost_VWinter_C_5": {
-      "Row": "VWinter_SignPost_03"
-    },
-    "V_Winter:NarrativeNPC_SignPost_VWinter_C_7": {
-      "Row": "VWinter_SignPost_04"
-    },
-    "Facility_MFMines:NarrativeNPC_HastaTria_C_1": {
-      "Row": "MF_Crazy_Soldier",
-      "DisappearFlag": "Security_Entered"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Pr_01"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Tr_01"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Or_02"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Ps_02"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_7": {
-      "Row": "Manse_As_01"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_Hologram_C_8": {
-      "Row": "Manse_Ex_2"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "MF_Douglas_01",
-      "DisappearFlag": "Security_Entered"
-    },
-    "Facility_MFMines:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "MF_Frake_Fortress",
-      "DisappearFlag": "MF_PumpsFixed"
-    },
-    "V_Signal:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "MX_Hud_Encounter_01",
-      "DisappearFlag": "V_Signal_FixedFinalDish"
-    },
-    "V_Signal:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "MX_Hud_Radio_UFOAppears",
-      "AppearFlag": "V_Signal_FixedFinalDish",
-      "DisappearFlag": "V_Signal_Complete"
-    },
-    "V_RISE:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Bv"
-    },
-    "V_RISE:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Z_03"
-    },
-    "V_Anteverse_C:NarrativeNPC_ExorChieftain_C_0": {
-      "Row": "AnteverseC_ExorChief"
-    },
-    "V_Anteverse_C:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "ANTEVERSE_C_ManseHologram"
+    "V_Inq:NarrativeNPC_Human_Hologram_C_7": {
+      "Row": "Res_Interfector_01"
     },
     "Facility_Containment:NarrativeNPC_Human_Hologram_C_0": {
       "Row": "Containment_Abe_83"
@@ -116367,369 +117121,27 @@
     "Facility_Containment:NarrativeNPC_Human_ParentBP_C_2": {
       "Row": "Labs_Petra_Tara"
     },
-    "Facility_Office4:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Dr_Sukov_Offices",
-      "DisappearFlag": "MF_ExitOpened"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_Cp_03"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Lk_04"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Ref"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_DL_02"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_4": {
-      "Row": "Manse_TT_01"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Ss_01"
-    },
-    "Facility_Labs_Adjustment:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "LABS_AdjustWing_RT_01",
-      "DisappearFlag": "Security_ExitOpened"
-    },
-    "Facility_Residence:NarrativeNPC_HastaTria_C_1": {
-      "Row": "Res_HastaTria_Laser",
-      "AppearFlag": "Res_HastaTria_PortalTriggered",
-      "DisappearFlag": "Res_HastaTria_EndCutscene"
-    },
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_AW_03"
-    },
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Cn_05"
-    },
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Or_05"
-    },
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Hat"
-    },
-    "Facility_Residence:NarrativeNPC_Human_Hologram_C_4": {
-      "Row": "Manse_EndPortal"
-    },
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Residences_Janet",
-      "DisappearFlag": "EndBossDefeated"
-    },
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Residences_Abe",
-      "DisappearFlag": "EndBossDefeated"
-    },
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Res_Thule_Res",
-      "DisappearFlag": "Residence_IceWallRemoved"
-    },
-    "Facility_Residence:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "Res_Shepherd_Res",
-      "DisappearFlag": "Residence_Wall"
-    },
-    "Facility_DF_RadWaste:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Reactors_Frake",
-      "DisappearFlag": "Reactors_AllStations_Complete"
-    },
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_TT_03"
-    },
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_DWB_02"
-    },
-    "Facility_Dam_Hydroplant:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "DAMS_Tang",
-      "DisappearFlag": "Plant_AnteC_Entered"
-    },
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Vol_04"
-    },
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Vol_02"
-    },
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Reactors_Janet",
-      "AppearFlag": "Plant_ExitOpened",
-      "DisappearFlag": "Reactors_SG_Opened"
-    },
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Reactors_DrHill_02",
-      "AppearFlag": "Reactors_S4RadWaste_Complete",
-      "DisappearFlag": "Reactors_AllStations_Complete"
-    },
-    "Facility_DF_Overgrowth:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Reactors_Abe",
-      "AppearFlag": "Plant_ExitOpened",
-      "DisappearFlag": "Reactors_SG_Opened"
-    },
-    "MainMenu_Offices:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Warren"
-    },
-    "V_Anteverse_A:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_A_01"
-    },
-    "Facility_MFFoundry:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_Lk_01"
-    },
-    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "MF_Varsha_Foundry",
-      "AppearFlag": "Manufacturing_Arrived",
-      "DisappearFlag": "MF_MetFrake"
-    },
-    "Facility_MFFoundry:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "MF_Frake_Foundry",
-      "AppearFlag": "MF_PumpsFixed",
-      "DisappearFlag": "Security_Entered"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Manse_Or_03"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Athresh"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Ref"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Ldg"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_4": {
-      "Row": "Manse_As_02"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Pw"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_6": {
-      "Row": "Manse_Dbr"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_Hologram_C_7": {
-      "Row": "Manse_Tbr"
-    },
-    "Facility_Labs_Control:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "LABS_Cahn_Freed_01",
-      "AppearFlag": "LABS_TurretsDeactivated",
-      "DisappearFlag": "LABS_OpenVacuumDoor"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_GK3"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Ass_04"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "REACTORS_Cahn_Entry",
-      "AppearFlag": "Plant_ExitOpened",
-      "DisappearFlag": "Reactors_S1Labs_Complete"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "REACTORS_Cahn_Platform1",
-      "AppearFlag": "Reactors_S1Labs_Complete",
-      "DisappearFlag": "Reactors_AllStations_Complete"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "Reactors_Witch",
-      "AppearFlag": "Reactors_S1Labs_Complete",
-      "DisappearFlag": "Reactors_SG_Opened"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_4": {
-      "Row": "Reactors_DrHill_01",
-      "AppearFlag": "Reactors_S1Labs_Complete",
-      "DisappearFlag": "Reactors_S4RadWaste_Complete"
-    },
-    "Facility_DarkFusion:NarrativeNPC_Human_ParentBP_C_6": {
-      "Row": "Reactors_Heavy",
-      "AppearFlag": "Reactors_S1Labs_Complete",
-      "DisappearFlag": "Reactors_SG_Opened"
-    },
-    "Facility:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Res_Cahn_Res",
-      "DisappearFlag": "Residence_IceWallRemoved"
-    },
-    "Facility:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Labs_Witch",
-      "AppearFlag": "LABS_OpenVacuumDoor",
-      "DisappearFlag": "Security_Gate2Opened"
-    },
-    "Facility:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "SECURITY_Cahn_2",
-      "AppearFlag": "Security_ExitOpened",
-      "DisappearFlag": "Dams_ActivatedPump1"
-    },
-    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "SHADOWGATE_Cahn",
-      "DisappearFlag": "Reactors_SG_Interior"
-    },
-    "V_SUOMI:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "SHADOWGATE_Cahn_02",
-      "AppearFlag": "Reactors_SG_Interior",
-      "DisappearFlag": "Reactors_SG_ExitOpened"
-    },
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_GK_01"
-    },
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Ex_05"
-    },
-    "Facility_Fracture:NarrativeNPC_Human_Hologram_C_7": {
-      "Row": "Manse_CaptiveGod"
-    },
-    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Res_Riggs_Mall",
-      "DisappearFlag": "Residence_Fracture_Complete"
-    },
-    "Facility_Fracture:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Res_Cahn_DarkLens",
-      "AppearFlag": "Fracture_Forcefield_Complete",
-      "DisappearFlag": "Residence_Fracture_Complete"
-    },
-    "Facility_Fracture:NarrativeNPC_SignPost_VWinter_C_1": {
-      "Row": "Res_Fili_FractureSignPost_01"
-    },
-    "Facility_MFHQ:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Or_01"
-    },
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_AW_01"
-    },
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_C_03"
-    },
-    "Facility_DF_Labs:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_TT_02"
-    },
-    "Facility_DF_Labs:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Reactors_Tengku_01",
-      "AppearFlag": "Plant_ExitOpened",
-      "DisappearFlag": "Reactors_SG_Entered"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_DL_01"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Ps_01"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_X_01"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "MF_Crane_Guy"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "MF_Frake_Minion_2"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "MF_FrakeMinionRadiation",
-      "DisappearFlag": "Security_SurfaceElevatorEvent"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_ParentBP_C_5": {
-      "Row": "MF_FrakeMinionVent",
-      "DisappearFlag": "MF_MetFrake"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_0": {
-      "Row": "MF_Blacksmith_Quest",
-      "AppearFlag": "MF_MetFrake"
-    },
-    "Facility_MFWest:NarrativeNPC_Human_TRADER_C_1": {
-      "Row": "MF_Blacksmith_PreQuest",
-      "DisappearFlag": "MF_MetFrake"
-    },
-    "V_TheWall:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Res_Wall_Jotun_01"
-    },
-    "V_TheWall:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Res_Wall_AG_01"
-    },
-    "Facility_DF_War:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_C_04"
-    },
-    "Facility_DF_War:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Reactors_Douglas"
-    },
-    "Facility_Office1:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Cb_01"
-    },
-    "Facility_Office1:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_Ab"
-    },
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Jager"
-    },
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Thule",
-      "DisappearFlag": "Office_Silo3Opened"
-    },
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "OFFICE_Alice",
-      "DisappearFlag": "Office_Silo3Opened"
-    },
-    "Facility_Office1:NarrativeNPC_Human_ParentBP_C_4": {
-      "Row": "Warren"
-    },
-    "V_Train:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_T_02"
-    },
-    "V_Train:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Train_Soldier",
-      "DisappearFlag": "TrainCompletedOnce"
-    },
-    "V_Train:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Train_Scientist"
-    },
-    "V_BOTANICAL:NarrativeNPC_Human_Hologram_C_0": {
-      "Row": "Res_Riggs_Holo_BotanicalWing"
-    },
-    "Facility_Reservoir:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Yt_01"
-    },
-    "Facility_Reservoir:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "DAMS_Quercy",
-      "DisappearFlag": "DAMS_CompletedVoussoir"
-    },
-    "V_Intro:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Intro_Manse_OrdoContainment_01"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Intro_Guard_3_Welcome"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Intro_Guard_1"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_14": {
-      "Row": "Intro_Driver_3",
-      "AppearFlag": "Intro_Driver_Exit"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_17": {
-      "Row": "Intro_Driver_3",
-      "AppearFlag": "Intro_Driver_FinishedTalking",
-      "DisappearFlag": "Intro_Driver_Arrived"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Intro_Guard_2"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_20": {
-      "Row": "Intro_Driver_2",
-      "AppearFlag": "Intro_Driver_Talks",
-      "DisappearFlag": "Intro_Driver_FinishedTalking"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_21": {
-      "Row": "Intro_Driver",
-      "DisappearFlag": "Intro_Driver_Talks"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_22": {
-      "Row": "Intro_Driver_4",
-      "AppearFlag": "Intro_Driver_Arrived",
-      "DisappearFlag": "Intro_Driver_Exit"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_4": {
-      "Row": "Intro_Guard_3_Net"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_5": {
-      "Row": "Intro_Guard_3_SmashCrate"
-    },
-    "V_Intro:NarrativeNPC_Human_ParentBP_C_6": {
-      "Row": "Intro_Guard_3_ActivateDevice"
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_0": {
+      "Row": "Manse_DWB_01"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_1": {
+      "Row": "Manse_Cp_04"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_Hologram_C_2": {
+      "Row": "Manse_ND_01"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "DAMS_Janet",
+      "DisappearFlag": "Plant_EnteredPlant"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_1": {
+      "Row": "DAMS_Abe",
+      "DisappearFlag": "Plant_EnteredPlant"
+    },
+    "Facility_Dam_Central:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Dams_Elwyn_SpillwayOpen",
+      "AppearFlag": "Dams_SpillwayOpen",
+      "DisappearFlag": "Dams_MetWitch"
     },
     "V_Alps:NarrativeNPC_Human_ParentBP_C_1": {
       "Row": "Alps_Dupont"
@@ -116746,83 +117158,16 @@
     "Facility_Dam_Waterfall:NarrativeNPC_Human_ParentBP_C_0": {
       "Row": "DAMS_SwimInstructor"
     },
-    "V_FOG:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_F_02"
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_0": {
+      "Row": "Canaan_Fisherman"
     },
-    "V_FOG:NarrativeNPC_Human_Hologram_C_3": {
-      "Row": "Manse_F_01"
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_2": {
+      "Row": "Canaan_Witch",
+      "DisappearFlag": "Residence_Entered"
     },
-    "V_FOG:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Cp_02"
-    },
-    "V_FOG:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Flathill_Marion",
-      "DisappearFlag": "MF_ManufacturingOpen"
-    },
-    "Facility_Botanical:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_TT_04"
-    },
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Res_SisterUnlost_PreWall",
-      "DisappearFlag": "Residence_Fracture_Complete"
-    },
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_2": {
-      "Row": "Res_Jimmy_Mall",
-      "DisappearFlag": "EndBossDefeated"
-    },
-    "Facility_Botanical:NarrativeNPC_Human_ParentBP_C_3": {
-      "Row": "Res_Newman",
-      "DisappearFlag": "Residence_Wall"
-    },
-    "Facility_Botanical:NarrativeNPC_UnlostMage_C_0": {
-      "Row": "Res_MageUnlost_PreWall",
-      "DisappearFlag": "Residence_Fracture_Complete"
-    },
-    "Facility_MFMaggot:NarrativeNPC_Larva_C_1": {
-      "Row": "Mgt_Maggot"
-    },
-    "Facility_DF_Central:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Shd"
-    },
-    "Facility_DF_Central:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "Reactors_DrHill_03",
-      "AppearFlag": "Reactors_AllStations_Complete",
-      "DisappearFlag": "Reactors_SG_Interior"
-    },
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_1": {
-      "Row": "Manse_Cb_02"
-    },
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_2": {
-      "Row": "Manse_Pe_02"
-    },
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_4": {
-      "Row": "Manse_Cb_03"
-    },
-    "Facility_Office2:NarrativeNPC_Human_Hologram_C_5": {
-      "Row": "Manse_Pe_01"
-    },
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "OFFICE_DrShepherd",
-      "DisappearFlag": "Office_ForkliftDoorOpened"
-    },
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_5": {
-      "Row": "Dr_Roberts",
-      "DisappearFlag": "LABS_EnteredLabs"
-    },
-    "Facility_Office2:NarrativeNPC_Human_ParentBP_C_7": {
-      "Row": "Receptionist_Offices"
-    },
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_0": {
-      "Row": "DAMS_Elwyn_Pumps",
-      "DisappearFlag": "Dams_SpillwayOpen"
-    },
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_1": {
-      "Row": "Dams_Jonas",
-      "DisappearFlag": "Dams_MetElwyn"
-    },
-    "Facility_Dam:NarrativeNPC_Human_ParentBP_C_7": {
-      "Row": "DAMS_Isaiah_Entry",
-      "DisappearFlag": "Dams_SpillwayOpen"
+    "V_Salem:NarrativeNPC_Human_ParentBP_C_3": {
+      "Row": "SalemSwampMegaphone",
+      "DisappearFlag": "Salem_MetRiggs"
     }
   },
   "Distillations": [
@@ -119019,86 +119364,86 @@
     ]
   },
   "NpcSpawnCreatures": {
-    "NPCSpawn_Order_Medic_C": "NPC_Soldier_Grunt_Medic",
-    "NPCSpawn_Zombie_Vignette_C": "NPC_Zombie",
-    "NPCSpawn_ExorMonk_C": "NPC_Exor_Monk",
-    "NPCSpawn_Zombie_DamWorker_C": "NPC_Zombie_DamWorker",
-    "NPCSpawn_ElectroPest_C": "NPC_Monster_Pest_Electro",
-    "NPCSpawn_SecurityBot_C": "NPC_Robot_Security",
-    "NPCSpawn_Pest_Volatile_C": "NPC_Monster_Pest_Volatile",
+    "NPCSpawn_DARKLENS_Chieftain_C": "NPC_Gatekeeper_Chieftain_DarkLens",
+    "NPCSpawn_Order_SoloCaptain_C": "NPC_Soldier_Captain",
+    "NPCSpawn_Sow_C": "NPC_Peccary_Sow",
+    "NPCSpawn_GruntGuard_OffDuty_C": "NPC_Grunt_Guard_OffDuty",
     "NPCSpawn_Aliens_C": "NPC_Monster_Pest",
-    "NPCSpawn_GroupeRook_C": "NPC_Groupe_Shield",
-    "NPCSpawn_Gatekeeper_S2War_C": "NPC_Zombie",
-    "NPCSpawn_Peccary_C": "NPC_Monster_Peccary",
-    "NPCSpawn_MGT_LarvaSmall_C": "NPC_Monster_Mgt_Larva",
-    "NPCSpawn_WinterSprite_C": "NPC_Monster_WinterSprite",
-    "NPCSpawn_FlameRat_C": "NPC_FlameRat",
+    "NPCSpawn_Gatekeeper_Chieftain_C": "NPC_Gatekeeper_Chieftain",
+    "NPCSpawn_Order_Medic_C": "NPC_Soldier_Grunt_Medic",
+    "NPCSpawn_Sniper_Stationary_C": "NPC_Soldier_Grunt_Sniper",
     "NPCSpawn_SingleGrunt_C": "NPC_Soldier_Grunt",
+    "NPCSpawn_ElectroPest_C": "NPC_Monster_Pest_Electro",
+    "NPCSpawn_Gatekeeper_DARKLENS_Heavy_C": "NPC_Gatekeeper_Heavy_DarkLens",
+    "NPCSpawn_SnowPeccary_C": "NPC_Monster_Peccary_Snow",
+    "NPCSpawn_Tarasque_C": "NPC_Monster_Tarasque",
     "NPCSpawn_Skink_C": "NPC_Skink_Basic",
-    "NPCSpawn_Pillager_Torchbearer_C": "NPC_Pillager_Torchbearer",
-    "NPCSpawn_Pillager_Farmer_C": "NPC_Pillager_Farmer",
+    "NPCSpawn_Yeti_C": "NPC_Monster_Yeti",
+    "NPCSpawn_Exor_Cha_C": "NPC_Exor_Pikeman",
+    "NPCSpawn_Order_Trooper_Shotgun_C": "NPC_OrderGrunt_ShotTrooper",
+    "NPCSpawn_ExorMonk_C": "NPC_Exor_Monk",
+    "NPCSpawn_SnowPest_C": "NPC_Monster_Pest_Snow",
     "NPCSpawn_QuillExor_C": "NPC_Monster_Exor",
     "NPCSpawn_Pillager_MusketeerGuard_C": "NPC_Pillager_Musketeer_Guard",
-    "NPCSpawn_Gatekeeper_DARKLENS_Heavy_C": "NPC_Gatekeeper_Heavy_DarkLens",
-    "NPCSpawn_Peccary_Mushroom_C": "NPC_Peccary_Mushroom",
-    "NPCSpawn_Snowman_C": "NPC_Snowman",
-    "NPCSpawn_Pillager_BELLSPAWN_C": "NPC_Pillager_Farmer",
-    "NPCSpawn_Yeti_C": "NPC_Monster_Yeti",
-    "NPCSpawn_GarageRat_C": "NPC_LabRat_Garage",
-    "NPCSpawn_DARKLENS_Mage_C": "NPC_Mage_DarkLens",
-    "NPCSpawn_Pillager_Preacher_C": "NPC_Pillager_Preacher_NiketasBOSS",
-    "NPCSpawn_DarkwaterBeast_C": "NPC_DarkwaterBeast",
-    "NPCSpawn_ExorVolatile_C": "NPC_Monster_Exor_Volatile",
-    "NPCSpawn_Order_SoloCaptain_C": "NPC_Soldier_Captain",
-    "NPCSpawn_CorruptedBot_C": "NPC_Robot_Corrupt",
-    "NPCSpawn_Gatekeeper_Phyter_C": "NPC_Gatekeeper_Grunt",
-    "NPCSpawn_Exor_Cha_C": "NPC_Exor_Pikeman",
-    "NPCSpawn_Tarasque_C": "NPC_Monster_Tarasque",
-    "NPCSpawn_WinterSprite_BOSS_C": "NPC_Monster_WinterSprite_BOSS",
-    "NPCSpawn_Bigfoot_C": "NPC_Bigfoot",
-    "NPCSpawn_Mage_C": "NPC_Mage",
-    "NPCSpawn_Sniper_Stationary_C": "NPC_Soldier_Grunt_Sniper",
-    "NPCSpawn_Zombie_Scientist_C": "NPC_Zombie_Scientist",
-    "NPCSpawn_ContainmentBot_C": "NPC_Robot_Containment",
-    "NPCSpawn_DARKLENS_Chieftain_C": "NPC_Gatekeeper_Chieftain_DarkLens",
-    "NPCSpawn_Symphonist_C": "NPC_Monster_Symphonist",
-    "NPCSpawn_Composer_C": "NPC_Monster_Composer",
-    "NPCSpawn_LabRat_C": "NPC_LabRat",
-    "NPCSpawn_GroupeOperative_C": "NPCGroupe_Mountaineer",
-    "NPCSpawn_DARKLENS_Phyters_C": "NPC_Gatekeeper_Grunt",
-    "NPCSpawn_Order_Trooper_C": "NPC_OrderGrunt_Trooper",
-    "NPCSpawn_Sow_C": "NPC_Peccary_Sow",
-    "NPCSpawn_Thespian_C": "NPC_Monster_Thespian",
     "NPCSpawn_Behemoth_C": "NPC_Monster_Behemoth",
+    "NPCSpawn_DARKLENS_Phyters_C": "NPC_Gatekeeper_Grunt",
+    "NPCSpawn_WinterSprite_Bomb_C": "NPC_Monster_WinterSprite_Bomb",
     "NPCSpawn_Clericus_C": "NPC_Clericus",
-    "NPCSpawn_GruntGuard_C": "NPC_Grunt_Guard",
-    "NPCSpawn_Order_Trooper_Shotgun_C": "NPC_OrderGrunt_ShotTrooper",
-    "NPCSpawn_Assassin_C": "NPC_Assassin",
+    "NPCSpawn_Pillager_BELLSPAWN_C": "NPC_Pillager_Farmer",
+    "NPCSpawn_GarageRat_C": "NPC_LabRat_Garage",
+    "NPCSpawn_CorruptedBot_C": "NPC_Robot_Corrupt",
+    "NPCSpawn_Bigfoot_C": "NPC_Bigfoot",
+    "NPCSpawn_SecurityBot_C": "NPC_Robot_Security",
+    "NPCSpawn_ExorVolatile_C": "NPC_Monster_Exor_Volatile",
+    "NPCSpawn_Gatekeeper_S2War_C": "NPC_Zombie",
+    "NPCSpawn_Pillager_Torchbearer_C": "NPC_Pillager_Torchbearer",
+    "NPCSpawn_ShotgunGrunt_C": "NPC_Soldier_Grunt_Shotgun",
+    "NPCSpawn_GroupeOperative_C": "NPCGroupe_Mountaineer",
+    "NPCSpawn_Pillager_Farmer_C": "NPC_Pillager_Farmer",
+    "NPCSpawn_MGT_LarvaBig_C": "NPC_Monster_Mgt_LarvaBig",
+    "NPCSpawn_DefenseBot_C": "NPC_Robot_Defense",
     "NPCSpawn_Order_Trooper_Shield_C": "NPC_OrderGrunt_Shield",
+    "NPCSpawn_GroupeRook_C": "NPC_Groupe_Shield",
+    "NPCSpawn_Order_Trooper_C": "NPC_OrderGrunt_Trooper",
+    "NPCSpawn_WinterSprite_BOSS_C": "NPC_Monster_WinterSprite_BOSS",
+    "NPCSpawn_BogMan_C": "NPC_Monster_BogMan",
+    "NPCSpawn_Composer_C": "NPC_Monster_Composer",
+    "NPCSpawn_Thespian_C": "NPC_Monster_Thespian",
+    "NPCSpawn_Pillager_Preacher_C": "NPC_Pillager_Preacher_NiketasBOSS",
+    "NPCSpawn_Pest_Stationary_C": "NPC_Monster_Pest",
+    "NPCSpawn_Gatekeeper_DARKLENS_Witch_C": "NPC_Gatekeeper_Witch_DarkLens",
+    "NPCSpawn_Symphonist_C": "NPC_Monster_Symphonist",
+    "NPCSpawn_Peccary_Mushroom_C": "NPC_Peccary_Mushroom",
+    "NPCSpawn_LabRat_C": "NPC_LabRat",
+    "NPCSpawn_GruntGuard_C": "NPC_Grunt_Guard",
+    "NPCSpawn_Zombie_Scientist_C": "NPC_Zombie_Scientist",
+    "NPCSpawn_FlameRat_C": "NPC_FlameRat",
+    "NPCSpawn_Reaper_S2War_C": "NPC_Monster_Reaper",
+    "NPCSpawn_MGT_LarvaSmall_C": "NPC_Monster_Mgt_Larva",
     "NPCSpawn_Exor_Armored_C": "NPC_Monster_Exor_Armored",
+    "NPCSpawn_Pest_C": "NPC_Monster_Pest",
+    "NPCSpawn_Sapper_C": "NPC_Sapper",
+    "NPCSpawn_WinterSprite_C": "NPC_Monster_WinterSprite",
+    "NPCSpawn_Gatekeeper_Witch_C": "NPC_Gatekeeper_Witch",
     "NPCSpawn_Gatekeeper_Heavy_C": "NPC_Gatekeeper_Heavy",
+    "NPCSpawn_Zombie_DamWorker_C": "NPC_Zombie_DamWorker",
     "NPCSpawn_Interfector_C": "NPC_Interfector",
     "NPCSpawn_Zombie_C": "NPC_Zombie",
-    "NPCSpawn_WinterSprite_Bomb_C": "NPC_Monster_WinterSprite_Bomb",
-    "NPCSpawn_SnowPeccary_C": "NPC_Monster_Peccary_Snow",
+    "NPCSpawn_DARKLENS_Mage_C": "NPC_Mage_DarkLens",
     "NPCSpawn_Reaper_C": "NPC_Monster_Reaper",
-    "NPCSpawn_Reaper_S2War_C": "NPC_Monster_Reaper",
-    "NPCSpawn_Gatekeeper_DARKLENS_Witch_C": "NPC_Gatekeeper_Witch_DarkLens",
-    "NPCSpawn_Pillager_Woodsman_C": "NPC_Pillager_Woodsman",
-    "NPCSpawn_Pest_C": "NPC_Monster_Pest",
-    "NPCSpawn_GroupeShotgunner_C": "NPC_Groupe_Shotgunner",
-    "NPCSpawn_Pillager_LowRankPreacher_C": "NPC_Pillager_Preacher",
-    "NPCSpawn_BogMan_C": "NPC_Monster_BogMan",
-    "NPCSpawn_Gatekeeper_Witch_C": "NPC_Gatekeeper_Witch",
-    "NPCSpawn_Gatekeeper_Chieftain_C": "NPC_Gatekeeper_Chieftain",
-    "NPCSpawn_Gatekeeper_Heavy_BannerSpeech_C": "NPC_Gatekeeper_Heavy_BannerSpeech",
-    "NPCSpawn_ShotgunGrunt_C": "NPC_Soldier_Grunt_Shotgun",
-    "NPCSpawn_SnowPest_C": "NPC_Monster_Pest_Snow",
+    "NPCSpawn_DarkwaterBeast_C": "NPC_DarkwaterBeast",
+    "NPCSpawn_Snowman_C": "NPC_Snowman",
+    "NPCSpawn_Assassin_C": "NPC_Assassin",
+    "NPCSpawn_Pest_Volatile_C": "NPC_Monster_Pest_Volatile",
+    "NPCSpawn_Gatekeeper_Phyter_C": "NPC_Gatekeeper_Grunt",
     "NPCSpawn_Pillager_Musketeer_C": "NPC_Pillager_Musketeer",
-    "NPCSpawn_MGT_LarvaBig_C": "NPC_Monster_Mgt_LarvaBig",
-    "NPCSpawn_Pest_Stationary_C": "NPC_Monster_Pest",
-    "NPCSpawn_DefenseBot_C": "NPC_Robot_Defense",
-    "NPCSpawn_Sapper_C": "NPC_Sapper",
-    "NPCSpawn_GruntGuard_OffDuty_C": "NPC_Grunt_Guard_OffDuty"
+    "NPCSpawn_Pillager_LowRankPreacher_C": "NPC_Pillager_Preacher",
+    "NPCSpawn_Gatekeeper_Heavy_BannerSpeech_C": "NPC_Gatekeeper_Heavy_BannerSpeech",
+    "NPCSpawn_ContainmentBot_C": "NPC_Robot_Containment",
+    "NPCSpawn_Peccary_C": "NPC_Monster_Peccary",
+    "NPCSpawn_Pillager_Woodsman_C": "NPC_Pillager_Woodsman",
+    "NPCSpawn_GroupeShotgunner_C": "NPC_Groupe_Shotgunner",
+    "NPCSpawn_Mage_C": "NPC_Mage",
+    "NPCSpawn_Zombie_Vignette_C": "NPC_Zombie"
   }
 }
