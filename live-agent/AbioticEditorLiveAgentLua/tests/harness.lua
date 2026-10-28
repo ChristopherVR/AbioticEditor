@@ -63,6 +63,22 @@ function ObjectMeta.__index(self, key)
     if key == "IsValid" then return function() return rawget(self, "__valid") ~= false end end
     if key == "GetFullName" then return function() return rawget(self, "__fullName") end end
     if key == "IsA" then return function(_, cls) return cls == rawget(self, "__class") end end
+    -- UE4SS reflection, enough for ctx.setText: the engine parses INVTEXT("...") into the field.
+    if key == "Reflection" then
+        return function()
+            return { GetProperty = function(_, name)
+                return {
+                    IsValid = function() return true end,
+                    ContainerPtrToValuePtr = function() return { object = self, name = name } end,
+                    ImportText = function(_, buffer, target)
+                        local text = buffer:match('^INVTEXT%("(.*)"%)$'):gsub('\\(.)', '%1')
+                        local value = H.fstring(text); rawset(value, "__importedText", true)
+                        target.object[target.name] = value
+                    end,
+                }
+            end }
+        end
+    end
     return nil
 end
 function ObjectMeta.__newindex(self, key, value)

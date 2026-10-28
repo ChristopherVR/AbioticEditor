@@ -1,5 +1,47 @@
 # Abiotic Editor - Session history
 
+## Community Update 5 live testing in a running game, pets and text writes (2026-10-28)
+
+Tested against the running game (Steam 1.5.0.31459, world "Cascade", host) through the helper
+(`AbioticEditorLiveAgentHelper`, port 42117) with a small PowerShell TCP client.
+
+- **Verified live, working:** players, vitals, skills (XP and multiplier), background, traits
+  (remove/add with buff), appearance (set/restore), inventory set/clear, container slot set/clear,
+  liquid type (game tooltip confirmed "Fuel, 300", so the renumbered native enum maps right), world
+  clock/flags/doors/buttons/power sockets/vehicles/traders/containment lists, bench upgrades
+  (27 editable), skill XP via `Server_RemoveAllXPFromSkill` + `Server_AddXPToSkill`, pet list, pet XP.
+- **Pets on Community Update 5:** identity, name and dynamic properties live on the follower buff
+  `BuffActor_Follower_C` (`Guid`, `FollowerName`, `DynamicProperties`, `CharacterNPC`); the
+  creature's own `Guid`/`PetName`/`DynamicProperties` stay empty. `pets.lua` lists through the
+  buffs, so every tamed pet (Peccaries too) matches its save record. XP: `SetTotalXP`, then
+  `SaveNpcAsPet(false)`. Removal: the game's `DespawnPet` (NOT yet tried live).
+- **Root cause of three crashes (FMallocBinned2 "realloc an unrecognized block"):** this engine's
+  FText is 16 bytes (`FollowerName` +728, `SanitizedName` +744 on the follower buff) but UE4SS
+  assigns an FText as the older 24 bytes. Any FText assigned from Lua overwrote the next field;
+  the next change to that string crashed. Proven with cdb on the game's PDB and by reading the
+  fields from outside the game (ReadProcessMemory). Rule now: never assign an FText from Lua.
+  `main.lua` `setText(obj, prop, text)` has the engine import `INVTEXT("...")` through
+  `FProperty:ImportText` (UE4SS's own ConsoleCommandsMod pattern). Pet rename = `setText` on
+  `FollowerName` + replication mark + `OnRep_FollowerName` + `SaveNpcAsPet(false)`: verified live
+  (name, XP and health unchanged, `SanitizedName` updated by the game's own filter in valid
+  memory). `bases.lua` AlternativeObjectName uses `setText` too (not tried live).
+- **Do not** rename through `SetStatsFromChangeableData`: it re-applies stats from the data passed
+  and a live test lost a pet's XP/level that way (restored; never saved).
+- **Creature-type change on CU5 is OFF** (`REPLACE_CHARACTER_ENABLED = false` in `pets.lua`).
+  Calling the game's `BuffActor_Follower_C.ReplaceCharacter({RowName})` from Lua crashed: null read
+  at +0x20 inside native `UPetFunctionLibrary::ConvertPetNPCRowToItem` (its first call). The NPC
+  row comes from the target class CDO (`NPC_Base_ParentBP_C.NPCRow`, the game loader's fallback).
+  Older builds keep the class-based `SpawnPet` path.
+- **Tutorial quest (CU5):** the game's `Abiotic_PlayerState.FindServerQuest` returns the first
+  active quest (FindAllActiveQuests order) whose quest line is `bImportantQuestLine`. The editor
+  derives it (`QuestCatalog.ServerQuestFrom`, `IPlayerQuestsSession.TutorialQuestFor`); matched the
+  real save's `ServerQuest` (`quest_evacuateoffices`).
+- Tools added: `tests/AbioticEditor.Probes/BlueprintBytecodeProbe.cs` (`BP_BYTECODE_OUT`,
+  `BP_BYTECODE_CLASSES`) dumps compiled Blueprint bytecode as JSON per function; the Windows
+  Debugging Tools (cdb) were installed on this machine for crash dumps.
+- Open: see the handoff list in the final chat message of this session (creature-type change,
+  live removal test, container rename through the new profanity filter path, bases text fallback).
+
 ## Community Update 5 live-editing and game-data audit (2026-10-28)
 
 - Method: `tests/AbioticEditor.Probes/LiveNameOracleProbe.cs` (set `LIVE_NAME_ORACLE_OUT`, and

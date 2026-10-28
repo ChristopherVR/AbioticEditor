@@ -140,8 +140,7 @@ return function(H)
     H.eq(krasue.ActiveLeyakContainmentID, "UnitCU5", "Krasue director found by class")
     H.eq(leyak.ActiveLeyakContainmentID, "", "Leyak director untouched by a Krasue assignment")
 
-    -- Pets: IsTamedPet lives in PetFunctionLibrary, and SpawnPet takes an NPC row handle, so a
-    -- species change (which would pass a class) is refused rather than risk a native crash.
+    -- Pets: IsTamedPet lives in PetFunctionLibrary, and SpawnPet takes an NPC row handle.
     H.hostSession()
     H.world.static("/Script/AbioticFactor.NPCRowHandle", H.object("ScriptStruct"))
     local tamed = H.world.add(H.object("NPC_Peccary_C", { IsDead = false, __bases = { "NPC_Base_ParentBP_C" } }, {
@@ -151,10 +150,82 @@ return function(H)
         IsTamedPet = function(_, npc) return npc == tamed end,
     }))
     local pets = H.ok(H.dispatch("pets.list"), "native pets.list")
-    H.eq(pets.supportsSpeciesChange, false, "species change not offered when SpawnPet takes an NPC row")
+    H.eq(pets.supportsSpeciesChange, false, "species change off on this build until ReplaceCharacter stops crashing")
     local tamedListed = false
     for _, row in ipairs(pets.pets) do if row.matched == false then tamedListed = true end end
     H.check(tamedListed, "tamed creature found through PetFunctionLibrary")
+
+    -- Pet identity lives on the follower buff (BuffActor_Follower_C), as seen in the running game:
+    -- the creature's own Guid/PetName/DynamicProperties stay empty. Edits go through the game's own
+    -- functions; no text value is ever assigned from Lua (that crashed the game on this build).
+    H.world.static("/Script/AbioticFactor.EDynamicProperty", H.object("UEnum", {}, {
+        GetNameByValue = function(_, value) return H.fname(value == 24 and "EDynamicProperty::XP" or "EDynamicProperty::Other") end,
+    }))
+    local saves, stats = {}, {}
+    local follower = H.world.add(H.object("BuffActor_Follower_C", {
+        Guid = H.fstring("905CBB934EBE13FDEB3901AF1E48930C"), FollowerName = H.fstring("Sow"), CharacterNPC = tamed,
+        DynamicProperties = { { Key = 24, Value = 72 } },
+    }, {
+        SetTotalXP = function(self, value) self.DynamicProperties[1].Value = value end,
+        SaveNpcAsPet = function(_, removeFromSave) saves[#saves + 1] = removeFromSave end,
+        SetStatsFromChangeableData = function(self, data)
+            stats[#stats + 1] = data
+            rawget(self, "__fields").FollowerName = H.fstring(data.PlayerMadeString)
+        end,
+    }))
+    rawget(tamed, "__methods").GetTotalHealth = function() return 55 end
+    local listedPets = H.ok(H.dispatch("pets.list"), "pets.list with follower buffs").pets
+    H.eq(#listedPets, 1, "the creature is listed once, through its follower buff")
+    H.eq(listedPets[1].id, "905CBB934EBE13FDEB3901AF1E48930C", "pet id is the follower buff's Guid (the save key)")
+    H.eq(listedPets[1].matched, true, "a Peccary matches its save record")
+    H.eq(listedPets[1].xp, 72, "XP read from the follower buff")
+    H.eq(listedPets[1].customName, "Sow", "name read from the follower buff")
+    local edited = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", xp = 80 }), "follower XP edit")
+    H.eq(follower.DynamicProperties[1].Value, 80, "XP set through SetTotalXP")
+    H.eq(saves[1], false, "edit written through to the world save")
+    H.eq(#edited.warnings, 0, "XP edit has no warnings")
+
+    -- Rename: the engine writes the name (ImportText), then the game's own OnRep_FollowerName runs.
+    -- Never SetStatsFromChangeableData (it re-applies stats) and never an FText value from Lua.
+    local named = 0
+    rawget(follower, "__methods").OnRep_FollowerName = function() named = named + 1 end
+    local renamed = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", customName = 'Bacon "Bits"' }), "follower rename")
+    H.eq(#renamed.warnings, 0, "rename has no warnings")
+    H.eq(follower.FollowerName:ToString(), 'Bacon "Bits"', "name written, quotes intact")
+    H.eq(rawget(follower.FollowerName, "__importedText"), true, "name written by the engine's text import")
+    H.eq(named, 1, "the game's own OnRep_FollowerName runs once")
+    H.eq(#stats, 0, "stats are never re-applied for a rename")
+    H.eq(follower.DynamicProperties[1].Value, 80, "XP untouched by a rename")
+    H.eq(H.writes(follower, "SanitizedName"), 0, "SanitizedName never assigned from Lua")
+    H.eq(saves[#saves], false, "rename written through to the world save")
+    -- Species change through the game's own ReplaceCharacter, with the class's own NPC row.
+    local speedyPath = "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Speedy.NPC_Peccary_Speedy_C"
+    H.world.static(speedyPath, H.object("Class", {}, {
+        GetCDO = function() return { NPCRow = { RowName = H.fname("Peccary_Speedy") } } end,
+    }))
+    local replacedWith
+    rawget(follower, "__methods").ReplaceCharacter = function(_, row)
+        replacedWith = row.RowName:ToString()
+        rawset(tamed, "__valid", false)
+        local newPet = H.world.add(H.object("NPC_Peccary_Speedy_C", { IsDead = false, __bases = { "NPC_Base_ParentBP_C" } }, {
+            K2_GetActorLocation = function() return H.vector(0, 0, 0) end,
+        }))
+        H.world.add(H.object("BuffActor_Follower_C", { Guid = H.fstring("905CBB934EBE13FDEB3901AF1E48930C"),
+            FollowerName = H.fstring("Bacon \"Bits\""), CharacterNPC = newPet, DynamicProperties = {} }, {}))
+        return newPet
+    end
+    local changed = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", npcClass = speedyPath }), "follower species change request")
+    H.check(#changed.warnings == 1 and changed.warnings[1]:find("temporarily switched off", 1, true) ~= nil, "species change refused with a clear warning")
+    H.eq(replacedWith, nil, "ReplaceCharacter never called while it crashes the game")
+
+    -- Removal through the game's own DespawnPet.
+    local despawned = 0
+    rawget(follower, "__methods").DespawnPet = function()
+        despawned = despawned + 1
+        rawset(tamed, "__valid", false)
+    end
+    H.ok(H.dispatch("pets.remove", { id = "905CBB934EBE13FDEB3901AF1E48930C" }), "follower removal")
+    H.eq(despawned, 1, "removed through the game's own DespawnPet")
 
     -- Appearance: every customization field is a typed row handle.
     local pawnAppearance = H.hostSession()

@@ -289,17 +289,12 @@ return function(ctx)
                         error("the name was set but could not be confirmed as sent to other connected players on this game build")
                     end
                 else
-                    -- No precedent anywhere in the reference mod for writing an FText property
-                    -- from Lua. FText(...) is UE4SS's own documented constructor but nothing here
-                    -- has exercised it before. Try it, then fall back to a plain string assignment
-                    -- (some UE4SS builds coerce a string into an FText field), and only then report
-                    -- failure instead of silently doing nothing.
-                    local okAlt = pcall(function() obj.AlternativeObjectName = FText(text) end)
-                    if not okAlt then okAlt = pcall(function() obj.AlternativeObjectName = text end) end
+                    -- A text (FText) field: written by the engine through ctx.setText, never as an
+                    -- FText value from Lua (see setText in main.lua for the crash that caused).
+                    local okAlt = pcall(function() ctx.setText(obj, "AlternativeObjectName", text) end)
                     if not okAlt then error("could not set this object's custom name on this game build") end
                     for _, sibling in ipairs(ctx.voidChestSiblings(obj)) do
-                        local okSibling = pcall(function() sibling.AlternativeObjectName = FText(text) end)
-                        if not okSibling then pcall(function() sibling.AlternativeObjectName = text end) end
+                        pcall(function() ctx.setText(sibling, "AlternativeObjectName", text) end)
                     end
                 end
             end

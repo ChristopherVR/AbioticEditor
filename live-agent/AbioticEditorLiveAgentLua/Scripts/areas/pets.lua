@@ -162,6 +162,7 @@
 -- warning alongside whatever else in the same call DID apply, instead of masking it as total
 -- failure. Per-limb health failures (a write pcall genuinely erroring) are reported the same way.
 return function(ctx)
+    local replication = require("replication")
     local PET_FAMILY_CLASS = "NPC_Monster_Pest_C" -- hierarchy-inclusive: also finds NPC_Skink_Basic_C.
     -- Round 105: the generic tamed sweep - every creature, not a Peccary/Lamogi-specific list (see
     -- this file's own header comment). NPC_Base_ParentBP_C is hierarchy-inclusive, the exact same
@@ -242,12 +243,80 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     -- that point) leaves the old pet completely untouched. Returns true, nil on success, or
     -- false, "reason" on failure (never throws - this is applied the same non-fatal way the round-
     -- 78 XP/name fields already are, see pets.set below).
-    local function trySpeciesChange(npc, guid, npcClassPath)
-        -- Community Update 5 changed SpawnPet's first argument from a class to an NPC row handle.
-        -- A class passed where a struct is expected is a native call mismatch that can crash the
-        -- game rather than raise a catchable error, so the change is refused on that build.
+    local followers -- defined below; used by the Community Update 5 species change
+
+    -- Community Update 5 runs on an engine whose FText is 16 bytes (BuffActor_Follower_C has
+    -- FollowerName at +728 and SanitizedName at +744), while UE4SS assigns a text value as the
+    -- older 24-byte FText. Assigning FollowerName from Lua therefore overwrote the start of
+    -- SanitizedName, and the next change to that string crashed the game (FMallocBinned2 "realloc
+    -- an unrecognized block", three crash dumps). So the engine writes the name itself
+    -- (ctx.setText), then the game's own follow-up runs: mark for replication and
+    -- OnRep_FollowerName (its profanity filter sets SanitizedName, the displayed name). Do not use
+    -- SetStatsFromChangeableData for this: it also re-applies the pet's stats from the data passed,
+    -- and a live test lost the pet's XP and level that way.
+    local function renameFollower(buff, name)
+        ctx.setText(buff, "FollowerName", name)
+        if replication.available() then replication.mark(replication.requireHelper(), buff, "FollowerName") end
+        buff:OnRep_FollowerName()
+    end
+
+    -- The DT_NPCList row a creature class spawns as: NPC_Base_ParentBP_C.NPCRow on the class
+    -- defaults, the same fallback the game's own pet loader (GameMode "Apply World Save Data |
+    -- Pets") uses when a saved pet has no row.
+    local function npcRowOf(class)
+        local ok, row = pcall(function()
+            local name = class:GetCDO().NPCRow.RowName
+            if name == nil or name:ToString() == "None" or name:ToString() == "" then return nil end
+            return name
+        end)
+        if ok then return row end
+        return nil
+    end
+
+    -- Community Update 5: the game's own creature swap, BuffActor_Follower_C.ReplaceCharacter
+    -- (what feeding a mutation food runs). It turns the pet into its item form (name, XP, health
+    -- and Guid included), switches the item to the new creature (PetFunctionLibrary::
+    -- ConvertPetNPCRowToItem), despawns the old pet (DespawnPet) and respawns it from the item
+    -- (GameMode SpawnPetFromItem). The agent passes only the NPC row, never a text value (see
+    -- renameFollower for why text writes are unsafe on that build).
+    local function trySpeciesChangeByRow(npc, guid, npcClassPath, record)
+        local targetClass = resolveClass(npcClassPath)
+        if not targetClass then return false, "unknown or not-yet-loaded creature type" end
+        local row = npcRowOf(targetClass)
+        if not row then return false, "the game has no creature entry for that creature type" end
+        local okSpawn, newPet = pcall(function() return record:ReplaceCharacter({ RowName = row }) end)
+        if not okSpawn or not newPet or not newPet:IsValid() then
+            return false, "the game would not change this pet into that creature type (it may not be a form this pet can take)"
+        end
+        local newFollower
+        for _, follower in ipairs(followers()) do
+            if follower.npc == newPet or ctx.fullName(follower.npc) == ctx.fullName(newPet) then newFollower = follower end
+        end
+        local newGuid = newFollower and newFollower.guid
+        if not newFollower or newGuid ~= guid then
+            return false, "the game changed the creature, but it came back with a different identity"
+        end
+        return true, nil
+    end
+
+    -- OFF until fixed: calling ReplaceCharacter from the agent crashed the game in a live test (a
+    -- null read at +0x20 inside native UPetFunctionLibrary::ConvertPetNPCRowToItem, its first
+    -- call; crash dump 2026-10-28 21:01). See docs/PROGRESS.md.
+    local REPLACE_CHARACTER_ENABLED = false
+
+    local function trySpeciesChange(npc, guid, npcClassPath, record)
+        if record ~= nil and record ~= npc then
+            if not REPLACE_CHARACTER_ENABLED then
+                return false, "changing a pet's creature type live is temporarily switched off on this game version " ..
+                    "(it crashed the game); change it in the save file for now"
+            end
+            return trySpeciesChangeByRow(npc, guid, npcClassPath, record)
+        end
+        -- An older build's SpawnPet takes a class; a build whose SpawnPet takes an NPC row but whose
+        -- pet has no follower buff is not one this code knows, and passing a class there could
+        -- crash the game rather than raise an error.
         if speciesChangeUnsupported() then
-            return false, "changing a pet's creature type live is not supported on this game version yet"
+            return false, "this pet has no follower record to carry its identity across the change"
         end
         local gm = gameMode()
         if not gm then return false, "no authoritative game mode (are you the host, and is the world loaded?)" end
@@ -379,6 +448,26 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
         return nil
     end
 
+    -- Community Update 5 keeps a pet's identity on its follower buff (BuffActor_Follower_C: Guid,
+    -- FollowerName, DynamicProperties, CharacterNPC) and leaves the creature's own Guid, PetName and
+    -- DynamicProperties empty. Every tamed creature has one, Peccaries included, so on that build
+    -- every pet matches its save record (the save's PetNPCMap key is this Guid).
+    local FOLLOWER_CLASS = "BuffActor_Follower_C"
+    function followers()
+        local result = {}
+        for _, buff in ipairs(ctx.findAll(FOLLOWER_CLASS)) do
+            pcall(function()
+                if not buff:IsValid() then return end
+                local guid = guidOf(buff)
+                local npc = buff.CharacterNPC
+                if guid and npc and npc:IsValid() and actorAvailable(npc) then
+                    table.insert(result, { buff = buff, npc = npc, guid = guid })
+                end
+            end)
+        end
+        return result
+    end
+
     local function findPestByGuid(id)
         for _, candidate in ipairs(ctx.findAll(PET_FAMILY_CLASS)) do
             if actorAvailable(candidate) and guidOf(candidate) == id then return candidate end
@@ -403,10 +492,15 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
 
     -- Returns the pet actor and whether it is `matched` (a save-linkable Pest/Skink-family Guid)
     -- or not (round 105's generic tamed-marker fallback, see this file's header comment).
+    -- The third value is the object holding the pet's name and XP: its follower buff on Community
+    -- Update 5, the creature itself on older builds.
     local function findPet(id)
         if not id then return nil, false end
+        for _, follower in ipairs(followers()) do
+            if follower.guid == id then return follower.npc, true, follower.buff end
+        end
         local byGuid = findPestByGuid(id)
-        if byGuid then return byGuid, true end
+        if byGuid then return byGuid, true, byGuid end
         return findUnmatchedByFullName(id), false
     end
 
@@ -429,35 +523,53 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
         return ok and tamed == true
     end
 
+    -- `record` holds the name and XP: the follower buff (FollowerName) on Community Update 5, the
+    -- creature itself (PetName) before.
+    local function matchedRow(npc, guid, record)
+        local x, y, z = ctx.actorLocation(npc)
+        local nameField = record == npc and "PetName" or "FollowerName"
+        local okName, name = pcall(function() return record[nameField]:ToString() end)
+        local fullName = ctx.fullName(npc)
+        return {
+            id = guid,
+            actorPath = fullName,
+            region = ctx.actorRegion(npc),
+            npcClass = ctx.classLabel(fullName),
+            isDead = npc.IsDead == true,
+            customName = (okName and name ~= "" and name) or nil,
+            x = x, y = y, z = z,
+            limbHealth = readLimbHealth(npc),
+            xp = dynamicInt(record, "XP"),
+            matched = true,
+        }
+    end
+
+    -- Also returns the full names of the creatures listed, so the unmatched pass skips them.
     local function petRows()
         local result = { __forceArray = true }
+        local listed = {}
+        for _, follower in ipairs(followers()) do
+            pcall(function()
+                local row = matchedRow(follower.npc, follower.guid, follower.buff)
+                table.insert(result, row)
+                listed[row.actorPath] = true
+            end)
+        end
         for _, npc in ipairs(ctx.findAll(PET_FAMILY_CLASS)) do
             -- pcall per pet actor (matching main.lua containers.list's own per-container guard):
             -- isDead below is a direct, unguarded property read, and this walks every Pest/Skink
             -- actor loaded in the world - one actor in an unusual state should skip only itself,
             -- not fail the whole PETS tab listing with an uncaught Lua error.
             pcall(function()
-                if not actorAvailable(npc) then return end
+                if not actorAvailable(npc) or listed[ctx.fullName(npc)] then return end
                 local guid = guidOf(npc)
                 if not guid then return end
-                local x, y, z = ctx.actorLocation(npc)
-                local okName, name = pcall(function() return npc.PetName:ToString() end)
-                local fullName = ctx.fullName(npc)
-                table.insert(result, {
-                    id = guid,
-                    actorPath = fullName,
-                    region = ctx.actorRegion(npc),
-                    npcClass = ctx.classLabel(fullName),
-                    isDead = npc.IsDead == true,
-                    customName = (okName and name ~= "" and name) or nil,
-                    x = x, y = y, z = z,
-                    limbHealth = readLimbHealth(npc),
-                    xp = dynamicInt(npc, "XP"),
-                    matched = true,
-                })
+                local row = matchedRow(npc, guid, npc)
+                table.insert(result, row)
+                listed[row.actorPath] = true
             end)
         end
-        return result
+        return result, listed
     end
 
     -- Round 105: every OTHER tamed creature (Peccary/Lamogi today, and any future family that
@@ -465,12 +577,12 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     -- anything with its own Guid (already covered by petRows() above) so a pet is never listed
     -- twice. id is the live actor's own full path (matching npcs.lua's id scheme) since there is
     -- still no stable id these rows could share with a save's PetNPC record.
-    local function unmatchedTamedRows(lib)
+    local function unmatchedTamedRows(lib, listed)
         local result = { __forceArray = true }
         for _, npc in ipairs(ctx.findAll(ALL_NPC_CLASS)) do
             pcall(function()
                 if not actorAvailable(npc) then return end
-                if guidOf(npc) then return end
+                if guidOf(npc) or listed[ctx.fullName(npc)] then return end
                 if not isTamedPet(npc, lib) then return end
                 local fullName = ctx.fullName(npc)
                 if not fullName then return end
@@ -495,8 +607,9 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     ctx.handlers["pets.list"] = function(_, respond)
         ctx.runOnGameThread(function()
             local lib = functionLibrary()
-            local pets = petRows()
-            for _, row in ipairs(unmatchedTamedRows(lib)) do table.insert(pets, row) end
+            local pets, listed = petRows()
+            for _, row in ipairs(unmatchedTamedRows(lib, listed)) do table.insert(pets, row) end
+            local followerBuild = speciesChangeUnsupported()
             return {
                 pets = pets,
                 isHost = ctx.isHost(),
@@ -506,13 +619,17 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                 -- field, which LivePetsSession reads as false (see that class's remarks), so the
                 -- app's creature-type control stays hidden against an older agent automatically.
                 -- Only MATCHED (Pest/Skink-family) rows can actually use it - see pets.set.
-                supportsSpeciesChange = not speciesChangeUnsupported(),
+                supportsSpeciesChange = not followerBuild or REPLACE_CHARACTER_ENABLED,
                 -- Round 78: real removal, evidenced by the reference CheatConsoleCommands mod's
                 -- own "deleteobject" command destroying an arbitrary world actor with
                 -- `actor:K2_DestroyActor()` (CommandsManager.lua) - see pets.remove below. There
                 -- is no undo once this runs, unlike the file session's staged delete.
                 supportsRemoval = true,
-                reason = "Pest- and Skink-family pets can be matched to a save record live (the " ..
+                reason = followerBuild and ("Every tamed pet can be matched to its save record live, " ..
+                    "and its name, health, alive/dead status and level can be changed here. Changing " ..
+                    "its creature type live is temporarily off on this game version. " ..
+                    "Removing a pet here despawns it immediately - there is no undo.") or
+                    "Pest- and Skink-family pets can be matched to a save record live (the " ..
                     "game gives them a stable id) - their creature type can also be changed live " ..
                     "now (round 109), though this is a first-use, largely unverified call: try it " ..
                     "on a low-stakes pet first. Peccary and Lamogi pets are listed too (found by " ..
@@ -531,8 +648,9 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     ctx.handlers["pets.set"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can edit pets") end
-            local npc, matched = findPet(payload.id)
+            local npc, matched, record = findPet(payload.id)
             if not npc then error("pet not found (it may have been unloaded, or is no longer a tamed pet)") end
+            local follower = record ~= nil and record ~= npc
 
             local warnings = { __forceArray = true }
 
@@ -548,11 +666,19 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                     "(edit the save file instead)")
             end
             if matched and payload.customName ~= nil then
-                -- No precedent for writing an FText property besides bases.lua's own rename this
-                -- round - same try-FText-then-plain-string fallback.
-                local ok = pcall(function() npc.PetName = FText(payload.customName) end)
-                if not ok then ok = pcall(function() npc.PetName = payload.customName end) end
-                if ok then pcall(function() npc:OnRep_PetName() end) end
+                -- Community Update 5: see renameFollower. Older builds keep PetName on the creature, written by the engine
+                -- through ctx.setText. No FText value is ever assigned from Lua.
+                local ok
+                if follower then
+                    ok = pcall(function() renameFollower(record, payload.customName) end)
+                    if ok then pcall(function() record:SaveNpcAsPet(false) end) end
+                else
+                    ok = pcall(function()
+                        ctx.setText(npc, "PetName", payload.customName)
+                        npc:OnRep_PetName()
+                    end)
+                end
+                if not ok then table.insert(warnings, "couldn't rename this pet live") end
             end
             if payload.limbHealth ~= nil then
                 local failed = writeLimbHealth(npc, payload.limbHealth)
@@ -578,8 +704,12 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
             end
             if matched and payload.xp ~= nil then
                 local target = math.floor(payload.xp)
-                if dynamicInt(npc, "XP") ~= target then
-                    local applied = setDynamicInt(npc, "XP", target)
+                if dynamicInt(record, "XP") ~= target then
+                    -- Community Update 5's follower buff sets XP itself (and adds the entry when the
+                    -- pet has never earned any), which also refreshes its level.
+                    local applied = follower and pcall(function() record:SetTotalXP(target) end)
+                        and dynamicInt(record, "XP") == target
+                    if not applied then applied = setDynamicInt(record, "XP", target) end
                     if not applied then
                         table.insert(warnings, "this pet has never earned XP yet, so its level can't be " ..
                             "raised live (edit the save file instead, or let it gain real XP first)")
@@ -603,13 +733,18 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                         table.insert(warnings, "this pet can't be matched to a save record, so " ..
                             "its species can't be changed live (edit the save file instead)")
                     else
-                        local ok, failure = trySpeciesChange(npc, payload.id, payload.npcClass)
+                        local ok, failure = trySpeciesChange(npc, payload.id, payload.npcClass, record)
                         if not ok then
                             table.insert(warnings, "couldn't change this pet's creature type live: " ..
                                 tostring(failure))
                         end
                     end
                 end
+            end
+            -- Community Update 5 records a pet into the world save from its follower buff; write the
+            -- edit through so a later save (or a quit before one) keeps it.
+            if follower and payload.xp ~= nil then
+                pcall(function() record:SaveNpcAsPet(false) end)
             end
             return { warnings = warnings }
         end, respond)
@@ -624,8 +759,16 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     ctx.handlers["pets.remove"] = function(payload, respond)
         ctx.runOnGameThread(function()
             if not ctx.isHost() then error("only the host can remove pets") end
-            local npc = payload.id and (findPet(payload.id))
+            local npc, _, record
+            if payload.id then npc, _, record = findPet(payload.id) end
             if not npc then error("pet not found (it may already be gone)") end
+            if record ~= nil and record ~= npc then
+                -- Community Update 5: the game's own DespawnPet on the follower buff removes the pet
+                -- from the world save (SaveNpcAsPet(true)), despawns it through its AI controller and
+                -- destroys the creature.
+                local okDespawn = pcall(function() record:DespawnPet() end)
+                if okDespawn and not actorAvailable(npc) then return nil end
+            end
             local ok = pcall(function() npc:K2_DestroyActor() end)
             if not ok then error("couldn't remove this pet from the world") end
             return nil

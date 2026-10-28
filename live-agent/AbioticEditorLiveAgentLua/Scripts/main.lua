@@ -1270,6 +1270,18 @@ local function weatherLibrary()
     return nil
 end
 
+-- Sets a text (FText) property by having the ENGINE parse and store it (FProperty::ImportText,
+-- the route UE4SS's own ConsoleCommandsMod "set" command uses). Never assign an FText from Lua
+-- (obj.Prop = FText(...) or any FText value): UE4SS writes the older 24-byte FText, but the
+-- Community Update 5 engine's FText is 16 bytes, so the write overran into the next property and
+-- crashed the game later (FMallocBinned2 "realloc an unrecognized block", three crash dumps).
+local function setText(obj, propertyName, text)
+    local property = obj:Reflection():GetProperty(propertyName)
+    if not property or not property:IsValid() then error("no text field " .. propertyName) end
+    local literal = 'INVTEXT("' .. tostring(text):gsub("\\", "\\\\"):gsub('"', '\\"') .. '")'
+    property:ImportText(literal, property:ContainerPtrToValuePtr(obj), 0, obj)
+end
+
 -- A row handle as a plain struct table. Community Update 5's typed handles (weather, world flags,
 -- buffs, ...) carry only RowName; older builds also had DataTablePath, kept when present.
 local function rowHandleTable(handle)
@@ -2380,6 +2392,7 @@ local ctx = {
     currentWorldFlags = currentWorldFlags,
     applyWorldFlagRows = applyWorldFlagRows,
     rowHandleTable = rowHandleTable,
+    setText = setText,
     slotFields = slotFields,
     containerInventory = containerInventory,
     voidChestSiblings = voidChestSiblings,

@@ -15,8 +15,9 @@
 -- in 1.5). It is pcall-guarded and its failure reason is logged and returned as
 -- activeQuestsError: when it cannot be called the desktop app falls back to the world flags.
 -- The personal tutorial objective is reported as serverQuest where the player state still carries
--- ServerQuest (older builds). 1.5 computes it in the Blueprint FindServerQuest from a quest-line
--- filter compiled into that function, so it is left unreported there rather than guessed.
+-- ServerQuest (older builds). 1.5 keeps no such property: its Blueprint FindServerQuest returns the
+-- first active quest (in FindAllActiveQuests order) whose quest line is marked important, which the
+-- editor works out from activeQuests below and its quest data (QuestCatalog.ServerQuestFrom).
 --
 -- Tracking is PER PLAYER, so it only ever touches the local player's controller. The struct
 -- argument is passed as a table holding RowName, the same shape SetWorldFlag takes. The result is
