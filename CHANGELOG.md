@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.31.0] - 2026-10-28
+
+### Features
+- Offer to switch on a world's mods when you open its saves
+- Read your mod.io mods properly and show which mods each world uses
+
+
 ## [2.30.5] - 2026-10-28
 
 ### Bug Fixes
