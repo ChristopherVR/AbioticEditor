@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [2.29.0] - 2026-10-28
+
+### Features
+- Support Community Update 5 quests, pets and mods
+
+
+### Bug Fixes
+- Live editing shows the story chapter again after Community Update 5
+- Add Fog Peccary pet item and keep builds working
+
+
 ## [2.28.0] - 2026-10-26
 
 ### Features
