@@ -22,6 +22,30 @@ public sealed class CommunityUpdateFiveTests
     private static PlayerSaveData Player() => PlayerSaveReader.ReadFromFile(Fixture("PlayerData/Player_76561197993781479.sav"));
 
     [Fact]
+    public void Game_written_validation_save_retains_edited_progress_and_fog_companion()
+    {
+        var path = Fixture("Validation/Player_76561197993781479.sav");
+        var player = PlayerSaveReader.ReadFromFile(path);
+        Assert.Equal(12345, player.Stats.Money);
+        Assert.All(player.Skills, skill => Assert.Equal(1200, skill.Xp));
+        Assert.Contains("recipe_bandage", player.Recipes);
+        Assert.Equal("QuestLine_Kylie", PlayerQuestSave.Read(player).TrackedLine);
+        var pet = Assert.Single(player.CarriedPets);
+        Assert.Equal("Peccary_Fog", pet.ItemRow);
+        Assert.Equal("Fogbound", pet.Name);
+        Assert.Equal(PetSlotKind.Equipment, pet.Slot);
+        Assert.Equal(12, pet.Index);
+        Assert.Equal(1800, pet.Xp);
+        Assert.Equal(3580, pet.Health);
+        Assert.Equal(0, pet.PetMutation);
+        Assert.Equal(0, pet.MutationProgress);
+        Assert.Equal("Peccary_Fog", PetItemCatalog.ItemRowFor(PetItemCatalog.NpcClassFor("Peccary_Fog")));
+        using var bytes = new MemoryStream();
+        player.Raw.WriteTo(bytes);
+        Assert.Equal(File.ReadAllBytes(path), bytes.ToArray());
+    }
+
+    [Fact]
     public async Task Tracking_stages_reverts_and_saves_with_the_original_backup()
     {
         var directory = Directory.CreateTempSubdirectory("abiotic-native-quest-");

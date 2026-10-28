@@ -52,6 +52,7 @@ public static class PetItemCatalog
         new("Peccary_Volatile", "Volatile Peccary", false),
         new("Peccary_Electro", "Electro Peccary", false),
         new("Peccary_Alpha", "Peccary Alpha", false),
+        new("Peccary_Fog", "Fog Peccary", false),
         // The Ogi family + carried Lamogi forms (anniversary update, v1.4.0).
         new("WinterSprite", "Lamogi", false),
         new("Lamogi_Plated", "Sir Ogi", false),

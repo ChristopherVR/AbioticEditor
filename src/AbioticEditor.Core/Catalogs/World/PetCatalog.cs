@@ -149,6 +149,7 @@ public static class PetCatalog
         ("NPC_Monster_Peccary_Electro",  "Electro Peccary", PetCategory.Peccary, false),
         ("NPC_Peccary_Mushroom",         "Mushroom Peccary",PetCategory.Peccary, false),
         ("NPC_Peccary_Alpha",            "Peccary Alpha",   PetCategory.Peccary, false),
+        ("NPC_Monster_Peccary_Fog",      "Fog Peccary",     PetCategory.Peccary, false),
         ("NPC_Peccary_Sow",              "Peccary Sow",     PetCategory.Peccary, false),
         ("NPC_Monster_Peccary_Snow",     "Snow Peccary",    PetCategory.Peccary, false),
         ("NPC_Monster_Peccary_Armored",  "Tareccary",       PetCategory.Peccary, false),

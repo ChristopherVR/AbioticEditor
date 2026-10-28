@@ -54,7 +54,8 @@
        reference, which is why the direct-only audit above still reports it. None of the
        affected code is reachable here: CUE4Parse-Conversion only builds in-memory heightmap /
        weightmap images and PNG-encodes them, and the advisories cover ICC profile parsing,
-       HistogramEqualization, the TIFF CCITT T4/T6 encoders and BigTIFF decoding.
+       HistogramEqualization, the TIFF CCITT T4/T6 encoders, BigTIFF decoding and tiled fax TIFF
+        decoding (GHSA-v76p-62qx-wwq2, fixed in 3.2.0 but unusable under CUE4Parse's exact pin).
        Suppressed by advisory, not by package or warning code, so any NEW ImageSharp advisory
        still fails the build. Remove these once CUE4Parse moves to a fixed ImageSharp. -->
   <ItemGroup>
@@ -63,5 +64,6 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-v76p-62qx-wwq2" />
   </ItemGroup>
 </Project>
