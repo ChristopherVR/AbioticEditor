@@ -26,6 +26,18 @@ public static class QuestCatalog
         return flags.Contains(quest.StartFlag) ? QuestState.Active : QuestState.Locked;
     }
 
+    /// <summary>
+    /// The personal tutorial objective the way the game's own <c>Abiotic_PlayerState.FindServerQuest</c>
+    /// picks it in Community Update 5: the first active quest, in the game's own order, whose quest
+    /// line is marked important. Null when none is.
+    /// </summary>
+    public static string? ServerQuestFrom(IEnumerable<string> activeQuestsInGameOrder, QuestCatalogData catalog)
+    {
+        var important = catalog.Lines.Where(line => line.Important).SelectMany(line => line.Quests)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return activeQuestsInGameOrder.FirstOrDefault(important.Contains);
+    }
+
     public static QuestCatalogData? LoadFrom(GameAssetProvider provider)
     {
         if (!provider.HasMappings) return null;

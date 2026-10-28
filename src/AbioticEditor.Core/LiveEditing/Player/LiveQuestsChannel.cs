@@ -31,7 +31,8 @@ public sealed class LiveQuestsChannel(ILiveGameChannel channel)
         IsNone(wire.TrackedLine) ? null : wire.TrackedLine,
         IsNone(wire.CurrentQuestLine) ? null : wire.CurrentQuestLine,
         wire.ActiveQuestsKnown ? (wire.ActiveQuests ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase) : null,
-        wire.CanTrack, wire.IsHost, IsNone(wire.ServerQuest) ? null : wire.ServerQuest);
+        wire.CanTrack, wire.IsHost, IsNone(wire.ServerQuest) ? null : wire.ServerQuest,
+        wire.ActiveQuestsKnown ? wire.ActiveQuests ?? [] : null);
 
     private static bool IsNone(string? value) => string.IsNullOrEmpty(value) || value == "None";
 
@@ -46,4 +47,7 @@ public sealed class LiveQuestsChannel(ILiveGameChannel channel)
 /// <param name="ActiveQuests">Objectives the game itself reports active, or null when the agent
 /// could not ask (the app then judges state from the world flags).</param>
 /// <param name="ServerQuest">The character's personal tutorial objective, or null when unreported.</param>
-public sealed record LiveQuestState(string? TrackedLine, string? WorldQuestLine, IReadOnlySet<string>? ActiveQuests, bool CanTrack, bool IsHost, string? ServerQuest = null);
+/// <param name="ActiveQuestOrder">The same objectives in the order the game lists them, which decides
+/// the tutorial objective when the agent does not report it (see <c>QuestCatalog.ServerQuestFrom</c>).</param>
+public sealed record LiveQuestState(string? TrackedLine, string? WorldQuestLine, IReadOnlySet<string>? ActiveQuests, bool CanTrack, bool IsHost, string? ServerQuest = null,
+    IReadOnlyList<string>? ActiveQuestOrder = null);

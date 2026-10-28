@@ -62,7 +62,14 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession, IPlayerQuestsS
     string? IPlayerQuestsSession.TrackedQuestLine => _questState?.TrackedLine;
     // Whether the intro is finished is not reported live; the personal tutorial objective is.
     bool IPlayerQuestsSession.CompletedIntro => false;
-    string? IPlayerQuestsSession.CurrentTutorialQuest => _questState?.ServerQuest;
+    string? IPlayerQuestsSession.CurrentTutorialQuest => _questState?.ServerQuest
+        ?? (_lastVocabulary.Quests is { } quests ? TutorialFrom(quests) : null);
+    string? IPlayerQuestsSession.TutorialQuestFor(AbioticEditor.Core.Codex.QuestCatalogData catalog)
+        => _questState?.ServerQuest ?? TutorialFrom(catalog);
+    // Community Update 5 keeps the tutorial objective nowhere the agent can read; the game derives it
+    // from the active quests, so do the same (QuestCatalog.ServerQuestFrom).
+    private string? TutorialFrom(AbioticEditor.Core.Codex.QuestCatalogData catalog)
+        => _questState?.ActiveQuestOrder is { } order ? AbioticEditor.Core.Codex.QuestCatalog.ServerQuestFrom(order, catalog) : null;
     string? IPlayerQuestsSession.SavePath => null;
 
     /// <summary>An agent build without <c>quests.get</c> (or a momentary read failure) leaves the

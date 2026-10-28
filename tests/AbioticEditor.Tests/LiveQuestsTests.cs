@@ -88,6 +88,33 @@ public sealed class LiveQuestsTests
     }
 
     [Fact]
+    public async Task Tutorial_objective_is_the_first_active_quest_in_an_important_line_when_the_game_does_not_report_it()
+    {
+        // Community Update 5 has no readable ServerQuest; Abiotic_PlayerState.FindServerQuest picks the
+        // first active quest (FindAllActiveQuests order) whose line is important. Checked against a
+        // real migrated save: its stored ServerQuest was quest_evacuateoffices, the first such quest.
+        var catalog = new QuestCatalogData([], [
+            new("QuestLine_Kylie", "Kylie", false, null, ["quest_Kylie_FirstMeet"]),
+            new("QuestLine_Primary", "", true, null, ["quest_evacuateoffices", "quest_entersilo3portal"])]);
+        var channel = new FakeChannel();
+        channel.Replies["codex.get"] = new { emails = Array.Empty<string>(), journals = Array.Empty<string>(), fish = Array.Empty<string>(), compendium = Array.Empty<string>() };
+        channel.Replies["quests.get"] = new { trackedLine = "QuestLine_Primary", activeQuestsKnown = true,
+            activeQuests = new[] { "quest_Kylie_FirstMeet", "quest_evacuateoffices", "quest_entersilo3portal" }, canTrack = true, isHost = true };
+        IPlayerQuestsSession quests = await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel),
+            quests: new LiveQuestsChannel(channel), flags: new LiveWorldFlagsChannel(channel));
+
+        Assert.Equal("quest_evacuateoffices", quests.TutorialQuestFor(catalog));
+        Assert.Equal("quest_evacuateoffices", QuestCatalog.ServerQuestFrom(["quest_Kylie_FirstMeet", "quest_evacuateoffices"], catalog));
+        Assert.Null(QuestCatalog.ServerQuestFrom(["quest_Kylie_FirstMeet"], catalog));
+
+        // An agent that does report it (older game builds) is trusted as is.
+        channel.Replies["quests.get"] = new { trackedLine = "QuestLine_Primary", activeQuestsKnown = true,
+            activeQuests = new[] { "quest_evacuateoffices" }, canTrack = true, isHost = true, serverQuest = "tutorial_bandage" };
+        await quests.LoadWorldViewAsync();
+        Assert.Equal("tutorial_bandage", quests.TutorialQuestFor(catalog));
+    }
+
+    [Fact]
     public async Task Session_hides_quests_when_the_agent_predates_them()
     {
         var channel = new FakeChannel();

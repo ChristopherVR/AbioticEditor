@@ -22,6 +22,10 @@ public interface IPlayerQuestsSession
     bool CompletedIntro { get; }
     string? CurrentTutorialQuest { get; }
 
+    /// <summary>The personal tutorial objective, worked out from <paramref name="catalog"/> when the
+    /// session cannot read it directly (a live Community Update 5 game keeps it nowhere readable).</summary>
+    string? TutorialQuestFor(QuestCatalogData catalog) => CurrentTutorialQuest;
+
     /// <summary>The save file whose world flags should be read, or null for a live game.</summary>
     string? SavePath { get; }
 

@@ -90,7 +90,7 @@
         if (quest.StartFlag is null && quest.CompletionFlag is null)
         {
             if (Session.CompletedIntro && quest.Id.StartsWith("tutorial_", StringComparison.Ordinal)) return QuestState.Completed;
-            if (quest.Id == Session.CurrentTutorialQuest) return QuestState.Active;
+            if (quest.Id == (_catalog is null ? Session.CurrentTutorialQuest : Session.TutorialQuestFor(_catalog))) return QuestState.Active;
         }
         var state = QuestCatalog.StateOf(quest, _flags);
         // The running game says which objectives are active (several at once); trust it over the
