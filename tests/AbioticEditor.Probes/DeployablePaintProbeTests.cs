@@ -102,22 +102,30 @@ public class DeployablePaintProbeTests
             }
         }
 
-        var savePkg = provider.LoadPackage("AbioticFactor/Content/Blueprints/Saves/SaveData/SaveData_Deployable_Struct");
-        foreach (var export in savePkg.GetExports())
-        {
-            if (export is not UStruct st) continue;
-            _output.WriteLine($"SAVE STRUCT {export.Name} ({export.ExportType}):");
-            foreach (var c in st.ChildProperties ?? [])
-                _output.WriteLine($"    {c.Name.Text} : {c.GetType().Name}");
-        }
+        DumpStruct("AbioticDeployableSave", "AbioticFactor/Content/Blueprints/Saves/SaveData/SaveData_Deployable_Struct");
+        DumpStruct("AbioticInventoryChangeableData", "AbioticFactor/Content/Blueprints/Data/Abiotic_InventoryChangeableDataStruct");
 
-        var changeablePkg = provider.LoadPackage("AbioticFactor/Content/Blueprints/Data/Abiotic_InventoryChangeableDataStruct");
-        foreach (var export in changeablePkg.GetExports())
+        void DumpStruct(string nativeName, string legacyPath)
         {
-            if (export is not UStruct st) continue;
-            _output.WriteLine($"CHANGEABLE STRUCT {export.Name} ({export.ExportType}) (shared by item slots and deployables' ChangableData_):");
-            foreach (var c in st.ChildProperties ?? [])
-                _output.WriteLine($"    {c.Name.Text} : {c.GetType().Name}");
+            if (provider.MappingsForGame?.Types.TryGetValue(nativeName, out var mapped) == true)
+            {
+                _output.WriteLine($"NATIVE STRUCT {nativeName}:");
+                foreach (var (index, property) in mapped.Properties.OrderBy(p => p.Key))
+                    _output.WriteLine($"    [{index}] {property.Name} : {property.MappingType.Type} {property.MappingType.StructType}");
+                return;
+            }
+            if (!provider.TryLoadPackage(legacyPath, out var savePkg))
+            {
+                _output.WriteLine($"{nativeName}: no native mapping or legacy struct asset found");
+                return;
+            }
+            foreach (var export in savePkg.GetExports())
+            {
+                if (export is not UStruct st) continue;
+                _output.WriteLine($"STRUCT {export.Name} ({export.ExportType}):");
+                foreach (var c in st.ChildProperties ?? [])
+                    _output.WriteLine($"    {c.Name.Text} : {c.GetType().Name}");
+            }
         }
     }
 

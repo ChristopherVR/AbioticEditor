@@ -339,11 +339,18 @@ public class GardenCropModelProbe
     public void Dump_UserDefinedEnum()
     {
         using var assets = GameAssetProvider.CreateForLocalInstall();
-        var name = Environment.GetEnvironmentVariable("ABIOTIC_ENUM_ASSET") ?? "E_LiquidType";
+        var name = Environment.GetEnvironmentVariable("ABIOTIC_ENUM_ASSET") ?? "ELiquidType";
         if (assets is null) return;
         assets.UseFileProvider(p =>
         {
-            var path = p.Files.Keys.First(k => k.EndsWith("/" + name + ".uasset", StringComparison.OrdinalIgnoreCase));
+            if (p.MappingsForGame?.Enums.TryGetValue(name, out var values) == true)
+            {
+                _output.WriteLine($"{name}: {string.Join(", ", values.OrderBy(v => v.Key).Select(v => $"{v.Value}={v.Key}"))}");
+                return 0;
+            }
+            var assetName = name == "ELiquidType" ? "E_LiquidType" : name;
+            var path = p.Files.Keys.FirstOrDefault(k => k.EndsWith("/" + assetName + ".uasset", StringComparison.OrdinalIgnoreCase));
+            if (path is null) { _output.WriteLine($"{name}: no native enum or enum asset found"); return 0; }
             var e = p.LoadPackage(path).GetExports().OfType<CUE4Parse.UE4.Objects.UObject.UEnum>().First();
             _output.WriteLine($"{path}: {string.Join(", ", e.Names.Select(n => $"{n.Item1.Text}={n.Item2}"))}");
             var display = e.GetOrDefault<CUE4Parse.UE4.Assets.Objects.UScriptMap?>("DisplayNameMap");

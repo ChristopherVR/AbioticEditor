@@ -130,14 +130,24 @@ public class NarrativeNpcProbeTests
         }
     }
 
-    /// <summary>Enumerates E_NarrativeNPCStates values with their numeric ordinals.</summary>
+    /// <summary>Enumerates native or legacy narrative NPC states with their numeric ordinals.</summary>
     [Fact]
     public void Dump_NarrativeNpcStates_Enum()
     {
         using var provider = CreateProvider();
         if (provider is null) return;
 
-        var pkg = provider.LoadPackage("AbioticFactor/Content/Blueprints/Data/E_NarrativeNPCStates");
+        if (provider.MappingsForGame?.Enums.TryGetValue("ENarrativeNPCState", out var states) == true)
+        {
+            _output.WriteLine("ENUM ENarrativeNPCState:");
+            foreach (var (value, name) in states.OrderBy(v => v.Key)) _output.WriteLine($"  {value}: {name}");
+            return;
+        }
+        if (!provider.TryLoadPackage("AbioticFactor/Content/Blueprints/Data/E_NarrativeNPCStates", out var pkg))
+        {
+            _output.WriteLine("No native or legacy narrative NPC state enum found.");
+            return;
+        }
         foreach (var e in pkg.GetExports().OfType<UEnum>())
         {
             _output.WriteLine($"ENUM {e.Name} ({e.Names.Length} entries incl. MAX)");

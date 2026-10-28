@@ -1,4 +1,11 @@
 -- ===== Tamed pets (PetNPC in the save; live actors are ordinary NPC_Base_ParentBP_C) =====
+-- CU5 (1.5.0.31650): every pet is matched through its follower buff. Name writes use engine
+-- text import; species changes use ProcessConsoleExec so the engine constructs NPCRowHandle.
+-- Direct ReplaceCharacter calls crash even with engine-returned struct userdata because a
+-- native struct assignment does not initialise its vtable in UE4SS's zeroed argument buffer.
+-- Live-tested Pest and Peccary replacements retain identity, name and XP; health follows the
+-- game's mutation rules. Removal uses DespawnPet. The historical notes below describe older
+-- game versions and the legacy SpawnPet path only.
 -- Round 76 found NO general live path (tame/name/health data is exposed wildly inconsistently
 -- between creature families, with no safe way to match a live actor back to a world save's
 -- PetNPC GUID for most of them). Round 77 re-checked the game's own class layout
@@ -267,7 +274,7 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
         local ok, row = pcall(function()
             local name = class:GetCDO().NPCRow.RowName
             if name == nil or name:ToString() == "None" or name:ToString() == "" then return nil end
-            return name
+            return name:ToString()
         end)
         if ok then return row end
         return nil
@@ -282,27 +289,40 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
     local function trySpeciesChangeByRow(npc, guid, npcClassPath, record)
         local targetClass = resolveClass(npcClassPath)
         if not targetClass then return false, "unknown or not-yet-loaded creature type" end
-        local row = npcRowOf(targetClass)
-        if not row then return false, "the game has no creature entry for that creature type" end
-        local okSpawn, newPet = pcall(function() return record:ReplaceCharacter({ RowName = row }) end)
-        if not okSpawn or not newPet or not newPet:IsValid() then
+        local rowName = npcRowOf(targetClass)
+        if not rowName then return false, "the game has no creature entry for that creature type" end
+        if not rowName:match("^[%w_]+$") then return false, "invalid creature row name" end
+        local oldPath = ctx.fullName(npc)
+        -- Let the engine initialise the polymorphic handle before importing its row name.
+        -- UE4SS's direct call zeroes the argument buffer and its struct copy does not construct
+        -- the native vtable, even when supplied an engine-owned NPCRow userdata.
+        local okSpawn, failure = pcall(function()
+            local fn = record.ReplaceCharacter
+            local flags = fn:GetFunctionFlags()
+            fn:SetFunctionFlags(flags | 0x00000200) -- FUNC_Exec
+            local ok, err = pcall(function()
+                record:ProcessConsoleExec('ReplaceCharacter (RowName="' .. rowName .. '")', nil, record)
+            end)
+            fn:SetFunctionFlags(flags)
+            if not ok then error(err) end
+        end)
+        if not okSpawn then return false, "the game's creature replacement call failed: " .. tostring(failure) end
+        local newFollower
+        for _, candidate in ipairs(followers()) do
+            if candidate.guid == guid and ctx.fullName(candidate.npc) ~= oldPath then newFollower = candidate end
+        end
+        if not newFollower then
             return false, "the game would not change this pet into that creature type (it may not be a form this pet can take)"
         end
-        local newFollower
-        for _, follower in ipairs(followers()) do
-            if follower.npc == newPet or ctx.fullName(follower.npc) == ctx.fullName(newPet) then newFollower = follower end
-        end
-        local newGuid = newFollower and newFollower.guid
-        if not newFollower or newGuid ~= guid then
-            return false, "the game changed the creature, but it came back with a different identity"
+        if shortClassTag(ctx.classLabel(ctx.fullName(newFollower.npc))) ~= shortClassTag(npcClassPath) then
+            return false, "the game changed the pet into a different creature type than requested"
         end
         return true, nil
     end
 
-    -- OFF until fixed: calling ReplaceCharacter from the agent crashed the game in a live test (a
-    -- null read at +0x20 inside native UPetFunctionLibrary::ConvertPetNPCRowToItem, its first
-    -- call; crash dump 2026-10-28 21:01). See docs/PROGRESS.md.
-    local REPLACE_CHARACTER_ENABLED = false
+    -- Verified on CU5 via the engine's argument parser. Direct Lua calls still crash because
+    -- NPCRowHandle's native vtable is not initialised, including when passing struct userdata.
+    local REPLACE_CHARACTER_ENABLED = true
 
     local function trySpeciesChange(npc, guid, npcClassPath, record)
         if record ~= nil and record ~= npc then
@@ -438,6 +458,15 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
 
     local function actorAvailable(npc)
         if not npc:IsValid() then return false end
+        -- UE4SS IsValid only checks the pointer. Despawned actors can remain discoverable until
+        -- garbage collection, so ask the engine about pending destruction as well.
+        local okValid, valid = pcall(function()
+            local library = StaticFindObject("/Script/Engine.Default__KismetSystemLibrary")
+            -- Bypass UE4SS's own IsValid method, which otherwise shadows the engine function.
+            local isValid = library:GetPropertyValue("IsValid")
+            return isValid(library, npc)
+        end)
+        if okValid and not valid then return false end
         local ok, destroying = pcall(function() return npc:IsActorBeingDestroyed() end)
         return not (ok and destroying == true)
     end
@@ -457,7 +486,7 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
         local result = {}
         for _, buff in ipairs(ctx.findAll(FOLLOWER_CLASS)) do
             pcall(function()
-                if not buff:IsValid() then return end
+                if not actorAvailable(buff) then return end
                 local guid = guidOf(buff)
                 local npc = buff.CharacterNPC
                 if guid and npc and npc:IsValid() and actorAvailable(npc) then
@@ -626,8 +655,7 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                 -- is no undo once this runs, unlike the file session's staged delete.
                 supportsRemoval = true,
                 reason = followerBuild and ("Every tamed pet can be matched to its save record live, " ..
-                    "and its name, health, alive/dead status and level can be changed here. Changing " ..
-                    "its creature type live is temporarily off on this game version. " ..
+                    "and its name, health, alive/dead status, level and creature type can be changed here. " ..
                     "Removing a pet here despawns it immediately - there is no undo.") or
                     "Pest- and Skink-family pets can be matched to a save record live (the " ..
                     "game gives them a stable id) - their creature type can also be changed live " ..
@@ -716,6 +744,11 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                     end
                 end
             end
+            -- Save XP before replacement: afterwards record belongs to the despawned creature,
+            -- and saving it again can overwrite the new pet's entry with the old creature type.
+            if follower and payload.xp ~= nil then
+                pcall(function() record:SaveNpcAsPet(false) end)
+            end
             -- Round 109: species change - see this file's own header comment and
             -- trySpeciesChange's remarks for the full reasoning. Compared by trailing class-name
             -- token, not equality of the whole string, because WorldPetsTab.razor's Apply()
@@ -740,11 +773,6 @@ local PET_LIBRARY_PATH = "/Script/AbioticFactor.Default__PetFunctionLibrary"
                         end
                     end
                 end
-            end
-            -- Community Update 5 records a pet into the world save from its follower buff; write the
-            -- edit through so a later save (or a quit before one) keeps it.
-            if follower and payload.xp ~= nil then
-                pcall(function() record:SaveNpcAsPet(false) end)
             end
             return { warnings = warnings }
         end, respond)

@@ -510,132 +510,49 @@ hardcoded `hasInventory: false`. **Not yet exercised in the running game.**
 
 ## `pets.list` / `pets.set` / `pets.remove`
 
-`pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z","limbHealth":
-{...},"xp","matched"}],"isHost":bool,"available":true,"supportsSpeciesChange":true,
-"supportsRemoval":true,"reason":"..."}`. `supportsSpeciesChange` is reported by the live agent
-itself (round 109 - see below); an older agent build that never sends the field is read as `false`
-by the app, so its creature-type control stays hidden automatically. earlier implementation found no general
-live path for tamed pets: the
-fields a world save's `PetNPC` record needs are exposed wildly inconsistently between creature
-families. earlier implementation re-checked the game's own class layout and found a real, **partial** path
-instead of guessing a universal one:
+`pets.list` returns `{"pets":[{"id","npcClass","isDead","customName","x","y","z",
+"limbHealth":{...},"xp","matched","actorPath","region"}],"isHost":bool,"available":true,
+"supportsSpeciesChange":true,"supportsRemoval":true,"reason":"..."}`. Capability fields come
+from the agent; an older agent that omits them leaves the corresponding controls hidden.
 
-- The Pest family (and Skink, which inherits from it) directly exposes, with no hash suffix:
-  `PetName` (`FTextProperty`, real `OnRep_PetName`), `Guid` (`FStrProperty` - a stable id matching
-  the save's own `PetNPC` key), `DynamicProperties` (the same `{Key,Value}` shape
-  `companions.list`'s carried-pet XP already reads/writes), and `FollowingOwner`
-  (`FObjectProperty`, a reference to the player it is currently following - see `companions.set`
-  below for what this unlocked). `pets.list` only lists actors of this family, matched by `id` =
-  their own `Guid` string. These rows come back `matched:true`.
-- Per-limb health is **universal**, not pet-specific: `AbioticCharacter` (the native base of
-  every player AND every NPC) carries `CurrentHealth_Head/Torso/LeftArm/RightArm/LeftLeg/
-  RightLeg` as plain unsuffixed floats with one shared `OnRep_CurrentHealth` - the exact fields
-  `vitals.set` already writes for the local player, confirmed live. `pets.set` writes these the
-  same way, for both matched and unmatched rows (see below).
-- Peccary and Lamogi family pets were re-checked and confirmed to still carry none of
-  `Guid`/`PetName`/`DynamicProperties`/`FollowingOwner` as their own properties - there is still no
-  stable id for them, so species change is refused for these rows even though it is now attempted
-  for matched ones: there is no Guid to hand the game to preserve identity
-  with, and nothing to verify a "same pet" result against.
+On Community Update 5, all tamed creatures match their save records through
+`BuffActor_Follower_C.Guid`, including Peccaries and Lamogi. Name and XP are read from the
+follower's `FollowerName` and `DynamicProperties`; health comes from `CharacterNPC`. Actors
+pending destruction are excluded with the engine's `KismetSystemLibrary.IsValid`, since UE4SS
+can still discover their pointers before garbage collection. Fetch that UFunction through
+`GetPropertyValue` to bypass UE4SS's own method of the same name.
 
-Rather than re-confirming round
-77/79's conclusion unchanged, this round found a real, generic tamed-creature marker:
-`NPC_Monster_WinterSprite_C`'s own compiled graph calls a static library function,
-`AbioticFunctionLibrary::IsTamedPet(Actor)` (bool, one parameter), from three of its own
-overridden functions. It is a general-purpose actor query, not specific to any one creature
-family, so `pets.list` now also sweeps `NPC_Base_ParentBP_C` (the same hierarchy-inclusive parent
-class `npcs.list` already sweeps for the whole CREATURES tab - no Peccary/Lamogi/future-family
-class list needed) and feature-detects per instance: anything with its own `Guid` is skipped
-(already covered by the Pest/Skink path above), anything else `IsTamedPet` reports true for is
-listed with `matched:false` and `id` set to the live actor's own full path (the same id scheme
-`npcs.list` uses) rather than a save key, since these creatures still expose no stable id a save
-row could share. Calling `IsTamedPet` on a non-WinterSprite actor is new and unverified against
-the real game until tested live, wrapped in `pcall` like every other first-use call in this
-project. An unmatched row's `customName` is always `null` and `xp` is always `0` (the class has
-neither field); `isDead`/`limbHealth` are real and stay editable exactly like a matched row's.
+`pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?,"npcClass"?}` and returns
+`{"warnings":[...]}`. Each field applies independently. A species change runs last and only if
+`npcClass` differs from the current class; resending the current class is a no-op. Host only.
 
-The game's
-own `Abiotic_Survival_GameMode_C.SpawnPet(Class, SpawnTransform, Guid, Name, Owner,
-DynamicProperties, Tamed)` is a real function with exactly the shape a "respawn as a different
-class" edit would need - but `SpawnTransform` is an `FTransform`, a nested struct
-(rotation/translation/scale) this project had no working construction precedent for anywhere over
-UE4SS Lua reflection, unlike the flat `FVector`/`FRotator` tables round 76 proved out for
-`spawn.set`. Guessing an unverified struct shape for a native-bridged call is exactly what caused
-the BASES tab's fatal, non-catchable crash in round 79, so this stayed refused project-wide through
-round 105.
+CU5 writes:
 
-Re-examined against a fresh pak dump of `Abiotic_Survival_GameMode_C.SpawnPet` (full bytecode, not
-just its signature) rather than re-asserting the round-76/105 conclusion unchanged. The blocker was
-never "structs are unsafe to pass" in general already proved that an engine-*returned*
-`FVector`/`FRotator` struct (from `K2_GetActorLocation`/`K2_GetActorRotation`) can be handed
-straight back into another native call's matching struct parameter, unchanged or with individual
-leaf fields overwritten (`spawn.lua`'s `TeleportPlayer` path, `vehicles.lua`'s `K2_TeleportTo`
-path). The round-79 BASES crash came from a *hand-fabricated* struct **table** for a parameter type
-nobody had ever seen a real instance of - a categorically different risk. `pets.lua`'s
-`trySpeciesChange` avoids that mistake entirely: it reads the OLD pet actor's own current transform
-fresh via `npc:K2_GetActorTransform()` - a standard, zero-argument, `BlueprintPure` `AActor`
-function, the same category of call as the already-proven `K2_GetActorLocation`/
-`K2_GetActorRotation` - and passes the result to `SpawnPet` completely UNCHANGED (no field is ever
-read, guessed, or written on it), which is a strictly *smaller* risk than the already-proven
-vector/rotator case. Every other `SpawnPet` argument is likewise read straight off the OLD actor,
-never fabricated: `Guid`/`Tamed` are plain scalars, `Name` is the OLD pet's own `PetName` `FText`
-userdata passed through unchanged, `Owner` is its own `FollowingOwner` object reference (confirmed
-real and readable on this family by `companions.lua`, round 78/79), and `DynamicProperties` is its
-own live array passed by reference (which is why XP/mutation progress survive a species change
-without this module touching them directly). Health/limb state is *not* part of `SpawnPet`'s
-signature, so it does **not** carry over - the new actor spawns with its class's normal health.
+- Name: `ctx.setText` imports `INVTEXT(...)` through the engine, then marks `FollowerName` dirty,
+  runs `OnRep_FollowerName` and saves the pet. Never assign FText from Lua: this engine uses
+  16-byte text values, while UE4SS's assignment writes 24 bytes and corrupts the next field.
+- XP: `SetTotalXP`, then `SaveNpcAsPet(false)` before any species change. Never save the old
+  follower after replacement, because it can overwrite the replacement's save entry.
+- Species: resolve the target class's CDO `NPCRow.RowName`, then invoke the follower's
+  `ReplaceCharacter` through `ProcessConsoleExec`. Temporarily add `FUNC_Exec` and restore the
+  exact original flags after the call, including on a Lua error. The engine parses the row
+  argument and constructs its native struct. Direct Lua calls crash even when passed an
+  engine-owned row userdata: copying a polymorphic `NPCRowHandle` into UE4SS's zeroed argument
+  buffer leaves its vtable null. The command accepts only an engine-derived alphanumeric or
+  underscore row name. Afterwards verify a new actor with the same Guid and requested class.
+  The game's replacement carries name, XP and identity; health follows its mutation rules.
 
-Safety ordering: `SpawnPet` is called first; the returned actor must be valid **and** report back
-the *same* `Guid` that was passed in before the OLD actor is destroyed. Any failure at any step
-(unresolved target class, an unreadable transform, the call itself erroring, an invalid or
-mismatched-identity result) leaves the OLD pet completely untouched and comes back as a warning,
-never a thrown error and never a destroy without a confirmed replacement - a spawn that "worked"
-but reports the wrong identity is the one case that can leave a stray, unmatched extra actor behind
-even though the edit itself is reported as failed. The one honest caveat that sets this call apart
-from almost everything else in this project: a wrong-shaped argument to a native `UFunction` call
-is the one class of failure `pcall` cannot be trusted to catch (that is exactly what made round
-79's BASES crash non-catchable) - every reasoning step above argues why this specific call should
-not hit that failure mode, but `K2_GetActorTransform`/`SpawnPet` have never actually run against
-the real game; this is proven only against the Lua stub harness so far. `supportsSpeciesChange` is
-now `true` when the connected live agent supports this path (a matched row only - unmatched rows
-are refused with a named warning, since there is no Guid to preserve identity with).
+`pets.remove` takes `{"id"}`. On CU5 it calls the follower's `DespawnPet`, which removes the
+saved pet and despawns the actor. It falls back to `K2_DestroyActor` if needed. Removal is
+immediate, host only, and has no undo.
 
-`pets.set` takes `{"id","isDead"?,"customName"?,"limbHealth"?,"xp"?,"npcClass"?}`. `npcClass` is
-only ever treated as a real species-change *request* when it differs from the pet's own current
-class (`WorldPetsTab.razor`'s own `Apply()` resends the pet's current class unchanged on every
-other edit, so a plain health/name/xp call never attempts one by accident) - and only for a matched
-row; an unmatched row's requested change is refused with a warning naming why. Host only. It
-replies `{"warnings":[...]}` rather than failing outright when one field could not be applied - see
-the validation behavior described below. On an unmatched (`matched:false`) row, a requested `customName`/`xp`
-change is never attempted (the class has no such field) and comes back as a warning instead of a
-silent no-op or a thrown error; `isDead`/`limbHealth` apply the same way as a matched row.
-
-`pets.remove` takes `{"id"}` and destroys the pet's actor outright
-(`npc:K2_DestroyActor()` - the same standard `AActor` call the reference CheatConsoleCommands
-mod's own "deleteobject" console command already uses on an arbitrary world actor). No blueprint
-function cleanly "releases" a tamed world pet back into the wild (checked `CreatePetItem`/
-`ReleaseFromAIDirector`/`IsFollower` on `NPC_Base_ParentBP_C` - none of them detach-and-vanish an
-already-world-placed NPC), so this is the closest evidenced removal there is. Host only, and there
-is no undo once it returns. Works on matched and unmatched rows alike - removal never needed a
-save-matchable id, only a live actor reference.
-
-The
-root cause was not that the writes themselves failed live - it was that a combined `pets.set` call
-(every field sent together, since the shared `WorldPetsTab` always sends the whole row) used to
-raise a hard error the moment ANY one field looked unwritable, most commonly `xp`: a pet that has
-never earned real XP yet has no `XP` entry in `DynamicProperties` at all (the identical
-delta-omission the save file itself uses, which is why `WorldSaveWriter.ApplyDynamicInt`'s
-file-format counterpart had to learn to append a missing entry by cloning an existing one's tag
-types - there is still no live-reflection equivalent of that trick, and per `worldunlocks.set`'s
-own "no working precedent" refusal, guessing a `TArray`-append technique over UE4SS Lua stays
-refused project-wide, so a never-levelled pet's level genuinely still can't be raised live). Because
-Lua's `error()` aborts the whole handler, that ONE unrelated field threw away a health/name edit
-that had already been written into the live NPC's memory earlier in the same call - the editor saw
-the whole request as failed and never refreshed, so it looked like health editing was broken too,
-even on requests that never touched level. Fixed by applying every field independently and
-returning non-fatal warnings instead of aborting: a request that only changes health can now only
-fail for a genuine health-write problem, never because of an unrelated XP echo-back, and the tab
-always refreshes to show what actually applied.
+On older builds, Pest/Skink pets match through their own Guid; other tamed creatures found by
+`IsTamedPet` use their actor path as a session-only id (`matched:false`). Unmatched pets support health/alive-state
+edits and removal, but cannot safely rename, change XP, or replace species. Matched legacy
+species changes use `Abiotic_Survival_GameMode_C.SpawnPet` with the original actor's
+`K2_GetActorTransform` result and existing name/owner/dynamic data. The new Guid is verified
+before destroying the original. That legacy call remains harness-tested only; native argument
+errors cannot be caught reliably with Lua `pcall`.
 
 ## `narrativenpcs.list` / `narrativenpcs.set` - story NPCs and traders
 

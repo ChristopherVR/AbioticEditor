@@ -1,5 +1,53 @@
 # Abiotic Editor - Session history
 
+## CU5 pet replacement crash fixed and live follow-up (2026-10-28)
+
+Tested Steam 1.5.0.31650 as host in `CU5LiveTest`, an isolated copy of Cascade. Full saves
+backed up to `%TEMP%\opencode\cu5-followup-20261028-212931\SaveGames`; original Cascade files
+were compared against that backup and remain byte-identical.
+
+- **Creature-type changes enabled on CU5.** Crash-dump disassembly showed that NPCRowHandle
+  has a native vtable. UE4SS zeroes the argument buffer; both a Lua row table and an
+  engine-returned CDO row userdata leave that vtable null. The latter was tested and crashed
+  in the same `ConvertPetNPCRowToItem` call. The working path temporarily marks the follower's
+  `ReplaceCharacter` as `FUNC_Exec`, calls it through `ProcessConsoleExec` with the CDO's row
+  name, then restores the original flags even on a Lua error. The engine constructs the
+  argument. Row names are restricted to letters, digits and underscores. Success requires a
+  replacement actor with the original Guid and requested class.
+- **Verified live:** Rex Electro-Pest -> Pest -> Electro-Pest, retaining Guid, name, XP 50
+  and head health 170. Peccary Sow -> Alpha -> Sow also worked. The game's mutation path can
+  rescale health, so identical health is not promised for all types.
+- **Combined XP/type save-order fix:** a live edit exposed that saving the old follower after
+  replacement could overwrite the new species in the save. XP now saves before replacement.
+  Regression coverage asserts no save on the old follower afterwards. Pending-destruction
+  actors are filtered through the engine's `KismetSystemLibrary.IsValid`, fetched with
+  `GetPropertyValue` because UE4SS's own `IsValid` method otherwise shadows it.
+- **Removal verified live and on disk:** `DespawnPet` removed the test pet from the list and
+  from the world save after leaving the game normally.
+- **Names verified live:** container `NewPlayerMadeString` accepted `CU5 Storage "Test"` and
+  read back exactly; a wall lamp accepted `CU5 Lamp "Test"`. The lamp actually inherits the
+  furniture naming path on CU5, so it does NOT verify the `AlternativeObjectName` fallback.
+  No non-furniture deployable was present in the test world's live list. A potential isolated
+  test target is `/Game/Blueprints/DeployedObjects/Misc/Deployed_FloorPoop.Deployed_FloorPoop_C`,
+  whose direct base is `AbioticDeployed_ParentBP_C` (confirmed from the paks).
+- **Five research probes repaired and passing:** skills, narrative NPC states and liquids read
+  native enum mappings with legacy fallbacks; deployable paint reads native save/changeable
+  struct mappings; landscape layers follow actual material reference paths instead of assuming
+  all materials live in `/Game/Textures/Landscape`.
+- Validation: 1,498 Lua checks pass, including replacement failure/ignored calls, exact function
+  flag restoration, combined XP/type ordering and pending-destruction filtering. All 17 pet
+  C# tests pass. Full suite: 2,557 passed, one skipped, one failed documentation assertion
+  (`IsTamedPet` was omitted during the protocol rewrite). The documentation was corrected;
+  the subsequent 17-test pet run includes that assertion and passes. The previous handoff's
+  full run also finished with 2,558 passed and one skipped. Five repaired probes pass.
+- **Remaining live checks:** save/reload the final combined XP/type fix, verify the final pending
+  actor filter, and exercise the actual `AlternativeObjectName` fallback. After saving and
+  restarting, Windows Computer Use twice reported `failed to activate captured window` at
+  the title screen. User foreground assistance was requested; no further UI input was sent.
+  Latest scripts are installed, no temporary diagnostics were added, and hot reload remains off.
+  Restart once more to load the final engine-validity lookup before resuming those checks.
+  `CU5LiveTest` retains the test edits for continuing; Cascade remains untouched.
+
 ## Community Update 5 live testing in a running game, pets and text writes (2026-10-28)
 
 Tested against the running game (Steam 1.5.0.31459, world "Cascade", host) through the helper

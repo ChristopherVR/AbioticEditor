@@ -80,13 +80,20 @@ public class SkillProbeTests
         using var provider = CreateRawProvider();
         if (provider is null || provider.MappingsContainer is null) { _output.WriteLine("No install/mappings."); return; }
 
-        var pkg = provider.LoadPackage("AbioticFactor/Content/Blueprints/Data/E_CharacterSkills");
-        foreach (var export in pkg.GetExports())
+        if (provider.MappingsForGame?.Enums.TryGetValue("ECharacterSkills", out var skills) == true)
         {
-            if (export is CUE4Parse.UE4.Objects.UObject.UEnum e)
+            _output.WriteLine("enum ECharacterSkills:");
+            foreach (var (value, name) in skills.OrderBy(v => v.Key)) _output.WriteLine($"  [{value}] {name}");
+        }
+        else if (provider.TryLoadPackage("AbioticFactor/Content/Blueprints/Data/E_CharacterSkills", out var pkg))
+        {
+            foreach (var export in pkg.GetExports())
             {
-                _output.WriteLine($"enum {e.Name}:");
-                foreach (var (n, v) in e.Names) _output.WriteLine($"  [{v}] {n.Text}");
+                if (export is CUE4Parse.UE4.Objects.UObject.UEnum e)
+                {
+                    _output.WriteLine($"enum {e.Name}:");
+                    foreach (var (n, v) in e.Names) _output.WriteLine($"  [{v}] {n.Text}");
+                }
             }
         }
 

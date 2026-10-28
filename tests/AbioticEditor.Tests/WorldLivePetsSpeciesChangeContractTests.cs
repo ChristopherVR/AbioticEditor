@@ -23,7 +23,7 @@ public sealed class WorldLivePetsSpeciesChangeContractTests
     public void pets_lua_reports_the_new_capability_and_never_a_hardcoded_leaf_class_list()
     {
         var source = PetsLuaSource();
-        // Offered on older builds; on Community Update 5 only once ReplaceCharacter stops crashing.
+        // CU5 uses the engine's argument parser; the legacy SpawnPet path is kept for older builds.
         Assert.Contains("supportsSpeciesChange = not followerBuild or REPLACE_CHARACTER_ENABLED", source, StringComparison.Ordinal);
         // Community Update 5 spawns by NPC row: taken from the target class's own defaults, the same
         // fallback the game's pet loader uses, never from a hardcoded table.

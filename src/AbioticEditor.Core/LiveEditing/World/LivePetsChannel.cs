@@ -1,7 +1,12 @@
 namespace AbioticEditor.Core.LiveEditing.World;
 
 /// <summary>
-/// Live pet editing. Pest- and Skink-family pets are matched to a stable id (see
+/// Live pet editing. On Community Update 5, all tamed pets match by their follower buff's Guid.
+/// Names use engine text import; XP uses SetTotalXP; species changes use the engine's argument
+/// parser to invoke ReplaceCharacter with a constructed native row handle. DespawnPet removes
+/// both the actor and its saved record. See the live-editing protocol for verified CU5 behavior.
+/// The following describes the compatibility path for older game builds.
+/// Pest- and Skink-family pets are matched to a stable id (see
 /// <c>pets.list</c> in <c>live-agent/AbioticEditorLiveAgentLua/Scripts/areas/pets.lua</c> for the
 /// full research finding). Round 105 added a second, generic sweep for every other tamed
 /// creature (Peccary/Lamogi families and any future one): matched not by a hardcoded class list
@@ -46,9 +51,9 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
             wire.SupportsSpeciesChange, wire.SupportsRemoval);
     }
 
-    /// <summary>Stages/applies a Pest- or Skink-family pet's fields immediately. Host only. Some
+    /// <summary>Applies a matched pet's fields immediately. Host only. Some
     /// fields can genuinely fail without the whole call failing (round 78 - e.g. raising the level
-    /// of a pet that has never earned real XP, which cannot be fabricated live; round 109 - a
+    /// of a pet that has never earned real XP on an older game build; round 109 - a
     /// species change that can't be resolved or verified): those come back as
     /// <see cref="LivePetSetResult.Warnings"/> rather than an exception, so the fields that DID
     /// apply are never thrown away along with the one that didn't. <paramref name="npcClass"/> is
@@ -64,7 +69,8 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
         return new LivePetSetResult(wire?.Warnings ?? []);
     }
 
-    /// <summary>Removes a pet by destroying its live actor outright (round 78: no blueprint
+    /// <summary>Removes a pet through DespawnPet on CU5, including its saved record.
+    /// Older builds destroy its live actor outright (round 78: no blueprint
     /// function cleanly "releases" a tamed world pet, so this uses the same standard
     /// <c>K2_DestroyActor</c> call the reference CheatConsoleCommands mod's own "deleteobject"
     /// command already uses on an arbitrary world actor - see <c>pets.lua</c>'s own remarks). Host
@@ -87,12 +93,13 @@ public sealed class LivePetsChannel(ILiveGameChannel channel)
 /// text, ready to show as-is).</summary>
 public sealed record LivePetSetResult(IReadOnlyList<string> Warnings);
 
-/// <summary>One live pet row. When <paramref name="Matched"/> is true (Pest/Skink family),
-/// <paramref name="Id"/> is the pet's own <c>Guid</c> string field - the same stable id the save's
+/// <summary>One live pet row. When <paramref name="Matched"/> is true (all CU5 pets, or the
+/// Pest/Skink family on older builds), <paramref name="Id"/> is the follower buff's or pet's
+/// <c>Guid</c> string field - the same stable id the save's
 /// <c>PetNPC</c> map uses as its key, so a live row and a file row for the same pet share the same
 /// id. When <paramref name="Matched"/> is false (round 105: any tamed creature the
 /// <c>AbioticFunctionLibrary::IsTamedPet</c> sweep found with no <c>Guid</c> of its own - Peccary
-/// and Lamogi families today), <paramref name="Id"/> is the live actor's own full path instead
+/// and Lamogi families on older builds), <paramref name="Id"/> is the live actor's own full path instead
 /// (stable only for that actor's current lifetime, never a save key) and <paramref name="CustomName"/>
 /// /<paramref name="Xp"/> are always null/0 - the class exposes neither field to read or write.</summary>
 public sealed record LivePet(string Id, string? NpcClass, bool IsDead, string? CustomName,

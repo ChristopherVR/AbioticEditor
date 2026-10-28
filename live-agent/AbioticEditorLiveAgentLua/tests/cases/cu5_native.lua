@@ -150,7 +150,7 @@ return function(H)
         IsTamedPet = function(_, npc) return npc == tamed end,
     }))
     local pets = H.ok(H.dispatch("pets.list"), "native pets.list")
-    H.eq(pets.supportsSpeciesChange, false, "species change off on this build until ReplaceCharacter stops crashing")
+    H.eq(pets.supportsSpeciesChange, true, "CU5 species change supported through engine argument parsing")
     local tamedListed = false
     for _, row in ipairs(pets.pets) do if row.matched == false then tamedListed = true end end
     H.check(tamedListed, "tamed creature found through PetFunctionLibrary")
@@ -199,30 +199,68 @@ return function(H)
     H.eq(H.writes(follower, "SanitizedName"), 0, "SanitizedName never assigned from Lua")
     H.eq(saves[#saves], false, "rename written through to the world save")
     -- Species change through the game's own ReplaceCharacter, with the class's own NPC row.
-    local speedyPath = "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Speedy.NPC_Peccary_Speedy_C"
-    H.world.static(speedyPath, H.object("Class", {}, {
-        GetCDO = function() return { NPCRow = { RowName = H.fname("Peccary_Speedy") } } end,
+    local alphaPath = "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Alpha.NPC_Peccary_Alpha_C"
+    H.world.static(alphaPath, H.object("Class", {}, {
+        GetCDO = function() return { NPCRow = { RowName = H.fname("Peccary_Alpha") } } end,
     }))
-    local replacedWith
-    rawget(follower, "__methods").ReplaceCharacter = function(_, row)
-        replacedWith = row.RowName:ToString()
+    local replacedWith, replacement, newFollower
+    local savedAfterReplacement = 0
+    local originalFlags, functionFlags = 0x04420400, 0x04420400
+    rawget(follower, "__fields").ReplaceCharacter = {
+        GetFunctionFlags = function() return functionFlags end,
+        SetFunctionFlags = function(_, flags) functionFlags = flags end,
+    }
+    rawget(follower, "__methods").ProcessConsoleExec = function(self, command, reserved, executor)
+        H.eq(functionFlags, originalFlags | 0x200, "Exec flag is set only during engine parsing")
+        H.eq(command, 'ReplaceCharacter (RowName="Peccary_Alpha")', "engine receives the target row as text")
+        H.eq(reserved, nil, "reserved console argument is nil")
+        H.eq(executor, self, "call stays on the specific follower")
+        replacedWith = command
         rawset(tamed, "__valid", false)
-        local newPet = H.world.add(H.object("NPC_Peccary_Speedy_C", { IsDead = false, __bases = { "NPC_Base_ParentBP_C" } }, {
+        local newPet = H.world.add(H.object("NPC_Peccary_Alpha_C", { IsDead = false, __bases = { "NPC_Base_ParentBP_C" } }, {
             K2_GetActorLocation = function() return H.vector(0, 0, 0) end,
         }))
-        H.world.add(H.object("BuffActor_Follower_C", { Guid = H.fstring("905CBB934EBE13FDEB3901AF1E48930C"),
-            FollowerName = H.fstring("Bacon \"Bits\""), CharacterNPC = newPet, DynamicProperties = {} }, {}))
-        return newPet
+        replacement = newPet
+        newFollower = H.world.add(H.object("BuffActor_Follower_C", { Guid = follower.Guid,
+            FollowerName = follower.FollowerName, CharacterNPC = newPet, DynamicProperties = follower.DynamicProperties }, {}))
+        -- The old record must never be saved after the engine has removed it.
+        rawget(follower, "__methods").SaveNpcAsPet = function() savedAfterReplacement = savedAfterReplacement + 1 end
     end
-    local changed = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", npcClass = speedyPath }), "follower species change request")
-    H.check(#changed.warnings == 1 and changed.warnings[1]:find("temporarily switched off", 1, true) ~= nil, "species change refused with a clear warning")
-    H.eq(replacedWith, nil, "ReplaceCharacter never called while it crashes the game")
+    local savedBefore = #saves
+    local changed = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", npcClass = alphaPath, xp = 81 }), "follower species change request")
+    H.eq(#changed.warnings, 0, "species change completes without warnings")
+    H.check(replacedWith ~= nil, "replacement went through the engine's parser")
+    H.eq(functionFlags, originalFlags, "function flags restored after replacement")
+    H.eq(#saves, savedBefore + 1, "XP saved before replacement")
+    H.eq(savedAfterReplacement, 0, "despawned record never saved over replacement")
+    H.eq(newFollower.DynamicProperties[1].Value, 81, "combined XP edit carries into replacement")
+
+    rawget(newFollower, "__fields").ReplaceCharacter = follower.ReplaceCharacter
+    local sowPath = "/Game/Blueprints/Characters/NPCs/NPC_Peccary_Sow.NPC_Peccary_Sow_C"
+    H.world.static(sowPath, H.object("Class", {}, { GetCDO = function() return { NPCRow = { RowName = H.fname("Peccary_Sow") } } end }))
+    rawget(newFollower, "__methods").ProcessConsoleExec = function() error("console failure") end
+    local failed = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", npcClass = sowPath }), "replacement failure")
+    H.eq(#failed.warnings, 1, "failed engine call reported as a warning")
+    H.eq(functionFlags, originalFlags, "function flags restored even when the engine call raises")
+    rawget(newFollower, "__methods").ProcessConsoleExec = function() end
+    local ignored = H.ok(H.dispatch("pets.set", { id = "905CBB934EBE13FDEB3901AF1E48930C", npcClass = sowPath }), "ignored replacement")
+    H.eq(#ignored.warnings, 1, "no replacement actor is not reported as success")
+
+    -- UE4SS can still find a pending-destruction actor until garbage collection.
+    rawset(tamed, "__valid", true)
+    H.world.static("/Script/Engine.Default__KismetSystemLibrary", H.object("KismetSystemLibrary", {}, {
+        GetPropertyValue = function(_, name)
+            H.eq(name, "IsValid", "engine validity function fetched without the UE4SS method collision")
+            return function(_, actor) return actor ~= tamed end
+        end,
+    }))
+    H.eq(#H.ok(H.dispatch("pets.list")).pets, 1, "pending-destruction pet does not appear as a duplicate")
 
     -- Removal through the game's own DespawnPet.
     local despawned = 0
-    rawget(follower, "__methods").DespawnPet = function()
+    rawget(newFollower, "__methods").DespawnPet = function()
         despawned = despawned + 1
-        rawset(tamed, "__valid", false)
+        rawset(replacement, "__valid", false)
     end
     H.ok(H.dispatch("pets.remove", { id = "905CBB934EBE13FDEB3901AF1E48930C" }), "follower removal")
     H.eq(despawned, 1, "removed through the game's own DespawnPet")

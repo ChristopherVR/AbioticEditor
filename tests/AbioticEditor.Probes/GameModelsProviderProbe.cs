@@ -371,12 +371,14 @@ public class GameModelsProviderProbe
                 var mats = new HashSet<string>();
                 foreach (var proxy in proxies)
                 {
-                    if (proxy.LandscapeMaterial is { IsNull: false } lm) mats.Add(lm.ResolvedObject!.Name.Text);
+                    if (proxy.LandscapeMaterial is { IsNull: false } lm && lm.ResolvedObject is { } landscapeMaterial)
+                        mats.Add(landscapeMaterial.GetPathName());
                     foreach (var ci in proxy.LandscapeComponents)
                     {
                         var c = ci.Load<CUE4Parse.UE4.Assets.Exports.Component.Landscape.ULandscapeComponent>();
                         if (c is null) continue;
-                        if (c.OverrideMaterial is { IsNull: false } om) mats.Add(om.ResolvedObject!.Name.Text);
+                        if (c.OverrideMaterial is { IsNull: false } om && om.ResolvedObject is { } overrideMaterial)
+                            mats.Add(overrideMaterial.GetPathName());
                         foreach (var a in c.GetWeightmapLayerAllocations())
                         {
                             var info = a.LayerInfo?.Load();
@@ -387,7 +389,8 @@ public class GameModelsProviderProbe
                 }
                 var slots = string.Join(" | ", mats.Select(m =>
                 {
-                    var mi = p.LoadPackageObject($"/Game/Textures/Landscape/{m}.{m}");
+                    // The reference carries the real package; materials are not all in one folder.
+                    var mi = p.LoadPackageObject(m);
                     return m + ": " + string.Join(", ", mi.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback[]>("TextureParameterValues", [])
                         .Select(t => $"{t.GetOrDefault<CUE4Parse.UE4.Assets.Objects.FStructFallback?>("ParameterInfo")?.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FName>("Name").Text}={t.GetOrDefault<CUE4Parse.UE4.Objects.UObject.FPackageIndex?>("ParameterValue")?.ResolvedObject?.Name}"));
                 }));
