@@ -295,7 +295,9 @@ public static partial class WorldSaveWriter
     /// </summary>
     /// <summary>Returns false when the entry has no dynamic-property list to write into.</summary>
     private static bool ApplyDynamicInt(IList<FPropertyTag> props, string keySuffix, int value)
-        => PetDynamicProperties.SetOrAdd(props, keySuffix, value);
+        // An absent entry reads as 0, its default; writing it anyway would grow the list.
+        => (PetDynamicProperties.Read(props, keySuffix) ?? 0) == value
+           || PetDynamicProperties.SetOrAdd(props, keySuffix, value);
 
     private static void ApplyNpcMap(WorldSaveData data, string prefix, Dictionary<string, WorldNpc> byId)
     {

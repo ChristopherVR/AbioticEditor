@@ -203,8 +203,9 @@ internal static class PetDynamicProperties
         arr.Value = elems;
 
         var existing = changeableProps.FirstOrDefault(p => p.Name?.Value?.MatchesUnrealProperty("DynamicProperties_") == true);
-        if (existing is not null) changeableProps.Remove(existing);
-        changeableProps.Add(template.DetachedArrayTag);
+        var index = existing is null ? -1 : changeableProps.IndexOf(existing);
+        if (index >= 0) changeableProps[index] = template.DetachedArrayTag;
+        else changeableProps.Add(template.DetachedArrayTag);
         return true;
     }
 

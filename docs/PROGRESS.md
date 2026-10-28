@@ -1,5 +1,30 @@
 # Abiotic Editor - Session history
 
+## Community Update 5 save audit (2026-10-28)
+
+- Audited every save writer against game-written CU5 saves (the checked-in Update1_5 fixtures
+  plus a long-played world the game had just migrated: 6 player saves, 63 region saves and the
+  metadata) and against 301 older saves. Each save was re-written unchanged (must be
+  byte-identical), then edited through every writer and validated against `assets/Mappings.usmap`
+  (field names, types, element types and enum values) and read back.
+- Native fields renamed beyond the `Foo_` to `Foo`/`bFoo` rule were invisible to readers and
+  writers. Added them to `NativeSaveSchema.Name`: inventory `Items`, deployable `DeployableClass`
+  and `ChangeableData`, vehicle class/driveable/destroyed, dropped item `Item`/`Location`/
+  `Rotation`, one-way and security door flags, buttons, corpses, resource nodes and portals.
+  Effect: CU5 worlds showed 0 containers (Facility now reads 318), dropped items had no item,
+  deployables had no class, and edits to those fields were silently dropped.
+- Unchanged writes are now byte-identical on every save: empty inventory slots the game marked
+  "Empty" were rewritten as "None"; unnamed containers had a null name rewritten as empty; pets
+  got an `XP = 0` entry and a reordered field; the global recipe sets were reordered.
+- Pet names: native saves write a player-typed name as a Base text and omit it for unnamed pets,
+  so renames were lost. `SetPlayerText` now updates Base texts (also deployable text) and the
+  name is created on native saves when missing.
+- `ItemsDistilled` was created as a string array; every save version uses names.
+- New `NativeSaveShapeTests` (8 fail on the previous code). Full suite: 2,545 passed, 2 skipped.
+- Pre-existing, not CU5: adding the first fish or map to an older save that has neither list is
+  dropped (the legacy hashed names are unknown); adding a kill entry for a creature never killed is
+  not supported; one Game Pass-converted Manyon player save is not byte-identical when unchanged.
+
 ## Player saves with traits could not be saved after Community Update 5 (2026-10-28)
 
 - Players reported "The save could not be written" on every save, whatever they edited

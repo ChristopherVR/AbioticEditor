@@ -126,8 +126,12 @@ public static partial class WorldSaveWriter
             ?? (NativeSaveSchema.IsNative(data.Raw.Properties!) && recipes.Count > 0 ? CreateGlobalUnlocksStruct(data.Raw) : null);
         if (props is null) return;
 
-        ReplaceNameArray(props, "GlobalRecipesUnlocked_", recipes);
-        ReplaceNameArray(props, "GlobalRecipesResearched_", recipes);
+        // These are sets to the game, so a write whose contents match only reorders the file.
+        foreach (var prefix in new[] { "GlobalRecipesUnlocked_", "GlobalRecipesResearched_" })
+        {
+            if (!GvasTags.ReadNameArray(props, prefix).ToHashSet(StringComparer.Ordinal).SetEquals(recipes))
+                ReplaceNameArray(props, prefix, recipes);
+        }
     }
 
     /// <summary>
@@ -165,17 +169,13 @@ public static partial class WorldSaveWriter
         switch (property)
         {
             case StrProperty str:
+                // An unnamed entry is stored as a null string, which is written differently
+                // from an empty one; leave it untouched when the name stays blank.
+                if (text.Length == 0 && string.IsNullOrEmpty(str.Value?.Value)) return true;
                 str.Value = new FString(text);
                 return true;
-            case TextProperty tp when tp.Value is UeSaveGame.DataTypes.FText ft
-                && ft.HistoryType == UeSaveGame.TextData.TextHistoryType.None:
-                if (ft.Value is not UeSaveGame.TextData.TextData_None none)
-                {
-                    none = new UeSaveGame.TextData.TextData_None();
-                    ft.Value = none;
-                }
-                none.Value = text.Length == 0 ? null : new FString(text);
-                return true;
+            case TextProperty { Value: { } ft }:
+                return SetPlayerText(ft, text);
             default:
                 return false;
         }

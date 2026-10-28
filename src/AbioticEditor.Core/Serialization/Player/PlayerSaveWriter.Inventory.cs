@@ -157,7 +157,12 @@ public static partial class PlayerSaveWriter
             if (rowHandle?.Property is StructProperty rhSp && rhSp.Value is PropertiesStruct rhPs)
             {
                 var previousRow = rhPs.Properties.GetString("RowName");
-                SetName(rhPs.Properties, "RowName", NativeSaveSchema.IsNative(rhPs.Properties) && newSlot.IsEmpty ? "None" : newSlot.ItemId);
+                // Native saves migrated from older ones keep "Empty" in untouched slots; only a slot
+                // that is being emptied gets the native "None".
+                var row = NativeSaveSchema.IsNative(rhPs.Properties) && newSlot.IsEmpty
+                    ? previousRow is "None" or "Empty" ? previousRow : "None"
+                    : newSlot.ItemId;
+                SetName(rhPs.Properties, "RowName", row);
 
                 // Point the row handle at the table that actually holds this item. An empty slot
                 // defaults to ItemTable_Pickups, which does NOT contain most catalog items, so an

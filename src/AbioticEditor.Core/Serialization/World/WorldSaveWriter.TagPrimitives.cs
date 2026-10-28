@@ -41,21 +41,50 @@ public static partial class WorldSaveWriter
     }
 
     /// <summary>
-    /// Sets a TextProperty carrying player-entered text (HistoryType None). Both pet
-    /// names in the fixtures use that shape; other history types (localized texts) are
-    /// left alone rather than risk corrupting their format data.
+    /// Sets a TextProperty carrying player-entered text (see <see cref="SetPlayerText"/>).
     /// </summary>
     private static void SetTextNone(IList<FPropertyTag> tags, string prefix, string value)
     {
-        if (tags.FindByPrefix(prefix)?.Property is not TextProperty tp) return;
-        if (tp.Value is not UeSaveGame.DataTypes.FText text) return;
-        if (text.HistoryType != UeSaveGame.TextData.TextHistoryType.None) return;
-        if (text.Value is not UeSaveGame.TextData.TextData_None data)
+        var property = tags.FindByPrefix(prefix)?.Property;
+        // Native 1.5 saves omit the name of a creature that was never named, so the first name
+        // needs the field created.
+        if (property is null && value.Length > 0 && NativeSaveSchema.IsNative(tags))
         {
-            data = new UeSaveGame.TextData.TextData_None();
-            text.Value = data;
+            var name = new FString(NativeSaveSchema.Name(tags, prefix));
+            property = new TextProperty(name)
+            {
+                Value = new FText { HistoryType = UeSaveGame.TextData.TextHistoryType.None, Value = new UeSaveGame.TextData.TextData_None() },
+            };
+            tags.Add(new FPropertyTag(name, new FPropertyTypeName(new FString(nameof(TextProperty))), EPropertyTagFlags.None) { Property = property });
         }
-        data.Value = value.Length == 0 ? null : new FString(value);
+        if (property is TextProperty { Value: { } text }) SetPlayerText(text, value);
+    }
+
+    /// <summary>
+    /// Writes player-entered text into an existing FText. Older saves store it with no history
+    /// (None); native 1.5 saves store a player-typed name as a Base text whose namespace and key
+    /// match no translation, so the game shows its source string. Other history types (real
+    /// localized texts) are left alone and return false.
+    /// </summary>
+    private static bool SetPlayerText(FText text, string value)
+    {
+        switch (text.HistoryType)
+        {
+            case UeSaveGame.TextData.TextHistoryType.None:
+                if (text.Value is not UeSaveGame.TextData.TextData_None none)
+                {
+                    none = new UeSaveGame.TextData.TextData_None();
+                    text.Value = none;
+                }
+                none.Value = value.Length == 0 ? null : new FString(value);
+                return true;
+            case UeSaveGame.TextData.TextHistoryType.Base when text.Value is UeSaveGame.TextData.TextData_Base baseText:
+                if (string.Equals(baseText.SourceString?.Value ?? string.Empty, value, StringComparison.Ordinal)) return true;
+                baseText.SourceString = new FString(value);
+                return true;
+            default:
+                return false;
+        }
     }
 
     /// <summary>

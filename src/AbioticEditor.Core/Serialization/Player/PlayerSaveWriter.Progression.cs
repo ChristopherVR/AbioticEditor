@@ -99,7 +99,7 @@ public static partial class PlayerSaveWriter
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
         ReplaceNameArray(root, "ItemsDistilled_", items,
-            items.Count > 0 ? FullNames.ItemsDistilled : null, "StrProperty");
+            items.Count > 0 ? FullNames.ItemsDistilled : null);
     }
 
     /// <summary>
