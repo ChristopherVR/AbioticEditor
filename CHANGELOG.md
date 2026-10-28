@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.3] - 2026-10-28
+
+### Bug Fixes
+- First fish, maps and kill counts stick, and save errors explain themselves
+- World storage, dropped items and pet names work with Community Update 5 saves
+- Characters with traits can be saved again after Community Update 5
+
+
+### Miscellaneous Tasks
+- Update the libraries that read game files and Xbox saves
+
+
 ## [2.30.2] - 2026-10-28
 
 ### Bug Fixes
