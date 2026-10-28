@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.5] - 2026-10-28
+
+### Bug Fixes
+- Keep removed pets gone and restore object renaming
+- Restore live pet type changes on Community Update 5
+
+
 ## [2.30.4] - 2026-10-28
 
 ### Bug Fixes
