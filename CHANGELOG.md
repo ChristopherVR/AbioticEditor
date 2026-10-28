@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.2] - 2026-10-28
+
+### Bug Fixes
+- Windows downloads no longer fail to publish when the virus scanner update hiccups
+
+
 ## [2.30.1] - 2026-10-28
 
 ### Bug Fixes
