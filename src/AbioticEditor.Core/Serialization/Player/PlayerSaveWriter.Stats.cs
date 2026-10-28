@@ -112,10 +112,20 @@ public static partial class PlayerSaveWriter
     /// a missing tag is created (see <see cref="FullNames.Traits"/>): a character that
     /// started with no traits never gets a <c>Traits_</c> tag at all, so a plain prefix
     /// lookup would silently no-op on every trait added to such a character.
+    /// Native 1.5 saves store each trait as an <c>AnyTraitRowHandle</c> struct instead of a
+    /// bare name; see <see cref="ApplyTraitHandles"/>.
     /// </summary>
     public static void ApplyTraits(PlayerSaveData data, IReadOnlyList<string> traits)
     {
         var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        var existing = root.FindByPrefix("Traits_")?.Property as ArrayProperty;
+        if (existing?.ItemType?.Name.Value == nameof(StructProperty)
+            || existing is null && NativeSaveSchema.IsNative(root))
+        {
+            ApplyTraitHandles(root, existing, traits);
+            return;
+        }
+
         var array = FindOrCreateNameArray(root, "Traits_", FullNames.Traits);
         if (array is null) return;
 
@@ -123,6 +133,43 @@ public static partial class PlayerSaveWriter
         for (var i = 0; i < traits.Count; i++)
         {
             items[i] = new FString(traits[i]);
+        }
+        array.Value = items;
+    }
+
+    /// <summary>
+    /// Writes traits into the native layout's array of <c>AnyTraitRowHandle</c> structs, each
+    /// holding one <c>RowName</c>. Reuses the existing array's element type when there is one;
+    /// otherwise creates the array only when there is a trait to store, since the game omits an
+    /// empty one.
+    /// </summary>
+    private static void ApplyTraitHandles(IList<FPropertyTag> root, ArrayProperty? array, IReadOnlyList<string> traits)
+    {
+        var name = root.FindByPrefix("Traits_")?.Name ?? new FString(NativeSaveSchema.Name(root, "Traits_"));
+        if (array is null)
+        {
+            if (traits.Count == 0) return;
+            var module = new FPropertyTypeName(new FString("/Script/AbioticFactor"));
+            var handle = new FPropertyTypeName(new FString("AnyTraitRowHandle"), [module]);
+            var element = new FPropertyTypeName(new FString(nameof(StructProperty)), [handle]);
+            var type = new FPropertyTypeName(new FString(nameof(ArrayProperty)), [element]);
+            array = new ArrayProperty(name, element);
+            root.Add(new FPropertyTag(name, type, EPropertyTagFlags.None) { Property = array });
+        }
+
+        var structType = array.ItemType?.Parameters.FirstOrDefault()?.Clone()
+            ?? new FPropertyTypeName(new FString("AnyTraitRowHandle"), [new(new FString("/Script/AbioticFactor"))]);
+        var elementType = new FPropertyTypeName(new FString(nameof(StructProperty)), [structType]);
+        var items = new FProperty[traits.Count];
+        for (var i = 0; i < traits.Count; i++)
+        {
+            var body = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+            SetName(body.Properties, "RowName", traits[i], "RowName");
+            var item = (StructProperty)FProperty.Create(name, elementType);
+            item.StructType = structType;
+            item.StructGuid = Guid.Empty;
+            item.Value = body;
+            items[i] = item;
         }
         array.Value = items;
     }

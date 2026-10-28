@@ -1,5 +1,25 @@
 # Abiotic Editor - Session history
 
+## Player saves with traits could not be saved after Community Update 5 (2026-10-28)
+
+- Players reported "The save could not be written" on every save, whatever they edited
+  (Windows 11, Steam, desktop and browser, run as admin). Not a permissions problem.
+- Cause: when the game resaves an older character in the native 1.5 layout, `Traits` becomes an
+  array of `AnyTraitRowHandle` structs (each with a `RowName`), not a Name array. The reader
+  showed them as `[AnyTraitRowHandle] RowName`, and `PlayerSaveSession.SaveAsync` runs every writer,
+  so `ApplyTraits` replaced the struct elements with plain strings and serialization threw
+  `InvalidCastException`. Any character with at least one trait was affected. The CU5 fixtures have
+  no traits, so tests missed it. The older test that created traits on a native save passed while
+  writing a Name array the game does not expect.
+- Fix: `ReadNameArray` unwraps row-handle structs; `ApplyTraits` writes struct elements when the
+  array (or a native save) calls for them, and creates the native array only when there is a trait.
+- Verified against the real game-resaved Cascade player saves: they save, trait edits read back,
+  and rewriting unchanged traits is byte-identical. Legacy saves are unchanged. New test:
+  `Native_traits_are_trait_row_handles_and_a_character_with_traits_still_saves` (fails without the fix).
+- Follow-ups: the save-failed toast still shows generic advice for unexpected errors, which pointed
+  players at file permissions. The Facility probe also reports a native `DoorMap` key as unmodeled
+  (`WorldSaveReader.IsModeledTopLevelKey` does not know the native name); not investigated.
+
 ## Browser build: modded content notice (2026-10-28)
 
 - The browser build only has the base-game snapshot, so a save played with mods holds ids it

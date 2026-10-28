@@ -331,6 +331,8 @@ public static class PlayerSaveReader
             {
                 UeSaveGame.FString fs => fs.Value,
                 string raw => raw,
+                // Native 1.5 row handles (e.g. AnyTraitRowHandle) wrap the name in a struct.
+                StructProperty { Value: PropertiesStruct handle } => handle.Properties.FindByPrefix("RowName")?.Property?.Value?.ToString(),
                 _ => element?.ToString(),
             };
             if (!string.IsNullOrEmpty(s)) result.Add(s!);

@@ -181,6 +181,43 @@ public sealed class CommunityUpdateFiveTests
     }
 
     [Fact]
+    public async Task Native_traits_are_trait_row_handles_and_a_character_with_traits_still_saves()
+    {
+        var directory = Directory.CreateTempSubdirectory("abiotic-native-traits-");
+        try
+        {
+            // The game writes each native trait as an AnyTraitRowHandle struct, not a bare name.
+            var data = Player();
+            PlayerSaveWriter.ApplyTraits(data, ["Trait_Dry", "Trait_LeadBelly"]);
+            var traits = PlayerSaveReader.GetCharacterSaveData(data.Raw).FindByPrefix("Traits_")!;
+            Assert.Equal("Traits", traits.Name.Value);
+            var array = Assert.IsType<ArrayProperty>(traits.Property);
+            Assert.Equal("StructProperty", array.ItemType!.Name.Value);
+            Assert.Equal("AnyTraitRowHandle", array.ItemType.Parameters.Single().Name.Value);
+            Assert.Equal("/Script/AbioticFactor", array.ItemType.Parameters.Single().Parameters.Single().Name.Value);
+            var path = Path.Combine(directory.FullName, "Player_76561197993781479.sav");
+            using (var file = File.Create(path)) data.Raw.WriteTo(file);
+
+            // A character that already has traits must save on every edit, not only trait edits.
+            var reread = PlayerSaveReader.ReadFromFile(path);
+            Assert.Equal(["Trait_Dry", "Trait_LeadBelly"], reread.Traits);
+            using var before = new MemoryStream();
+            reread.Raw.WriteTo(before);
+            PlayerSaveWriter.ApplyTraits(reread, reread.Traits);
+            using var unchanged = new MemoryStream();
+            reread.Raw.WriteTo(unchanged);
+            Assert.Equal(before.ToArray(), unchanged.ToArray());
+
+            var session = new AbioticEditor.Web.Models.PlayerSaveSession(PlayerSaveReader.ReadFromFile(path), path);
+            session.Traits.Remove("Trait_Dry");
+            session.Traits.Add("Trait_Hearty");
+            await session.SaveAsync();
+            Assert.Equal(["Trait_LeadBelly", "Trait_Hearty"], PlayerSaveReader.ReadFromFile(path).Traits);
+        }
+        finally { directory.Delete(true); }
+    }
+
+    [Fact]
     public void Multiple_quests_can_be_active_and_completion_wins_over_start()
     {
         var first = new QuestDefinition("a", "A", "", "start", "end", 0, [], null);
