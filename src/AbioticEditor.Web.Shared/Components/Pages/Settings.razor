@@ -127,6 +127,10 @@
                             {
                                 <label class="settings-switch-row mod-switch-row"><span>@mod.DisplayName @if (mod.ModIoId is { } modId) { <small>(mod.io #@modId)</small> }</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
                             }
+                            @if (HostSettings.PendingMods is { Count: > 0 } pending)
+                            {
+                                <p class="muted">@R("ModsSettings_Downloading", string.Join(", ", pending.Select(mod => mod.DisplayName)))</p>
+                            }
                         </article>
                         break;
                     case SettingsTab.Convert:

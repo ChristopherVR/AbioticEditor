@@ -1,5 +1,30 @@
 # Abiotic Editor - Session history
 
+## mod.io mods in depth (issue #54, 2026-10-29)
+
+- Tested against eight real public mod.io Windows downloads (Linked Deployables, Jotun LMG,
+  Paul's Goat Hoof, Robocart, Interdimensional Chemist, Adnormal Traits, Craftable PETN,
+  Additional cosmetic items) in a scratch cache shaped like the SDK's. Details and the
+  per-mod table are in `docs/reference/research/community-update-5.md`.
+- Fixed: mod content refers to itself as `/<Plugin>/...` but mounts at
+  `AbioticFactor/ModPlugins/<Plugin>/Content/`. Mod item icons returned nothing and mod classes
+  (Linked Deployables' `_Linked` benches and fridges) had no class facts. The provider now
+  registers plugin content roots with CUE4Parse; `ToPackagePath` is the shared converter.
+  The bare-name class index also covers mod content.
+- Locator: update-pending installs load; queued/downloading mods and subscribed-but-missing
+  ids are reported (`FindPending`); no-index fallback to `13105/mods/<id>`; `.uplugin` names.
+- mod.io enablement defaults to the game's `EnabledMods`; an editor choice wins.
+- Worlds: `LastUsedModIds` (metadata save) read into `WorldSaveData`; `WorldModsNotice` on the
+  world editor lists loaded / off / downloading / missing mods plus extra loaded ones, with
+  USE THIS WORLD'S MODS. Settings lists downloads still pending. Strings in en/de/es/fr/ru.
+- Paint: class facts now carry `PaintedDeployableRow` and `FromMod`; a mod subclass of a
+  paintable class gets the picker. Base-game paint behaviour unchanged.
+- Verified headless (isolated `ABIOTIC_APPDATA_DIR` / `ABIOTIC_GAME_CONFIG_DIR` /
+  `ABIOTIC_MODIO_ROOT`, CU5 fixture world with injected `LastUsedModIds`): the notice
+  showed the right states, and the button switched on exactly the world's mods.
+- Open: no world played with Linked Deployables yet, so how its placed benches serialize
+  (extra plug component?) is unchecked. The game was not run with any mod installed.
+
 ## CU5 monitor-off verification and persistence fixes (2026-10-28)
 
 - Continued with the monitor off through a temporary local `diag.cu5` handler, using the game's

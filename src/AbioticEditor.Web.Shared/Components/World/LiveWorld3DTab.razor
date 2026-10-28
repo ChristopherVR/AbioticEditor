@@ -78,7 +78,7 @@
                 }
                 @if (piece.HasInventory)
                 { <button class="wt-btn" @onclick="() => OnOpenContainer.InvokeAsync(piece.Id)">Open inventory</button> }
-                @if (piece.SupportsPaint)
+                @if (ClassFacts.SupportsPaint(piece))
                 {
                     <label class="wt-field">Paint colour
                         <select class="wt-input" value="@(piece.PaintColorValue?.ToString() ?? "")" disabled="@(!Bases.IsHost)" @onchange="e => PaintAsync(piece.Id, e.Value?.ToString())">

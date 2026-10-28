@@ -339,6 +339,8 @@ public sealed partial class GameAssetProvider : IDisposable
                 $"AF paks now require AES key(s) - missing: {missing}. Asset extraction is blocked until a key is supplied.");
         }
 
+        RegisterPluginContentRoots(provider);
+
         var cache = cacheDir ?? Path.Combine(
             AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "assets");
         Directory.CreateDirectory(cache);
@@ -353,6 +355,44 @@ public sealed partial class GameAssetProvider : IDisposable
         GameLocalizationLoader.Apply(provider, culture);
 
         return new GameAssetProvider(provider, cache, loadedMods) { _paksDirectory = paksDirectory, _modFiles = modFiles, _modArchives = modArchives };
+    }
+
+    /// <summary>
+    /// Teaches the provider the <c>/PluginName/...</c> object paths of every mounted content plugin.
+    /// Official mods mount at <c>AbioticFactor/ModPlugins/&lt;Plugin&gt;/Content/</c> but their rows,
+    /// icons and classes refer to themselves as <c>/&lt;Plugin&gt;/...</c> (the way <c>/Game/</c> means
+    /// <c>AbioticFactor/Content/</c>). The archives carry no <c>.uplugin</c>, so CUE4Parse's own
+    /// plugin scan cannot find them; the mount layout alone identifies each root.
+    /// </summary>
+    private static void RegisterPluginContentRoots(AbstractFileProvider provider)
+    {
+        foreach (var key in provider.Files.Keys)
+        {
+            var content = key.IndexOf("/Content/", StringComparison.OrdinalIgnoreCase);
+            if (content <= 0) continue;
+            var root = key[..content];
+            var parent = root.LastIndexOf('/');
+            if (parent <= 0) continue;
+            var container = root[..parent];
+            if (!container.EndsWith("/ModPlugins", StringComparison.OrdinalIgnoreCase)
+                && !container.Contains("/Plugins", StringComparison.OrdinalIgnoreCase)) continue;
+            provider.VirtualPaths.TryAdd(root[(parent + 1)..], root);
+        }
+    }
+
+    /// <summary>
+    /// The mounted package path (no extension) for a UE object path such as
+    /// <c>/Game/Foo/Bar.Bar</c> or a mod's <c>/MyMod/Icons/Bar.Bar</c>. A path that is already a
+    /// package path comes back without its object name.
+    /// </summary>
+    public string ToPackagePath(string objectPath)
+    {
+        var path = objectPath;
+        var dot = path.LastIndexOf('.');
+        if (dot > path.LastIndexOf('/')) path = path[..dot];
+        if (!path.StartsWith('/')) return path;
+        var fixedPath = _provider.FixPath(path);
+        return fixedPath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? fixedPath[..^".uasset".Length] : fixedPath.TrimStart('/');
     }
 
     /// <summary>
@@ -435,26 +475,16 @@ public sealed partial class GameAssetProvider : IDisposable
 
     /// <summary>
     /// Extracts a texture given a UE-style object reference like
-    /// <c>/Game/Textures/GUI/ItemIcons/foo.foo</c>. Translates the <c>/Game/...</c> prefix
-    /// to AF's content root and strips the duplicate object-name suffix.
+    /// <c>/Game/Textures/GUI/ItemIcons/foo.foo</c> (or a mod's <c>/MyMod/Icons/foo.foo</c>).
+    /// Translates the content root and strips the duplicate object-name suffix.
     /// </summary>
     public string? ExtractTextureByGameRef(string? gameRef)
     {
         if (string.IsNullOrEmpty(gameRef)) return null;
+        ThrowIfDisposed();
 
         // "/Game/Foo/Bar.Bar" -> "AbioticFactor/Content/Foo/Bar"
-        var path = gameRef;
-        if (path.StartsWith("/Game/", StringComparison.OrdinalIgnoreCase))
-        {
-            path = "AbioticFactor/Content/" + path["/Game/".Length..];
-        }
-        var dot = path.LastIndexOf('.');
-        var slash = path.LastIndexOf('/');
-        if (dot > slash)
-        {
-            path = path[..dot];
-        }
-        return ExtractTextureAsPng(path);
+        return ExtractTextureAsPng(ToPackagePath(gameRef));
     }
 
     private UTexture2D? LoadFirstTexture(string assetPath)

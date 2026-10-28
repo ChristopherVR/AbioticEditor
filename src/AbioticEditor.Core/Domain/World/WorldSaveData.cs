@@ -74,6 +74,12 @@ public sealed class WorldSaveData
     /// </summary>
     public string? StoryProgressionRow { get; }
 
+    /// <summary>
+    /// The mod.io mods this world last ran with (<c>LastUsedModIds</c>, <c>WorldSave_MetaData.sav</c>
+    /// only), in the game's load order. Empty for an unmodded world and for region saves.
+    /// </summary>
+    public IReadOnlyList<long> LastUsedModIds { get; init; } = Array.Empty<long>();
+
     /// <summary>Total played minutes (<c>WorldSave_MetaData.sav</c> only).</summary>
     public int? MinutesPassed { get; }
 

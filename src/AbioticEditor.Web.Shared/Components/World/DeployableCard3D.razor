@@ -26,7 +26,7 @@
             }
         </div>
     }
-    @if (piece.SupportsPaint)
+    @if (ClassFacts.SupportsPaint(piece, ClassPath))
     {
         <label class="b3d-field" data-b3d="paint">
             <span class="wt-label">@L.Resource("WorldBases_PaintColour")</span>

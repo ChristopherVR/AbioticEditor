@@ -175,6 +175,39 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
     public bool CanEditDroppedItems => _data.Raw.Properties.FindByPrefix("DroppedItemMap") is not null;
     public bool CanEditVehicles => _vehicles.Count > 0;
     public bool IsMetadataSave => _data.StoryProgressionRow is not null;
+
+    private Task<IReadOnlyList<long>>? _worldModIds;
+
+    /// <summary>
+    /// The mod.io mods this world last ran with. A region save reads them from the world's
+    /// <c>WorldSave_MetaData.sav</c> (read only, once). Empty when the world is unmodded or the
+    /// metadata save is not there.
+    /// </summary>
+    public Task<IReadOnlyList<long>> WorldModIdsAsync() => _worldModIds ??= ReadWorldModIdsAsync();
+
+    private async Task<IReadOnlyList<long>> ReadWorldModIdsAsync()
+    {
+        if (IsMetadataSave) return _data.LastUsedModIds;
+        var path = _siblingMetadataPath;
+        if (path is null && (_files is null || _files.HasLocalPaths) && System.IO.Path.GetDirectoryName(_path) is { Length: > 0 } dir)
+        {
+            var local = System.IO.Path.Combine(dir, "WorldSave_MetaData.sav");
+            if (File.Exists(local)) path = local;
+        }
+        if (path is null) return [];
+        try
+        {
+            var bytes = _files is null
+                ? await File.ReadAllBytesAsync(path).ConfigureAwait(false)
+                : await _files.ReadAllBytesAsync(path).ConfigureAwait(false);
+            return await Task.Run(() => WorldSaveReader.ReadLastUsedModIds(new MemoryStream(bytes, writable: false))).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or NotSupportedException)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("Mods", $"Could not read this world's mod list: {ex.Message}");
+            return [];
+        }
+    }
     /// <summary>Formatted <c>LastPlayed</c> timestamp (metadata save; null elsewhere).</summary>
     public string? LastPlayedText { get; }
     public string? StoryProgressionRow => _storyRow;

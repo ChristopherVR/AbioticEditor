@@ -2576,7 +2576,7 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
     <value>Load installed mods</value>
   </data>
   <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
-    <value>Mount mods from the game's ~mods and LogicMods folders so modded items show real names, icons and stats.</value>
+    <value>Load your mod.io downloads and mods from the game's ~mods and LogicMods folders so modded items show real names, icons and stats.</value>
   </data>
   <data name="GameDataSettings_ModsLabel" xml:space="preserve">
     <value>Mods:  {0}</value>
@@ -2597,7 +2597,7 @@ Pick the folder the game is installed in, or the AbioticFactor folder inside it.
     <value>Mods installed in the game's ~mods and LogicMods folders. Turn off an individual mod to hide its content in the editor, or use the master switch to ignore all mods. Changes reload game data.</value>
   </data>
   <data name="ModsSettings_NoneInstalled" xml:space="preserve">
-    <value>No mods are installed in the game's ~mods or LogicMods folders.</value>
+    <value>No mods are installed. The editor looks at your mod.io downloads and the game's ~mods and LogicMods folders.</value>
   </data>
   <data name="ModsSettings_Status" xml:space="preserve">
     <value>{0} of {1} mod(s) loaded.</value>
@@ -5000,5 +5000,35 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerQuests_NoActive" xml:space="preserve"><value>No active objectives found.</value></data>
   <data name="PlayerQuests_SaveHelp" xml:space="preserve"><value>Tracking is saved with this character when you select Save. Quest progress follows the world story flags.</value></data>
   <data name="PlayerQuests_Main" xml:space="preserve"><value>Main story</value></data>
-  <data name="GameDataSettings_OfficialModsHint" xml:space="preserve"><value>Choose which installed mods supply editor data. mod.io downloads start off here because the game enables mods separately for each world. Match your world's mod list, then reload game data. These switches do not change the game.</value></data>
+  <data name="GameDataSettings_OfficialModsHint" xml:space="preserve"><value>Choose which installed mods supply editor data. mod.io mods follow the game's own on/off setting until you change them here. An open world lists its own mods, with a button to match them. These switches never change the game.</value></data>
+  <data name="WorldMods_Title" xml:space="preserve">
+    <value>Mods in this world</value>
+  </data>
+  <data name="WorldMods_Matches" xml:space="preserve">
+    <value>All {0} mod(s) this world uses are loaded.</value>
+  </data>
+  <data name="WorldMods_UnknownHint" xml:space="preserve">
+    <value>Things from mods that are not loaded show as unknown. They are kept exactly as they are when you save.</value>
+  </data>
+  <data name="WorldMods_Extra" xml:space="preserve">
+    <value>Also loaded, but this world does not use them: {0}</value>
+  </data>
+  <data name="WorldMods_UseThese" xml:space="preserve">
+    <value>USE THIS WORLD'S MODS</value>
+  </data>
+  <data name="WorldMods_StateLoaded" xml:space="preserve">
+    <value>loaded</value>
+  </data>
+  <data name="WorldMods_StateOff" xml:space="preserve">
+    <value>installed, but switched off in Settings</value>
+  </data>
+  <data name="WorldMods_StateDownloading" xml:space="preserve">
+    <value>still downloading in the game</value>
+  </data>
+  <data name="WorldMods_StateMissing" xml:space="preserve">
+    <value>not on this PC. Play this world once so the game downloads it.</value>
+  </data>
+  <data name="ModsSettings_Downloading" xml:space="preserve">
+    <value>Not downloaded yet: {0}. Start Abiotic Factor (or load a world that uses them) and the game finishes the download.</value>
+  </data>
 </root>

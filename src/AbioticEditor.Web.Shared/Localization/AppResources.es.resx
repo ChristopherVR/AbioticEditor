@@ -2001,7 +2001,7 @@ Elige la carpeta donde está instalado el juego, o la carpeta AbioticFactor que 
     <value>Cargar mods instalados</value>
   </data>
   <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
-    <value>Monta los mods de las carpetas ~mods y LogicMods del juego para que los objetos modificados muestren nombres, iconos y estadísticas.</value>
+    <value>Monta tus descargas de mod.io y los mods de las carpetas ~mods y LogicMods del juego para que los objetos modificados muestren nombres, iconos y estadísticas.</value>
   </data>
   <data name="GameDataSettings_ModsLabel" xml:space="preserve">
     <value>Mods:  {0}</value>
@@ -2022,7 +2022,7 @@ Elige la carpeta donde está instalado el juego, o la carpeta AbioticFactor que 
     <value>Mods instalados en las carpetas ~mods y LogicMods del juego. Desactiva un mod concreto para ocultar su contenido en el editor, o usa el interruptor principal para ignorar todos los mods. Los cambios recargan los datos del juego.</value>
   </data>
   <data name="ModsSettings_NoneInstalled" xml:space="preserve">
-    <value>No hay mods instalados en las carpetas ~mods o LogicMods del juego.</value>
+    <value>No hay mods instalados. El editor busca en tus descargas de mod.io y en las carpetas ~mods y LogicMods del juego.</value>
   </data>
   <data name="ModsSettings_Status" xml:space="preserve">
     <value>{0} de {1} mod(s) cargados.</value>
@@ -3609,4 +3609,34 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Fuentes</value></data>
   <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Fuentes muestra las opciones conocidas de reciclaje, comercio y pesca. Aquí no se indican otras ubicaciones de botín o enemigos.</value></data>
   <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Este jugador ya la ha aprendido.</value></data>
+  <data name="WorldMods_Title" xml:space="preserve">
+    <value>Mods de este mundo</value>
+  </data>
+  <data name="WorldMods_Matches" xml:space="preserve">
+    <value>Los {0} mod(s) que usa este mundo están cargados.</value>
+  </data>
+  <data name="WorldMods_UnknownHint" xml:space="preserve">
+    <value>Lo que venga de mods no cargados aparece como desconocido. Al guardar se conserva tal cual.</value>
+  </data>
+  <data name="WorldMods_Extra" xml:space="preserve">
+    <value>También cargados, pero este mundo no los usa: {0}</value>
+  </data>
+  <data name="WorldMods_UseThese" xml:space="preserve">
+    <value>USAR LOS MODS DE ESTE MUNDO</value>
+  </data>
+  <data name="WorldMods_StateLoaded" xml:space="preserve">
+    <value>cargado</value>
+  </data>
+  <data name="WorldMods_StateOff" xml:space="preserve">
+    <value>instalado, pero desactivado en Ajustes</value>
+  </data>
+  <data name="WorldMods_StateDownloading" xml:space="preserve">
+    <value>aún se está descargando en el juego</value>
+  </data>
+  <data name="WorldMods_StateMissing" xml:space="preserve">
+    <value>no está en este PC. Juega este mundo una vez y el juego lo descargará.</value>
+  </data>
+  <data name="ModsSettings_Downloading" xml:space="preserve">
+    <value>Aún sin descargar: {0}. Inicia Abiotic Factor (o carga un mundo que los use) y el juego terminará la descarga.</value>
+  </data>
 </root>

@@ -253,7 +253,7 @@
                     <p class="wt-muted">@L.Resource("WorldBases_NoCraftingBenchInThisGroup")</p>
                 }
                 <hr class="wt-divider" />
-                @{ var paintable = worldBaseDetail.Deployables.Where(deployable => deployable.SupportsPaint).ToList(); }
+                @{ var paintable = worldBaseDetail.Deployables.Where(deployable => ClassFacts.SupportsPaint(deployable)).ToList(); }
                 @if (paintable.Count > 0)
                 {
                     <span class="wt-label accent-orange-text">@L.Resource("WorldBases_PaintedObjects")</span>

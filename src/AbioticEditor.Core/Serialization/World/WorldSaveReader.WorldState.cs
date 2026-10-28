@@ -194,6 +194,33 @@ public static partial class WorldSaveReader
         return result;
     }
 
+    /// <summary>
+    /// The world's mod.io mods from a <c>WorldSave_MetaData.sav</c> stream, without building the
+    /// rest of the world view (see <see cref="WorldSaveData.LastUsedModIds"/>).
+    /// </summary>
+    public static IReadOnlyList<long> ReadLastUsedModIds(Stream metadataSave)
+        => ReadLastUsedModIds(SaveGame.LoadFrom(metadataSave));
+
+    /// <summary>The metadata save's <c>LastUsedModIds</c> Int64 array (the world's mod.io mods).</summary>
+    private static IReadOnlyList<long> ReadLastUsedModIds(SaveGame save)
+    {
+        if (save.Properties.FindByPrefix("LastUsedModIds")?.Property is not ArrayProperty array || array.Value is null)
+            return Array.Empty<long>();
+        var result = new List<long>(array.Value.Length);
+        foreach (var element in array.Value)
+        {
+            long? id = element switch
+            {
+                long l => l,
+                int i => i,
+                ulong u when u <= long.MaxValue => (long)u,
+                _ => long.TryParse(element?.ToString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : null,
+            };
+            if (id is > 0 && !result.Contains(id.Value)) result.Add(id.Value);
+        }
+        return result;
+    }
+
     // ---------- DeployedObjectMap ----------
 
     /// <summary>

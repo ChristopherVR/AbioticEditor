@@ -164,7 +164,7 @@ public sealed class ModSupportTests
 
         // LoadedMods is the set of enabled mod names actually mounted.
         var paks = AfInstallLocator.FindPaksDirectory();
-        var expected = AfInstallLocator.FindMods(paks)
+        var expected = AfInstallLocator.FindAvailableMods(paks)
             .Where(m => ModLoadStore.IsModEnabled(m.Name))
             .Select(m => m.Name)
             .OrderBy(n => n)

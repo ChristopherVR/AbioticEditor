@@ -21,11 +21,16 @@ namespace AbioticEditor.Core.Assets;
 /// <param name="ContainerRequirement">The <c>ContainerTagRequirement</c> of the class's
 /// <c>ContainerInventory</c> component: which items its storage accepts. Null when the class has
 /// no such component.</param>
+/// <param name="PaintedDeployableRow">The class default <c>PaintedDeployableRow</c> (its
+/// <c>DT_PaintedDeployables</c> row), own or inherited. Null when unset or <c>None</c>.</param>
+/// <param name="FromMod">True when the class comes from a loaded mod rather than the base game.</param>
 public sealed record BlueprintClassFacts(
     IReadOnlyList<string> Chain,
     bool? RequiresPower,
     bool? SupportsUpgrades,
-    ItemTagQuery? ContainerRequirement)
+    ItemTagQuery? ContainerRequirement,
+    string? PaintedDeployableRow = null,
+    bool FromMod = false)
 {
     /// <summary>True when <paramref name="className"/> (e.g. <c>Deployed_Bench_CookingStation_C</c>)
     /// is this class or one of its parents.</summary>
@@ -62,7 +67,7 @@ public sealed partial class GameAssetProvider
                 if (ResolveClassPath(classPathOrName) is { } path
                     && _provider.TryLoadPackageObject(path, out var obj) && obj is UStruct cls)
                 {
-                    facts = ReadClassFacts(cls);
+                    facts = ReadClassFacts(cls) with { FromMod = IsModAsset(ToPackagePath(path) + ".uasset") };
                 }
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -107,8 +112,10 @@ public sealed partial class GameAssetProvider
             var index = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var key in _provider.Files.Keys)
             {
+                // Mods keep their blueprints wherever their author chose (Linked Deployables
+                // uses <Plugin>/Content/Deployables/), so their whole content is indexed.
                 if (!key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
-                    || !key.Contains("/Content/Blueprints/", StringComparison.OrdinalIgnoreCase)) continue;
+                    || !key.Contains("/Content/Blueprints/", StringComparison.OrdinalIgnoreCase) && !IsModAsset(key)) continue;
                 var file = key[(key.LastIndexOf('/') + 1)..^".uasset".Length];
                 index.TryAdd(file, key[..^".uasset".Length]);
             }
@@ -123,6 +130,8 @@ public sealed partial class GameAssetProvider
     {
         var chain = new List<string>();
         bool? requiresPower = null, supportsUpgrades = null;
+        string? paintRow = null;
+        var paintRead = false;
         ItemTagQuery? requirement = null;
         UClass? componentClass = null;
         for (UStruct? current = cls; current is not null && chain.Count < 32; current = current.SuperStruct?.Load<UStruct>())
@@ -132,6 +141,12 @@ public sealed partial class GameAssetProvider
             {
                 if (requiresPower is null && cdo.TryGetValue(out bool power, "RequiresPower")) requiresPower = power;
                 if (supportsUpgrades is null && cdo.TryGetValue(out bool upgrades, "SupportsUpgrades")) supportsUpgrades = upgrades;
+                // The nearest class that sets the row decides it, even when it sets None.
+                if (!paintRead && cdo.TryGetValue(out FStructFallback paint, "PaintedDeployableRow"))
+                {
+                    paintRead = true;
+                    if (paint.TryGetValue(out FName row, "RowName") && !row.IsNone) paintRow = row.Text;
+                }
             }
             // The storage component as this class sets it up (its own, or its override of a parent's).
             if (requirement is null && current.Owner is { } package
@@ -150,7 +165,7 @@ public sealed partial class GameAssetProvider
                     requirement = ReadTagQuery(cdo, "ContainerTagRequirement");
             }
         }
-        return new BlueprintClassFacts(chain, requiresPower, supportsUpgrades, requirement);
+        return new BlueprintClassFacts(chain, requiresPower, supportsUpgrades, requirement, paintRow);
     }
 
     private static ItemTagQuery? ReadTagQuery(UObject owner, string property)

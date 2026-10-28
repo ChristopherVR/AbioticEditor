@@ -2000,7 +2000,7 @@ Wählen Sie den Ordner, in dem das Spiel installiert ist, oder den darin enthalt
     <value>Installierte Mods laden</value>
   </data>
   <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
-    <value>Mods aus den Ordnern ~mods und LogicMods des Spiels einbinden, damit modifizierte Gegenstände Namen, Symbole und Werte anzeigen.</value>
+    <value>Deine mod.io-Downloads und Mods aus den Ordnern ~mods und LogicMods des Spiels einbinden, damit modifizierte Gegenstände Namen, Symbole und Werte anzeigen.</value>
   </data>
   <data name="GameDataSettings_ModsLabel" xml:space="preserve">
     <value>Mods:  {0}</value>
@@ -2021,7 +2021,7 @@ Wählen Sie den Ordner, in dem das Spiel installiert ist, oder den darin enthalt
     <value>Mods in den Ordnern ~mods und LogicMods des Spiels. Schalte einen einzelnen Mod aus, um seine Inhalte im Editor auszublenden, oder ignoriere mit dem Hauptschalter alle Mods. Änderungen laden die Spieldaten neu.</value>
   </data>
   <data name="ModsSettings_NoneInstalled" xml:space="preserve">
-    <value>In den Ordnern ~mods oder LogicMods des Spiels sind keine Mods installiert.</value>
+    <value>Keine Mods installiert. Der Editor sucht in deinen mod.io-Downloads und in den Ordnern ~mods und LogicMods des Spiels.</value>
   </data>
   <data name="ModsSettings_Status" xml:space="preserve">
     <value>{0} von {1} Mod(s) geladen.</value>
@@ -3608,4 +3608,34 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Quellen</value></data>
   <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Quellen zeigt bekannte Möglichkeiten durch Zerlegen, Handel und Angeln. Andere Beute und Fundorte von Gegnern sind hier nicht erfasst.</value></data>
   <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Von diesem Spieler bereits gelernt.</value></data>
+  <data name="WorldMods_Title" xml:space="preserve">
+    <value>Mods in dieser Welt</value>
+  </data>
+  <data name="WorldMods_Matches" xml:space="preserve">
+    <value>Alle {0} Mod(s) dieser Welt sind geladen.</value>
+  </data>
+  <data name="WorldMods_UnknownHint" xml:space="preserve">
+    <value>Inhalte aus nicht geladenen Mods werden als unbekannt angezeigt. Beim Speichern bleiben sie genau so erhalten.</value>
+  </data>
+  <data name="WorldMods_Extra" xml:space="preserve">
+    <value>Ebenfalls geladen, aber von dieser Welt nicht genutzt: {0}</value>
+  </data>
+  <data name="WorldMods_UseThese" xml:space="preserve">
+    <value>MODS DIESER WELT VERWENDEN</value>
+  </data>
+  <data name="WorldMods_StateLoaded" xml:space="preserve">
+    <value>geladen</value>
+  </data>
+  <data name="WorldMods_StateOff" xml:space="preserve">
+    <value>installiert, aber in den Einstellungen ausgeschaltet</value>
+  </data>
+  <data name="WorldMods_StateDownloading" xml:space="preserve">
+    <value>wird im Spiel noch heruntergeladen</value>
+  </data>
+  <data name="WorldMods_StateMissing" xml:space="preserve">
+    <value>nicht auf diesem PC. Spiele diese Welt einmal, dann lädt das Spiel ihn herunter.</value>
+  </data>
+  <data name="ModsSettings_Downloading" xml:space="preserve">
+    <value>Noch nicht heruntergeladen: {0}. Starte Abiotic Factor (oder lade eine Welt, die sie nutzt), dann schließt das Spiel den Download ab.</value>
+  </data>
 </root>

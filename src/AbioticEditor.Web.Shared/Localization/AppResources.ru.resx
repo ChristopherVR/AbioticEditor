@@ -2000,7 +2000,7 @@
     <value>Загружать установленные моды</value>
   </data>
   <data name="GameDataSettings_LoadModsHint" xml:space="preserve">
-    <value>Монтирует моды из папок ~mods и LogicMods игры, чтобы модифицированные предметы показывали настоящие названия, иконки и характеристики.</value>
+    <value>Монтирует загрузки mod.io и моды из папок ~mods и LogicMods игры, чтобы модифицированные предметы показывали настоящие названия, иконки и характеристики.</value>
   </data>
   <data name="GameDataSettings_ModsLabel" xml:space="preserve">
     <value>Моды:  {0}</value>
@@ -2021,7 +2021,7 @@
     <value>Моды, установленные в папках ~mods и LogicMods игры. Отключите отдельный мод, чтобы скрыть его содержимое в редакторе, или используйте главный переключатель, чтобы игнорировать все моды. Изменения перезагружают данные игры.</value>
   </data>
   <data name="ModsSettings_NoneInstalled" xml:space="preserve">
-    <value>В папках ~mods или LogicMods игры моды не установлены.</value>
+    <value>Моды не установлены. Редактор смотрит загрузки mod.io и папки игры ~mods и LogicMods.</value>
   </data>
   <data name="ModsSettings_Status" xml:space="preserve">
     <value>Загружено модов: {0} из {1}.</value>
@@ -3608,4 +3608,34 @@
   <data name="RecipeGuide_MaterialSources" xml:space="preserve"><value>Источники</value></data>
   <data name="RecipeGuide_MaterialCoverage" xml:space="preserve"><value>Здесь показаны известные варианты переработки, торговли и рыбалки. Другие места добычи и появления врагов не указаны.</value></data>
   <data name="RecipeGuide_AlreadyLearned" xml:space="preserve"><value>Этот игрок уже изучил рецепт.</value></data>
+  <data name="WorldMods_Title" xml:space="preserve">
+    <value>Моды в этом мире</value>
+  </data>
+  <data name="WorldMods_Matches" xml:space="preserve">
+    <value>Все моды этого мира ({0}) загружены.</value>
+  </data>
+  <data name="WorldMods_UnknownHint" xml:space="preserve">
+    <value>Содержимое из незагруженных модов показывается как неизвестное. При сохранении оно остаётся без изменений.</value>
+  </data>
+  <data name="WorldMods_Extra" xml:space="preserve">
+    <value>Также загружены, но этот мир их не использует: {0}</value>
+  </data>
+  <data name="WorldMods_UseThese" xml:space="preserve">
+    <value>ИСПОЛЬЗОВАТЬ МОДЫ ЭТОГО МИРА</value>
+  </data>
+  <data name="WorldMods_StateLoaded" xml:space="preserve">
+    <value>загружен</value>
+  </data>
+  <data name="WorldMods_StateOff" xml:space="preserve">
+    <value>установлен, но выключен в настройках</value>
+  </data>
+  <data name="WorldMods_StateDownloading" xml:space="preserve">
+    <value>ещё скачивается в игре</value>
+  </data>
+  <data name="WorldMods_StateMissing" xml:space="preserve">
+    <value>нет на этом ПК. Сыграйте в этот мир один раз, и игра его скачает.</value>
+  </data>
+  <data name="ModsSettings_Downloading" xml:space="preserve">
+    <value>Ещё не скачаны: {0}. Запустите Abiotic Factor (или загрузите мир, который их использует), и игра докачает их.</value>
+  </data>
 </root>

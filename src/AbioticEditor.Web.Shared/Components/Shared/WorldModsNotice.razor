@@ -1,0 +1,85 @@
+@using AbioticEditor.Core.Assets
+@using AbioticEditor.Web.Models
+@inject HostLanguageService Languages
+@inject HostSettingsService HostSettings
+
+@* The mods this world last ran with (the game keeps them in WorldSave_MetaData.sav), next to
+   what the editor loads. Things from a mod the editor has not loaded show as unknown but are
+   kept exactly as they are. Silent for an unmodded world with no mods loaded. *@
+@if (_usage is { } usage && (usage.WorldMods.Count > 0 || usage.ExtraLoaded.Count > 0))
+{
+    <section class="save-modded-notice world-mods-notice" role="status">
+        <strong>@Languages.Resource("WorldMods_Title")</strong>
+        @if (usage.Matches)
+        {
+            <p>@Languages.Resource("WorldMods_Matches", usage.WorldMods.Count)</p>
+        }
+        else
+        {
+            @if (usage.Unavailable.Any())
+            {
+                <p>@Languages.Resource("WorldMods_UnknownHint")</p>
+            }
+            <ul>
+                @foreach (var mod in usage.WorldMods)
+                {
+                    <li>@mod.DisplayName @if (mod.DisplayName != $"mod.io #{mod.ModIoId}") { <small>(mod.io #@mod.ModIoId)</small> }: @StateText(mod.State)</li>
+                }
+            </ul>
+            @if (usage.ExtraLoaded.Count > 0)
+            {
+                <p>@Languages.Resource("WorldMods_Extra", string.Join(", ", usage.ExtraLoaded.Select(mod => mod.DisplayName)))</p>
+            }
+            @if (usage.WorldMods.Any(mod => mod.State == WorldModState.Off) || usage.ExtraLoaded.Count > 0)
+            {
+                <button type="button" class="wt-btn" disabled="@_busy" @onclick="UseWorldModsAsync">@Languages.Resource("WorldMods_UseThese")</button>
+            }
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorldSaveSession World { get; set; } = null!;
+
+    private WorldSaveSession? _read;
+    private IReadOnlyList<long> _ids = [];
+    private WorldModUsage? _usage;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(World, _read)) return;
+        _read = World;
+        _usage = null;
+        try
+        {
+            _ids = await World.WorldModIdsAsync();
+            _usage = await Task.Run(() => HostSettings.WorldMods(_ids));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // A notice is never worth failing the editor over.
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("Mods", "Could not compare this world's mods with the editor's.", exception);
+        }
+    }
+
+    private async Task UseWorldModsAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Task.Run(() => HostSettings.UseWorldMods(_ids));
+            _usage = await Task.Run(() => HostSettings.WorldMods(_ids));
+        }
+        finally { _busy = false; }
+    }
+
+    private string StateText(WorldModState state) => state switch
+    {
+        WorldModState.Loaded => Languages.Resource("WorldMods_StateLoaded"),
+        WorldModState.Off => Languages.Resource("WorldMods_StateOff"),
+        WorldModState.Downloading => Languages.Resource("WorldMods_StateDownloading"),
+        _ => Languages.Resource("WorldMods_StateMissing"),
+    };
+}

@@ -104,11 +104,23 @@ public static class ModLoadStore
     public static string EnabledOfficialModsPath { get; } = Path.Combine(
         AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "mods-official-enabled.txt");
 
+    /// <remarks>
+    /// A mod.io mod the player has not chosen for in the editor follows the game's own
+    /// <c>EnabledMods</c> setting, so the editor sees what the game loads. An explicit choice in
+    /// the editor (on or off) then wins, and never changes the game's setting.
+    /// </remarks>
     public static bool IsModEnabled(string modName)
     {
         if (!modName.StartsWith(ModIoInstallLocator.KeyPrefix, StringComparison.Ordinal)) return !DisabledMods.Contains(modName);
-        try { return File.Exists(EnabledOfficialModsPath) && File.ReadAllLines(EnabledOfficialModsPath).Contains(modName, StringComparer.OrdinalIgnoreCase); }
+        try
+        {
+            if (File.Exists(EnabledOfficialModsPath) && File.ReadAllLines(EnabledOfficialModsPath).Contains(modName, StringComparer.OrdinalIgnoreCase)) return true;
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+        if (DisabledMods.Contains(modName)) return false;
+        return long.TryParse(modName.AsSpan(ModIoInstallLocator.KeyPrefix.Length), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out var id)
+            && ModIoInstallLocator.ReadGameEnabledMods()?.Contains(id) == true;
     }
 
     /// <summary>Turns one mod on/off and persists the change.</summary>
@@ -122,7 +134,7 @@ public static class ModLoadStore
             if (enabled) selected.Add(modName); else selected.Remove(modName);
             Directory.CreateDirectory(Path.GetDirectoryName(EnabledOfficialModsPath)!);
             File.WriteAllLines(EnabledOfficialModsPath, selected.Order(StringComparer.OrdinalIgnoreCase));
-            return;
+            // Remember an explicit "off" too, so it is not replaced by the game's own setting.
         }
         var set = new HashSet<string>(DisabledMods, StringComparer.OrdinalIgnoreCase);
         if (enabled) set.Remove(modName);

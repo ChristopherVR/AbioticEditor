@@ -70,10 +70,31 @@ metadata/state.json, accepts installed State 1, and verifies paths remain within
 game's storage directory. Partial downloads, another game's profiles and reparse
 paths are excluded. An IoStore archive needs its matching ucas file.
 
-Installed does not mean enabled in every world. Official mods start unselected in the
-editor; select the same mods as the world in Settings. Selection uses stable mod.io
-IDs and affects editor catalogs only. It does not subscribe, install, update, enable
-or reorder mods in the game, or enforce multiplayer version agreement.
+Installed does not mean enabled in every world. A mod.io mod the player has not chosen for
+in the editor follows the game's own `EnabledMods` list (`AbioticGameUserSettings` in
+`Saved/Config/Windows|WinGDK/GameUserSettings.ini`). An explicit editor choice wins
+(`mods-official-enabled.txt` / `mods-disabled.txt`). Selection uses stable mod.io IDs and
+affects editor catalogs only. It does not subscribe, install, update, enable or reorder
+mods in the game, or enforce multiplayer version agreement.
+
+SDK states: 1 (installed) and 2 (update pending, old version still on disk) load. 0, 3 and
+4 (pending, downloading, extracting) plus subscribed ids from the per-user `user.json`
+`subscriptions` list are reported as still downloading; 5 (uninstall pending) is ignored.
+Without a `state.json`, numeric `13105/mods/<id>` folders are used. Names fall back to the
+archive's `.uplugin` `FriendlyName`. Login tokens in `user.json` are never read.
+
+Each world records its mods: `AbioticWorldMetadataSave.LastUsedModIds` (Int64 array in
+`WorldSave_MetaData.sav`, game load order). `WorldSaveData.LastUsedModIds` reads it and
+`WorldModUsage` compares it with installed/loaded mods. The desktop editor shows this per
+world and can switch on exactly that set.
+
+Packaging (all mods checked): a mod.io Windows zip extracts to `13105/mods/<id>/` as
+`<Plugin>.uplugin` (Category UGC, CanContainContent) plus
+`Content/Paks/Windows/<Plugin>AbioticFactor-Windows.pak/.utoc/.ucas`. Content mounts at
+`AbioticFactor/ModPlugins/<Plugin>/Content/` but refers to itself as `/<Plugin>/...`. The
+archives carry no `.uplugin`, so CUE4Parse cannot map that root. `GameAssetProvider` now
+registers every mounted `ModPlugins/*` and `Plugins/**` content root as a virtual path.
+Without it, mod item icons failed to extract and mod blueprint classes did not resolve.
 
 The reader recognizes AbioticModDataTable and official AbioticModConfig assets.
 Native ModRowAsset rows use ModPrefix plus RowName for additions and the unchanged
@@ -87,6 +108,32 @@ A public Windows archive for mod.io #6482657, New syringes, was inspected in ign
 artifacts without installing it. Its NR69O prefix resolved 81 additional item rows and
 81 recipe rows through the official row-asset path. This proves catalog extraction for
 that archive, not arbitrary Blueprint execution or all future mod packaging styles.
+Eight public Windows archives were then extracted into a scratch cache laid out like the
+SDK's (not the game's real cache), and mounted on Steam build 1.5.0.31459:
+
+| mod.io id | Mod | What the editor reads |
+| --- | --- | --- |
+| 6368513 | Linked Deployables | 12 `bOverrideExistingRow` item rows that swap `DeployedItemClass` to `/LinkedBenchPowermFqPC/Deployables/*_Linked` subclasses |
+| 6486047 | Jotun LMG | new weapon item (`NU8NS_jotun_lmg`), salvage, FP/weapon animation rows |
+| 6485777 | Paul's Goat Hoof | trinket item, recipe, buff |
+| 6334435 | Robocart | craftable item, recipe, vehicle blueprint |
+| 6485758 | Interdimensional Chemist | PhD trait, gloves item, buffs, job banner |
+| 6486490 | Adnormal Traits | five traits plus buffs |
+| 6484772 | Craftable PETN | one recipe |
+| 6379837 | Additional cosmetic items | 21 `Customization*ModRowAsset` rows (bLocalOnly) |
+
+Results: 4 new items, 3 recipes and 5 traits/PhDs merge; every mod item icon extracts. Linked
+Deployables' classes resolve with parents `Deployed_CraftingBench_Default_C` /
+`Deployed_Freezer_C`, inheriting RequiresPower, SupportsUpgrades, the storage tag query and
+`PaintedDeployableRow`. Its override rows carry 11 of the base row's 43 fields. The editor
+applies a full row replacement (DataTable row semantics), which only changes the
+catalog's EquipSlot for those benches. A mod class that extends a paintable base class and
+keeps a paint row now offers the paint picker. Base-game paintability is unchanged. The
+`ABIOTIC_MODIO_ROOT`-gated test `Real_mod_io_mods_supply_items_pictures_and_placed_object_classes`
+repeats these checks. No mod was installed into the game and no subscription changed.
+No world played with Linked Deployables was available, so its saved placement shape (any
+extra plug component in `DeployedObjectMap`) remains an open check.
+
 SDK cache conventions were checked against the
 [mod.io SDK source](https://github.com/modio/modio-sdk) and
 [Unreal plugin documentation](https://docs.mod.io/unreal/plugin-structure).

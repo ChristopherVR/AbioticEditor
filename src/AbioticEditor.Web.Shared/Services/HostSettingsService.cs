@@ -170,6 +170,35 @@ public sealed class HostSettingsService
         ModLoadStore.SetModEnabled(modName, enabled);
         GameDataGate.Invalidate();
     }
+    /// <summary>Subscribed mod.io mods the game has not finished downloading (empty in the browser build).</summary>
+    public IReadOnlyList<ModIoInstallLocator.PendingMod> PendingMods
+        => OperatingSystem.IsBrowser() ? [] : ModIoInstallLocator.FindPending();
+
+    /// <summary>
+    /// How a world's mod list compares with what the editor loads. Works from the on/off choices
+    /// rather than a mounted provider, so asking never mounts the game files.
+    /// </summary>
+    public WorldModUsage WorldMods(IReadOnlyList<long> worldModIds)
+    {
+        if (OperatingSystem.IsBrowser()) return WorldModUsage.For(worldModIds, [], [], []);
+        var installed = ModIoInstallLocator.FindInstalled();
+        var loaded = ModsEnabled ? installed.Where(mod => IsModEnabled(mod.Name)).Select(mod => mod.Name).ToArray() : [];
+        return WorldModUsage.For(worldModIds, loaded, installed, ModIoInstallLocator.FindPending());
+    }
+
+    /// <summary>
+    /// Switches on exactly the installed mod.io mods this world uses (others off) and reloads game
+    /// data. Mods from the game's <c>~mods</c>/<c>LogicMods</c> folders are left as they are.
+    /// </summary>
+    public GameDataReloadStatus UseWorldMods(IReadOnlyList<long> worldModIds)
+    {
+        var used = worldModIds.ToHashSet();
+        foreach (var mod in ModIoInstallLocator.FindInstalled())
+            if (mod.ModIoId is { } id) ModLoadStore.SetModEnabled(mod.Name, used.Contains(id));
+        if (!ModLoadStore.PersistedEnabled && used.Count > 0) ModLoadStore.SetPersistedEnabled(true);
+        return ReloadGameData();
+    }
+
     public bool SetPluginEnabled(PluginDescriptor plugin, bool enabled) => plugin.SetEnabled(enabled);
 }
 

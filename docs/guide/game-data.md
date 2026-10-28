@@ -20,6 +20,20 @@ It normally finds Steam and Game Pass installs by itself. If it does not, open *
 
 Without the game, missing pictures use a plain fallback and the 3D view is not offered. Your saves still open and edit normally.
 
+## Mods
+
+The desktop app reads mods you downloaded from mod.io in the game, and mods in the game's `~mods` and `LogicMods` folders. Modded items, recipes, traits and PhDs then show their real names and pictures, and modded furniture keeps its power, storage and upgrade details in the base tools.
+
+By default the editor loads the same mod.io mods the game has switched on. **Settings ▸ Game data ▸ Mods** lets you turn single mods on or off for the editor. These switches never change the game.
+
+When you open a world that was played with mods, a **Mods in this world** box lists them:
+
+- **loaded**: the editor knows everything the mod adds.
+- **installed, but switched off in Settings**: press **USE THIS WORLD'S MODS** to load exactly this world's mods.
+- **still downloading in the game** or **not on this PC**: start Abiotic Factor and load the world once, and the game downloads them. The editor picks them up the next time you open the world.
+
+Things from a mod the editor has not loaded show as unknown. They are kept exactly as they are when you save, so nothing is lost.
+
 ## After a game update
 
 Update the editor too. A new game patch can add things an older editor does not know yet. The start page will also offer to [get the 3D view ready](./3d-view#get-the-3d-view-ready) again, because the game's files have changed.

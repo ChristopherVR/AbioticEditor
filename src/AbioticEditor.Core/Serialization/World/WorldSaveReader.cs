@@ -83,7 +83,10 @@ public static partial class WorldSaveReader
         var vehicles = ReadVehicles(save);
         var deployables = ReadDeployables(save);
 
-        return new WorldSaveData(save, containers, flags, doors, story, minutes, globalRecipes, droppedItems, npcs, deployables, pets, vehicles);
+        return new WorldSaveData(save, containers, flags, doors, story, minutes, globalRecipes, droppedItems, npcs, deployables, pets, vehicles)
+        {
+            LastUsedModIds = ReadLastUsedModIds(save),
+        };
     }
 
     // Top-level prefixes this reader consumes. Anything else in a save is data the
@@ -98,7 +101,7 @@ public static partial class WorldSaveReader
         "StoryProgressionRow", "MinutesPassed", "GlobalRecipesUnlocked", "GlobalRecipesResearched",
         "DroppedItemMap", "NarrativeNPCMap", "LevelGUID",
         "TimeOfDay", "DayDiscovered", "LeyakContainmentIDs",
-        "PetNPC", "GlobalUnlocks", "LastPlayed",
+        "PetNPC", "GlobalUnlocks", "LastPlayed", "LastUsedModIds",
         // Understood bookkeeping, intentionally not editable: the owning server/world
         // id and the raw engine-side save version int.
         "SaveIdentifier", "SaveVersion",

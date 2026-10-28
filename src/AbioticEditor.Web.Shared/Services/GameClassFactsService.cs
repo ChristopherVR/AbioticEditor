@@ -69,6 +69,21 @@ public sealed class GameClassFactsService
             || deployable.InstalledUpgrades.Any(row => BenchUpgradeCatalog.All.Any(u => BenchUpgradeCatalog.IsInstalled(deployable.InstalledUpgrades, u.Row)));
     }
 
+    /// <summary>
+    /// True when the editor can offer a paint colour for this placed object. Base-game classes use
+    /// the confirmed list (<see cref="WorldDeployable.SupportsPaint"/>); a mod's class also counts
+    /// when it extends a paintable class and still carries a paint row in the game data (Linked
+    /// Deployables' crafting bench is a crafting bench with an extra plug).
+    /// </summary>
+    public bool SupportsPaint(WorldDeployable deployable, string? classPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(deployable);
+        if (deployable.SupportsPaint) return true;
+        return For(classPath ?? deployable.ClassName) is { FromMod: true, PaintedDeployableRow: not null } facts
+            && facts.Chain.Skip(1).Select(name => name.EndsWith("_C", StringComparison.Ordinal) ? name : name + "_C")
+                .Any(DeployablePaintCatalog.IsPaintable);
+    }
+
     /// <summary>The upgrades to list for a bench: only those the game offers on it, plus any already installed.</summary>
     public IReadOnlyList<BenchUpgrade> BenchUpgradesFor(WorldDeployable deployable, string? classPath = null)
     {
