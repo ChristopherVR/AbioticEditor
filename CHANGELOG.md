@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [2.30.4] - 2026-10-28
+
+### Bug Fixes
+- The quests view shows your current tutorial objective again in live editing
+- Live pet editing works with Community Update 5 and no longer crashes the game
+- Traders show what they sell and traits show their effects again
+- Live editing works with Community Update 5 again
+
+
 ## [2.30.3] - 2026-10-28
 
 ### Bug Fixes
