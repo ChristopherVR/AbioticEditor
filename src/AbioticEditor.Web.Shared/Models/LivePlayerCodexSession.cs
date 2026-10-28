@@ -8,8 +8,11 @@ namespace AbioticEditor.Web.Models;
 /// through game RPCs and can be cleared by an updated host agent. Kill-only entries remain
 /// read-only. Bulk unlocks group all supported sections in one request.
 /// </summary>
-public sealed class LivePlayerCodexSession : IPlayerCodexSession
+public sealed class LivePlayerCodexSession : IPlayerCodexSession, IPlayerQuestsSession
 {
+    private LiveQuestsChannel? _quests;
+    private AbioticEditor.Core.LiveEditing.World.LiveWorldFlagsChannel? _flags;
+    private LiveQuestState? _questState;
     // Ids are game FNames, which compare case-insensitively: the running game reports a name in
     // whatever casing was registered first (e.g. Email_Signal_Sun_14), which can differ from the
     // data table's row key (email_Signal_Sun_14). Matching case-sensitively made those rows look
@@ -40,11 +43,67 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
     /// supplies real names, exactly like the file session before its own on-demand vocabulary
     /// load finishes.</summary>
     public static async Task<LivePlayerCodexSession> ConnectAsync(
-        LivePlayerCodexChannel channel, string? playerId = null, CancellationToken cancellationToken = default)
+        LivePlayerCodexChannel channel, string? playerId = null,
+        LiveQuestsChannel? quests = null, AbioticEditor.Core.LiveEditing.World.LiveWorldFlagsChannel? flags = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
         var directory = await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
-        return new LivePlayerCodexSession(channel, playerId, directory);
+        var session = new LivePlayerCodexSession(channel, playerId, directory) { _quests = quests, _flags = flags };
+        await session.RefreshQuestsAsync(cancellationToken).ConfigureAwait(false);
+        return session;
+    }
+
+    // ---------- quests (Community Update 5 multi-quest) ----------
+
+    bool IPlayerQuestsSession.SupportsMultipleQuests => _questState is not null;
+    bool IPlayerQuestsSession.CanTrackQuestLines => _questState?.CanTrack == true;
+    bool IPlayerQuestsSession.AppliesImmediately => true;
+    string? IPlayerQuestsSession.TrackedQuestLine => _questState?.TrackedLine;
+    // The personal tutorial objective is not reported live; tutorial rows stay "unknown".
+    bool IPlayerQuestsSession.CompletedIntro => false;
+    string? IPlayerQuestsSession.CurrentTutorialQuest => null;
+    string? IPlayerQuestsSession.SavePath => null;
+
+    /// <summary>An agent build without <c>quests.get</c> (or a momentary read failure) leaves the
+    /// quests view unavailable instead of failing the whole GATEPal connection.</summary>
+    private async Task RefreshQuestsAsync(CancellationToken cancellationToken)
+    {
+        if (_quests is null) return;
+        string? playerId;
+        lock (_targetGate) playerId = _playerId;
+        try { _questState = await _quests.GetAsync(playerId, cancellationToken).ConfigureAwait(false); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { _questState = null; }
+    }
+
+    async Task<QuestWorldView?> IPlayerQuestsSession.LoadWorldViewAsync()
+    {
+        await RefreshQuestsAsync(CancellationToken.None).ConfigureAwait(false);
+        IReadOnlySet<string>? flags = null;
+        if (_flags is not null)
+        {
+            try
+            {
+                var directory = await _flags.GetAsync().ConfigureAwait(false);
+                flags = directory.Flags.Where(f => f.IsSet).Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException) { /* the view falls back to unknown */ }
+        }
+        return new QuestWorldView(flags, _questState?.ActiveQuests);
+    }
+
+    async Task IPlayerQuestsSession.TrackQuestLineAsync(string? id, AbioticEditor.Core.Codex.QuestCatalogData catalog)
+    {
+        if (_quests is null || _questState?.CanTrack != true)
+            throw new InvalidOperationException("Quest tracking can only be changed for your own character, with an updated agent.");
+        if (id is not null && !catalog.Lines.Any(line => line.Id == id)) return;
+        string? playerId;
+        lock (_targetGate) playerId = _playerId;
+        var state = await _quests.TrackAsync(id, playerId).ConfigureAwait(false);
+        _questState = state;
+        if (!string.Equals(state.TrackedLine, id, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The game did not accept the quest line change.");
+        Changed?.Invoke();
     }
 
     public IReadOnlyList<CodexRowEdit> Emails { get; private set; } = [];
@@ -183,6 +242,7 @@ public sealed class LivePlayerCodexSession : IPlayerCodexSession
         long generation;
         lock (_targetGate) { generation = _targetGeneration; playerId = _playerId; }
         var directory = await _channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
+        await RefreshQuestsAsync(cancellationToken).ConfigureAwait(false);
         lock (_targetGate)
         {
             if (generation != _targetGeneration) return;

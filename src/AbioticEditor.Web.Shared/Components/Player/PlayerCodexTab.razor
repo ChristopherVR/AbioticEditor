@@ -31,13 +31,16 @@
             <button type="button" role="tab" class="gatepal-app @(Active == "journals" ? "active" : null)" aria-selected="@(Active == "journals" ? "true" : "false")" @onclick='() => SelectSection("journals")'>✎ NOTES</button>
             <button type="button" role="tab" class="gatepal-app @(Active == "compendium" ? "active" : null)" aria-selected="@(Active == "compendium" ? "true" : "false")" @onclick='() => SelectSection("compendium")'>◈ COMPENDIUM</button>
             <button type="button" role="tab" class="gatepal-app @(Active == "fish" ? "active" : null)" aria-selected="@(Active == "fish" ? "true" : "false")" @onclick='() => SelectSection("fish")'>🐟 FISH</button>
-            @if (Session is PlayerSaveSession)
+            @if (QuestsSession is not null)
             {
                 <button type="button" role="tab" class="gatepal-app @(Active == "quests" ? "active" : null)" aria-selected="@(Active == "quests" ? "true" : "false")" @onclick='() => SelectSection("quests")'>@L.Resource("PlayerQuests_Tab")</button>
+            }
+            @if (Session is PlayerSaveSession)
+            {
                 <button type="button" role="tab" class="gatepal-app @(Active == "distilled" ? "active" : null)" aria-selected="@(Active == "distilled" ? "true" : "false")" @onclick='() => SelectSection("distilled")'>⚗ DISTILLED</button>
             }
         </div>
-        @if (Active == "quests" && Session is PlayerSaveSession questSession)
+        @if (Active == "quests" && QuestsSession is { } questSession)
         {
             <PlayerQuestsSection Session="questSession" OnChanged="OnChanged" />
         }
@@ -173,6 +176,23 @@
     /// every row editable) and <c>LivePlayerCodexSession</c> (applies immediately, COMPENDIUM
     /// read-only, EMAIL/NOTES/FISH unlock-only) - see <c>IPlayerCodexSession</c>'s remarks.</summary>
     [Parameter, EditorRequired] public IPlayerCodexSession Session { get; set; } = null!;
+
+    private IPlayerQuestsSession? _fileQuests;
+    private PlayerSaveSession? _fileQuestsFor;
+    /// <summary>The quests view for this session: the staged file session, or a live game whose
+    /// agent reports quest support. Cached so the quests section keeps its loaded state.</summary>
+    private IPlayerQuestsSession? QuestsSession
+    {
+        get
+        {
+            if (Session is PlayerSaveSession file)
+            {
+                if (!ReferenceEquals(_fileQuestsFor, file)) { _fileQuestsFor = file; _fileQuests = new FileQuestsSession(file); }
+                return _fileQuests;
+            }
+            return Session is IPlayerQuestsSession { SupportsMultipleQuests: true } live ? live : null;
+        }
+    }
     [Parameter] public EventCallback OnChanged { get; set; }
     private string Active { get; set; } = "emails";
     private string Filter { get; set; } = string.Empty;

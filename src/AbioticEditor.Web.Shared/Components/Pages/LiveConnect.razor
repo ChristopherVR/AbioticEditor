@@ -757,7 +757,8 @@ else
                     // so _codex/_playerFacade.CodexSession were never connected and the tab
                     // always rendered empty ("Nothing matches (or game data is unavailable)"),
                     // regardless of what was actually unlocked in the running game.
-                    _codex ??= await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), _selectedPlayerId);
+                    _codex ??= await LivePlayerCodexSession.ConnectAsync(new LivePlayerCodexChannel(channel), _selectedPlayerId,
+                quests: new LiveQuestsChannel(channel), flags: new LiveWorldFlagsChannel(channel));
                     _playerFacade.CodexSession = _codex;
                     break;
                 case "general":

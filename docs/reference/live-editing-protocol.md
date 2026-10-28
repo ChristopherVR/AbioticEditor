@@ -193,6 +193,27 @@ Both `flags.set` and `story.set` answer `{"skipped":[...]}`: names the game's fl
 carry are left alone and listed there instead of failing the request, so the rest of the batch still
 applies and the editor can say which names the game did not know.
 
+## `quests.get` / `quests.track` - Community Update 5 quest lines
+
+Per-player multi-quest state (game 1.5). Added in agent build 2026-10-28; an older agent answers
+"unknown command" and the editor hides the live Quests view.
+
+`quests.get` (optional `playerId`) returns
+`{ isHost, trackedLine, currentQuestLine?, activeQuestsKnown, activeQuests[], canTrack }`.
+`trackedLine` is `Abiotic_PlayerController_C.TrackedQuestLine` (`"None"` when unset);
+`currentQuestLine` is the world's `Abiotic_Survival_GameState_C.CurrentQuestline`;
+`activeQuests` is the game's own `UWorldFlagSubsystem::FindAllActiveQuests` list when it could be
+called (`activeQuestsKnown` true), otherwise empty and the editor judges objective state from
+`flags.list` and the quest tables. Tracking belongs to the local player's controller, so a
+`playerId` that is not the local player reads the world only and reports `canTrack: false`.
+
+`quests.track` `{ line }` (`""` clears) calls `Request_ChangeTrackedQuestLine` with a table holding
+`RowName` and returns the same state read back from the controller; the editor treats a read-back
+that differs from the request as a refusal. The struct calling convention follows the existing
+`SetWorldFlag` precedent and still needs confirming in a running game.
+
+`story.get` also returns `currentQuestLineRow`. The old `currentQuestRow` (`CurrentQuest`) no
+longer exists in 1.5 and comes back `"None"`; the editor derives the chapter from the world flags.
 ## `story.get` / `story.set` - main-quest indicator and setter
 
 `story.get` takes no payload and returns `{"currentQuestRow":string,"isHost":bool}`.

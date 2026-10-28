@@ -117,8 +117,10 @@ confirmed break was the story indicator: the game state no longer has `CurrentQu
 player controller has `TrackedQuestLine` and `Request_ChangeTrackedQuestLine`; the player state has
 `ServerQuestLine`. `story.get` now also reports the quest line, and the desktop app works the
 chapter out from the world flags. Chapter moves still go through world flags. Live quest-line
-tracking and a live objectives list are not implemented: the tracking call takes a struct handle
-and its calling convention has not been confirmed in a running game.
+tracking and a live objectives list were added afterwards (`quests.get` / `quests.track`, see the
+protocol reference). Both are covered by stub-harness and unit tests only: the tracking call takes
+a struct handle and its calling convention, and `FindAllActiveQuests`, have not been confirmed in a
+running game.
 
 ## Pets
 

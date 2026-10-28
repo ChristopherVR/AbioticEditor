@@ -14,8 +14,9 @@
     else if (_catalog is null) { <p class="muted">@L.Resource("PlayerQuests_NoData")</p> }
     else
     {
-        @if (_flags is null) { <p class="muted" role="status">@L.Resource("PlayerQuests_NoWorld")</p> }
-        @if (!Session.SupportsMultipleQuests) { <p class="muted">@L.Resource("PlayerQuests_OldSave")</p> }
+        @if (_flags is null && !Session.AppliesImmediately) { <p class="muted" role="status">@L.Resource("PlayerQuests_NoWorld")</p> }
+        @if (!Session.SupportsMultipleQuests && !Session.AppliesImmediately) { <p class="muted">@L.Resource("PlayerQuests_OldSave")</p> }
+        @if (_error is not null) { <p class="muted" role="alert">@_error</p> }
         @if (Session.TrackedQuestLine is { } tracked)
         {
             <p class="quest-tracked">@L.Resource("PlayerQuests_Tracking", LineTitle(tracked))
@@ -32,7 +33,7 @@
                         @if (line.ParentLine is { } parent) { <small class="muted">@LineTitle(parent)</small> }
                         <h4>@LineTitle(line.Id)</h4>
                     </div>
-                    <button type="button" class="secondary" disabled="@(!Session.SupportsMultipleQuests || !objectives.Any(q => State(q.Quest) == QuestState.Active))"
+                    <button type="button" class="secondary" disabled="@(!Session.CanTrackQuestLines || !objectives.Any(q => State(q.Quest) == QuestState.Active))"
                             aria-pressed="@(Session.TrackedQuestLine == line.Id)" @onclick="() => Track(line.Id)">
                         @L.Resource(Session.TrackedQuestLine == line.Id ? "PlayerQuests_Tracked" : "PlayerQuests_Track")
                     </button>
@@ -52,16 +53,18 @@
             </section>
         }
         @if (!_catalog.Quests.Any(Visible)) { <p class="muted">@L.Resource("PlayerQuests_NoActive")</p> }
-        <p class="muted">@L.Resource("PlayerQuests_SaveHelp")</p>
+        @if (!Session.AppliesImmediately) { <p class="muted">@L.Resource("PlayerQuests_SaveHelp")</p> }
     }
 </section>
 
 @code {
-    [Parameter, EditorRequired] public PlayerSaveSession Session { get; set; } = null!;
+    [Parameter, EditorRequired] public IPlayerQuestsSession Session { get; set; } = null!;
     [Parameter] public EventCallback OnChanged { get; set; }
-    private PlayerSaveSession? _loadedSession;
+    private IPlayerQuestsSession? _loadedSession;
     private QuestCatalogData? _catalog;
     private IReadOnlySet<string>? _flags;
+    private IReadOnlySet<string>? _activeQuests;
+    private string? _error;
     private bool _loading, _showCompleted, _showUpcoming;
     protected override async Task OnParametersSetAsync()
     {
@@ -76,8 +79,9 @@
         try
         {
             var catalog = await Task.Run(() => CodexData.Get().Quests);
-            var flags = await Progress.ResolveWorldFlagsAsync(session.Path);
-            if (ReferenceEquals(session, Session)) { _catalog = catalog; _flags = flags; }
+            var live = await session.LoadWorldViewAsync();
+            var flags = live is not null ? live.Flags : session.SavePath is { } path ? await Progress.ResolveWorldFlagsAsync(path) : null;
+            if (ReferenceEquals(session, Session)) { _catalog = catalog; _flags = flags; _activeQuests = live?.ActiveQuests; }
         }
         finally { _loading = false; }
     }
@@ -88,7 +92,12 @@
             if (Session.CompletedIntro && quest.Id.StartsWith("tutorial_", StringComparison.Ordinal)) return QuestState.Completed;
             if (quest.Id == Session.CurrentTutorialQuest) return QuestState.Active;
         }
-        return QuestCatalog.StateOf(quest, _flags);
+        var state = QuestCatalog.StateOf(quest, _flags);
+        // The running game says which objectives are active (several at once); trust it over the
+        // flag guess, but never over a completion flag.
+        if (_activeQuests is not null && state != QuestState.Completed)
+            return _activeQuests.Contains(quest.Id) ? QuestState.Active : _flags is null ? QuestState.Unknown : QuestState.Locked;
+        return state;
     }
     private bool Visible(QuestDefinition quest) => State(quest) switch
     {
@@ -116,7 +125,9 @@
     private async Task Track(string? id)
     {
         if (_catalog is null) return;
-        Session.TrackQuestLine(id, _catalog);
+        _error = null;
+        try { await Session.TrackQuestLineAsync(id, _catalog); }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
         await OnChanged.InvokeAsync();
     }
 }

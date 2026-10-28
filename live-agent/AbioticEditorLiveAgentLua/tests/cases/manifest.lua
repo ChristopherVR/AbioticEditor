@@ -4,6 +4,7 @@ return {
     "item_tables",
     "mainmenu",
     "story",
+    "quests",
     "codex",
     "worldunlocks",
     "containment",
