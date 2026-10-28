@@ -8,6 +8,8 @@ return function(H)
     local state = H.ok(H.dispatch("story.get"), "story.get")
     H.eq(state.currentQuestRow, "quest_RES_EndInterlude", "current quest row read")
     H.eq(state.isHost, true, "host authority reported")
+    -- Community Update 5: the multi-quest quest-line handle is reported alongside it.
+    H.eq(state.currentQuestLineRow, "QuestLine_Primary", "current quest line row read")
 
     -- The flag subsystem + row-handle library fixture, same shape core.lua's flags block uses,
     -- with handles for both a flag story.set will SET and one it will CLEAR.

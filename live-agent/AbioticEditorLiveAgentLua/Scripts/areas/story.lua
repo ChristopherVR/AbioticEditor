@@ -20,6 +20,15 @@
 -- it is the same "read a struct property's .RowName field" pattern `world.get` already uses for
 -- `manager.CurrentWeatherEvent:ToString()` - so that is the only read this module performs.
 --
+-- COMMUNITY UPDATE 5 (2026-10-28 review, Abiotic_Survival_GameState dump against the 1.5 paks):
+-- the game state no longer has `CurrentQuest`/`OnRep_CurrentQuest`; it carries
+-- `CurrentQuestline` + `OnRep_CurrentQuestline` (a quest-line row handle), the game mode carries
+-- `ActiveQuestLine` and `GetStoryProgressionRow`, and each player controller carries its own
+-- `TrackedQuestLine` + `Request_ChangeTrackedQuestLine`. The old CurrentQuest read therefore
+-- always came back "None" on 1.5, so story.get also returns `currentQuestLineRow` and the
+-- desktop app works the chapter out from the world flags instead. Nothing here calls the
+-- tracking RPC: its struct-argument calling convention has not been confirmed in a running game.
+--
 -- ROUND 77 (product owner's verdict: "the 'read-only' for story progression makes no sense" -
 -- they are right): the story chapter IS a function of world flags. The editor's own
 -- `Core/Catalogs/World/StoryProgressionCatalog.cs` maps every chapter to its `TriggerFlag`,
@@ -51,9 +60,16 @@ return function(ctx)
             local row = "None"
             local okQuest, rowName = pcall(function() return gameState.CurrentQuest.RowName:ToString() end)
             if okQuest and rowName and rowName ~= "" then row = rowName end
+            -- Community Update 5 replaced the single replicated CurrentQuest with the multi-quest
+            -- CurrentQuestline (a quest-LINE handle, OnRep_CurrentQuestline). Read it as extra
+            -- information; the chapter itself is derived .NET-side from the world flags.
+            local line = "None"
+            local okLine, lineName = pcall(function() return gameState.CurrentQuestline.RowName:ToString() end)
+            if okLine and lineName and lineName ~= "" then line = lineName end
             return {
                 isHost = ctx.isHost(),
                 currentQuestRow = row,
+                currentQuestLineRow = line,
             }
         end, respond)
     end

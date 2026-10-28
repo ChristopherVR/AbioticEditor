@@ -107,6 +107,9 @@ public class LiveClassPropsProbe
             "Elevator_ParentBP", "Elevator_Office_BP",
             // Live buttons: every concrete button blueprint plus the saved button struct.
             "/Button_", "CartRecallButton", "SaveData_ButtonStruct", "SaveData_Elevator",
+            // Community Update 5 review: the shared character parent (vitals moved off the player
+            // blueprint) and the quest-line handle types the live story tab now depends on.
+            "Abiotic_Character_ParentBP", "QuestLine", "SurvivalStat",
         ];
 
         var outPath = Environment.GetEnvironmentVariable("LIVE_CLASS_PROBE_OUT");

@@ -434,6 +434,7 @@ function H.hostSession()
     H.gameState = H.object("Abiotic_Survival_GameState_C", {
         PlayerArray = { state }, WorldFlags = { H.fname("Office_PowerOn") },
         CurrentQuest = { RowName = H.fname("quest_RES_EndInterlude") },
+        CurrentQuestline = { RowName = H.fname("QuestLine_Primary") },
         GlobalRecipesUnlocked = { H.fname("recipe_bandage") },
         GlobalRecipesResearched = {},
         GlobalItemsPickedUp = { H.fname("scrap_metal") },

@@ -21,7 +21,8 @@ public sealed class LiveStoryChannel(ILiveGameChannel channel)
         var wire = await _channel.RequestAsync<StateWire>("story.get", payload: null, cancellationToken)
             .ConfigureAwait(false);
         return new LiveStoryState(
-            string.IsNullOrEmpty(wire.CurrentQuestRow) ? "None" : wire.CurrentQuestRow, wire.IsHost);
+            string.IsNullOrEmpty(wire.CurrentQuestRow) ? "None" : wire.CurrentQuestRow, wire.IsHost,
+            string.IsNullOrEmpty(wire.CurrentQuestLineRow) ? "None" : wire.CurrentQuestLineRow);
     }
 
     /// <summary>
@@ -40,7 +41,7 @@ public sealed class LiveStoryChannel(ILiveGameChannel channel)
         return wire?.Skipped ?? [];
     }
 
-    private sealed record StateWire(string? CurrentQuestRow, bool IsHost);
+    private sealed record StateWire(string? CurrentQuestRow, bool IsHost, string? CurrentQuestLineRow = null);
     private sealed record SetWire(string CurrentQuestRow, IReadOnlyList<string> FlagsToSet, IReadOnlyList<string> FlagsToClear);
     private sealed record SetResultWire(IReadOnlyList<string>? Skipped);
 }
@@ -48,5 +49,6 @@ public sealed class LiveStoryChannel(ILiveGameChannel channel)
 /// <summary>The running game's current-quest row name, as read by <see cref="LiveStoryChannel.GetAsync"/>.
 /// <c>None</c> when the game reports no active quest, or a row name outside anything
 /// <c>StoryProgressionCatalog</c> knows - the shared story tab renders that as "unknown chapter"
-/// exactly like an unrecognised save value.</summary>
-public sealed record LiveStoryState(string CurrentQuestRow, bool IsHost);
+/// exactly like an unrecognised save value. <c>CurrentQuestLineRow</c> is the Community Update 5
+/// replicated quest-line handle (<c>None</c> on an older agent or game).</summary>
+public sealed record LiveStoryState(string CurrentQuestRow, bool IsHost, string CurrentQuestLineRow = "None");

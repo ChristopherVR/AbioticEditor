@@ -31,6 +31,7 @@ public sealed class LiveStorySession : IWorldStorySession
     private readonly LiveWorldFlagsChannel _flagsChannel;
     private readonly LiveWorldUnlocksChannel _unlocksChannel;
     private LiveStoryState _story;
+    private string? _derivedChapter;
     private LiveWorldState _world;
     private LiveWorldUnlocks? _unlocks;
 
@@ -63,7 +64,9 @@ public sealed class LiveStorySession : IWorldStorySession
         LiveWorldUnlocks? unlocks = null;
         try { unlocks = await unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false); }
         catch (AbioticEditor.Core.LiveEditing.LiveAgentException) { /* see remarks above */ }
-        return new LiveStorySession(storyChannel, worldChannel, flagsChannel, unlocksChannel, story, world, unlocks);
+        var session = new LiveStorySession(storyChannel, worldChannel, flagsChannel, unlocksChannel, story, world, unlocks);
+        await session.RefreshDerivedChapterAsync(cancellationToken).ConfigureAwait(false);
+        return session;
     }
 
     public bool AppliesImmediately => true;
@@ -81,7 +84,38 @@ public sealed class LiveStorySession : IWorldStorySession
     /// <summary>The live game's current-quest row, fed into the same
     /// <c>StoryProgressionCatalog</c> lookup the file editor uses - a row it does not recognise
     /// simply renders as "unknown chapter", the existing graceful fallback.</summary>
-    public string? StoryProgressionRow => string.Equals(_story.CurrentQuestRow, "None", StringComparison.Ordinal) ? null : _story.CurrentQuestRow;
+    public string? StoryProgressionRow
+        => StoryProgressionCatalog.IndexOf(_story.CurrentQuestRow) >= 0 ? _story.CurrentQuestRow : _derivedChapter;
+
+    /// <summary>The Community Update 5 quest line the running world is on (the game-state's replicated
+    /// quest-line handle), or null when the agent or game does not report one.</summary>
+    public string? CurrentQuestLine => string.Equals(_story.CurrentQuestLineRow, "None", StringComparison.Ordinal) ? null : _story.CurrentQuestLineRow;
+
+    /// <summary>
+    /// The furthest chapter whose trigger flag is set. Community Update 5 replaced the single
+    /// replicated current-quest row with several quest lines, so the chapter is read from the
+    /// world flags (the same rule the offline trader-spoiler gate uses) rather than from one row.
+    /// Null when no chapter trigger is set.
+    /// </summary>
+    public static string? ChapterFromFlags(IEnumerable<LiveWorldFlag> flags)
+    {
+        ArgumentNullException.ThrowIfNull(flags);
+        var set = new HashSet<string>(flags.Where(f => f.IsSet).Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
+        var index = StoryProgressionCatalog.FurthestReachedIndex(set.Contains);
+        return index < 0 ? null : StoryProgressionCatalog.Chapters[index].Row;
+    }
+
+    private async Task RefreshDerivedChapterAsync(CancellationToken cancellationToken)
+    {
+        // Only needed when the agent's own row is not a chapter (always, on Community Update 5).
+        if (StoryProgressionCatalog.IndexOf(_story.CurrentQuestRow) >= 0) { _derivedChapter = null; return; }
+        try
+        {
+            var directory = await _flagsChannel.GetAsync(cancellationToken).ConfigureAwait(false);
+            _derivedChapter = ChapterFromFlags(directory.Flags);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { /* best effort: keep the last known chapter */ }
+    }
 
     public bool CanSetStoryChapter => IsHost;
 
@@ -289,6 +323,7 @@ public sealed class LiveStorySession : IWorldStorySession
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         _story = await _storyChannel.GetAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshDerivedChapterAsync(cancellationToken).ConfigureAwait(false);
         await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
         try { _unlocks = await _unlocksChannel.GetAsync(cancellationToken).ConfigureAwait(false); }
         catch { /* see ConnectAsync's remarks - a failed refresh just keeps the last known list */ }

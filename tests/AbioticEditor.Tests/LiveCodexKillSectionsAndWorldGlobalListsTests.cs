@@ -120,7 +120,7 @@ public sealed class LiveCodexKillSectionsAndWorldGlobalListsTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<T> RequestAsync<T>(string command, object? payload, CancellationToken cancellationToken = default)
         {
-            if (command.EndsWith(".get", StringComparison.Ordinal))
+            if (command.EndsWith(".get", StringComparison.Ordinal) || command.EndsWith(".list", StringComparison.Ordinal))
                 return Task.FromResult(JsonSerializer.SerializeToElement(Read, Options).Deserialize<T>(Options)!);
             Write = JsonSerializer.SerializeToElement(payload, Options);
             return Task.FromResult(default(T)!);

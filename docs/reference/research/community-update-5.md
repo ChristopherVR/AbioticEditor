@@ -106,6 +106,20 @@ and writes through the existing Save and backup workflow. It does not change Ser
 or world story flags. Legacy saves can view progress but cannot write native tracking.
 This change does not add quest tracking to the live-editing protocol.
 
+### Live editing review (2026-10-28)
+
+The live agent was checked against the 1.5 class layouts (`LiveClassPropsProbe`). Player
+progression (recipes, emails, journal, fish, compendium sections), vitals and the world-wide
+unlock lists still exist under the same names, so those live tabs are unchanged. The one
+confirmed break was the story indicator: the game state no longer has `CurrentQuest` or
+`OnRep_CurrentQuest`. It now has `CurrentQuestline` (a quest-line handle) and
+`OnRep_CurrentQuestline`; the game mode has `ActiveQuestLine` and `GetStoryProgressionRow`; each
+player controller has `TrackedQuestLine` and `Request_ChangeTrackedQuestLine`; the player state has
+`ServerQuestLine`. `story.get` now also reports the quest line, and the desktop app works the
+chapter out from the world flags. Chapter moves still go through world flags. Live quest-line
+tracking and a live objectives list are not implemented: the tracking call takes a struct handle
+and its calling convention has not been confirmed in a running game.
+
 ## Pets
 
 DT_Pets now has explicit PetNPC and PetItem handles. The new DT_PetMutations describes
