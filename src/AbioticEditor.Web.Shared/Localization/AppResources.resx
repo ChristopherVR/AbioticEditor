@@ -4987,6 +4987,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="PlayerQuests_Loading" xml:space="preserve"><value>Loading quests...</value></data>
   <data name="PlayerQuests_NoData" xml:space="preserve"><value>Quest data is unavailable. Refresh game data in Settings.</value></data>
   <data name="PlayerQuests_NoWorld" xml:space="preserve"><value>Open this player from its world folder to see quest progress.</value></data>
+  <data name="PlayerQuests_TrackFailed" xml:space="preserve"><value>The tracked quest line could not be changed. Make sure the game is running with your own character, then try again.</value></data>
   <data name="PlayerQuests_OldSave" xml:space="preserve"><value>Load and save this character in game version 1.5 to select a tracked quest line.</value></data>
   <data name="PlayerQuests_Tracking" xml:space="preserve"><value>Tracking: {0}</value></data>
   <data name="PlayerQuests_Clear" xml:space="preserve"><value>Clear tracking</value></data>

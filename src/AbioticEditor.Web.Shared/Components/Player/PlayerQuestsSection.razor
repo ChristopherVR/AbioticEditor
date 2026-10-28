@@ -127,7 +127,7 @@
         if (_catalog is null) return;
         _error = null;
         try { await Session.TrackQuestLineAsync(id, _catalog); }
-        catch (InvalidOperationException ex) { _error = ex.Message; }
+        catch (InvalidOperationException) { _error = L.Resource("PlayerQuests_TrackFailed"); }
         await OnChanged.InvokeAsync();
     }
 }
