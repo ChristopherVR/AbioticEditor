@@ -2395,3 +2395,7 @@ img[data-zoom]{cursor:zoom-in}
 .save-readonly-notice{margin:0 0 12px;padding:12px 14px;border:1px solid var(--alert);border-left-width:4px;background:var(--panel);color:var(--ink);font:13px var(--font-ui)}
 .save-readonly-notice strong{display:block;margin-bottom:4px;color:var(--alert-text);letter-spacing:.04em}
 .save-readonly-notice p{margin:0}
+.save-modded-notice{margin:0 0 12px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--divider);background:var(--panel);color:var(--ink);font:13px var(--font-ui)}
+.save-modded-notice strong{display:block;margin-bottom:4px;letter-spacing:.04em}
+.save-modded-notice p{margin:0 0 6px;color:var(--muted)}
+.save-modded-notice ul{margin:6px 0 0;padding-left:18px;max-height:160px;overflow:auto;font:12px ui-monospace,monospace}

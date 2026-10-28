@@ -4329,6 +4329,13 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="Editing_OpenWorld" xml:space="preserve"><value>Open {0}</value></data>
   <data name="Editing_WorldOverview" xml:space="preserve"><value>World details and time</value></data>
   <data name="SaveReadOnly_Title" xml:space="preserve"><value>This save can be viewed but not changed</value></data>
+  <data name="ModdedNotice_Title" xml:space="preserve"><value>This save has content the web version cannot name</value></data>
+  <data name="ModdedNotice_Body" xml:space="preserve"><value>Found {0}. They usually come from mods, or from a game update newer than this web version. They appear as plain ids, and everything here is kept exactly as it is when you save. Edit anything else as normal. To see and add modded content, use the desktop app.</value></data>
+  <data name="ModdedNotice_Items" xml:space="preserve"><value>{0} item(s)</value></data>
+  <data name="ModdedNotice_Recipes" xml:space="preserve"><value>{0} recipe(s)</value></data>
+  <data name="ModdedNotice_QuestLines" xml:space="preserve"><value>{0} quest line(s)</value></data>
+  <data name="ModdedNotice_Mutations" xml:space="preserve"><value>{0} pet mutation(s)</value></data>
+  <data name="ModdedNotice_Show" xml:space="preserve"><value>Show the ids</value></data>
 
   <data name="Editing_SelectNpc" xml:space="preserve"><value>Select a character to edit it.</value></data>
   <data name="Editing_FindSetting" xml:space="preserve"><value>Find a setting or section</value></data>

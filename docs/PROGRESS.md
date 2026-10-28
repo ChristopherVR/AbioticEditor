@@ -1,5 +1,26 @@
 # Abiotic Editor - Session history
 
+## Browser build: modded content notice (2026-10-28)
+
+- The browser build only has the base-game snapshot, so a save played with mods holds ids it
+  cannot name. Reviewed what happens: unknown items, recipes, codex rows, pet mutations and a
+  tracked quest line are all kept untouched on save and shown as plain ids.
+- Added a notice above the editor ("This save has content the web version cannot name") with
+  counts per kind and a list of the ids. `ModdedContentScanner` (Core) compares a loaded player or
+  world save with the bundled snapshot; `ModdedContentNotice.razor` shows it. It only runs when a
+  host supplied a snapshot (the browser), so the desktop never shows it. A host with no data for an
+  area (null set) judges nothing there. Wording says "mods, or a game update newer than this web
+  version" because the scan cannot tell the two apart.
+- Scanned: slot items (player and world containers, dropped items, transmog), recipes (player and
+  world-wide), tracked quest line, and carried-pet mutation values the snapshot has no name for.
+- Tests (`ModdedContentTests`): the CU5 game-written saves report nothing; modded ids are found by
+  kind; an unknown tracked quest line survives unrelated edits and cannot be picked blindly; an
+  unrecognised pet mutation survives other pet edits and is reported.
+- Not done: the open-save disclaimer still shows for every browser save. Pet mutation numbers are an
+  index into the combined mutation table, so a mod that adds rows could shift what a number means;
+  this is unverified and would only mislabel a pet. Quest lines and mutation values were checked at
+  the model level only, not by driving the browser UI.
+
 ## Community Update 5 compatibility, official mods and multi-quest GATEPal (2026-10-27)
 
 - Dumped new mappings from Steam 1.5.0.31459, build 26092436, UE changelist 1050002.

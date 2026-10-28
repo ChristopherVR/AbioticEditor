@@ -26,6 +26,14 @@
                     <p>@readOnlyReason</p>
                 </section>
             }
+            @if (workspace.PlayerSession is { } scannedPlayer)
+            {
+                <ModdedContentNotice Player="@scannedPlayer" />
+            }
+            @if (workspace.WorldSession is { } scannedWorld)
+            {
+                <ModdedContentNotice World="@scannedWorld" />
+            }
             @if (workspace.PlayerSession is { } player)
             {
                 <PlayerEditor Title="@workspace.SelectedSave!.Name" Session="@player" TransferWorldSession="@Workspace.TransferWorldSession" OnChanged="PlayerChanged" />

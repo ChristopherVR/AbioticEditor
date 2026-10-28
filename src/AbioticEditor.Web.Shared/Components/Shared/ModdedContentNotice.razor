@@ -1,0 +1,69 @@
+@using AbioticEditor.Core.Assets
+@using AbioticEditor.Core.Compatibility
+@using AbioticEditor.Web.Models
+@inject HostLanguageService Languages
+
+@if (_report is { HasAny: true } report)
+{
+    <section class="save-modded-notice" role="status">
+        <strong>@Languages.Resource("ModdedNotice_Title")</strong>
+        <p>@Languages.Resource("ModdedNotice_Body", Summary(report))</p>
+        <details>
+            <summary>@Languages.Resource("ModdedNotice_Show")</summary>
+            <ul>
+                @foreach (var id in report.Items.Concat(report.Recipes).Concat(report.QuestLines).Take(MaxListed)) { <li>@id</li> }
+            </ul>
+        </details>
+    </section>
+}
+
+@code {
+    private const int MaxListed = 50;
+
+    [Parameter] public PlayerSaveSession? Player { get; set; }
+    [Parameter] public WorldSaveSession? World { get; set; }
+
+    private object? _scanned;
+    private ModdedContentReport? _report;
+
+    protected override void OnParametersSet()
+    {
+        object? current = (object?)Player ?? World;
+        if (ReferenceEquals(current, _scanned)) return;
+        _scanned = current;
+        _report = Scan();
+    }
+
+    /// <summary>
+    /// Only the browser build supplies a bundled snapshot instead of reading the installed game, so
+    /// only it has a reason to say what it cannot name. The desktop host reads the game and its
+    /// mods directly and never reaches the scan.
+    /// </summary>
+    private ModdedContentReport? Scan()
+    {
+        if (GameDataRegistry.SuppliedRegistry is not { } registry) return null;
+        try
+        {
+            var vocabulary = ModdedContentVocabulary.FromRegistry(registry);
+            if (Player is { } player) return ModdedContentScanner.ScanPlayer(player.SavedData, vocabulary);
+            if (World is { } world)
+                return ModdedContentScanner.ScanWorld(world.Containers, world.DroppedItems, world.GlobalRecipes, vocabulary);
+        }
+        catch (Exception exception)
+        {
+            // A notice is never worth failing the editor over.
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("ModdedContent", "Could not scan the save for modded content.", exception);
+        }
+        return null;
+    }
+
+    private string Summary(ModdedContentReport report)
+    {
+        var parts = new List<string>();
+        if (report.Items.Count > 0) parts.Add(Languages.Resource("ModdedNotice_Items", report.Items.Count));
+        if (report.Recipes.Count > 0) parts.Add(Languages.Resource("ModdedNotice_Recipes", report.Recipes.Count));
+        if (report.QuestLines.Count > 0) parts.Add(Languages.Resource("ModdedNotice_QuestLines", report.QuestLines.Count));
+        if (report.PetMutations > 0) parts.Add(Languages.Resource("ModdedNotice_Mutations", report.PetMutations));
+        return string.Join(", ", parts);
+    }
+}
