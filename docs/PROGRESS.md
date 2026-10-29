@@ -281,6 +281,19 @@ Tested against the running game (Steam 1.5.0.31459, world "Cascade", host) throu
   `An_old_unmodded_world_reports_nothing`.
 - The ids still show as plain ids wherever the recipe list renders unknown rows; only the notice
   changed.
+- Upgrade review (same day): the retired tool/flashlight recipes are now only reachable through
+  `DT_ItemUpgrades` (screwdriver -> handdrill -> powerdrill -> constructiongauntlet, scrapshot ->
+  scrapshot_flashlight, pistol_security -> pistol_security_flashlight). Bug found: the game table
+  also has a row keyed `recipe_makeshift_screwdriver` -> handdrill (a recipe id, not an item; the
+  game can never apply it), and `ItemUpgradeCatalog` let the last producer win for downgrades, so
+  "downgrade" on a hand drill wrote that non-item id into the slot. Fix: the catalog drops rows
+  whose source or output is not an item (live: the provider's cached `ItemCatalog`; bundled:
+  the registry's items, so older dumps are cleaned too) and keeps the first producer per output.
+  A fresh live dump now has 85 upgrades. Tests: `ItemUpgradeCatalogTests`.
+- Backward compatibility: no save on the dev PC holds `pistol_flashlight`, carbstick, sundae or
+  the calzone as an item, only as recipe ids. Retired recipe ids stay in the learned list on save
+  (the session keeps every saved id as an unlocked row), and an older game install that still
+  defines them names them normally because the desktop reads the live paks.
 
 ## Browser build: modded content notice (2026-10-28)
 

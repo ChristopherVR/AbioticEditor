@@ -24,14 +24,22 @@ public sealed class ItemUpgradeCatalog
     private readonly Dictionary<string, ItemUpgrade> _bySource;
     private readonly Dictionary<string, ItemUpgrade> _byOutput;
 
-    private ItemUpgradeCatalog(IReadOnlyList<ItemUpgrade> upgrades)
+    private ItemUpgradeCatalog(IReadOnlyList<ItemUpgrade> upgrades, IEnumerable<string>? knownItemIds = null)
     {
+        // The game looks an upgrade up by the held item's row name, so a row naming something
+        // that is not an item can never apply in game. DT_ItemUpgrades has shipped one
+        // (recipe_makeshift_screwdriver -> handdrill); kept, it made "downgrade" turn a hand drill
+        // into that non-item id. Null = no item list to check against, so nothing is dropped.
+        var known = knownItemIds?.ToHashSet(StringComparer.OrdinalIgnoreCase) is { Count: > 0 } set ? set : null;
         var bySource = new Dictionary<string, ItemUpgrade>(StringComparer.OrdinalIgnoreCase);
         var byOutput = new Dictionary<string, ItemUpgrade>(StringComparer.OrdinalIgnoreCase);
         foreach (var u in upgrades)
         {
+            if (known is not null && !(known.Contains(u.SourceId) && known.Contains(u.OutputId))) continue;
             bySource[u.SourceId] = u;
-            byOutput[u.OutputId] = u;
+            // Several items can upgrade into one output; keep the first in table order (the
+            // primary table loads before mod overlays) so a downgrade is stable.
+            byOutput.TryAdd(u.OutputId, u);
         }
         _bySource = bySource;
         _byOutput = byOutput;
@@ -39,8 +47,13 @@ public sealed class ItemUpgradeCatalog
 
     public static ItemUpgradeCatalog Empty { get; } = new(Array.Empty<ItemUpgrade>());
 
-    /// <summary>Rebuilds the graph from a previously-dumped registry, with no game install needed.</summary>
-    public static ItemUpgradeCatalog FromRegistry(IReadOnlyList<ItemUpgrade> upgrades) => new(upgrades);
+    /// <summary>
+    /// Rebuilds the graph from a previously-dumped registry, with no game install needed.
+    /// <paramref name="knownItemIds"/> (the registry's items) drops rows that are not item to item;
+    /// older dumps still carry them.
+    /// </summary>
+    public static ItemUpgradeCatalog FromRegistry(IReadOnlyList<ItemUpgrade> upgrades, IEnumerable<string>? knownItemIds = null)
+        => new(upgrades, knownItemIds);
 
     /// <summary>Every upgrade row, in no particular order. Captured for the bundled registry dump.</summary>
     public IReadOnlyList<ItemUpgrade> Upgrades => _bySource.Values.ToArray();
@@ -81,7 +94,14 @@ public sealed class ItemUpgradeCatalog
         {
             ParseRows(dt, upgrades);
         }
-        return new ItemUpgradeCatalog(upgrades);
+        return new ItemUpgradeCatalog(upgrades, KnownItemIds(provider));
+    }
+
+    // Cached per provider by ItemCatalog, so this shares the read the host already does.
+    private static string[]? KnownItemIds(GameAssetProvider provider)
+    {
+        try { return ItemCatalog.LoadFrom(provider).Entries.Select(entry => entry.Id).ToArray(); }
+        catch { return null; }
     }
 
     private static void ParseRows(UDataTable? dt, List<ItemUpgrade> upgrades)

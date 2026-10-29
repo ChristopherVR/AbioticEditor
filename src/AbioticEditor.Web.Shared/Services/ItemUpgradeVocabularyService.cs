@@ -29,8 +29,9 @@ public sealed class ItemUpgradeVocabularyService
         }
         catch { /* fall through to the bundled dump */ }
 
-        return GameDataRegistry.LoadBundled()?.ItemUpgrades is { Count: > 0 } upgrades
-            ? ItemUpgradeCatalog.FromRegistry(upgrades)
+        var registry = GameDataRegistry.LoadBundled();
+        return registry?.ItemUpgrades is { Count: > 0 } upgrades
+            ? ItemUpgradeCatalog.FromRegistry(upgrades, registry.Items?.Select(item => item.Id))
             : ItemUpgradeCatalog.Empty;
     }
 }
