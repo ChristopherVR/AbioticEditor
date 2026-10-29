@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.31.1] - 2026-10-29
+
+### Bug Fixes
+- Downgrading a hand drill gives you a screwdriver again
+- Old worlds no longer get the "modded content" warning for retired recipes
+
+
 ## [2.31.0] - 2026-10-28
 
 ### Features
