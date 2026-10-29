@@ -1,4 +1,5 @@
 using AbioticEditor.Core.Assets;
+using AbioticEditor.Core.Items;
 using AbioticEditor.Core.PlayerSaves;
 using AbioticEditor.Core.WorldSaves;
 
@@ -89,7 +90,7 @@ public static class ModdedContentScanner
 
         return new(
             Missing(slots.Where(slot => !slot.IsEmpty).Select(slot => slot.ItemId), vocabulary.Items),
-            Missing(data.Recipes, vocabulary.Recipes),
+            MissingRecipes(data.Recipes, vocabulary),
             Missing(native.TrackedLine is null ? [] : [native.TrackedLine], vocabulary.QuestLines),
             unknownMutations);
     }
@@ -107,8 +108,12 @@ public static class ModdedContentScanner
             .Concat(droppedItems.Select(item => item.Slot));
         return new(
             Missing(slots.Where(slot => !slot.IsEmpty).Select(slot => slot.ItemId), vocabulary.Items),
-            Missing(globalRecipes, vocabulary.Recipes), [], 0);
+            MissingRecipes(globalRecipes, vocabulary), [], 0);
     }
+
+    // A recipe the base game itself retired is not modded content: old unmodded worlds still list it.
+    private static string[] MissingRecipes(IEnumerable<string> ids, ModdedContentVocabulary vocabulary)
+        => Missing(ids, vocabulary.Recipes).Where(id => !RetiredRecipeCatalog.IsRetired(id, vocabulary.Items)).ToArray();
 
     private static string[] Missing(IEnumerable<string?> ids, IReadOnlySet<string>? known)
         => known is null ? []

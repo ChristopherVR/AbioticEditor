@@ -70,6 +70,42 @@ public sealed class ModdedContentTests
         Assert.Equal(3, report.Total);
     }
 
+    // Recipes long-running unmodded worlds still list after the game dropped them.
+    private static readonly string[] RetiredRecipes =
+    [
+        "recipe_calz_peccary", "recipe_carbstick", "recipe_constructiongauntlet", "recipe_handdrill",
+        "recipe_pistol_flashlight", "recipe_powerdrill", "recipe_scrapshot_flashlight", "recipe_spear_quill", "recipe_sundae",
+    ];
+
+    [Fact]
+    public void Recipes_the_base_game_retired_are_not_reported_as_modded()
+    {
+        var data = Player();
+        PlayerSaveWriter.ApplyRecipes(data, data.Recipes.Concat(RetiredRecipes).Append(ModdedRecipe).ToArray());
+
+        var report = ModdedContentScanner.ScanPlayer(RoundTrip(data), BaseGame());
+
+        Assert.Equal([ModdedRecipe], report.Recipes);
+        Assert.Equal([ModdedRecipe], ModdedContentScanner.ScanWorld([], [], RetiredRecipes.Append(ModdedRecipe), BaseGame()).Recipes);
+    }
+
+    [Fact]
+    public void An_old_unmodded_world_reports_nothing()
+    {
+        var root = Path.GetDirectoryName(CommunityUpdateFiveTests.Fixture("WorldSave_MetaData.sav"))!;
+        var legacy = Path.GetFullPath(Path.Combine(root, "..", "SteamSaves", "Legacy", "Cascade"));
+        var player = Path.Combine(legacy, "PlayerData", "Player_76561197993781479.sav");
+        var meta = Path.Combine(legacy, "WorldSave_MetaData.sav");
+        if (!File.Exists(player) || !File.Exists(meta)) return;
+
+        var vocabulary = BaseGame();
+        var data = PlayerSaveReader.ReadFromFile(player);
+        Assert.Contains("recipe_carbstick", data.Recipes, StringComparer.OrdinalIgnoreCase);
+        Assert.Empty(ModdedContentScanner.ScanPlayer(data, vocabulary).Recipes);
+        var world = WorldSaveReader.ReadFromFile(meta);
+        Assert.Empty(ModdedContentScanner.ScanWorld([], [], world.GlobalRecipes, vocabulary).Recipes);
+    }
+
     [Fact]
     public void Modded_items_in_world_containers_and_on_the_ground_are_found()
     {

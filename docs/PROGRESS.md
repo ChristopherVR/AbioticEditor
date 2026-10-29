@@ -264,6 +264,24 @@ Tested against the running game (Steam 1.5.0.31459, world "Cascade", host) throu
   players at file permissions. The Facility probe also reports a native `DoorMap` key as unmodeled
   (`WorldSaveReader.IsModeledTopLevelKey` does not know the native name); not investigated.
 
+## Modded-content notice: retired base-game recipes (2026-10-29)
+
+- An unmodded save showed the notice for 9 recipes (`recipe_carbstick`, `recipe_sundae`,
+  `recipe_powerdrill`, ...). Not an extraction bug: the installed game (Steam build 26232136, data
+  1.5.0.31459) has 503 `DT_Recipes` rows and none of them, no other game asset names 8 of them, and
+  `recipe_powerdrill` survives only as a dangling unlock link from `recipe_carbonplating`. No
+  bundled snapshot since 2026-08 had them either. The game never prunes learned recipes, so old
+  worlds keep ids it has since dropped (`recipe_carbstick` is in nearly every older game-written
+  save, including the `SteamSaves/Legacy` fixtures; fresh worlds do not have it).
+- Fix: `RetiredRecipeCatalog` (Core/Catalogs/Items) treats `recipe_<item>` for an item the game
+  still has as retired (drills, construction gauntlet, scrapshot flashlight, quill spear: now
+  upgrades or loot), plus a short evidence list for the rest (`calz_peccary`, `carbstick`,
+  `pistol_flashlight` -> now `pistol_security_flashlight`, `sundae`). `ModdedContentScanner` skips
+  them. Tests: `Recipes_the_base_game_retired_are_not_reported_as_modded`,
+  `An_old_unmodded_world_reports_nothing`.
+- The ids still show as plain ids wherever the recipe list renders unknown rows; only the notice
+  changed.
+
 ## Browser build: modded content notice (2026-10-28)
 
 - The browser build only has the base-game snapshot, so a save played with mods holds ids it
