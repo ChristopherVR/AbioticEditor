@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.32.0] - 2026-10-31
+
+### Features
+- Add and remove buffs and debuffs, clear radiation, and new live survival switches
+
+
 ## [2.31.1] - 2026-10-29
 
 ### Bug Fixes
