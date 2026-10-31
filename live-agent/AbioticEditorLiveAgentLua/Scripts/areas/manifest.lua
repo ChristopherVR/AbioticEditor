@@ -29,4 +29,6 @@ return {
     "areas.trams",
     "areas.npcspawns",
     "areas.triggers",
+    "areas.effects",
+    "areas.toggles",
 }

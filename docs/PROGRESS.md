@@ -1,5 +1,27 @@
 # Abiotic Editor - Session history
 
+## CheatConsoleCommands review: effects, radiation, toggles (2026-10-31)
+
+- Reviewed igromanru's Cheat Console Commands (Nexus 28, v1.32.3, source cloned to scratch)
+  feature by feature against the editor. Already covered (much of the live agent was built
+  from it): vitals, money, limbs, skills, clock, weather, Leyak/Krasue trapping, codex,
+  teleport, NPC kill/spawn, dropped items, farming. Not taken: speed/gravity/noclip,
+  recoil/sway, ammo/energy loops, build-anywhere, instant craft/fish/dream, trait points,
+  power-socket kill, delete-object trace, Leyak/Krasue cooldown (not saved; resets every load).
+- Effects: the save's `BuffExpireTime` is the duration the loader hands back to
+  `Server_ApplyBuff` (see `research-active-effects.md`). Offline ADD now works
+  (`AddActiveBuffs`, `Buff.Save` rows only); time left is shown. Live `effects.*` list / add /
+  remove / clear debuffs / block new debuffs. Both on the Vitals tab via `IPlayerEffectsSession`.
+- Radiation (`Radiation_16_…`) and body temperature (`BodyTemperature_15_…`) live in
+  `CurrentSurvivalStats_` beside hunger and were never read; both default to 0 (fixtures carry
+  4.96 to 15.76 radiation, -3 to 1 temperature). Now read/written offline and live.
+- Live `vitals.set` now calls each stat's `OnRep_Current*`. New live `toggles.*` (twelve
+  survival switches), `portals.resetWorlds` (game's `ResetVignettes`), and REPAIR ALL on the
+  inventory tab (both modes).
+- Lua harness 1643 checks. None of the new live paths has been run in the game yet; first
+  check: effects.list on a hurt character, add `Buff_Caffeinated`, block debuffs then take a
+  fall, and `ResetVignettes` with a portal world visited.
+
 ## mod.io mods in depth (issue #54, 2026-10-29)
 
 - Tested against eight real public mod.io Windows downloads (Linked Deployables, Jotun LMG,

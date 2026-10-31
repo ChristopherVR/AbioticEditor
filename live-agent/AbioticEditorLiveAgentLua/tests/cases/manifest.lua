@@ -42,4 +42,6 @@ return {
     "npcspawns",
     "triggers",
     "cu5_native",
+    "effects",
+    "toggles",
 }

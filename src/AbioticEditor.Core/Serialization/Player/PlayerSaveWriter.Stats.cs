@@ -32,6 +32,8 @@ public static partial class PlayerSaveWriter
             SetDeltaDouble(ps.Properties, "Sanity_", newStats.Sanity, FullNames.Sanity);
             SetDeltaDouble(ps.Properties, "Fatigue_", newStats.Fatigue, FullNames.Fatigue);
             SetDeltaDouble(ps.Properties, "Continence_", newStats.Continence, FullNames.Continence);
+            SetDeltaDouble(ps.Properties, "Radiation_", newStats.Radiation, FullNames.Radiation);
+            SetDeltaDouble(ps.Properties, "BodyTemperature_", newStats.BodyTemperature, FullNames.BodyTemperature);
         }
 
         if (newStats.Money != 0 || root.FindByPrefix("CurrentMoney_") is not null)

@@ -72,4 +72,18 @@ return function(ctx)
             return nil
         end, respond)
     end
+
+    -- Portal worlds (the game's "vignettes"), not the teleporter pads above: the game instance's
+    -- own ResetVignettes() deletes each resettable portal world's save so it comes back fresh,
+    -- exactly what CheatConsoleCommands' "resetportals" command calls (gameInstance:ResetVignettes()).
+    -- The function checks for server authority itself; the host check here gives a clear message.
+    ctx.handlers["portals.resetWorlds"] = function(_, respond)
+        ctx.runOnGameThread(function()
+            if not ctx.isHost() then error("only the host can reset portal worlds") end
+            local instance = ctx.UEHelpers.GetGameInstance()
+            if not instance or not instance:IsValid() then error("the game instance is unavailable") end
+            instance:ResetVignettes()
+            return nil
+        end, respond)
+    end
 end

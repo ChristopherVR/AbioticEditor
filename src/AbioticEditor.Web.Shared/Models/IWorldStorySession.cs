@@ -65,6 +65,11 @@ public interface IWorldStorySession
     Task TriggerWeatherAsync(string weather, CancellationToken cancellationToken = default);
     Task QueueWeatherAsync(string weather, CancellationToken cancellationToken = default);
 
+    /// <summary>True only live: resetting portal worlds is something the running game does
+    /// (it deletes their saves itself), not an edit to the open file.</summary>
+    bool SupportsPortalWorldReset { get; }
+    Task ResetPortalWorldsAsync(CancellationToken cancellationToken = default);
+
     // ---------- world recipes ----------
 
     /// <summary>Whether the world-recipes browser has anything to show at all: true for the file

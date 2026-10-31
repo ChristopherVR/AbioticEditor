@@ -42,8 +42,22 @@ return function(H)
     H.fails(reply, "not found", "unknown teleporter id fails cleanly")
     H.eq(H.field(padA, "IsTeleporterActive"), true, "the resolvable row in the same batch still applied")
 
+    -- Portal worlds reset through the game instance's own ResetVignettes().
+    local helpers = AbioticEditorLiveAgentLua.ctx.UEHelpers
+    local oldInstance = helpers.GetGameInstance
+    local instance = H.object("Abiotic_GameInstance_C", {}, { ResetVignettes = function() end })
+    helpers.GetGameInstance = function() return instance end
+    H.ok(H.dispatch("portals.resetWorlds"), "reset portal worlds")
+    H.eq(H.calls(instance, "ResetVignettes"), 1, "the game's own reset is called once")
+    helpers.GetGameInstance = function() return nil end
+    H.fails(H.dispatch("portals.resetWorlds"), "game instance is unavailable", "missing game instance fails cleanly")
+    helpers.GetGameInstance = function() return instance end
+
     -- Non-host refusal.
     H.clientSession()
     H.world.add(padA)
     H.fails(H.dispatch("portals.set", { portals = { { id = list.portals[1].id, active = false } } }), "only the host", "client cannot edit teleporters")
+    H.fails(H.dispatch("portals.resetWorlds"), "only the host", "client cannot reset portal worlds")
+    H.eq(H.calls(instance, "ResetVignettes"), 1, "a refused reset never reaches the game")
+    helpers.GetGameInstance = oldInstance
 end

@@ -42,8 +42,8 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
         ArgumentNullException.ThrowIfNull(channel);
         await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
         await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-        var (stats, health) = await channel.GetAsync(playerId, cancellationToken).ConfigureAwait(false);
-        return new LivePlayerVitalsSession(channel, playerId, ToVitals(stats, health));
+        var reading = await channel.ReadAsync(playerId, cancellationToken).ConfigureAwait(false);
+        return new LivePlayerVitalsSession(channel, playerId, ToVitals(reading));
     }
 
     public PlayerVitals Vitals { get; private set; }
@@ -57,9 +57,9 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
         cancellationToken.ThrowIfCancellationRequested();
         await _channel.SetAsync(
             new CharacterStats(Vitals.Hunger, Vitals.Thirst, Vitals.Sanity, Vitals.Fatigue,
-                Vitals.Continence, (int)Math.Round(Vitals.Money)),
+                Vitals.Continence, (int)Math.Round(Vitals.Money), Vitals.Radiation, Vitals.BodyTemperature),
             new LimbHealth(Vitals.Head, Vitals.Torso, Vitals.LeftArm, Vitals.RightArm, Vitals.LeftLeg, Vitals.RightLeg),
-            _playerId, cancellationToken).ConfigureAwait(false);
+            _playerId, Vitals.HasEnvironmentStats, cancellationToken).ConfigureAwait(false);
         _original = Vitals.Clone();
         Status = null;
     }
@@ -79,8 +79,8 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
     /// <summary>Re-reads the live player's vitals, discarding any unsaved local edits.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var (stats, health) = await _channel.GetAsync(_playerId, cancellationToken).ConfigureAwait(false);
-        Vitals = ToVitals(stats, health);
+        var reading = await _channel.ReadAsync(_playerId, cancellationToken).ConfigureAwait(false);
+        Vitals = ToVitals(reading);
         _original = Vitals.Clone();
         Status = null;
     }
@@ -93,17 +93,24 @@ public sealed class LivePlayerVitalsSession : IPlayerVitalsSession
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static PlayerVitals ToVitals(CharacterStats stats, LimbHealth health) => new()
+    private static PlayerVitals ToVitals(LiveVitalsReading reading)
     {
-        Hunger = stats.Hunger, Thirst = stats.Thirst, Sanity = stats.Sanity,
-        Fatigue = stats.Fatigue, Continence = stats.Continence, Money = stats.Money,
-        Head = health.Head, Torso = health.Torso, LeftArm = health.LeftArm,
-        RightArm = health.RightArm, LeftLeg = health.LeftLeg, RightLeg = health.RightLeg,
-    };
+        var (stats, health) = (reading.Stats, reading.Health);
+        return new()
+        {
+            Hunger = stats.Hunger, Thirst = stats.Thirst, Sanity = stats.Sanity,
+            Fatigue = stats.Fatigue, Continence = stats.Continence, Money = stats.Money,
+            Head = health.Head, Torso = health.Torso, LeftArm = health.LeftArm,
+            RightArm = health.RightArm, LeftLeg = health.LeftLeg, RightLeg = health.RightLeg,
+            Radiation = stats.Radiation, BodyTemperature = stats.BodyTemperature,
+            NormalBodyTemperature = reading.NormalBodyTemperature, HasEnvironmentStats = reading.HasConditions,
+        };
+    }
 
     private static bool SameVitals(PlayerVitals left, PlayerVitals right) =>
         left.Hunger == right.Hunger && left.Thirst == right.Thirst && left.Sanity == right.Sanity
         && left.Fatigue == right.Fatigue && left.Continence == right.Continence && left.Money == right.Money
         && left.Head == right.Head && left.Torso == right.Torso && left.LeftArm == right.LeftArm
-        && left.RightArm == right.RightArm && left.LeftLeg == right.LeftLeg && left.RightLeg == right.RightLeg;
+        && left.RightArm == right.RightArm && left.LeftLeg == right.LeftLeg && left.RightLeg == right.RightLeg
+        && left.Radiation == right.Radiation && left.BodyTemperature == right.BodyTemperature;
 }

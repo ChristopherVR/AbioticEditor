@@ -76,6 +76,7 @@
                     <span class="muted">@L.Resource("PlayerInventory_LiveMoneyHint")</span>
                 }
                 <span class="pockets-footer-spacer"></span>
+                <button class="secondary" type="button" title="@L.Resource("PlayerInventory_RepairAllTooltip")" disabled="@(!DamagedSlots().Any())" @onclick="RepairAll">@L.Resource("PlayerInventory_RepairAll")</button>
                 <button class="secondary" type="button" title="@L.Resource("PlayerInventory_SortTooltip")" @onclick="SortBackpack">@L.Resource("PlayerInventory_Sort")</button>
                 @* The tooltip has to name the reason the button is off. It used to always say
                    "select a slot with something in it", which reads as broken to anyone who has
@@ -397,6 +398,26 @@
         StateHasChanged();
     }
     private async Task SortBackpack() { await Session.SortInventorySlotsAsync(PlayerInventoryArea.Backpack); await OnChanged.InvokeAsync(); StateHasChanged(); }
+
+    /// <summary>Worn gear, the hotbar and the backpack: every item that wears out and is not at full durability.</summary>
+    private IEnumerable<(PlayerInventoryArea Area, PlayerInventorySlotEdit Slot)> DamagedSlots() =>
+        new[] { (PlayerInventoryArea.Equipment, Session.Equipment), (PlayerInventoryArea.Hotbar, Session.Hotbar), (PlayerInventoryArea.Backpack, Session.Backpack) }
+            .SelectMany(group => group.Item2.Select(slot => (group.Item1, slot)))
+            .Where(entry => !entry.slot.IsEmpty && entry.slot.MaxDurability > 0 && entry.slot.Durability < entry.slot.MaxDurability);
+
+    // Sets each worn item back to its maximum durability. Staged for SAVE in a file; live, each
+    // repaired slot is written to the running game as it goes.
+    private async Task RepairAll()
+    {
+        foreach (var (area, slot) in DamagedSlots().ToList())
+        {
+            slot.Durability = slot.MaxDurability;
+            await Session.PushSlotAsync(area, slot);
+        }
+        Session.MarkChanged();
+        await OnChanged.InvokeAsync();
+        StateHasChanged();
+    }
 
     // ---------- pick-then-place (the touch path) ----------
 

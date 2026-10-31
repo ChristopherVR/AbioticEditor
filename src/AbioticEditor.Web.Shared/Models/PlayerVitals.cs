@@ -15,6 +15,15 @@ public sealed class PlayerVitals
     public double RightArm { get; set; }
     public double LeftLeg { get; set; }
     public double RightLeg { get; set; }
+    /// <summary>Absorbed radiation; 0 is none.</summary>
+    public double Radiation { get; set; }
+    /// <summary>Body temperature on the game's own scale; <see cref="NormalBodyTemperature"/> is comfortable.</summary>
+    public double BodyTemperature { get; set; }
+    /// <summary>The comfortable temperature: 0 in a save file, the character's own preferred value live.</summary>
+    public double NormalBodyTemperature { get; set; }
+    /// <summary>False when the source cannot report radiation and temperature (an older live agent),
+    /// so the tab hides them instead of offering values it cannot write.</summary>
+    public bool HasEnvironmentStats { get; set; } = true;
     public PlayerVitals Clone() => (PlayerVitals)MemberwiseClone();
     public void HealAll(double maximum = 100) => Head = Torso = LeftArm = RightArm = LeftLeg = RightLeg = maximum;
 }

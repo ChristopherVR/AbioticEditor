@@ -73,6 +73,38 @@ Deliberately flat (not nested `stats`/`health` objects) so the C++ side only has
 struct from the live PlayerState's properties, mirroring how `LivePlayerVitalsChannel` on the
 .NET side flattens the same two domain records for the wire.
 
+Optional extras (agent 2026-10-31): `vitals.get` adds `radiation` (`CurrentRadiation`),
+`bodyTemperature` (`CurrentBodyTemperature`) and `normalBodyTemperature`
+(`PreferredBodyTemperature`) when it can read them; an older agent leaves them out and the editor
+hides those controls and omits them from `vitals.set`. `vitals.set` follows every stat write with
+its `OnRep_Current*` notifier, as CheatConsoleCommands does, so the HUD updates at once.
+
+## `effects.list` / `effects.add` / `effects.remove` / `effects.clear` / `effects.block`
+
+Active buffs and debuffs on a character (`areas/effects.lua`). All take an optional `playerId`;
+every write needs the host.
+
+- `effects.list` -> `{"effects":[{"row","limb","expireTime"}],"now":number?,"blockDebuffs":bool,"isHost":bool}`.
+  `limb` is the `EBodyLimbs` number (0 whole body, 3 head ... 8 right leg); `expireTime` is
+  negative for permanent effects; `now` is `GetTimeSeconds` when readable.
+- `effects.add` `{"row","seconds"?}`: `Server_ApplyBuff`; no `seconds` keeps the game's duration.
+- `effects.remove` `{"row","limb"}`: `Server_RemoveBuff(handle, true, limb, false)`.
+- `effects.clear` -> `{"removed":n}`: removes every `Debuff*` row except `Debuff_Underwater`.
+- `effects.block` `{"enabled"}` -> `{"blockDebuffs"}`: per player; on also clears current debuffs.
+  The hook stays registered for the session; off only stops it acting.
+
+## `toggles.get` / `toggles.set`
+
+Survival switches on the character (`areas/toggles.lua`), none of them saved:
+`{"toggles":{"invincible":bool,...}}` both ways (`toggles.set` takes any subset and returns the
+new full set). Names and properties: `invincible` (`Invincible`, plus a full heal),
+`infiniteStamina`, `noHunger`/`noThirst`/`noFatigue`/`noContinence` (`Has*` false and the stat
+filled), `noRadiation` (`CanReceiveRadiation`), `perfectTemperature` (`HasBodyTemperature`,
+temperature set to `PreferredBodyTemperature`), `infiniteOxygen` (`DrownTime` 999999, previous
+value restored when off), `untargetable` (`NPC_Targetable`), `noFallDamage` (`TakeFallDamage`),
+`masterKey` (`HasMasterKey`). A name whose property this game version lacks is left out of the
+reply. Host only.
+
 ## `skills.get` / `skills.set`
 
 `skills.get` takes no payload and returns a flat JSON **array**, one object per skill, ordered by
@@ -618,6 +650,12 @@ level-baked linking ids (read-only). `portals.set` takes
 installed mod exercises this actor class; this is the first live write to it. Same partial-apply
 behavior as `doors.set`: a row with an unresolved `id` does not block the others in the same
 call, but the overall reply becomes an error naming it.
+
+### `portals.resetWorlds` - reset portal worlds
+
+No payload, host only. Calls the game instance's own `ResetVignettes()` (what
+CheatConsoleCommands' `resetportals` uses), which deletes each resettable portal world's save so
+it comes back fresh. Shown under the world clock and weather.
 
 ## `elevators.list` / `elevators.set` - fixed elevator platforms
 

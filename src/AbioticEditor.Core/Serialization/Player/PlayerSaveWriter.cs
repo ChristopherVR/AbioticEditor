@@ -33,6 +33,12 @@ public static partial class PlayerSaveWriter
         public const string Sanity = "Sanity_8_1EA1DBDE4CEA799B882ABBB9EF766161";
         public const string Fatigue = "Fatigue_9_D4A267F046B9CD6F07518AAF88356DBE";
         public const string Continence = "Continence_11_29DC4A474C89E8B517691D8C627AA2F9";
+        // Verbatim from the Cascade fixtures (an irradiated / a chilled character).
+        public const string BodyTemperature = "BodyTemperature_15_B87CC427429084EE2405CA9F8B5AFB40";
+        public const string Radiation = "Radiation_16_CBCAFEC549FC3D10D8D4418FD3D5FB77";
+        // Active effects (BuffSave_Struct and its list), verbatim from the Cascade fixtures.
+        public const string CurrentBuffDebuffs = "CurrentBuffDebuffs_150_9E6DA0704D0DE0DEF375ACA4CFD2D80A";
+        public const string Buffs = "Buffs_8_2276236A4B2235B483FBBD8E932EAA87";
         public const string CurrentMoney = "CurrentMoney_85_7425E5BF43364C11279E4C8C26F5A7CA";
         // Verbatim from the newest-format fixture (Chrissie world player); absent from older saves.
         public const string LastHotbarSelection = "LastHotbarSelection_75_9D56EAE8464F9FFF52C04AA7B388D489";

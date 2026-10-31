@@ -418,6 +418,8 @@ else
     private ILiveGameChannel? _channel;
     private LiveWorldInfoChannel? _worldInfo;
     private LivePlayerVitalsSession? _vitals;
+    // Effects and survival toggles (Vitals tab). Null against an agent that predates them.
+    private LivePlayerConditionsSession? _conditions;
     private LivePlayerSkillsSession? _skills;
     private LivePlayerSpawnSession? _spawn;
     private LivePlayerCompanionsSession? _companions;
@@ -586,6 +588,11 @@ else
             _skills = await LivePlayerSkillsSession.ConnectAsync(new LivePlayerSkillsChannel(channel), localPlayerId);
             _playerFacade.VitalsSession = _vitals;
             _playerFacade.SkillsSession = _skills;
+            // Shown on the Vitals tab, the default one, so it is read with vitals. An installed
+            // agent older than the effects/toggles commands just leaves that card out.
+            try { _conditions = await LivePlayerConditionsSession.ConnectAsync(new LivePlayerConditionsChannel(channel), localPlayerId); }
+            catch (Exception) { _conditions = null; }
+            _playerFacade.ConditionsSession = _conditions;
             _channel = channel;
             // The channel already tells the truth about whether the transport itself is still
             // alive (Faulted, set only for a genuine transport failure - a dropped socket, not
@@ -1119,6 +1126,7 @@ else
                 _ => null,
             };
             if (_playerActiveTab is "general" or "character") yield return _recipes;
+            if (_playerActiveTab is "vitals") yield return _conditions;
         }
         else if (_surface == LiveSurface.World)
         {
@@ -1352,6 +1360,7 @@ else
         {
             await _vitals.SwitchPlayerAsync(_selectedPlayerId);
             await _skills.SwitchPlayerAsync(_selectedPlayerId);
+            if (_conditions is not null) await _conditions.SwitchPlayerAsync(_selectedPlayerId);
             if (_inventory is not null)
             {
                 await _inventory.SwitchPlayerAsync(_selectedPlayerId);
@@ -1407,6 +1416,7 @@ else
         _worldInfo = null;
         _worldIsMetadata = false;
         _vitals = null;
+        _conditions = null;
         _skills = null;
         _spawn = null;
         _companions = null;
@@ -1417,6 +1427,7 @@ else
         _codex = null;
         _general = null;
         _playerFacade.VitalsSession = null;
+        _playerFacade.ConditionsSession = null;
         _playerFacade.SkillsSession = null;
         _playerFacade.SpawnSession = null;
         _playerFacade.CompanionsSession = null;

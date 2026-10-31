@@ -379,7 +379,7 @@ public static class PlayerSaveReader
         // a fully exhausted one on the next save (Nexus bug report #1: the black curved
         // drowsiness bands top and bottom of the screen after ANY edit).
         var statsTag = root.FindByPrefix("CurrentSurvivalStats_");
-        double hunger = 0, thirst = 0, sanity = 0, fatigue = 0, continence = 0;
+        double hunger = 0, thirst = 0, sanity = 0, fatigue = 0, continence = 0, radiation = 0, bodyTemperature = 0;
         if (statsTag?.Property is StructProperty statsSp && statsSp.Value is PropertiesStruct statsPs)
         {
             hunger = statsPs.Properties.GetDouble("Hunger_", 0);
@@ -387,10 +387,15 @@ public static class PlayerSaveReader
             sanity = statsPs.Properties.GetDouble("Sanity_", 0);
             fatigue = statsPs.Properties.GetDouble("Fatigue_", 0);
             continence = statsPs.Properties.GetDouble("Continence_", 0);
+            // Same struct, same delta rule: real saves carry small values such as 5.97 radiation
+            // or -3 body temperature only while the character is irradiated or cold/hot, and
+            // omit both once they are back at 0.
+            radiation = statsPs.Properties.GetDouble("Radiation_", 0);
+            bodyTemperature = statsPs.Properties.GetDouble("BodyTemperature_", 0);
         }
 
         var money = (int)root.GetLong("CurrentMoney_", defaultValue: 0);
-        return new CharacterStats(hunger, thirst, sanity, fatigue, continence, money);
+        return new CharacterStats(hunger, thirst, sanity, fatigue, continence, money, radiation, bodyTemperature);
     }
 
     private static IReadOnlyList<InventoryItemSlot> ReadInventoryArray(IList<FPropertyTag> root, string prefix)

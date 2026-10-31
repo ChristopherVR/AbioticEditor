@@ -26,6 +26,12 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
         => _channel.RequestAsync<object?>("world.set",
             new SetWire(edit.TimeSeconds, edit.Day, edit.Weather, edit.NextWeather), cancellationToken);
 
+    /// <summary>Resets every resettable portal world through the game's own
+    /// <c>ResetVignettes()</c>, which deletes those worlds' saves so they come back fresh.
+    /// Host only.</summary>
+    public Task ResetPortalWorldsAsync(CancellationToken cancellationToken = default)
+        => _channel.RequestAsync<object?>("portals.resetWorlds", payload: null, cancellationToken);
+
     public Task SetMinutesPassedAsync(int minutes, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(minutes);

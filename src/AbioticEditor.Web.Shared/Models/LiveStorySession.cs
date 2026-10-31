@@ -238,6 +238,17 @@ public sealed class LiveStorySession : IWorldStorySession
         Changed?.Invoke();
     }
 
+    // ---------- portal worlds (live only) ----------
+
+    public bool SupportsPortalWorldReset => true;
+
+    public async Task ResetPortalWorldsAsync(CancellationToken cancellationToken = default)
+    {
+        await _worldChannel.ResetPortalWorldsAsync(cancellationToken).ConfigureAwait(false);
+        Status = null;
+        Changed?.Invoke();
+    }
+
     // ---------- world recipes (host capability required) ----------
 
     public bool SupportsRecipes => _unlocks is not null;

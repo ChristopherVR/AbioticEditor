@@ -29,6 +29,9 @@ public sealed class BuffCatalog
 
     public int Count => _byRow.Count;
 
+    /// <summary>Every row in the table.</summary>
+    public IReadOnlyCollection<BuffInfo> All => _byRow.Values;
+
     public BuffInfo? Find(string? row) => row is not null && _byRow.TryGetValue(row, out var info) ? info : null;
 
     public static BuffCatalog LoadFrom(GameAssetProvider provider)

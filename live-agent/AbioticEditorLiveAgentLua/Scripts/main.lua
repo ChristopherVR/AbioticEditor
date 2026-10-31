@@ -361,6 +361,17 @@ handlers["vitals.get"] = function(payload, respond)
                 error("could not read " .. key .. " right now (try again)")
             end
         end
+        -- Radiation and body temperature (CheatConsoleCommands' "No Radiation" and "Perfect
+        -- Temperature" write CurrentRadiation and CurrentBodyTemperature = PreferredBodyTemperature).
+        -- Optional: left out when unreadable, and the editor then hides them rather than write 0.
+        local okRad, radiation = pcall(function() return myPlayer.CurrentRadiation end)
+        local okTemp, temperature = pcall(function() return myPlayer.CurrentBodyTemperature end)
+        local okNormal, normal = pcall(function() return myPlayer.PreferredBodyTemperature end)
+        if okRad and type(radiation) == "number" and okTemp and type(temperature) == "number" then
+            result.radiation = radiation
+            result.bodyTemperature = temperature
+            if okNormal and type(normal) == "number" then result.normalBodyTemperature = normal end
+        end
         return result
     end, respond)
 end
@@ -369,11 +380,21 @@ handlers["vitals.set"] = function(payload, respond)
     runOnGameThread(function()
         local myPlayer = resolvePlayer(payload)
         if not myPlayer then error("player not found") end
-        if payload.hunger ~= nil then myPlayer.CurrentHunger = payload.hunger end
-        if payload.thirst ~= nil then myPlayer.CurrentThirst = payload.thirst end
-        if payload.sanity ~= nil then myPlayer.CurrentSanity = payload.sanity end
-        if payload.fatigue ~= nil then myPlayer.CurrentFatigue = payload.fatigue end
-        if payload.continence ~= nil then myPlayer.CurrentContinence = payload.continence end
+        -- Each stat is followed by its OnRep_ notifier, as CheatConsoleCommands does after every
+        -- direct write (OnRep_CurrentHunger etc.): without it the HUD and a joined guest keep the
+        -- old value until the game next changes it on its own.
+        local function setStat(field, value)
+            if value == nil then return end
+            myPlayer[field] = value
+            pcall(function() myPlayer["OnRep_" .. field](myPlayer) end)
+        end
+        setStat("CurrentHunger", payload.hunger)
+        setStat("CurrentThirst", payload.thirst)
+        setStat("CurrentSanity", payload.sanity)
+        setStat("CurrentFatigue", payload.fatigue)
+        setStat("CurrentContinence", payload.continence)
+        setStat("CurrentRadiation", payload.radiation)
+        setStat("CurrentBodyTemperature", payload.bodyTemperature)
         if payload.money ~= nil then
             -- Mirrors CommandsManager.lua's money command: the RPC keeps server-authoritative
             -- state and other systems in sync, the direct set makes it visible immediately

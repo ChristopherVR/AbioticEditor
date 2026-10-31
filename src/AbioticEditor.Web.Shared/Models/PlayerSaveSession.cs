@@ -10,7 +10,7 @@ namespace AbioticEditor.Web.Models;
 /// A Razor-hosted editing session for one player save.  It deliberately depends only on
 /// Core save types: neither this class nor callers need a native view model.
 /// </summary>
-public sealed class PlayerSaveSession : IPlayerEditorSession
+public sealed class PlayerSaveSession : IPlayerEditorSession, IPlayerEffectsSession
 {
     private readonly PlayerSaveData _data;
     private readonly string _path;
@@ -214,10 +214,45 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
     /// <summary>Lower-case item row names the distillery has seen (<c>ItemsDistilled_</c>).</summary>
     public HashSet<string> ItemsDistilled { get; }
 
-    /// <summary>The character's active effects (<c>CurrentBuffDebuffs_</c>). Effects can be
-    /// removed but not added: the expiry unit is unverified, see
-    /// <see cref="PlayerSaveWriter.ApplyActiveBuffs"/>.</summary>
+    /// <summary>The character's active effects (<c>CurrentBuffDebuffs_</c>). Removals and
+    /// additions stage until SAVE (<see cref="PlayerSaveWriter.ApplyActiveBuffs"/> and
+    /// <see cref="PlayerSaveWriter.AddActiveBuffs"/>).</summary>
     public List<ActiveBuff> ActiveBuffs { get; }
+
+    // ---- IPlayerEffectsSession: a saved timed effect's value is what the game hands back as its
+    // duration on load, so it reads as "seconds left" here. ----
+    public IReadOnlyList<PlayerEffectEdit> Effects => ActiveBuffs
+        .Select(buff => new PlayerEffectEdit(buff.BuffRow, buff.ParentLimb, buff.ExpireTime < 0,
+            buff.ExpireTime > 0 ? buff.ExpireTime : null) { Source = buff })
+        .ToList();
+    public bool CanEditEffects => true;
+    public bool CanAddEffects => true;
+    public bool OnlySavedEffects => true;
+    public bool SupportsDebuffBlocking => false;
+    public bool BlockNewDebuffs => false;
+    public Task SetBlockNewDebuffsAsync(bool enabled) => Task.CompletedTask;
+
+    public Task AddEffectAsync(BuffInfo effect)
+    {
+        ArgumentNullException.ThrowIfNull(effect);
+        // The same limb the writer stores, so the staged entry matches it when SAVE trims the list.
+        ActiveBuffs.Add(new ActiveBuff(effect.Row, "EBodyLimbs::AllBones",
+            effect.NoExpiration || effect.DefaultDuration <= 0 ? -1f : (float)effect.DefaultDuration));
+        MarkChanged();
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveEffectAsync(PlayerEffectEdit effect)
+    {
+        if (effect?.Source is ActiveBuff buff) RemoveActiveBuff(buff);
+        return Task.CompletedTask;
+    }
+
+    public Task ClearDebuffsAsync()
+    {
+        if (ActiveBuffs.RemoveAll(buff => PlayerEffectEdit.IsDebuffRow(buff.BuffRow)) > 0) MarkChanged();
+        return Task.CompletedTask;
+    }
 
     /// <summary>Stages the removal of one active effect.</summary>
     public void RemoveActiveBuff(ActiveBuff buff)
@@ -422,7 +457,7 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         Core.Compatibility.SaveWriteGuard.EnsureWritable(_data.Raw);
         PlayerSaveWriter.ApplyStats(_data, new CharacterStats(
             Vitals.Hunger, Vitals.Thirst, Vitals.Sanity, Vitals.Fatigue, Vitals.Continence,
-            (int)Math.Round(Vitals.Money)));
+            (int)Math.Round(Vitals.Money), Vitals.Radiation, Vitals.BodyTemperature));
         PlayerSaveWriter.ApplyLimbHealth(_data, new LimbHealth(
             Vitals.Head, Vitals.Torso, Vitals.LeftArm, Vitals.RightArm, Vitals.LeftLeg, Vitals.RightLeg));
         PlayerSaveWriter.ApplySkills(_data, Skills.Select(skill => skill.ToPlayerSkill()).ToList());
@@ -441,7 +476,15 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
                 .Where(id => !kept.Contains(id, StringComparer.OrdinalIgnoreCase))
                 .OrderBy(id => id, StringComparer.Ordinal)).ToList());
         }
-        if (!ActiveBuffs.SequenceEqual(_originalActiveBuffs)) PlayerSaveWriter.ApplyActiveBuffs(_data, ActiveBuffs);
+        if (!ActiveBuffs.SequenceEqual(_originalActiveBuffs))
+        {
+            // Add first, then trim to the staged list: trimming first could drop the whole list
+            // (when every original was removed), and a newer-format save cannot recreate it.
+            var added = new List<ActiveBuff>(ActiveBuffs);
+            foreach (var original in _originalActiveBuffs) added.Remove(original);
+            PlayerSaveWriter.AddActiveBuffs(_data, added);
+            PlayerSaveWriter.ApplyActiveBuffs(_data, ActiveBuffs);
+        }
         PlayerSaveWriter.ApplyMapsUnlocked(_data, MapsUnlocked.OrderBy(id => id, StringComparer.Ordinal).ToList());
         PlayerSaveWriter.ApplyInventory(_data, new PlayerInventory(
             Equipment.Select(slot => slot.ToInventorySlot()).ToList(),
@@ -892,13 +935,15 @@ public sealed class PlayerSaveSession : IPlayerEditorSession
         Fatigue = data.Stats.Fatigue, Continence = data.Stats.Continence, Money = data.Stats.Money,
         Head = data.Health.Head, Torso = data.Health.Torso, LeftArm = data.Health.LeftArm,
         RightArm = data.Health.RightArm, LeftLeg = data.Health.LeftLeg, RightLeg = data.Health.RightLeg,
+        Radiation = data.Stats.Radiation, BodyTemperature = data.Stats.BodyTemperature,
     };
 
     private static bool SameVitals(PlayerVitals left, PlayerVitals right) =>
         left.Hunger == right.Hunger && left.Thirst == right.Thirst && left.Sanity == right.Sanity
         && left.Fatigue == right.Fatigue && left.Continence == right.Continence && left.Money == right.Money
         && left.Head == right.Head && left.Torso == right.Torso && left.LeftArm == right.LeftArm
-        && left.RightArm == right.RightArm && left.LeftLeg == right.LeftLeg && left.RightLeg == right.RightLeg;
+        && left.RightArm == right.RightArm && left.LeftLeg == right.LeftLeg && left.RightLeg == right.RightLeg
+        && left.Radiation == right.Radiation && left.BodyTemperature == right.BodyTemperature;
 
     private static SkillDefinition SkillDefinitionFor(int index)
         => SkillCatalog.WithUnknownPlaceholders(SkillCatalog.Fallback, index + 1)[index];

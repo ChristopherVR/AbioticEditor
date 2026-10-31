@@ -2309,6 +2309,17 @@ button.ws-recipe-open:hover strong{text-decoration:underline}
 /* Active effects list (VITALS) */
 .effects-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .effects-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:6px}
+.effects-list li>span{min-width:0;overflow-wrap:anywhere}
+.effects-list li>span>small{margin-left:8px}
+.effects-block{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.effects-add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.effects-add select{flex:1 1 220px;min-width:0}
+.vital-slider.body-temperature input[type=number]{width:100%;min-width:0}
+.vital-slider.body-temperature button{padding-inline:6px}
+
+/* Live survival toggles (VITALS) */
+.toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 16px}
+.toggle-grid label{display:flex;align-items:center;gap:8px}
 
 /* List rows highlight and select; they never zoom or flash. The global button rules scale every
    button on hover and paint it orange while pressed, which made a story event or a ground item

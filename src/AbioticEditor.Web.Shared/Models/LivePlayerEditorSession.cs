@@ -21,6 +21,8 @@ namespace AbioticEditor.Web.Models;
 public sealed class LivePlayerEditorSession : IPlayerEditorSession
 {
     public IPlayerVitalsSession? VitalsSession { get; set; }
+    /// <summary>Effects and survival toggles for the Vitals tab; read alongside vitals.</summary>
+    public LivePlayerConditionsSession? ConditionsSession { get; set; }
     public IPlayerSkillsSession? SkillsSession { get; set; }
     public IPlayerSpawnSession? SpawnSession { get; set; }
     public IPlayerCompanionsSession? CompanionsSession { get; set; }

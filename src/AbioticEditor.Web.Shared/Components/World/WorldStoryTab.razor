@@ -102,6 +102,27 @@
                         <p class="muted">@L.Resource("LiveWorld_WeatherHelp")</p>
                     </div>
                 }
+                @if (Session.SupportsPortalWorldReset)
+                {
+                    <div class="live-world-block">
+                        <h4 class="live-inventory-group">@L.Resource("LiveWorld_PortalWorlds")</h4>
+                        @if (_confirmPortalReset)
+                        {
+                            <p class="live-world-readout">@L.Resource("LiveWorld_ResetPortalWorldsConfirm")</p>
+                            <div class="live-inventory-controls live-world-controls">
+                                <button class="secondary" type="button" disabled="@_busy" @onclick="ResetPortalWorldsAsync">@L.Resource("LiveWorld_ResetPortalWorldsYes")</button>
+                                <button class="secondary" type="button" disabled="@_busy" @onclick="() => _confirmPortalReset = false">@L.Resource("LiveWorld_ResetPortalWorldsCancel")</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="live-inventory-controls live-world-controls">
+                                <button class="secondary" type="button" disabled="@(!Session.IsHost || _busy)" @onclick="() => _confirmPortalReset = true">@L.Resource("LiveWorld_ResetPortalWorlds")</button>
+                            </div>
+                        }
+                        <p class="muted">@L.Resource("LiveWorld_ResetPortalWorldsHelp")</p>
+                    </div>
+                }
             </div>
 
             <div class="wm-divider" role="presentation"></div>
@@ -919,6 +940,9 @@
     private Task TriggerWeatherAsync() => RunAsync(() => Session.TriggerWeatherAsync(_weather));
 
     private Task QueueWeatherAsync() => RunAsync(() => Session.QueueWeatherAsync(_weather));
+
+    private bool _confirmPortalReset;
+    private Task ResetPortalWorldsAsync() => RunAsync(async () => { _confirmPortalReset = false; await Session.ResetPortalWorldsAsync(); });
 
     // ---------- world recipes browser (native GlobalRecipeBrowser; file editor only) ----------
 

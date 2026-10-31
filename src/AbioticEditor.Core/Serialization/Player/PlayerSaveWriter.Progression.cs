@@ -104,11 +104,10 @@ public static partial class PlayerSaveWriter
 
     /// <summary>
     /// Removes active effects (<c>CurrentBuffDebuffs_</c>) so only <paramref name="keep"/> remain.
-    /// Removal only: the entries that stay are the game's own untouched structs. When nothing is
-    /// kept the whole struct is dropped, which is how the game stores a character with no
-    /// effects (it delta-serializes an empty list away). Adding an effect is deliberately not
-    /// supported: the unit of <c>BuffExpireTime</c> is unverified, and a wrong value either
-    /// removes the effect instantly or makes it permanent.
+    /// The entries that stay are the game's own untouched structs. When nothing is kept the whole
+    /// struct is dropped, which is how the game stores a character with no effects (it
+    /// delta-serializes an empty list away). Entries in <paramref name="keep"/> that the save
+    /// does not have are ignored here; <see cref="AddActiveBuffs"/> adds those.
     /// </summary>
     public static bool ApplyActiveBuffs(PlayerSaveData data, IReadOnlyList<ActiveBuff> keep)
     {
@@ -147,6 +146,96 @@ public static partial class PlayerSaveWriter
         for (var i = 0; i < kept.Count; i++) rebuilt.SetValue(kept[i], i);
         array.Value = rebuilt;
         return true;
+    }
+
+    /// <summary>
+    /// Appends active effects to <c>CurrentBuffDebuffs_</c>, creating the list when the
+    /// character has none. <see cref="ActiveBuff.ExpireTime"/> is what the game reads back as the
+    /// effect's duration when the save loads: <c>Apply Save Data to Character</c> passes every
+    /// saved entry to <c>Server_ApplyBuff(BuffRow, bOverrideDefaultDuration: true,
+    /// NewDuration: BuffExpireTime, Limb: ParentLimb)</c>, so a number of seconds lasts that long
+    /// and -1 is how permanent effects are stored. A null <see cref="ActiveBuff.ParentLimb"/>
+    /// becomes <c>EBodyLimbs::AllBones</c>, the limb every saved entry in the fixtures carries.
+    /// A missing list is created in the save's own layout: older saves wrap it in
+    /// <c>BuffSave_Struct</c>, native 1.5 saves keep a plain <c>ActiveBuffs</c> list of the same
+    /// <c>BuffDebuffEntry</c> struct (from the game's usmap: <c>AbioticCharacterSaveData.ActiveBuffs</c>).
+    /// Returns false (and changes nothing) when there is nothing to add.
+    /// </summary>
+    public static bool AddActiveBuffs(PlayerSaveData data, IReadOnlyList<ActiveBuff> add)
+    {
+        var toAdd = add.Where(b => !string.IsNullOrWhiteSpace(b.BuffRow)).ToList();
+        if (toAdd.Count == 0) return false;
+        var root = PlayerSaveReader.GetCharacterSaveData(data.Raw);
+        var tag = root.FindByPrefix("ActiveBuffs") ?? root.FindByPrefix("CurrentBuffDebuffs_");
+        var listTag = tag?.Property is ArrayProperty ? tag : null;
+        if (listTag is null && tag?.Property is StructProperty { Value: PropertiesStruct ps })
+            listTag = ps.Properties.FindByPrefix("Buffs_");
+        var array = listTag?.Property as ArrayProperty;
+        var arrayName = listTag?.Name;
+        if (array is null || arrayName is null)
+        {
+            if (tag is not null) return false;
+            (arrayName, array) = NativeSaveSchema.IsNative(root) ? CreateNativeBuffList(root) : CreateLegacyBuffList(root);
+        }
+
+        var items = new List<FProperty>(array.Value?.Cast<FProperty>() ?? []);
+        foreach (var buff in toAdd) items.Add(NewBuffEntry(arrayName, buff));
+        array.Value = items.ToArray();
+        return true;
+    }
+
+    private static readonly FPropertyTypeName BuffEntryStruct =
+        new(new FString("BuffDebuffEntry"), [new(new FString("/Script/AbioticFactor"))]);
+
+    private static (FString Name, ArrayProperty Array) CreateNativeBuffList(IList<FPropertyTag> root)
+    {
+        var element = new FPropertyTypeName(new FString(nameof(StructProperty)), [BuffEntryStruct]);
+        var name = new FString("ActiveBuffs");
+        var array = new ArrayProperty(name, element) { Value = Array.Empty<FProperty>() };
+        root.Add(new FPropertyTag(name, new FPropertyTypeName(new FString(nameof(ArrayProperty)), [element]), EPropertyTagFlags.None) { Property = array });
+        return (name, array);
+    }
+
+    // Verbatim from the Cascade fixtures: the BuffSave_Struct wrapper, its GUID and its array.
+    private static (FString Name, ArrayProperty Array) CreateLegacyBuffList(IList<FPropertyTag> root)
+    {
+        var saveStruct = new FPropertyTypeName(new FString("BuffSave_Struct"), [new(new FString("/Game/Blueprints/Data/BuffSave_Struct"))]);
+        var guid = Guid.Parse("3e5e56f6-4c57-5051-a9a6-8db56aae58a8");
+        var element = new FPropertyTypeName(new FString(nameof(StructProperty)), [BuffEntryStruct]);
+        var arrayName = new FString(FullNames.Buffs);
+        var array = new ArrayProperty(arrayName, element) { Value = Array.Empty<FProperty>() };
+        var body = new PropertiesStruct { Properties = new List<FPropertyTag>
+        {
+            new(arrayName, new FPropertyTypeName(new FString(nameof(ArrayProperty)), [element]), EPropertyTagFlags.None) { Property = array },
+        } };
+        var name = new FString(FullNames.CurrentBuffDebuffs);
+        var wrapper = new StructProperty(name) { StructType = saveStruct, StructGuid = guid, Value = body };
+        var tagType = new FPropertyTypeName(new FString(nameof(StructProperty)), [saveStruct, new(new FString(guid.ToString()))]);
+        root.Add(new FPropertyTag(name, tagType, EPropertyTagFlags.None) { Property = wrapper });
+        return (arrayName, array);
+    }
+
+    private static StructProperty NewBuffEntry(FString arrayName, ActiveBuff buff)
+    {
+        var module = new FPropertyTypeName(new FString("/Script/AbioticFactor"));
+        var handleType = new FPropertyTypeName(new FString("BuffDebuffRowHandle"), [module]);
+        var handleBody = new PropertiesStruct { Properties = new List<FPropertyTag>() };
+        SetName(handleBody.Properties, "RowName", buff.BuffRow, "RowName");
+        var handleName = new FString("BuffRow");
+        var handle = new StructProperty(handleName) { StructType = handleType, StructGuid = Guid.Empty, Value = handleBody };
+
+        var enumType = new FPropertyTypeName(new FString("EBodyLimbs"), [module]);
+        var limbName = new FString("ParentLimb");
+        var limb = new EnumProperty(limbName, enumType) { Value = new FString(buff.ParentLimb ?? "EBodyLimbs::AllBones") };
+        var limbTagType = new FPropertyTypeName(new FString(nameof(EnumProperty)), [enumType, new(new FString(nameof(ByteProperty)))]);
+
+        var body = new PropertiesStruct { Properties = new List<FPropertyTag>
+        {
+            new(handleName, new FPropertyTypeName(new FString(nameof(StructProperty)), [handleType]), EPropertyTagFlags.None) { Property = handle },
+            new(limbName, limbTagType, EPropertyTagFlags.None) { Property = limb },
+        } };
+        SetFloat(body.Properties, "BuffExpireTime", buff.ExpireTime, "BuffExpireTime");
+        return new StructProperty(arrayName) { StructType = BuffEntryStruct, StructGuid = Guid.Empty, Value = body };
     }
 
     /// <summary>Replaces the <c>MapsUnlocked_</c> name array (DT_MapPamphlets rows).</summary>

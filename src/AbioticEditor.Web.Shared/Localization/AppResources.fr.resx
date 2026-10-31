@@ -10,6 +10,48 @@
   <data name="Language_Continue" xml:space="preserve"><value>CONTINUER</value></data>
   <data name="Language_SystemDefault" xml:space="preserve"><value>Par défaut du système</value></data>
 
+  <data name="LiveWorld_PortalWorlds" xml:space="preserve"><value>Mondes des portails</value></data>
+  <data name="LiveWorld_ResetPortalWorlds" xml:space="preserve"><value>Réinitialiser les mondes des portails</value></data>
+  <data name="LiveWorld_ResetPortalWorldsCancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="LiveWorld_ResetPortalWorldsConfirm" xml:space="preserve"><value>Réinitialiser maintenant tous les mondes des portails ? Tout ce que vous y avez laissé ou construit sera perdu.</value></data>
+  <data name="LiveWorld_ResetPortalWorldsHelp" xml:space="preserve"><value>Remet chaque monde de portail réinitialisable à son état de départ : butin, ennemis et ressources reviennent. Le jeu le fait lui-même en effaçant les sauvegardes de ces mondes.</value></data>
+  <data name="LiveWorld_ResetPortalWorldsYes" xml:space="preserve"><value>Oui, réinitialiser</value></data>
+  <data name="PlayerInventory_RepairAll" xml:space="preserve"><value>Tout réparer</value></data>
+  <data name="PlayerInventory_RepairAllTooltip" xml:space="preserve"><value>Remet à pleine durabilité chaque objet usé de l'équipement, de la barre rapide et du sac.</value></data>
+  <data name="PlayerVitals_AddEffect" xml:space="preserve"><value>Ajouter</value></data>
+  <data name="PlayerVitals_AddEffectPlaceholder" xml:space="preserve"><value>Choisir un effet à ajouter</value></data>
+  <data name="PlayerVitals_BlockDebuffs" xml:space="preserve"><value>Bloquer les nouveaux malus</value></data>
+  <data name="PlayerVitals_BlockDebuffsTooltip" xml:space="preserve"><value>Tant que c'est actif, les nouveaux malus comme saignement, os cassés ou poison disparaissent aussitôt. L'activer retire aussi ceux en cours. Dure jusqu'à ce que vous quittiez le monde.</value></data>
+  <data name="PlayerVitals_BodyTemperature" xml:space="preserve"><value>TEMPÉRATURE CORPORELLE</value></data>
+  <data name="PlayerVitals_BodyTemperatureTooltip" xml:space="preserve"><value>À quel point le personnage a froid ou chaud. Normal est confortable ; plus bas est plus froid, plus haut est plus chaud.</value></data>
+  <data name="PlayerVitals_EffectMinutesLeft" xml:space="preserve"><value>encore environ {0} min</value></data>
+  <data name="PlayerVitals_EffectPermanent" xml:space="preserve"><value>reste jusqu'au retrait</value></data>
+  <data name="PlayerVitals_EffectSecondsLeft" xml:space="preserve"><value>encore {0} s</value></data>
+  <data name="PlayerVitals_EffectTimed" xml:space="preserve"><value>temporaire</value></data>
+  <data name="PlayerVitals_EffectUnknownRow" xml:space="preserve"><value>absent de cette version du jeu</value></data>
+  <data name="PlayerVitals_EffectsHelpFile" xml:space="preserve"><value>Bonus et malus du personnage. Les modifications sont écrites à l'enregistrement.</value></data>
+  <data name="PlayerVitals_EffectsHelpLive" xml:space="preserve"><value>Bonus et malus actuels du personnage. Les modifications s'appliquent tout de suite dans le jeu.</value></data>
+  <data name="PlayerVitals_EffectsNotHost" xml:space="preserve"><value>Seul l'hôte peut modifier ceci.</value></data>
+  <data name="PlayerVitals_EffectsTitle" xml:space="preserve"><value>Effets actifs</value></data>
+  <data name="PlayerVitals_NormalTemperature" xml:space="preserve"><value>Normale</value></data>
+  <data name="PlayerVitals_Radiation" xml:space="preserve"><value>RADIATION</value></data>
+  <data name="PlayerVitals_RadiationTooltip" xml:space="preserve"><value>Radiation absorbée par le personnage. 0 signifie aucune ; ramenez-la à 0 pour soigner le mal des rayons.</value></data>
+  <data name="PlayerVitals_RemoveAllDebuffs" xml:space="preserve"><value>Retirer tous les malus</value></data>
+  <data name="PlayerVitals_RemoveEffect" xml:space="preserve"><value>Retirer</value></data>
+  <data name="PlayerVitals_Toggle_infiniteOxygen" xml:space="preserve"><value>Respirer sous l'eau</value></data>
+  <data name="PlayerVitals_Toggle_infiniteStamina" xml:space="preserve"><value>Endurance infinie</value></data>
+  <data name="PlayerVitals_Toggle_invincible" xml:space="preserve"><value>Invincible</value></data>
+  <data name="PlayerVitals_Toggle_masterKey" xml:space="preserve"><value>Passe-partout (ouvre toutes les portes)</value></data>
+  <data name="PlayerVitals_Toggle_noContinence" xml:space="preserve"><value>Pas besoin des toilettes</value></data>
+  <data name="PlayerVitals_Toggle_noFallDamage" xml:space="preserve"><value>Pas de dégâts de chute</value></data>
+  <data name="PlayerVitals_Toggle_noFatigue" xml:space="preserve"><value>Pas de fatigue</value></data>
+  <data name="PlayerVitals_Toggle_noHunger" xml:space="preserve"><value>Pas de faim</value></data>
+  <data name="PlayerVitals_Toggle_noRadiation" xml:space="preserve"><value>Pas de radiation</value></data>
+  <data name="PlayerVitals_Toggle_noThirst" xml:space="preserve"><value>Pas de soif</value></data>
+  <data name="PlayerVitals_Toggle_perfectTemperature" xml:space="preserve"><value>Température confortable</value></data>
+  <data name="PlayerVitals_Toggle_untargetable" xml:space="preserve"><value>Les ennemis vous ignorent</value></data>
+  <data name="PlayerVitals_TogglesHelp" xml:space="preserve"><value>Options pour la partie en cours. Elles durent jusqu'à ce que vous quittiez le monde et ne sont jamais enregistrées.</value></data>
+  <data name="PlayerVitals_TogglesTitle" xml:space="preserve"><value>Options de survie</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>PARAMÈTRES</value></data>
   <data name="Settings_Theme" xml:space="preserve"><value>THÈME</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>LANGUE</value></data>

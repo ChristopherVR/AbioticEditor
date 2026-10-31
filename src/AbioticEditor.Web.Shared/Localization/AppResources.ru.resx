@@ -10,6 +10,48 @@
   <data name="Language_Continue" xml:space="preserve"><value>ПРОДОЛЖИТЬ</value></data>
   <data name="Language_SystemDefault" xml:space="preserve"><value>Системный по умолчанию</value></data>
 
+  <data name="LiveWorld_PortalWorlds" xml:space="preserve"><value>Миры порталов</value></data>
+  <data name="LiveWorld_ResetPortalWorlds" xml:space="preserve"><value>Сбросить миры порталов</value></data>
+  <data name="LiveWorld_ResetPortalWorldsCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="LiveWorld_ResetPortalWorldsConfirm" xml:space="preserve"><value>Сбросить все миры порталов сейчас? Всё, что вы там оставили или построили, пропадёт.</value></data>
+  <data name="LiveWorld_ResetPortalWorldsHelp" xml:space="preserve"><value>Возвращает каждый сбрасываемый мир портала в исходное состояние: добыча, враги и ресурсы появляются снова. Игра делает это сама, удаляя сохранения этих миров.</value></data>
+  <data name="LiveWorld_ResetPortalWorldsYes" xml:space="preserve"><value>Да, сбросить</value></data>
+  <data name="PlayerInventory_RepairAll" xml:space="preserve"><value>Починить всё</value></data>
+  <data name="PlayerInventory_RepairAllTooltip" xml:space="preserve"><value>Восстанавливает полную прочность всех изношенных предметов в снаряжении, на панели и в рюкзаке.</value></data>
+  <data name="PlayerVitals_AddEffect" xml:space="preserve"><value>Добавить</value></data>
+  <data name="PlayerVitals_AddEffectPlaceholder" xml:space="preserve"><value>Выберите эффект</value></data>
+  <data name="PlayerVitals_BlockDebuffs" xml:space="preserve"><value>Блокировать новые отрицательные эффекты</value></data>
+  <data name="PlayerVitals_BlockDebuffsTooltip" xml:space="preserve"><value>Пока включено, новые отрицательные эффекты (кровотечение, переломы, яд) сразу проходят. При включении убираются и текущие. Действует, пока вы не выйдете из мира.</value></data>
+  <data name="PlayerVitals_BodyTemperature" xml:space="preserve"><value>ТЕМПЕРАТУРА ТЕЛА</value></data>
+  <data name="PlayerVitals_BodyTemperatureTooltip" xml:space="preserve"><value>Насколько персонажу холодно или жарко. Норма комфортна; ниже холоднее, выше жарче.</value></data>
+  <data name="PlayerVitals_EffectMinutesLeft" xml:space="preserve"><value>осталось около {0} мин</value></data>
+  <data name="PlayerVitals_EffectPermanent" xml:space="preserve"><value>до снятия</value></data>
+  <data name="PlayerVitals_EffectSecondsLeft" xml:space="preserve"><value>осталось {0} с</value></data>
+  <data name="PlayerVitals_EffectTimed" xml:space="preserve"><value>временный</value></data>
+  <data name="PlayerVitals_EffectUnknownRow" xml:space="preserve"><value>нет в этой версии игры</value></data>
+  <data name="PlayerVitals_EffectsHelpFile" xml:space="preserve"><value>Положительные и отрицательные эффекты персонажа. Изменения записываются при сохранении.</value></data>
+  <data name="PlayerVitals_EffectsHelpLive" xml:space="preserve"><value>Эффекты, которые сейчас есть у персонажа. Изменения сразу применяются в игре.</value></data>
+  <data name="PlayerVitals_EffectsNotHost" xml:space="preserve"><value>Изменять это может только хост.</value></data>
+  <data name="PlayerVitals_EffectsTitle" xml:space="preserve"><value>Активные эффекты</value></data>
+  <data name="PlayerVitals_NormalTemperature" xml:space="preserve"><value>Норма</value></data>
+  <data name="PlayerVitals_Radiation" xml:space="preserve"><value>РАДИАЦИЯ</value></data>
+  <data name="PlayerVitals_RadiationTooltip" xml:space="preserve"><value>Радиация, накопленная персонажем. 0 значит нет; сдвиньте к 0, чтобы убрать лучевую болезнь.</value></data>
+  <data name="PlayerVitals_RemoveAllDebuffs" xml:space="preserve"><value>Убрать все отрицательные эффекты</value></data>
+  <data name="PlayerVitals_RemoveEffect" xml:space="preserve"><value>Убрать</value></data>
+  <data name="PlayerVitals_Toggle_infiniteOxygen" xml:space="preserve"><value>Дыхание под водой</value></data>
+  <data name="PlayerVitals_Toggle_infiniteStamina" xml:space="preserve"><value>Бесконечная выносливость</value></data>
+  <data name="PlayerVitals_Toggle_invincible" xml:space="preserve"><value>Неуязвимость</value></data>
+  <data name="PlayerVitals_Toggle_masterKey" xml:space="preserve"><value>Мастер-ключ (открывает все двери)</value></data>
+  <data name="PlayerVitals_Toggle_noContinence" xml:space="preserve"><value>Без похода в туалет</value></data>
+  <data name="PlayerVitals_Toggle_noFallDamage" xml:space="preserve"><value>Без урона от падения</value></data>
+  <data name="PlayerVitals_Toggle_noFatigue" xml:space="preserve"><value>Без усталости</value></data>
+  <data name="PlayerVitals_Toggle_noHunger" xml:space="preserve"><value>Без голода</value></data>
+  <data name="PlayerVitals_Toggle_noRadiation" xml:space="preserve"><value>Без радиации</value></data>
+  <data name="PlayerVitals_Toggle_noThirst" xml:space="preserve"><value>Без жажды</value></data>
+  <data name="PlayerVitals_Toggle_perfectTemperature" xml:space="preserve"><value>Комфортная температура</value></data>
+  <data name="PlayerVitals_Toggle_untargetable" xml:space="preserve"><value>Враги не замечают</value></data>
+  <data name="PlayerVitals_TogglesHelp" xml:space="preserve"><value>Переключатели для текущей игры. Действуют, пока вы не выйдете из мира, и не сохраняются.</value></data>
+  <data name="PlayerVitals_TogglesTitle" xml:space="preserve"><value>Переключатели выживания</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>НАСТРОЙКИ</value></data>
   <data name="Settings_Theme" xml:space="preserve"><value>ТЕМА</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>ЯЗЫК</value></data>

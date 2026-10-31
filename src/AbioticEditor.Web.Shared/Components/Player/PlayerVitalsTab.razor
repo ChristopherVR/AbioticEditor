@@ -10,6 +10,11 @@
         <hr class="af-divider" />
         <div class="vital-list">
             <VitalSlider Label="@L.Resource("PlayerVitals_Hunger")" @bind-Value="Vitals.Hunger" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Thirst")" @bind-Value="Vitals.Thirst" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Sanity")" Hint="@L.Resource("PlayerVitals_SanityTooltip")" @bind-Value="Vitals.Sanity" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Fatigue")" Hint="@L.Resource("PlayerVitals_FatigueTooltip")" @bind-Value="Vitals.Fatigue" OnChanged="Changed" /><VitalSlider Label="@L.Resource("PlayerVitals_Continence")" @bind-Value="Vitals.Continence" OnChanged="Changed" />
+            @if (Vitals.HasEnvironmentStats)
+            {
+                <VitalSlider Label="@L.Resource("PlayerVitals_Radiation")" Hint="@L.Resource("PlayerVitals_RadiationTooltip")" @bind-Value="Vitals.Radiation" OnChanged="Changed" />
+                <div class="vital-slider body-temperature"><label for="player-body-temperature">@L.Resource("PlayerVitals_BodyTemperature")<span class="vital-hint" title="@L.Resource("PlayerVitals_BodyTemperatureTooltip")" aria-label="@L.Resource("PlayerVitals_BodyTemperatureTooltip")">&#9432;</span></label><input id="player-body-temperature" type="number" step="0.1" @bind="Vitals.BodyTemperature" @bind:after="Changed" /><button type="button" class="secondary" disabled="@(Vitals.BodyTemperature == Vitals.NormalBodyTemperature)" @onclick="NormalTemperature">@L.Resource("PlayerVitals_NormalTemperature")</button></div>
+            }
         </div>
         <hr class="af-divider" />
         @* No saved/unsaved wording next to the amount: the shell header already says whether
@@ -23,27 +28,38 @@
             <VitalSlider Label="@L.Resource("PlayerVitals_Head")" @bind-Value="Vitals.Head" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_Torso")" @bind-Value="Vitals.Torso" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftArm")" @bind-Value="Vitals.LeftArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightArm")" @bind-Value="Vitals.RightArm" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_LeftLeg")" @bind-Value="Vitals.LeftLeg" OnChanged="Changed" WholeNumbers="true" /><VitalSlider Label="@L.Resource("PlayerVitals_RightLeg")" @bind-Value="Vitals.RightLeg" OnChanged="Changed" WholeNumbers="true" />
         </div>
     </section>
-    @if (FileSession is not null)
+    @if (Effects is not null)
     {
-        <section class="editor-card" aria-label="Active effects">
-            <div class="card-title-row"><span class="amber-field-label">Active effects</span>
-                <button class="heal-all-button" type="button" disabled="@(FileSession.ActiveBuffs.Count == 0)" @onclick="ClearEffects">Clear all</button></div>
-            <p class="muted">Effects the character currently has. You can remove them here; adding new ones is not supported.</p>
-            @if (FileSession.ActiveBuffs.Count == 0)
+        <section class="editor-card effects-card" aria-label="@L.Resource("PlayerVitals_EffectsTitle")">
+            <div class="card-title-row"><span class="amber-field-label">@L.Resource("PlayerVitals_EffectsTitle")</span>
+                <button class="secondary" type="button" disabled="@(!Effects.CanEditEffects || !Effects.Effects.Any(e => e.IsDebuff))" @onclick="ClearDebuffs">@L.Resource("PlayerVitals_RemoveAllDebuffs")</button></div>
+            <p class="muted">@L.Resource(Effects.AppliesImmediately ? "PlayerVitals_EffectsHelpLive" : "PlayerVitals_EffectsHelpFile")@(Effects.CanEditEffects ? "" : " " + L.Resource("PlayerVitals_EffectsNotHost"))</p>
+            @if (Effects.SupportsDebuffBlocking)
+            {
+                <label class="effects-block" title="@L.Resource("PlayerVitals_BlockDebuffsTooltip")"><input type="checkbox" checked="@Effects.BlockNewDebuffs" disabled="@(!Effects.CanEditEffects)" @onchange="BlockChanged" /> @L.Resource("PlayerVitals_BlockDebuffs")<span class="vital-hint" aria-label="@L.Resource("PlayerVitals_BlockDebuffsTooltip")">&#9432;</span></label>
+            }
+            @if (Effects.Effects.Count == 0)
             {
                 <p>-</p>
             }
             else
             {
                 <ul class="effects-list">
-                    @foreach (var buff in FileSession.ActiveBuffs.ToArray())
+                    @foreach (var effect in Effects.Effects)
                     {
-                        var info = _buffs.Find(buff.BuffRow);
-                        <li><span>@(info is { DisplayName.Length: > 0 } ? info.DisplayName : AbioticEditor.Web.Components.Shared.PlainNames.Words(buff.BuffRow))<small class="muted"> @BuffDetail(buff, info)</small></span>
-                            <button type="button" class="secondary" @onclick="() => RemoveEffect(buff)">Remove</button></li>
+                        var info = _buffs.Find(effect.Row);
+                        <li><span>@(info is { DisplayName.Length: > 0 } ? info.DisplayName : AbioticEditor.Web.Components.Shared.PlainNames.Words(effect.Row))<small class="muted"> @EffectDetail(effect, info)</small></span>
+                            <button type="button" class="secondary" disabled="@(!Effects.CanEditEffects)" @onclick="() => RemoveEffect(effect)">@L.Resource("PlayerVitals_RemoveEffect")</button></li>
                     }
                 </ul>
             }
+            @if (Effects.CanEditEffects && Effects.CanAddEffects)
+            {
+                <div class="effects-add"><select aria-label="@L.Resource("PlayerVitals_AddEffectPlaceholder")" @bind="_addRow"><option value="">@L.Resource("PlayerVitals_AddEffectPlaceholder")</option>
+                    @foreach (var choice in AddChoices()) { <option value="@choice.Row">@choice.DisplayName</option> }
+                </select><button type="button" class="secondary" disabled="@string.IsNullOrEmpty(_addRow)" @onclick="AddEffect">@L.Resource("PlayerVitals_AddEffect")</button></div>
+            }
+            @if (_effectError is not null) { <p class="error-text" role="alert">@_effectError</p> }
         </section>
     }
     else if (Saved is not null)
@@ -54,12 +70,58 @@
             <p>@(Saved.ActiveBuffs.Count == 0 ? "-" : string.Join(", ", Saved.ActiveBuffs.Select(buff => buff.BuffRow)))</p>
         </section>
     }
-</div>
-@code { private AbioticEditor.Core.PlayerSaves.BuffCatalog _buffs = AbioticEditor.Core.PlayerSaves.BuffCatalog.Empty; protected override async Task OnInitializedAsync() { _buffs = BuffData.TryGet(out var loaded) ? loaded : await Task.Run(BuffData.Get); }
-    /// <summary>Row name plus how long is left: -1 means it stays until removed; a timed effect stores a clock value whose zero point is unverified, so it is shown as timed rather than as a countdown. A row the current game no longer has is called out.</summary>
-    private string BuffDetail(AbioticEditor.Core.PlayerSaves.ActiveBuff buff, AbioticEditor.Core.PlayerSaves.BuffInfo? info)
+    @if (Toggles is { Toggles.Count: > 0 })
     {
-        var kind = buff.ExpireTime < 0 ? "stays until removed" : "timed";
-        return info is null && _buffs.Count > 0 ? $"{buff.BuffRow} - {kind}, not in this game version" : $"{buff.BuffRow} - {kind}";
+        <section class="editor-card toggles-card" aria-label="@L.Resource("PlayerVitals_TogglesTitle")">
+            <span class="amber-field-label">@L.Resource("PlayerVitals_TogglesTitle")</span>
+            <p class="muted">@L.Resource("PlayerVitals_TogglesHelp")@(Toggles.CanEditToggles ? "" : " " + L.Resource("PlayerVitals_EffectsNotHost"))</p>
+            <div class="toggle-grid">
+                @foreach (var name in AbioticEditor.Core.LiveEditing.Player.LiveSurvivalToggles.All.Where(Toggles.Toggles.ContainsKey))
+                {
+                    <label><input type="checkbox" checked="@Toggles.Toggles[name]" disabled="@(!Toggles.CanEditToggles)" @onchange="change => ToggleChanged(name, change)" /> @L.Resource("PlayerVitals_Toggle_" + name)</label>
+                }
+            </div>
+            @if (_toggleError is not null) { <p class="error-text" role="alert">@_toggleError</p> }
+        </section>
     }
-    [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new(); [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; } [Parameter] public AbioticEditor.Web.Models.PlayerSaveSession? FileSession { get; set; } [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; } private Task Changed() => OnChanged.InvokeAsync(Vitals); private async Task RemoveEffect(AbioticEditor.Core.PlayerSaves.ActiveBuff buff) { FileSession?.RemoveActiveBuff(buff); await Changed(); } private async Task ClearEffects() { FileSession?.ClearActiveBuffs(); await Changed(); } private async Task HealAll() { Vitals.HealAll(); await Changed(); } }
+</div>
+@code { private AbioticEditor.Core.PlayerSaves.BuffCatalog _buffs = AbioticEditor.Core.PlayerSaves.BuffCatalog.Empty; private string _addRow = string.Empty; private string? _effectError; private string? _toggleError;
+    protected override async Task OnInitializedAsync() { _buffs = BuffData.TryGet(out var loaded) ? loaded : await Task.Run(BuffData.Get); }
+    [Parameter, EditorRequired] public PlayerVitals Vitals { get; set; } = new();
+    [Parameter] public AbioticEditor.Core.PlayerSaves.PlayerSaveData? Saved { get; set; }
+    [Parameter] public IPlayerEffectsSession? Effects { get; set; }
+    [Parameter] public IPlayerTogglesSession? Toggles { get; set; }
+    [Parameter] public EventCallback<PlayerVitals> OnChanged { get; set; }
+
+    /// <summary>Limb, how long is left, and a note when the current game no longer has the row.</summary>
+    private string EffectDetail(PlayerEffectEdit effect, AbioticEditor.Core.PlayerSaves.BuffInfo? info)
+    {
+        var parts = new List<string> { effect.Row };
+        if (effect.Limb is { } limb && !limb.EndsWith("AllBones", StringComparison.Ordinal)) parts.Add(AbioticEditor.Web.Components.Shared.PlainNames.Words(limb.Split("::")[^1]));
+        parts.Add(effect.Permanent ? L.Resource("PlayerVitals_EffectPermanent")
+            : effect.SecondsLeft is { } left ? (left >= 90 ? L.Resource("PlayerVitals_EffectMinutesLeft", Math.Round(left / 60)) : L.Resource("PlayerVitals_EffectSecondsLeft", Math.Round(left)))
+            : L.Resource("PlayerVitals_EffectTimed"));
+        if (info is null && _buffs.Count > 0) parts.Add(L.Resource("PlayerVitals_EffectUnknownRow"));
+        return string.Join(" - ", parts);
+    }
+
+    /// <summary>Named effects that can be given: ones that last a known time or stay, and in a file only ones the game keeps in saves.</summary>
+    private IEnumerable<AbioticEditor.Core.PlayerSaves.BuffInfo> AddChoices() => _buffs.All
+        .Where(b => b.DisplayName.Length > 0 && (b.NoExpiration || b.DefaultDuration > 0) && (Effects?.OnlySavedEffects != true || b.IsSaved))
+        .OrderBy(b => b.DisplayName, StringComparer.CurrentCultureIgnoreCase);
+
+    private Task Changed() => OnChanged.InvokeAsync(Vitals);
+    private async Task RunEffect(Func<Task> action) { _effectError = null; try { await action(); await Changed(); } catch (Exception exception) { _effectError = Errors.Present(exception, "Change this character's effects.", "Try reconnecting to the game."); } }
+    private Task RemoveEffect(PlayerEffectEdit effect) => RunEffect(() => Effects!.RemoveEffectAsync(effect));
+    private Task ClearDebuffs() => RunEffect(() => Effects!.ClearDebuffsAsync());
+    private Task BlockChanged(ChangeEventArgs change) => RunEffect(() => Effects!.SetBlockNewDebuffsAsync(change.Value is true));
+    private Task AddEffect() => RunEffect(async () => { if (_buffs.Find(_addRow) is { } info) await Effects!.AddEffectAsync(info); _addRow = string.Empty; });
+    private async Task ToggleChanged(string name, ChangeEventArgs change)
+    {
+        _toggleError = null;
+        try { await Toggles!.SetToggleAsync(name, change.Value is true); await Changed(); }
+        catch (Exception exception) { _toggleError = Errors.Present(exception, "Change this survival toggle.", "Try reconnecting to the game."); }
+    }
+    private async Task HealAll() { Vitals.HealAll(); await Changed(); }
+    private async Task NormalTemperature() { Vitals.BodyTemperature = Vitals.NormalBodyTemperature; await Changed(); }
+}
