@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.33.0] - 2026-10-31
+
+### Features
+- The editor now shows which mod everything comes from, including mod traders, companions and jobs
+
+
 ## [2.32.0] - 2026-10-31
 
 ### Features
