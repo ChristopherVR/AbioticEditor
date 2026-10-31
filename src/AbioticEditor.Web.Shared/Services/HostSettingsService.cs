@@ -21,9 +21,12 @@ public sealed class HostSettingsService
     private readonly ILogger<HostSettingsService> _logger;
     private bool _pluginsLoaded;
 
+    private readonly TraderVocabularyService _traders;
+    private readonly ItemCatalogService _items;
+
     public HostSettingsService(RecipeVocabularyService recipes, ProgressionVocabularyService progression, CodexVocabularyService codex,
-        InventoryDismantleService dismantle, HostLanguageService languages, ILogger<HostSettingsService> logger)
-        => (_recipes, _progression, _codex, _dismantle, _languages, _logger) = (recipes, progression, codex, dismantle, languages, logger);
+        InventoryDismantleService dismantle, TraderVocabularyService traders, ItemCatalogService items, HostLanguageService languages, ILogger<HostSettingsService> logger)
+        => (_recipes, _progression, _codex, _dismantle, _traders, _items, _languages, _logger) = (recipes, progression, codex, dismantle, traders, items, languages, logger);
 
     /// <summary>
     /// Whether the installed game's tables read back with the mappings in use. Stays
@@ -136,7 +139,10 @@ public sealed class HostSettingsService
         {
             GameDataGate.Invalidate();
             var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
-            _recipes.Reload(); _progression.Reload(); _codex.Reload(); _dismantle.Reload();
+            // Every catalog a mod can add to is reloaded, traders included: a trader mod switched on
+            // or off must show up or disappear without restarting the editor.
+            _recipes.Reload(); _progression.Reload(); _codex.Reload(); _dismantle.Reload(); _traders.Reload(); _items.ResetModItems();
+            Interlocked.Exchange(ref _modSummaries, null);
             if (provider is null)
             {
                 SetGameDataHealth(GameDataHealthStatus.Healthy);
@@ -163,12 +169,40 @@ public sealed class HostSettingsService
     {
         ModLoadStore.SetPersistedEnabled(enabled);
         GameDataGate.Invalidate();
+        Interlocked.Exchange(ref _modSummaries, null);
     }
     public bool IsModEnabled(string modName) => ModLoadStore.IsModEnabled(modName);
+
+    private IReadOnlyDictionary<string, AbioticEditor.Core.Compatibility.ModContentSummary>? _modSummaries;
+
+    /// <summary>
+    /// What each loaded mod brings (new traders, jobs, items, changed stock...), keyed by mod key.
+    /// Empty without an install, mappings or loaded mods. Reads the mounted game data, so call it
+    /// off the render thread; the result is kept until the game data reloads.
+    /// </summary>
+    public IReadOnlyDictionary<string, AbioticEditor.Core.Compatibility.ModContentSummary> GetModSummaries()
+    {
+        if (Volatile.Read(ref _modSummaries) is { } cached) return cached;
+        IReadOnlyDictionary<string, AbioticEditor.Core.Compatibility.ModContentSummary> result =
+            new Dictionary<string, AbioticEditor.Core.Compatibility.ModContentSummary>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            if (GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage) is { HasMappings: true, LoadedMods.Count: > 0 } provider)
+                result = AbioticEditor.Core.Compatibility.ModContentSummary.For(provider)
+                    .ToDictionary(summary => summary.ModKey, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception exception)
+        {
+            LogSettingsActionFailure(_logger, "Describe mods", exception);
+        }
+        Interlocked.Exchange(ref _modSummaries, result);
+        return result;
+    }
     public void SetModEnabled(string modName, bool enabled)
     {
         ModLoadStore.SetModEnabled(modName, enabled);
         GameDataGate.Invalidate();
+        Interlocked.Exchange(ref _modSummaries, null);
     }
     /// <summary>Subscribed mod.io mods the game has not finished downloading (empty in the browser build).</summary>
     public IReadOnlyList<ModIoInstallLocator.PendingMod> PendingMods

@@ -31,6 +31,12 @@ public sealed record ItemCatalogEntry(
     /// </summary>
     public ItemStats? Stats { get; init; }
 
+    /// <summary>
+    /// The mod that added this item, or that changed the base game's version of it; null for an
+    /// unchanged base-game item.
+    /// </summary>
+    public AbioticEditor.Core.Assets.ModOrigin? Origin { get; init; }
+
     /// <summary>Liquid types this container accepts (E_LiquidType enumerator numbers).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<int> AllowedLiquidList => AllowedLiquids ?? Array.Empty<int>();

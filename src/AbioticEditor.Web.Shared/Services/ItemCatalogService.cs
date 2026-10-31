@@ -39,6 +39,7 @@ public sealed class ItemCatalogService : IDisposable
     public ItemCatalogService(ProgressionVocabularyService? liveVocabulary = null, ISaveFileSystem? files = null)
     {
         _extractsIconsLive = files is null || files.HasLocalPaths;
+        _liveVocabulary = liveVocabulary;
         var registry = GameDataRegistry.LoadBundled();
         _bundledNpcDisplayNames = registry?.NpcDisplayNames;
         _narrativeNpcNames = registry?.NarrativeNpcNames;
@@ -66,9 +67,61 @@ public sealed class ItemCatalogService : IDisposable
             ItemVariantCatalog.FromRegistry(variantEntries));
     }
 
+    private readonly ProgressionVocabularyService? _liveVocabulary;
+    private int _modItemsMerged;
+
+    /// <summary>
+    /// Brings the loaded mods' items into the catalog: their names, pictures and which mod they
+    /// came from. The catalog starts from the bundled base-game list so opening a save never has
+    /// to read the game files; that list knows no mod item, so a world with a mod trader showed
+    /// its stock as raw ids with no pictures. Called when a save opens. Does nothing (and reads
+    /// nothing) unless at least one mod is switched on, and only runs once per game-data load.
+    /// </summary>
+    /// <returns>True when mod items were added and views should redraw.</returns>
+    public Task<bool> EnsureModItemsAsync()
+    {
+        if (!_extractsIconsLive || _liveVocabulary is null || Volatile.Read(ref _modItemsMerged) == 1) return Task.FromResult(false);
+        return Task.Run(() =>
+        {
+            if (Interlocked.Exchange(ref _modItemsMerged, 1) == 1 || !AnyModSwitchedOn()) return false;
+            IReadOnlyList<ItemCatalogEntry> live;
+            try { live = _liveVocabulary.GetItemEntries(); }
+            catch { return false; }
+            var modded = live.Where(entry => entry.Origin is not null).ToArray();
+            if (modded.Length == 0) return false;
+            var state = _catalogState;
+            var all = new Dictionary<string, ItemCatalogEntry>(state.ById, StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in modded)
+            {
+                all[entry.Id] = entry;
+                _icons.TryRemove(entry.Id, out _);
+            }
+            var entries = all.Values.Where(IsBrowsable)
+                .OrderBy(entry => string.Equals(entry.DisplayName, entry.Id, StringComparison.Ordinal) ? 1 : 0)
+                .ThenBy(entry => entry.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
+            _catalogState = new CatalogState(entries, all, state.Variants);
+            Categories.Clear();
+            return true;
+        });
+    }
+
+    /// <summary>Forgets that mod items were merged, so a changed mod selection is picked up on the next save view.</summary>
+    public void ResetModItems() => Interlocked.Exchange(ref _modItemsMerged, 0);
+
+    private static bool AnyModSwitchedOn()
+    {
+        if (!ModLoadStore.ModsEnabled) return false;
+        try
+        {
+            return AfInstallLocator.FindAvailableMods(AfInstallLocator.FindPaksDirectory()).Any(mod => ModLoadStore.IsModEnabled(mod.Name));
+        }
+        catch { return false; }
+    }
+
     /// <summary>Atomically replaces recipe-facing item names and IDs at an explicit catalog boundary.</summary>
     internal void ApplyRecipeSnapshot(RecipeCatalogSnapshot snapshot)
     {
+        Interlocked.Exchange(ref _modItemsMerged, 0);
         if (_recipeRevision == snapshot.Metadata.Revision) return;
         var all = new Dictionary<string, ItemCatalogEntry>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in snapshot.Items) if (!string.IsNullOrWhiteSpace(item.Id)) all[item.Id] = item;

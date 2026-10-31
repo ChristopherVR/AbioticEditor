@@ -190,6 +190,7 @@ public sealed class ItemCatalog
 
                     dict[id] = BuildEntry(id, kv.Value, salvageDt);
                     tableRefs[id] = suppRef;
+                    if (provider.ModOfAsset(tablePath) is { } legacy) dict[id] = dict[id] with { Origin = legacy };
                     added++;
                 }
                 if (added > 0)
@@ -200,6 +201,12 @@ public sealed class ItemCatalog
                 Diagnostics.EditorLog.Warn("ItemCatalog", $"Failed to load supplemental item table '{tablePath}'.", ex);
             }
         }
+
+        // Official mod rows are already merged into ItemTable_Global; name the mod behind each.
+        if (provider.LoadedMods.Count > 0)
+            foreach (var id in dict.Keys.ToArray())
+                if (dict[id].Origin is null && provider.RowOrigin(PrimaryTable, id) is { } origin)
+                    dict[id] = dict[id] with { Origin = origin };
 
         ItemTableIndex.Set(tableRefs);
         return new ItemCatalog(dict, tableRefs);

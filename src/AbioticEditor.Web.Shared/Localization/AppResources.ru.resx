@@ -3695,4 +3695,64 @@
   <data name="WorldMods_PromptDecline" xml:space="preserve">
     <value>Не сейчас</value>
   </data>
+  <data name="ModOrigin_Added" xml:space="preserve">
+    <value>Мод: {0}</value>
+  </data>
+  <data name="ModOrigin_Changed" xml:space="preserve">
+    <value>Изменено модом {0}</value>
+  </data>
+  <data name="ModOrigin_AddedHint" xml:space="preserve">
+    <value>Добавлено модом {0}. В базовой игре этого нет, поэтому оно есть, только пока мод включён.</value>
+  </data>
+  <data name="ModOrigin_ChangedHint" xml:space="preserve">
+    <value>Мод {0} изменил это по сравнению с базовой игрой.</value>
+  </data>
+  <data name="ModContent_Adds" xml:space="preserve">
+    <value>Добавляет: {0}.</value>
+  </data>
+  <data name="ModContent_Changes" xml:space="preserve">
+    <value>Изменяет в базовой игре: {0}.</value>
+  </data>
+  <data name="ModContent_ReplacesFiles" xml:space="preserve">
+    <value>Заменяет файлов игры: {0}.</value>
+  </data>
+  <data name="ModContent_Nothing" xml:space="preserve">
+    <value>Редактору нечего показать. Возможно, мод меняет только графику, звук или поведение.</value>
+  </data>
+  <data name="ModContent_Kind_Traders" xml:space="preserve">
+    <value>торговцев: {0}</value>
+  </data>
+  <data name="ModContent_Kind_TraderStock" xml:space="preserve">
+    <value>ассортиментов торговцев: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Jobs" xml:space="preserve">
+    <value>профессий: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Traits" xml:space="preserve">
+    <value>черт: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Items" xml:space="preserve">
+    <value>предметов: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Recipes" xml:space="preserve">
+    <value>рецептов: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Effects" xml:space="preserve">
+    <value>эффектов: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Creatures" xml:space="preserve">
+    <value>существ или питомцев: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Cosmetics" xml:space="preserve">
+    <value>косметики: {0}</value>
+  </data>
+  <data name="ModContent_Kind_Other" xml:space="preserve">
+    <value>прочих игровых данных: {0}</value>
+  </data>
+  <data name="PlayerCharacter_ModOption" xml:space="preserve">
+    <value>{0} (мод: {1})</value>
+  </data>
+  <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
+    <value>Персонаж из мода {0}. Редактор берёт его имя из данных этого мода.</value>
+  </data>
 </root>

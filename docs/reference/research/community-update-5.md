@@ -138,6 +138,39 @@ SDK cache conventions were checked against the
 [mod.io SDK source](https://github.com/modio/modio-sdk) and
 [Unreal plugin documentation](https://docs.mod.io/unreal/plugin-structure).
 
+### Traders, companions, jobs and traits (2026-10-31)
+
+Fifteen more public Windows archives were added to the same scratch cache (game build 1.5.0):
+
+| mod.io id | Mod | What it does to game data |
+| --- | --- | --- |
+| 6421993 | Kizz Trader | new trader `MGXP4_KizzMachine` (shown name "IS-0053"), new stock row, 6 food items, 1 buff, conversation and class-manager rows |
+| 6472275 | Dr Kemp Companion | new trader/companion `NK932_DrKemp` ("Dr Kemp"), stock, pager item and recipe, an `EntityDirector` class-manager row, its own `Container_DrKemp` backpack and follow AI |
+| 6488601 | Gloop Trader | new trader `NW61I_glooptrader` ("PV2 Gloop"), radio item and recipe |
+| 6484711 | Loaded Grayson | one `bOverrideExistingRow` row: replaces `trader_grayson` in `DT_NPC_TraderItems` |
+| 6483078 | PhD/Job Overhaul | overrides 7 base `DT_PhDs` rows and their buffs (renames Trans-Kinematic Researcher to "Fluid Dynamics Specialist", reprices two), adds 17 items and a trait, replaces 2 base game files |
+| 6487749 / 6487498 | Gatekeeper Starting Classes / Order Starting Ranks | 5 / 10 new `DT_PhDs` rows (jobs) with buffs and job banners |
+| 6485981 / 6485758 | Metallurgy Inspector / Interdimensional Chemist | one new job each, plus gloves |
+| 6485865, 6485893, 6486614, 6486490, 6490728, 6485724 | trait mods | new `DT_Traits` rows with buffs |
+
+Findings:
+
+- Trader rows carry `NPCClass`, `NPCConversation` (its `NPCName` is the shown name), stock row,
+  flags and portrait. Mod traders are spawned at run time by their `EntityDirector`, so no
+  level names them; the class is the only link from a saved actor back to the trader row.
+- `CDT_AllTraits` is a cooked composite with its parents' rows baked in. Mod rows target the
+  parents (`DT_PhDs`, `DT_Traits`), so overrides never reached the composite and the editor
+  showed the base job name. The provider now applies a composite's parents' mod rows to it.
+- Jobs were told from traits by an id prefix (`Trait_`); a mod prefix (`NU0RB_Trait_IBS`) broke
+  that. Membership of `DT_PhDs` (mod rows included) now decides.
+- Many mods keep the mod editor's placeholder plugin name (`MyProject`, `MyProject_Test`; two
+  unrelated mods here share one). Without the SDK index's profile name the editor shows
+  `mod.io #<id>` instead. `UUGC_Metadata` holds no name.
+- Some archives carry other mods' `AbioticModConfig` assets and copies of base macro
+  libraries; harmless for data, but counted as replaced game files.
+- No world played with Dr Kemp was available, so the saved shape of a spawned mod companion
+  (its `NarrativeNPCMap` key and the backpack container) is still to confirm.
+
 ## Multi-quest GATEPal
 
 DT_Quests and DT_QuestLines provide the objective graph, descriptions, world flags,

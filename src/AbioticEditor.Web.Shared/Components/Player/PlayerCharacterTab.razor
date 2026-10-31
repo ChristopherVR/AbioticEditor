@@ -17,9 +17,13 @@
             <span class="general-field-label">@L.Resource("PlayerCharacter_Background")</span>
             <select class="character-background-select" value="@Session.Background" @onchange="OnBackgroundChangedAsync" disabled="@(!Session.CanChangeBackground)" aria-label="@L.Resource("PlayerCharacter_Background")">
                 @if (string.IsNullOrEmpty(Session.Background)) { <option value="" disabled hidden></option> }
-                else if (!TraitCatalog.Backgrounds.ContainsKey(Session.Background)) { <option value="@Session.Background">@Session.Background</option> }
-                @foreach (var background in TraitCatalog.Backgrounds) { <option value="@background.Key">@background.Value</option> }
+                else if (!JobOptions.Any(job => string.Equals(job.Id, Session.Background, StringComparison.OrdinalIgnoreCase))) { <option value="@Session.Background">@Session.Background</option> }
+                @foreach (var job in JobOptions) { <option value="@job.Id">@job.Label</option> }
             </select>
+            @if (JobOptions.FirstOrDefault(job => string.Equals(job.Id, Session.Background, StringComparison.OrdinalIgnoreCase))?.Origin is { } jobOrigin)
+            {
+                <ModOriginBadge Origin="jobOrigin" />
+            }
             <small class="general-help">@L.Resource("PlayerCharacter_BackgroundHelp")</small>
         </div>
 
@@ -75,7 +79,7 @@
                     @foreach (var row in VisibleTraitOptions)
                     {
                         <div class="trait-browser-row" role="listitem">
-                            <span class="trait-browser-name">@row.DisplayName</span>
+                            <span class="trait-browser-name">@row.DisplayName <ModOriginBadge Origin="row.Origin" /></span>
                             <span class="trait-browser-cost">@CostText(row)</span>
                             <span class="trait-browser-description">@row.Description</span>
                             <button class="trait-browser-add" type="button" title="@(CanEditTrait(row.Id) ? null : L.Resource("PlayerCharacter_TraitsCatalogRequired"))" disabled="@(!CanEditTrait(row.Id) || _traitBusy)" @onclick="() => AddTrait(row.Id)">@L.Resource("PlayerCharacter_Add")</button>
@@ -233,6 +237,7 @@
                 {
                     <span class="chip chip--orange">@PointsText(detail.PointCost)</span>
                 }
+                <ModOriginBadge Origin="@(hasDetail ? detail!.Origin : null)" />
                 <span class="detail-label">@L.Resource("PlayerCharacter_Description")</span>
                 <p class="detail-value">@DescriptionFor(hasDetail ? detail : null)</p>
             </div>
@@ -295,7 +300,34 @@
         }
     }
 
+    /// <summary>
+    /// Every job the loaded game data offers: the base game's, plus any a mod adds (new starting
+    /// jobs and ranks) or changes. Before the game data arrives, the curated base list.
+    /// </summary>
+    private IReadOnlyList<JobOption> JobOptions
+    {
+        get
+        {
+            var fromGame = Details.Values.Where(detail => detail.IsBackground).ToArray();
+            if (fromGame.Length == 0)
+                return TraitCatalog.Backgrounds.Select(job => new JobOption(job.Key, job.Value, null)).ToArray();
+            var baseOrder = TraitCatalog.Backgrounds.Keys.ToList();
+            return fromGame
+                .OrderBy(job => baseOrder.IndexOf(job.Id) is var index and >= 0 ? index : int.MaxValue)
+                .ThenBy(job => job.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .Select(job => new JobOption(job.Id,
+                    job.Origin is { } origin ? L.Resource("PlayerCharacter_ModOption", job.DisplayName, origin.ModName) : job.DisplayName,
+                    job.Origin))
+                .ToArray();
+        }
+    }
+
+    private sealed record JobOption(string Id, string Label, AbioticEditor.Core.Assets.ModOrigin? Origin);
+
+    // The curated base traits, plus every trait the game data has (mod-added ones included).
     private List<TraitBrowserRow> BuildRows() => TraitCatalog.Traits.Keys
+        .Concat(Details.Values.Where(detail => !detail.IsBackground).Select(detail => detail.Id))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
         .Select(id =>
         {
             Details.TryGetValue(id, out var detail);
@@ -303,7 +335,7 @@
             // in-game creator - label them instead of showing a blank.
             var description = detail?.Description
                 ?? (detail is { AvailableOnStart: false } ? L.Resource("PlayerEditor_CutTraitDescription") : null);
-            return new TraitBrowserRow(id, detail?.DisplayName ?? TraitCatalog.DisplayNameFor(id), description, detail?.PointCost ?? 0);
+            return new TraitBrowserRow(id, detail?.DisplayName ?? TraitCatalog.DisplayNameFor(id), description, detail?.PointCost ?? 0, detail?.Origin);
         })
         .OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
@@ -333,5 +365,5 @@
     private string CostText(TraitBrowserRow row) => PointsText(row.PointCost).ToUpperInvariant();
 
     /// <summary>One row of the add-trait browser: full description + point cost up front.</summary>
-    private sealed record TraitBrowserRow(string Id, string DisplayName, string? Description, int PointCost);
+    private sealed record TraitBrowserRow(string Id, string DisplayName, string? Description, int PointCost, AbioticEditor.Core.Assets.ModOrigin? Origin);
 }

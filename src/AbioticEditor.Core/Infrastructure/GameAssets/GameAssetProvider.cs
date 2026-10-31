@@ -31,7 +31,7 @@ public sealed partial class GameAssetProvider : IDisposable
     private readonly string _cacheDir;
     private readonly IReadOnlyList<string> _loadedMods;
     private HashSet<string> _modFiles = new(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, (int Order, long? Id)> _modArchives = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, (int Order, long? Id, string Key, string Name)> _modArchives = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CUE4Parse.UE4.Assets.Exports.Engine.UDataTable> _dataTables = new(StringComparer.OrdinalIgnoreCase);
     // CUE4Parse package loading mutates the provider's internal package cache and is not
     // guaranteed thread-safe. Icon/texture extraction runs from many fire-and-forget tasks at
@@ -297,7 +297,7 @@ public sealed partial class GameAssetProvider : IDisposable
         // paths) where order is irrelevant. A mod whose pak fails to register is skipped, not fatal.
         var loadedMods = new List<string>();
         var modFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var modArchives = new Dictionary<string, (int Order, long? Id)>(StringComparer.OrdinalIgnoreCase);
+        var modArchives = new Dictionary<string, (int Order, long? Id, string Key, string Name)>(StringComparer.OrdinalIgnoreCase);
         if (includeMods)
         {
             foreach (var mod in selectedMods ?? AfInstallLocator.FindAvailableMods(paksDirectory))
@@ -310,7 +310,7 @@ public sealed partial class GameAssetProvider : IDisposable
                     {
                         provider.RegisterVfs(file);
                         modFiles.Add(file);
-                        modArchives[file] = (loadedMods.Count, mod.ModIoId);
+                        modArchives[file] = (loadedMods.Count, mod.ModIoId, mod.Name, mod.DisplayName);
                         any = true;
                     }
                     catch (Exception ex)
@@ -560,8 +560,7 @@ public sealed partial class GameAssetProvider : IDisposable
         using (ProviderLock())
         {
             var package = _provider.LoadPackage(packagePath);
-            var tablePath = packagePath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? packagePath[..^7] : packagePath;
-            if (_modFiles.Count > 0 && (_officialRows ??= ReadOfficialRows()).ContainsKey(tablePath))
+            if (_modFiles.Count > 0)
                 foreach (var table in package.GetExports().OfType<CUE4Parse.UE4.Assets.Exports.Engine.UDataTable>())
                     ApplyOfficialModRows(packagePath, table);
             return package;

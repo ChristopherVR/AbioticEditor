@@ -63,6 +63,10 @@
                 </span>
                 <span class="wt-card-text">
                     <strong class="wt-name">@ShownName(trader, lore, concealed)</strong>
+                    @if (!concealed)
+                    {
+                        <ModOriginBadge Origin="@(trader.Origin ?? trader.StockOrigin)" />
+                    }
                     @if (!concealed && LoreText(lore, trader.Id, "Where") is { Length: > 0 } where)
                     {
                         <small class="wt-where">@where</small>
@@ -193,7 +197,10 @@
     private string ShownName(TraderInfo trader, TraderLore.Entry? lore, bool concealed)
         => concealed
             ? L.Resource("Spoiler_ClassifiedShort")
-            : lore is null ? PlainNames.Words(trader.Id) : L.Resource($"WorldTraders_Lore_{trader.Id}_Name");
+            : lore is not null ? L.Resource($"WorldTraders_Lore_{trader.Id}_Name")
+            // A trader the editor has no notes on (a mod's, or one from a newer patch) still has
+            // the name the game shows, from its own conversation data.
+            : trader.DisplayName ?? PlainNames.Words(trader.Id);
 
     /// <summary>Localized lore field (resx keyed by trader id); empty for unknown traders.</summary>
     private string LoreText(TraderLore.Entry? lore, string id, string field)
@@ -315,6 +322,11 @@
                 <span class="wt-detail-title">
                     <strong>@ShownName(trader, detailLore, false)</strong>
                     <small>@LoreText(detailLore, trader.Id, "Where")</small>
+                    <ModOriginBadge Origin="trader.Origin" />
+                    @if (trader.StockOrigin is { } stockOrigin && !string.Equals(stockOrigin.ModKey, trader.Origin?.ModKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <ModOriginBadge Origin="stockOrigin" />
+                    }
                 </span>
                 <button type="button" class="wm-close" aria-label="@L.Resource("Common_Cancel")" @onclick="CloseTraderDetail">✕</button>
             </header>
@@ -363,7 +375,7 @@
                             <span role="presentation"></span>
                         }
                         <span class="wt-offer-icon"><ItemIcon ItemId="@offer.ItemId" Alt="@text" /></span>
-                        <span class="wt-offer-text"><strong>@text</strong><small>@status</small></span>
+                        <span class="wt-offer-text"><strong>@text <ModOriginBadge Origin="entry?.Origin" /></strong><small>@status</small></span>
                     </button>
                 }
             </div>
@@ -390,7 +402,7 @@
                 <div class="wt-offer-detail">
                     <div class="wt-detail-head">
                         <span class="wt-offer-icon"><ItemIcon ItemId="@inspected.Id" Alt="@inspected.DisplayName" /></span>
-                        <span class="wt-detail-title"><strong>@inspected.DisplayName</strong></span>
+                        <span class="wt-detail-title"><strong>@inspected.DisplayName</strong><ModOriginBadge Origin="inspected.Origin" /></span>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(inspected.Description))
                     {

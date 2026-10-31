@@ -5,6 +5,7 @@
 @using AbioticEditor.Core.LiveEditing
 @using AbioticEditor.Core.LiveEditing.World
 @inject GameArtService Art
+@inject AbioticEditor.Web.Services.TraderVocabularyService TraderRoster
 
 @* Round 77: the first tab for narrative NPCs (story characters/traders) - the offline session
    already carried this data (WorldSaveSession.Npcs/SetNpc) with nothing to edit it with.
@@ -68,7 +69,7 @@
                                 class="wt-row @(_storySelectedId == npc.Id ? "selected" : null)" @key="npcKey" title="@npc.Id"
                                 @onclick="() => SelectStoryRow(npc)">
                             <span class="wt-row-text">
-                                <strong>@CharacterName(npc)</strong>
+                                <strong>@CharacterName(npc) <ModOriginBadge Origin="ModCharacter(npc)?.Origin" /></strong>
                                 <small>@CharacterSecondary(npc)</small>
                             </span>
                             @if (npc.IsDead) { <span class="wt-row-status">Removed by story</span> }
@@ -94,8 +95,12 @@
                         {
                             <p class="wt-muted">No verified character reference image is bundled for this entry.</p>
                         }
-                        <h3 class="wt-h3" title="@selected.Id">@CharacterName(selected)</h3>
+                        <h3 class="wt-h3" title="@selected.Id">@CharacterName(selected) <ModOriginBadge Origin="ModCharacter(selected)?.Origin" /></h3>
                         <p class="wt-muted">@CharacterSecondary(selected)</p>
+                        @if (ModCharacter(selected)?.Origin is { } characterMod)
+                        {
+                            <p class="wt-muted">@L.Resource("WorldNpcs_ModCompanionHint", characterMod.ModName)</p>
+                        }
                         <ShowIn3DButton Target="@WorldLocateTarget.Character(selected, CharacterName(selected))" />
                         @if (HasRealLocation(selected))
                         {
@@ -309,7 +314,15 @@
     /// </summary>
     private string CharacterName(WorldNpc npc)
         => Items.GetNarrativeNpcDisplayName(npc, Session.Npcs, (name, area) => L.Resource("WorldNpcs_NameWithAreaFormat", name, area))
+           ?? ModCharacter(npc)?.DisplayName
            ?? _names.GetValueOrDefault(npc.Id, npc.FriendlyLabel);
+
+    // Traders and companions a mod adds are spawned at run time, so no level names them; their
+    // own trader row does (by the character class the saved actor is named after).
+    private IReadOnlyList<TraderInfo>? _modCharacters;
+
+    private TraderInfo? ModCharacter(WorldNpc npc)
+        => _modCharacters is { Count: > 0 } traders ? TraderCatalog.FindForActor(traders, npc.ActorName) : null;
 
     /// <summary>The row's secondary line: once a real name resolved above, this becomes the
     /// hint/class context that used to be the primary label (<c>NpcIdentityCatalog.LabelFor</c>);
@@ -495,6 +508,7 @@
         if (Creatures is null && _section == NpcSection.Creatures)
             _section = NpcSection.Story;
 
+        _modCharacters ??= (await Task.Run(TraderRoster.GetTraders)).Where(trader => trader.Origin is not null && trader.DisplayName is not null).ToArray();
         foreach (var npc in Session.Npcs.Where(n => !_names.ContainsKey(n.Id)).ToArray())
             _names[npc.Id] = await Items.GetCharacterNameAsync(npc.Id) ?? npc.FriendlyLabel;
 

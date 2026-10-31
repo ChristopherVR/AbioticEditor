@@ -1,5 +1,34 @@
 # Abiotic Editor - Session history
 
+## Mods everywhere: traders, companions, jobs and what is a mod (2026-10-31)
+
+- Tested with 15 more real mod.io downloads (Kizz Trader, Dr Kemp Companion, Gloop Trader,
+  Loaded Grayson, Job Overhaul, Gatekeeper classes, Order ranks, two PhDs, six trait mods) in
+  the scratch-cache setup; per-mod table in `docs/reference/research/community-update-5.md`.
+- Provenance: `ModOrigin` (mod key, name, id, Added/Changed). `GameAssetProvider.RowOrigin`,
+  `ModOfAsset`, `ModContributions`, `ReplacedGameFileCounts`. Carried by `TraderInfo.Origin` /
+  `StockOrigin` (plus `DisplayName` from the conversation row and `NpcClass`),
+  `ItemCatalogEntry.Origin`, `TraitDetail.Origin`. `ModContentSummary` groups a mod's rows into
+  plain categories for Settings.
+- Fixed: composite tables (`CDT_AllTraits`) now receive their parents' mod rows, so rewritten
+  jobs show their modded names; jobs vs traits decided by `DT_PhDs` membership (mod prefixes
+  broke the `Trait_` check); the Character tab offered only the 10 curated jobs and curated
+  traits (now every job/trait from game data, mod ones labelled); the trader roster never
+  reloaded on a mod toggle; the host item catalog never knew mod items (raw ids, no pictures
+  on world tabs) until another workflow loaded live data, now merged when a save opens if any
+  mod is on; mod.io template plugin names (`MyProject*`) show as `mod.io #id`.
+- UI: `ModOriginBadge` on trader cards/detail/offers, NPC rows (mod companions named via
+  `TraderCatalog.FindForActor`), jobs dropdown, trait browser and detail, inventory item cards.
+  Settings lists what each mod adds/changes. Strings in all five languages.
+- Verified headless (Playwright, isolated `ABIOTIC_APPDATA_DIR`/`ABIOTIC_GAME_CONFIG_DIR`,
+  real Cascade saves opened read-only): Traders, Character and Settings as described. Tests:
+  `ModProvenanceTests` (real-mod test gated on `ABIOTIC_MODIO_ROOT`); full suite 2602 passed.
+- Open: no world played with a mod companion, so a spawned Dr Kemp's saved key and backpack
+  container are unconfirmed (NPC naming relies on the actor name carrying the class). Two of
+  the downloaded mods share one plugin folder (`MyProject_Test`) and overwrite each other.
+  Once, mid-test, every mod ended up switched off in the isolated settings (the shape
+  "USE THIS WORLD'S MODS" writes on an unmodded world); not reproduced on a clean rerun.
+
 ## CheatConsoleCommands review: effects, radiation, toggles (2026-10-31)
 
 - Reviewed igromanru's Cheat Console Commands (Nexus 28, v1.32.3, source cloned to scratch)

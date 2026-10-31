@@ -5,6 +5,7 @@ namespace AbioticEditor.Core.PlayerSaves;
 
 /// <summary>
 /// Full detail for one trait/background row from <c>CDT_AllTraits</c>.
+/// <paramref name="Origin"/> names the mod that added the row or rewrote a base job/trait; null for base game.
 /// </summary>
 public sealed record TraitDetail(
     string Id,
@@ -13,7 +14,8 @@ public sealed record TraitDetail(
     int PointCost,
     bool IsBackground,
     bool AvailableOnStart = true,
-    string? BuffRowName = null);
+    string? BuffRowName = null,
+    ModOrigin? Origin = null);
 
 /// <summary>
 /// Internal-id -> display-name catalog for traits and backgrounds (jobs/PhDs), dumped from
@@ -94,18 +96,34 @@ public static class TraitCatalog
     /// unavailable - callers fall back to the static name maps above.
     /// </summary>
     private const string PrimaryTable = "AbioticFactor/Content/Blueprints/DataTables/Traits/CDT_AllTraits";
+    private const string PhDsTable = "AbioticFactor/Content/Blueprints/DataTables/Traits/DT_PhDs";
+    private const string TraitsTable = "AbioticFactor/Content/Blueprints/DataTables/Traits/DT_Traits";
 
     public static IReadOnlyDictionary<string, TraitDetail> LoadDetailsFrom(GameAssetProvider provider)
     {
         var result = new Dictionary<string, TraitDetail>(StringComparer.OrdinalIgnoreCase);
         if (!provider.HasMappings) return result;
 
+        // Jobs (backgrounds) are the rows of DT_PhDs, mod-added ones included; the id shape alone
+        // cannot tell, because a mod's rows carry its prefix (NU0RB_Trait_IBS is a trait).
+        HashSet<string>? phds = null;
+        try
+        {
+            phds = provider.TryLoadDataTable(PhDsTable)?.RowMap.Keys.Select(key => key.Text).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            // Fall back to the id shape below.
+        }
+
+        ModOrigin? OriginOf(string id) => provider.RowOrigin(PhDsTable, id) ?? provider.RowOrigin(TraitsTable, id);
+
         string? structName = null;
         try
         {
             var primary = provider.TryLoadDataTable(PrimaryTable);
             structName = primary?.RowStructName;
-            ParseRows(primary, result);
+            ParseRows(primary, result, phds, OriginOf);
         }
         catch
         {
@@ -114,14 +132,15 @@ public static class TraitCatalog
 
         // Traits are id-keyed (not positional), so merging mod/patch trait tables that share
         // the row struct is safe. Base rows already present win on id conflict.
-        foreach (var dt in ModTableDiscovery.LoadTablesByRowStruct(provider, structName, new[] { PrimaryTable }))
+        foreach (var path in ModTableDiscovery.DiscoverTablesByRowStruct(provider, structName, new[] { PrimaryTable, PhDsTable, TraitsTable }))
         {
-            ParseRows(dt, result);
+            var legacy = provider.ModOfAsset(path);
+            ParseRows(provider.TryLoadDataTable(path), result, phds, id => OriginOf(id) ?? legacy);
         }
         return result;
     }
 
-    private static void ParseRows(UDataTable? dt, Dictionary<string, TraitDetail> result)
+    private static void ParseRows(UDataTable? dt, Dictionary<string, TraitDetail> result, HashSet<string>? phds, Func<string, ModOrigin?> originOf)
     {
         if (dt is null) return;
         foreach (var kv in dt.RowMap)
@@ -166,8 +185,10 @@ public static class TraitCatalog
             // Cut traits (Dyslexia, Fumbler, ...) carry genuinely empty FText
             // descriptions - normalize to null so the UI can fall back.
             if (string.IsNullOrWhiteSpace(description)) description = null;
-            var isBackground = Backgrounds.ContainsKey(id) || !id.MatchesUnrealProperty("Trait_");
-            result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart, buffRowName);
+            var isBackground = phds is { Count: > 0 }
+                ? phds.Contains(id)
+                : Backgrounds.ContainsKey(id) || !(id.MatchesUnrealProperty("Trait_") || id.Contains("_Trait_", StringComparison.OrdinalIgnoreCase));
+            result[id] = new TraitDetail(id, name ?? DisplayNameFor(id), description, cost, isBackground, availableOnStart, buffRowName, originOf(id));
         }
     }
 }

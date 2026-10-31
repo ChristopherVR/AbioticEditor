@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject SaveWorkspaceSessionService Workspace
 @inject IServiceProvider Services
+@inject AbioticEditor.Web.Services.ItemCatalogService ModItems
 
 <section class="workspace single-workspace" aria-label="@Languages.Text("save.workspace")">
     <section class="save-list">
@@ -367,6 +368,14 @@
         }
     }
     protected override void OnInitialized() => Workspace.Changed += WorkspaceChanged;
+
+    // With any mod switched on, its items (names, pictures, which mod) join the catalog once a
+    // save is open, so every tab names them; without mods nothing extra is read.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Cheap after the first check: the catalog remembers it has looked, until game data reloads.
+        if (await ModItems.EnsureModItemsAsync()) await InvokeAsync(StateHasChanged);
+    }
     private void WorkspaceChanged() => _ = InvokeAsync(StateHasChanged);
     private Task PlayerChanged() { Workspace.Current?.PlayerSession?.MarkChanged(); Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }
     private Task ChemistryChanged() { Workspace.NotifyEdited(); return InvokeAsync(StateHasChanged); }

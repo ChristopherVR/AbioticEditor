@@ -3695,4 +3695,64 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="WorldMods_PromptDecline" xml:space="preserve">
     <value>Nicht jetzt</value>
   </data>
+  <data name="ModOrigin_Added" xml:space="preserve">
+    <value>Mod: {0}</value>
+  </data>
+  <data name="ModOrigin_Changed" xml:space="preserve">
+    <value>Geändert durch {0}</value>
+  </data>
+  <data name="ModOrigin_AddedHint" xml:space="preserve">
+    <value>Hinzugefügt durch die Mod {0}. Das Grundspiel hat das nicht, es gibt es also nur, solange diese Mod aktiv ist.</value>
+  </data>
+  <data name="ModOrigin_ChangedHint" xml:space="preserve">
+    <value>Die Mod {0} hat das gegenüber dem Grundspiel verändert.</value>
+  </data>
+  <data name="ModContent_Adds" xml:space="preserve">
+    <value>Fügt hinzu: {0}.</value>
+  </data>
+  <data name="ModContent_Changes" xml:space="preserve">
+    <value>Ändert gegenüber dem Grundspiel: {0}.</value>
+  </data>
+  <data name="ModContent_ReplacesFiles" xml:space="preserve">
+    <value>Ersetzt {0} Dateien des Spiels.</value>
+  </data>
+  <data name="ModContent_Nothing" xml:space="preserve">
+    <value>Nichts, was der Editor auflisten kann. Vielleicht ändert sie nur Grafik, Sound oder Verhalten.</value>
+  </data>
+  <data name="ModContent_Kind_Traders" xml:space="preserve">
+    <value>{0} Händler</value>
+  </data>
+  <data name="ModContent_Kind_TraderStock" xml:space="preserve">
+    <value>{0} Händlersortiment(e)</value>
+  </data>
+  <data name="ModContent_Kind_Jobs" xml:space="preserve">
+    <value>{0} Beruf(e)</value>
+  </data>
+  <data name="ModContent_Kind_Traits" xml:space="preserve">
+    <value>{0} Eigenschaft(en)</value>
+  </data>
+  <data name="ModContent_Kind_Items" xml:space="preserve">
+    <value>{0} Gegenstand/Gegenstände</value>
+  </data>
+  <data name="ModContent_Kind_Recipes" xml:space="preserve">
+    <value>{0} Rezept(e)</value>
+  </data>
+  <data name="ModContent_Kind_Effects" xml:space="preserve">
+    <value>{0} Effekt(e)</value>
+  </data>
+  <data name="ModContent_Kind_Creatures" xml:space="preserve">
+    <value>{0} Kreatur(en) oder Haustier(e)</value>
+  </data>
+  <data name="ModContent_Kind_Cosmetics" xml:space="preserve">
+    <value>{0} Kosmetik(en)</value>
+  </data>
+  <data name="ModContent_Kind_Other" xml:space="preserve">
+    <value>{0} weitere Spieldaten</value>
+  </data>
+  <data name="PlayerCharacter_ModOption" xml:space="preserve">
+    <value>{0} (Mod: {1})</value>
+  </data>
+  <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
+    <value>Eine Figur aus der Mod {0}. Der Editor benennt sie anhand der Daten dieser Mod.</value>
+  </data>
 </root>

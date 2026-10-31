@@ -376,6 +376,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;background:var(--elevated);font:600 10px var(--font-ui);letter-spacing:.1em}
 .chip--terminal{color:var(--terminal)}
 .chip--orange{color:var(--orange)}
+.chip--mod{color:var(--hazard);border:1px solid currentColor;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.04em}
 .recipe-list,.door-list,.container-list,.npc-list,.flag-list{border:1px solid var(--line)!important;background:var(--shell)!important}
 .recipe-row,.door-row,.container-row,.npc-row,.flag-row,.slot-row{border-bottom-color:var(--line)!important;background:transparent;color:var(--ink)}
 .recipe-row:hover,.door-row:hover,.container-row:hover,.npc-row:hover,.flag-row:hover,.slot-row:hover{background:var(--hover)!important}

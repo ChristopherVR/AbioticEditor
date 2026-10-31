@@ -214,12 +214,22 @@ public static class ModIoInstallLocator
             {
                 using var json = JsonDocument.Parse(File.ReadAllText(file));
                 if (json.RootElement.ValueKind == JsonValueKind.Object && json.RootElement.TryGetProperty("FriendlyName", out var name)
-                    && name.ValueKind == JsonValueKind.String && name.GetString() is { Length: > 0 } value) return value;
+                    && name.ValueKind == JsonValueKind.String && name.GetString() is { Length: > 0 } value && !IsTemplateName(value)) return value;
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
         return null;
     }
+
+    /// <summary>
+    /// True for the placeholder plugin names the official mod editor starts every project with
+    /// ("MyProject", "MyProject_Test", ...). Many published mods keep them, so two unrelated mods
+    /// can share one; such a name says nothing about the mod and is not shown.
+    /// </summary>
+    internal static bool IsTemplateName(string name)
+        => name.StartsWith("MyProject", StringComparison.OrdinalIgnoreCase)
+           || name.StartsWith("NewPlugin", StringComparison.OrdinalIgnoreCase)
+           || name.StartsWith("NewMod", StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<(long Id, string Directory)> ModFolders(string gameRoot)
     {

@@ -125,7 +125,11 @@
                             <p class="muted">@R("GameDataSettings_OfficialModsHint")</p>
                             @foreach (var mod in HostSettings.InstalledMods)
                             {
-                                <label class="settings-switch-row mod-switch-row"><span>@mod.DisplayName @if (mod.ModIoId is { } modId) { <small>(mod.io #@modId)</small> }</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
+                                <label class="settings-switch-row mod-switch-row"><span>@mod.DisplayName @if (mod.ModIoId is { } modId && !mod.DisplayName.Contains(modId.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal)) { <small>(mod.io #@modId)</small> }</span><input type="checkbox" role="switch" checked="@HostSettings.IsModEnabled(mod.Name)" disabled="@(!HostSettings.ModsEnabled || HostSettings.ModsLockedOff)" @onchange="e => SetModEnabled(mod.Name, e)" /></label>
+                                @if (_modSummaries?.GetValueOrDefault(mod.Name) is { } summary)
+                                {
+                                    <p class="muted mod-summary">@ModSummaryText(summary)</p>
+                                }
                             }
                             @if (HostSettings.PendingMods is { Count: > 0 } pending)
                             {
@@ -317,7 +321,36 @@
         }
         finally { _gameDataBusy = false; }
     }
-    private Task ReloadGameDataBusyAsync() => RunGameDataWorkAsync(HostSettings.ReloadGameData);
+    private async Task ReloadGameDataBusyAsync()
+    {
+        await RunGameDataWorkAsync(HostSettings.ReloadGameData);
+        await LoadModSummariesAsync();
+    }
+
+    // What each loaded mod adds or changes, read off the render thread from the mounted game data.
+    private IReadOnlyDictionary<string, AbioticEditor.Core.Compatibility.ModContentSummary>? _modSummaries;
+
+    private async Task LoadModSummariesAsync()
+    {
+        if (OperatingSystem.IsBrowser()) return;
+        _modSummaries = await Task.Run(HostSettings.GetModSummaries);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override Task OnInitializedAsync() => LoadModSummariesAsync();
+
+    /// <summary>"Adds 1 trader(s), 6 item(s). Changes 1 trader stock list(s) from the base game."</summary>
+    private string ModSummaryText(AbioticEditor.Core.Compatibility.ModContentSummary summary)
+    {
+        var shown = summary.Counts.Where(count => count.Kind != AbioticEditor.Core.Compatibility.ModContentKind.Supporting).ToArray();
+        var parts = new List<string>();
+        var added = shown.Where(count => count.Added > 0).Select(count => R($"ModContent_Kind_{count.Kind}", count.Added)).ToArray();
+        if (added.Length > 0) parts.Add(R("ModContent_Adds", string.Join(", ", added)));
+        var changed = shown.Where(count => count.Changed > 0).Select(count => R($"ModContent_Kind_{count.Kind}", count.Changed)).ToArray();
+        if (changed.Length > 0) parts.Add(R("ModContent_Changes", string.Join(", ", changed)));
+        if (summary.ReplacedGameFiles > 0) parts.Add(R("ModContent_ReplacesFiles", summary.ReplacedGameFiles));
+        return parts.Count > 0 ? string.Join(" ", parts) : R("ModContent_Nothing");
+    }
     private async Task RunGameDataWorkAsync(Func<GameDataReloadStatus> work)
     {
         _busyMessage = R("GameDataSettings_ReloadingGameData");

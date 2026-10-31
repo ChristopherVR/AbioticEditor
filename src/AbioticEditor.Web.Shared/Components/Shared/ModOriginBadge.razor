@@ -1,0 +1,22 @@
+@namespace AbioticEditor.Web.Components.Shared
+@using AbioticEditor.Core.Assets
+
+@* The editor's one way of saying "this comes from a mod": a small chip naming the mod, with a
+   tooltip that says whether the mod added the thing or changed the base game's version of it.
+   Renders nothing for base-game content, so it can be dropped next to any name. *@
+@if (Origin is { } origin)
+{
+    <span class="chip chip--mod mod-origin-badge" title="@Hint(origin)" aria-label="@Hint(origin)">@Label(origin)</span>
+}
+
+@code {
+    [Parameter] public ModOrigin? Origin { get; set; }
+
+    private string Label(ModOrigin origin) => origin.Change == ModChange.Changed
+        ? L.Resource("ModOrigin_Changed", origin.ModName)
+        : L.Resource("ModOrigin_Added", origin.ModName);
+
+    private string Hint(ModOrigin origin) => origin.Change == ModChange.Changed
+        ? L.Resource("ModOrigin_ChangedHint", origin.ModName)
+        : L.Resource("ModOrigin_AddedHint", origin.ModName);
+}

@@ -3695,4 +3695,64 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="WorldMods_PromptDecline" xml:space="preserve">
     <value>Pas maintenant</value>
   </data>
+  <data name="ModOrigin_Added" xml:space="preserve">
+    <value>Mod : {0}</value>
+  </data>
+  <data name="ModOrigin_Changed" xml:space="preserve">
+    <value>Modifié par {0}</value>
+  </data>
+  <data name="ModOrigin_AddedHint" xml:space="preserve">
+    <value>Ajouté par le mod {0}. Le jeu de base ne l'a pas, il n'existe donc que tant que ce mod est activé.</value>
+  </data>
+  <data name="ModOrigin_ChangedHint" xml:space="preserve">
+    <value>Le mod {0} a modifié ceci par rapport au jeu de base.</value>
+  </data>
+  <data name="ModContent_Adds" xml:space="preserve">
+    <value>Ajoute : {0}.</value>
+  </data>
+  <data name="ModContent_Changes" xml:space="preserve">
+    <value>Modifie par rapport au jeu de base : {0}.</value>
+  </data>
+  <data name="ModContent_ReplacesFiles" xml:space="preserve">
+    <value>Remplace {0} fichiers du jeu.</value>
+  </data>
+  <data name="ModContent_Nothing" xml:space="preserve">
+    <value>Rien que l'éditeur puisse lister. Il ne change peut-être que les visuels, les sons ou les comportements.</value>
+  </data>
+  <data name="ModContent_Kind_Traders" xml:space="preserve">
+    <value>{0} marchand(s)</value>
+  </data>
+  <data name="ModContent_Kind_TraderStock" xml:space="preserve">
+    <value>{0} stock(s) de marchand</value>
+  </data>
+  <data name="ModContent_Kind_Jobs" xml:space="preserve">
+    <value>{0} métier(s)</value>
+  </data>
+  <data name="ModContent_Kind_Traits" xml:space="preserve">
+    <value>{0} trait(s)</value>
+  </data>
+  <data name="ModContent_Kind_Items" xml:space="preserve">
+    <value>{0} objet(s)</value>
+  </data>
+  <data name="ModContent_Kind_Recipes" xml:space="preserve">
+    <value>{0} recette(s)</value>
+  </data>
+  <data name="ModContent_Kind_Effects" xml:space="preserve">
+    <value>{0} effet(s)</value>
+  </data>
+  <data name="ModContent_Kind_Creatures" xml:space="preserve">
+    <value>{0} créature(s) ou animal/animaux</value>
+  </data>
+  <data name="ModContent_Kind_Cosmetics" xml:space="preserve">
+    <value>{0} cosmétique(s)</value>
+  </data>
+  <data name="ModContent_Kind_Other" xml:space="preserve">
+    <value>{0} autre(s) donnée(s) de jeu</value>
+  </data>
+  <data name="PlayerCharacter_ModOption" xml:space="preserve">
+    <value>{0} (mod : {1})</value>
+  </data>
+  <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
+    <value>Un personnage du mod {0}. L'éditeur le nomme à partir des données de ce mod.</value>
+  </data>
 </root>

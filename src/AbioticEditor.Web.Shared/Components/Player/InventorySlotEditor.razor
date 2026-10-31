@@ -37,7 +37,7 @@
         <section class="item-encyclopedia" aria-label="@encyclopediaEntry.DisplayName">
             <header class="slot-item-heading">
                 <div class="slot-item-icon"><ItemIcon ItemId="@encyclopediaEntry.Id" Alt="@encyclopediaEntry.DisplayName" /></div>
-                <div><h3>@encyclopediaEntry.DisplayName</h3><p>@EncyclopediaStats(encyclopediaEntry)</p></div>
+                <div><h3>@encyclopediaEntry.DisplayName</h3><ModOriginBadge Origin="encyclopediaEntry.Origin" /><p>@EncyclopediaStats(encyclopediaEntry)</p></div>
             </header>
             @if (!string.IsNullOrWhiteSpace(encyclopediaEntry.Description)) { <p class="encyclopedia-description">@encyclopediaEntry.Description</p> }
             @if (encyclopediaEntry.Stats is { IsEmpty: false } encyclopediaStats)
@@ -333,6 +333,7 @@
             {
                 <div class="catalog-detail">
                     <strong>@detail.DisplayName</strong>
+                    <ModOriginBadge Origin="detail.Origin" />
                     <small>@DetailStats(detail)</small>
                     @if (!string.IsNullOrWhiteSpace(detail.Description)) { <p>@detail.Description</p> }
                     @* PICK UP is the no-dragging way to spawn an item: take it here, then tap

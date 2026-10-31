@@ -7,7 +7,10 @@ namespace AbioticEditor.Core.Assets;
 
 public sealed partial class GameAssetProvider
 {
-    private sealed record ModRow(string Id, string Struct, FStructFallback Data, bool Override);
+    private sealed record ModRow(string Id, string Struct, FStructFallback Data, bool Override)
+    {
+        public (string Key, string Name, long? Id)? Mod { get; init; }
+    }
     private Dictionary<string, List<ModRow>>? _officialRows;
     private readonly HashSet<UDataTable> _overlaidTables = [];
 
@@ -15,18 +18,117 @@ public sealed partial class GameAssetProvider
     internal bool IsOfficialRow(string tablePath, string id)
         => _officialRows?.GetValueOrDefault(tablePath)?.Any(row => row.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) == true;
 
+    /// <summary>
+    /// Which loaded mod a mounted asset comes from (<paramref name="change"/> says what it did), or
+    /// null for a base-game asset. Works for both official mod.io archives and legacy <c>~mods</c> paks.
+    /// </summary>
+    public ModOrigin? ModOfAsset(string assetPath, ModChange change = ModChange.Added)
+    {
+        ThrowIfDisposed();
+        if (_modFiles.Count == 0 || string.IsNullOrEmpty(assetPath)) return null;
+        var path = assetPath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? assetPath : assetPath + ".uasset";
+        return ArchiveModOf(path) is { } mod ? new ModOrigin(mod.Key, mod.Name, mod.Id, change) : null;
+    }
+
+    /// <summary>
+    /// Which loaded mod supplies a row of a game data table, or null when the row is base game.
+    /// When several mods touch one row, the one the game applies last is named. A row a mod added
+    /// is <see cref="ModChange.Added"/>; a base row a mod overrode is <see cref="ModChange.Changed"/>.
+    /// </summary>
+    /// <param name="tablePath">Package path of the base table (no extension).</param>
+    public ModOrigin? RowOrigin(string tablePath, string rowId)
+    {
+        ThrowIfDisposed();
+        if (_modFiles.Count == 0 || !HasMappings) return null;
+        using (ProviderLock())
+        {
+            _officialRows ??= ReadOfficialRows();
+            if (!_officialRows.TryGetValue(StripExtension(tablePath), out var rows)) return null;
+            var matching = rows.Where(row => row.Id.Equals(rowId, StringComparison.OrdinalIgnoreCase) && row.Mod is not null).ToArray();
+            var winner = matching.LastOrDefault(row => row.Override) ?? matching.FirstOrDefault();
+            return winner?.Mod is { } mod ? new ModOrigin(mod.Key, mod.Name, mod.Id, winner.Override ? ModChange.Changed : ModChange.Added) : null;
+        }
+    }
+
+    /// <summary>
+    /// Every data-table row the loaded official mods add or change, in the order the game applies
+    /// them. Lets a host say in plain words what each mod brings (a new trader, new items, a changed
+    /// trader's stock) without guessing from names. Empty with no mods or no mappings.
+    /// </summary>
+    public IReadOnlyList<ModRowContribution> ModContributions()
+    {
+        ThrowIfDisposed();
+        if (_modFiles.Count == 0 || !HasMappings) return [];
+        using (ProviderLock())
+        {
+            _officialRows ??= ReadOfficialRows();
+            return _officialRows.SelectMany(table => table.Value
+                    .Where(row => row.Mod is not null)
+                    .Select(row => new ModRowContribution(
+                        table.Key[(table.Key.LastIndexOf('/') + 1)..], row.Id,
+                        new ModOrigin(row.Mod!.Value.Key, row.Mod.Value.Name, row.Mod.Value.Id, row.Override ? ModChange.Changed : ModChange.Added))))
+                .DistinctBy(item => (item.Table, item.RowId, item.Origin.ModKey))
+                .ToArray();
+        }
+    }
+
+    /// <summary>
+    /// How many of the base game's own files each mod replaces outright (a copy of a game file at
+    /// the same path, the way older pak mods change things). Keyed by mod key.
+    /// </summary>
+    public IReadOnlyDictionary<string, int> ReplacedGameFileCounts()
+    {
+        ThrowIfDisposed();
+        if (_modFiles.Count == 0) return new Dictionary<string, int>();
+        return AssetPaths.Where(path => path.StartsWith("AbioticFactor/Content/", StringComparison.OrdinalIgnoreCase)
+                && path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(ArchiveModOf).OfType<(string Key, string Name, long? Id)>()
+            .GroupBy(mod => mod.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private (string Key, string Name, long? Id)? ArchiveModOf(string assetPath)
+    {
+        if (!_provider.Files.TryGetValue(assetPath, out var file) || file is not CUE4Parse.UE4.VirtualFileSystem.VfsEntry entry
+            || !_modArchives.TryGetValue(entry.Vfs.Path, out var archive)) return null;
+        return (archive.Key, archive.Name, archive.Id);
+    }
+
+    private static string StripExtension(string path)
+        => path.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? path[..^7] : path;
+
     // Called under the provider lock. Only the in-memory table changes; pak files stay untouched.
     private void ApplyOfficialModRows(string tablePath, UDataTable table)
     {
         if (_modFiles.Count == 0 || !HasMappings || !_overlaidTables.Add(table)) return;
         _officialRows ??= ReadOfficialRows();
-        tablePath = tablePath.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase) ? tablePath[..^7] : tablePath;
-        if (!_officialRows.TryGetValue(tablePath, out var rows)) return;
-        foreach (var row in rows)
+        tablePath = StripExtension(tablePath);
+        // A composite table (CDT_*) is cooked with its parents' rows baked in, so mod rows aimed at
+        // a parent (a new PhD in DT_PhDs, a rewritten job) must reach it too, in parent order,
+        // exactly as the game rebuilds it. The table's own rows come last.
+        foreach (var target in CompositeParents(table).Append(tablePath))
         {
-            if (!string.Equals(row.Struct, table.RowStructName, StringComparison.Ordinal)) continue;
-            var key = new FName(row.Id);
-            if (row.Override || !table.RowMap.ContainsKey(key)) table.RowMap[key] = row.Data;
+            if (!_officialRows.TryGetValue(target, out var rows)) continue;
+            foreach (var row in rows)
+            {
+                if (!string.Equals(row.Struct, table.RowStructName, StringComparison.Ordinal)) continue;
+                var key = new FName(row.Id);
+                if (row.Override || !table.RowMap.ContainsKey(key)) table.RowMap[key] = row.Data;
+            }
+        }
+    }
+
+    /// <summary>The package paths of a composite table's parents (none for an ordinary table).</summary>
+    internal static IEnumerable<string> CompositeParents(UDataTable table)
+    {
+        if (table is not CUE4Parse.UE4.Assets.Exports.Engine.UCompositeDataTable
+            || table.Properties.FirstOrDefault(p => p.Name.Text == "ParentTables")?.Tag?.GenericValue is not UScriptArray parents) yield break;
+        foreach (var parent in parents.Properties)
+        {
+            if (parent.GenericValue is not FPackageIndex { ResolvedObject: { } resolved }) continue;
+            var path = resolved.GetPathName().Split('.')[0];
+            yield return path.StartsWith("/Game/", StringComparison.Ordinal) ? "AbioticFactor/Content/" + path[6..] : path.TrimStart('/');
         }
     }
 
@@ -54,6 +156,7 @@ public sealed partial class GameAssetProvider
                             if (!export.ExportType.EndsWith("ModRowAsset", StringComparison.Ordinal)) continue;
                             var row = ReadOfficialRow(export, prefix);
                             if (row is null) continue;
+                            row = row with { Mod = ArchiveModOf(path) };
                             // The official editor packages row assets under DataTables/<target table>/.
                             // Validate the target's native row struct when applying; never merge on
                             // row-struct identity alone (all three recipe tables share one struct).
