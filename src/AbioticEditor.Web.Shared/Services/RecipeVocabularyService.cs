@@ -134,7 +134,7 @@ public sealed class RecipeVocabularyService
                     {
                         ItemVariants = variants,
                         Traders = traders,
-                        RecipeLearning = GameDataRegistry.BuildRecipeLearning(provider),
+                        RecipeLearning = LoadRecipeLearningCached(provider),
                     };
                 }
             }
@@ -159,6 +159,59 @@ public sealed class RecipeVocabularyService
             Traders = registry?.Traders ?? [],
             RecipeLearning = registry?.RecipeLearning is { SchemaVersion: RecipeLearningCatalog.CurrentSchemaVersion } learning ? learning : null,
         };
+    }
+
+    private static string LearningCachePath => Path.Combine(
+        AbioticEditor.Core.Plugins.PluginPaths.AppDataRoot, "cache", "recipe-learning.json");
+
+    /// <summary>
+    /// Working out where every recipe is learned walks every workbench blueprint and every level
+    /// in the game, which takes minutes. The answer only changes when the game, mods or language
+    /// change, so it is kept on disk keyed by the same fingerprint that drives catalog reloads.
+    /// The first line of the cache file is that fingerprint, the rest is the JSON payload.
+    /// </summary>
+    private static RecipeLearningCatalogData? LoadRecipeLearningCached(GameAssetProvider provider)
+    {
+        var key = GameDataGate.InputFingerprintHash;
+        var path = LearningCachePath;
+        if (key is not null)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    var text = File.ReadAllText(path);
+                    var newline = text.IndexOf('\n');
+                    if (newline > 0 && string.Equals(text[..newline].Trim(), key, StringComparison.Ordinal)
+                        && System.Text.Json.JsonSerializer.Deserialize(text[(newline + 1)..],
+                            GameDataRegistryJsonContext.Default.RecipeLearningCatalogData) is { } cached
+                        && cached.SchemaVersion == RecipeLearningCatalog.CurrentSchemaVersion)
+                        return cached;
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Diagnostics.EditorLog.Warn("RecipeLearning", "Ignoring unreadable recipe-learning cache.", ex);
+            }
+        }
+
+        var built = GameDataRegistry.BuildRecipeLearning(provider);
+        if (built is not null && key is not null)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                var temp = path + ".tmp";
+                File.WriteAllText(temp, key + "\n" + System.Text.Json.JsonSerializer.Serialize(
+                    built, GameDataRegistryJsonContext.Default.RecipeLearningCatalogData));
+                File.Move(temp, path, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                Core.Diagnostics.EditorLog.Warn("RecipeLearning", "Could not save the recipe-learning cache.", ex);
+            }
+        }
+        return built;
     }
 
     // TraderCatalog serves its built-in roster to older screens when installed tables fail.

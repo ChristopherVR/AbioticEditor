@@ -24,6 +24,23 @@ internal static class GameDataGate
     private static string? _inputFingerprint;
     private static long _revision;
 
+    /// <summary>
+    /// A short stable hash of the current game-data inputs (paks, mods, language, registry files).
+    /// Unlike the in-process revision it survives restarts, so it can key an on-disk cache.
+    /// </summary>
+    public static string? InputFingerprintHash
+    {
+        get
+        {
+            lock (Sync)
+            {
+                return _inputFingerprint is null ? null
+                    : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                        System.Text.Encoding.UTF8.GetBytes(_inputFingerprint)));
+            }
+        }
+    }
+
     /// <summary>Checks inputs only at an explicit workflow boundary, never during rendering.</summary>
     public static (long Revision, string? PaksDirectory) EnsureCurrentInputs()
     {
