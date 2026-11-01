@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.33.2] - 2026-11-01
+
+### Bug Fixes
+- The Recipes tab no longer takes minutes to load every time
+
+
 ## [2.33.1] - 2026-11-01
 
 ### Miscellaneous Tasks
