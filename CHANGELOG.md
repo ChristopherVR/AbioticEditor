@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.33.1] - 2026-11-01
+
+### Miscellaneous Tasks
+- Bump medium-zoom in /docs in the npm-all group (#55)
+
+
 ## [2.33.0] - 2026-10-31
 
 ### Features
