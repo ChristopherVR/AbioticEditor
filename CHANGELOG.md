@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [2.33.3] - 2026-11-02
+
+### Bug Fixes
+- Game Pass worlds from the newest game version now open
+
+
+### Testing
+- Add a real newest-version Game Pass world to the checks
+
+
 ## [2.33.2] - 2026-11-01
 
 ### Bug Fixes
