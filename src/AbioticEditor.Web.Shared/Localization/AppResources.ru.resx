@@ -1456,6 +1456,24 @@
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
     <value>Исправлено частей сохранения: {0}.</value>
   </data>
+  <data name="Main_GpUpgradeTitle" xml:space="preserve">
+    <value>Перевести этот мир в новейший формат сохранения?</value>
+  </data>
+  <data name="Main_GpUpgradeMessage" xml:space="preserve">
+    <value>Этот мир сохранён в старом формате Xbox. При редактировании он остаётся таким, это безопасный выбор. Если вы играете в последней версии Abiotic Factor, можно преобразовать его сейчас. Сохранения внутри не меняются, но более старая версия игры больше не сможет его открыть. Сначала вся папка сохранений копируется в резервную копию.</value>
+  </data>
+  <data name="Main_GpUpgradeConfirm" xml:space="preserve">
+    <value>Преобразовать и открыть</value>
+  </data>
+  <data name="Main_GpUpgradeSkip" xml:space="preserve">
+    <value>Оставить старый формат</value>
+  </data>
+  <data name="Main_GpUpgraded" xml:space="preserve">
+    <value>Преобразовано миров: {0}.</value>
+  </data>
+  <data name="Main_GpUpgradeFailed" xml:space="preserve">
+    <value>Не удалось преобразовать этот мир. Он открыт в исходном формате.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Записываем «{0}» обратно в ваши сохранения Xbox…</value>
   </data>

@@ -144,6 +144,29 @@ public sealed class GamePassSaveSet
     }
 
     /// <summary>
+    /// The world containers at <paramref name="folder"/> still in the older version 3 layout, answered
+    /// from each bundle's header without unpacking anything, so a host can offer
+    /// <see cref="UpgradeContainerToLatest"/> before it opens the world. Empty when none, or when the
+    /// folder cannot be read (opening it will report the real problem).
+    /// </summary>
+    public static IReadOnlyList<string> WorldsInOlderFormat(string folder)
+    {
+        try
+        {
+            var store = WgsContainerStore.Open(folder);
+            return store.Containers
+                .Where(c => c.Name.EndsWith(WorldSuffix, StringComparison.OrdinalIgnoreCase))
+                .Where(c => AbfSaveBundle.PeekVersion(store.ReadBlob(c)) is { } v && v < AbfSaveBundle.LatestVersion)
+                .Select(c => c.Name)
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
     /// True when opening/reading this save had to recover a container from a sibling blob because the
     /// one its manifest referenced was missing - a reliable sign Xbox cloud sync has not finished. In
     /// this state the save reads fine but writing risks Xbox discarding the edit, so the host should
@@ -251,7 +274,54 @@ public sealed class GamePassSaveSet
     public byte[] ReadSave(GamePassSaveEntry entry)
     {
         var member = Member(entry);
-        return GamePassMemberCodec.ToGvas(entry.SaveClass, member.Body);
+        return ToGvas(entry.ContainerName, entry.SaveClass, member.Body);
+    }
+
+    // A member's header is built around the engine block of the bundle it lives in, so a save from
+    // the newest game is described as such and an older bundle keeps the older stock header.
+    private byte[] ToGvas(string containerName, string saveClass, byte[] body)
+        => GamePassMemberCodec.ToGvas(saveClass, body, LoadBundle(containerName).EnginePreamble.Span);
+
+    /// <summary>
+    /// The world containers (<c>-WC</c>) still in the older version 3 layout. The editor keeps such a
+    /// world in its own layout on every save, so a player on the newest game is offered
+    /// <see cref="UpgradeContainerToLatest"/> rather than having it changed silently.
+    /// </summary>
+    public IReadOnlyList<string> ContainersInOlderFormat()
+    {
+        var older = new List<string>();
+        foreach (var container in _store.Containers)
+        {
+            if (!container.Name.EndsWith(WorldSuffix, StringComparison.OrdinalIgnoreCase)) continue;
+            try
+            {
+                if (!LoadBundle(container.Name).IsLatestFormat) older.Add(container.Name);
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.EditorLog.Warn("GamePass", $"Could not read bundle '{container.Name}': {ex.Message}");
+            }
+        }
+        return older;
+    }
+
+    /// <summary>
+    /// Rewrites a version 3 world container in the newest layout (the saves inside are unchanged).
+    /// Backs up the whole wgs folder first. Returns false when it was already current. An older game
+    /// cannot read the result, so this is only for worlds played on the newest game.
+    /// </summary>
+    public bool UpgradeContainerToLatest(string containerName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        var bundle = LoadBundle(containerName);
+        if (bundle.IsLatestFormat) return false;
+
+        _store.EnsureWritable();
+        BackupOnce();
+        bundle.UpgradeToLatest();
+        Repack(containerName);
+        Diagnostics.EditorLog.Info("GamePass", $"Upgraded '{containerName}' to bundle version {AbfSaveBundle.LatestVersion}.");
+        return true;
     }
 
     /// <summary>
@@ -445,7 +515,7 @@ public sealed class GamePassSaveSet
 
         // Rewrite the owner id inside the save first: if the name is already taken the rename below
         // throws and nothing has been written to the player's container yet.
-        var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(GamePassMemberCodec.ToGvas(entry.SaveClass, member.Body), writable: false));
+        var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(ToGvas(entry.ContainerName, entry.SaveClass, member.Body), writable: false));
         PlayerSaveIdentity.StampIdentifier(save, newAccountId);
         using var restamped = new MemoryStream();
         save.WriteTo(restamped);
@@ -486,7 +556,7 @@ public sealed class GamePassSaveSet
                      .Where(e => e.Kind is GamePassSaveKind.World or GamePassSaveKind.WorldMetadata))
         {
             var worldMember = Member(world);
-            var gvas = GamePassMemberCodec.ToGvas(world.SaveClass, worldMember.Body);
+            var gvas = ToGvas(containerName, world.SaveClass, worldMember.Body);
             var patched = WorldSteamIdPatcher.PatchBytes(gvas, oldAccountId, newAccountId, out var rewritten);
             if (rewritten == 0) continue;
             worldMember.Body = GamePassMemberCodec.ToMemberBody(world.SaveClass, patched);

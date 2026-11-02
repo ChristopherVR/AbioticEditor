@@ -19,6 +19,7 @@ internal static class GamePassCommands
         cmd.Subcommands.Add(BuildImport(quiet));
         cmd.Subcommands.Add(BuildDiscover(quiet));
         cmd.Subcommands.Add(BuildRepair(quiet));
+        cmd.Subcommands.Add(BuildUpgrade(quiet));
         cmd.Subcommands.Add(BuildSnapshot(quiet));
         cmd.Subcommands.Add(BuildCompare(quiet));
         cmd.Subcommands.Add(BuildToGamePass(quiet));
@@ -131,6 +132,14 @@ internal static class GamePassCommands
             }
 
             var set = GamePassSaveSet.Open(dir);
+            var older = set.ContainersInOlderFormat();
+            if (older.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine(
+                    $"Older save format: {string.Join(", ", older)}. Editing keeps it that way. If you play on "
+                    + "the newest game, 'gamepass upgrade' converts it (an older game then cannot open it).");
+            }
             var backups = set.WorldBackups();
             Console.WriteLine();
             if (backups.Count == 0)
@@ -409,6 +418,48 @@ internal static class GamePassCommands
                 return Cli.Ok;
             }
             foreach (var line in diff) Console.WriteLine(line);
+            return Cli.Ok;
+        }));
+        return cmd;
+    }
+
+    private static Command BuildUpgrade(Option<bool> quiet)
+    {
+        var folderArg = new Argument<string>("wgs-folder") { Description = "Path to the wgs container folder." };
+        var containerOpt = new Option<string?>("--container")
+        {
+            Description = "Only this world container (for example MyWorld-WC). Default: every older-format world.",
+        };
+        var forceOpt = ForceOption();
+        var cmd = new Command("upgrade",
+            "Convert a world saved in the older Game Pass format to the newest one. Editing never does "
+            + "this by itself. The saves inside are unchanged, but a game older than the newest cannot "
+            + "open the result. The whole save folder is backed up first.");
+        cmd.Arguments.Add(folderArg);
+        cmd.Options.Add(containerOpt);
+        cmd.Options.Add(forceOpt);
+        cmd.SetAction(pr => Cli.Run(() =>
+        {
+            var set = OpenSet(pr.GetValue(folderArg));
+            var only = pr.GetValue(containerOpt);
+            var older = set.ContainersInOlderFormat();
+            var targets = only is null
+                ? older
+                : older.Where(n => string.Equals(n, only, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (targets.Count == 0)
+            {
+                Console.WriteLine(only is null
+                    ? "Nothing to upgrade - every world is already in the newest format."
+                    : $"'{only}' is not an older-format world (already newest, or no such container).");
+                return Cli.Ok;
+            }
+
+            RequireWritable(set, pr.GetValue(forceOpt));
+            foreach (var name in targets)
+            {
+                set.UpgradeContainerToLatest(name);
+                Console.WriteLine($"Upgraded {name} to the newest format.");
+            }
             return Cli.Ok;
         }));
         return cmd;

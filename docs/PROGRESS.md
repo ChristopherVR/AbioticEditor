@@ -8419,6 +8419,30 @@ temp dir and confirming Reactors/Residence email+journal rows disappear on a rew
 **Still not built**: `QuestFlagDependencies.Consequences` (door/NPC-death undo) - the last item
 from the original ask.
 
+## 2026-11-03: Game Pass bundle version 4 (1.5 game)
+
+- **Symptom:** "Implausible bundle member count 262149" opening a Game Pass world. **Cause:** the 1.5
+  game writes `ABF_SAVE_VERSION` bundle **version 4**, which puts a GVAS-style engine block (UE4/UE5
+  package versions, engine `5.4.4-1050002+++DF+ABF`, 74 custom versions) between the version int and
+  the old size fields. `262149` is `0x00040005`, the engine's `5.4` bytes read as the member count.
+  The TOC entries and the Oodle payload are unchanged. `field1` is the real total raw size in v4
+  (the v3 fixture carries 0).
+- `AbfSaveBundle` parses v3 and v4, keeps the v4 block verbatim (`EnginePreamble`) and writes it back.
+  `Create` (Steam to Game Pass) now emits v4 stamped with `AbfLatestEngineHeader` (captured from a
+  real bundle). An existing v3 world stays v3 through every edit; `UpgradeToLatest` /
+  `GamePassSaveSet.UpgradeContainerToLatest` convert it only on request (CLI `gamepass upgrade`,
+  and a prompt in `GamePassSafetyGuard` before the world opens; `gamepass status` mentions it).
+- Members are headerless, so the stale `GvasHeaderTemplates` (engine 1030002) only mattered for what
+  we read and export. `GamePassMemberCodec.ToGvas` now swaps the template's engine block for the
+  bundle's own, so a v4 member is described by the build that wrote it. v3 keeps the stock templates.
+- **Characters with no `CharacterSaveData`:** the game omits it for a character that never spawned.
+  `PlayerSaveReader.ReadFrom` reads it as an empty character without touching the file; a writer
+  creates the native `AbioticCharacterSaveData` struct on demand. "Native" is decided by
+  `SaveVersion >= 4` **or** engine changelist >= 1050002, because this world's native saves report
+  `SaveVersion` 3. A legacy-layout save with no struct still throws (its tag name is unguessable).
+- Fixture: `tests/fixtures/GamePassSaves/BundleV4/*.zip`, a real player's v4 container (3 bundles of
+  56 members). Not verified in the real game: loading a converted or upgraded world on an Xbox install.
+
 ## Known open items / verify-next
 0. NEW (2026-06-12 late): story-timeline checklist REMOVED from region flags tab
    (redundant with grouped list; checklist remains on metadata STORY tab). Door rows

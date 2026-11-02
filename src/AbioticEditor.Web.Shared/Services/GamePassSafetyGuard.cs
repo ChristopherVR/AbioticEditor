@@ -101,7 +101,7 @@ public sealed class GamePassSafetyGuard(
             return open();
         }
 
-        if (repairable.Count == 0) return OpenThenExplainAsync(open);
+        if (repairable.Count == 0) return OfferUpgradeThenOpenAsync(folder, open);
 
         EditorLog.Warn("GamePass",
             $"'{folder}' has {repairable.Count} part(s) a repair would put right: {string.Join(", ", repairable)}");
@@ -111,8 +111,48 @@ public sealed class GamePassSafetyGuard(
             ConfirmText: language.Resource("Main_GpMidSyncRepair"),
             OnConfirm: () => RepairThenOpenAsync(folder, open),
             CancelText: language.Resource("Main_GpMidSyncSkip"),
+            OnCancel: () => OfferUpgradeThenOpenAsync(folder, open)));
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Asks whether to convert a world saved in the older Xbox format to the newest one, and only
+    /// when there is one. Editing alone never changes a world's format; converting is a choice,
+    /// because a game older than the newest cannot open the result. Declining opens it as it is.
+    /// </summary>
+    private Task OfferUpgradeThenOpenAsync(string folder, Func<Task> open)
+    {
+        var older = GamePassSaveSet.WorldsInOlderFormat(folder);
+        if (older.Count == 0) return OpenThenExplainAsync(open);
+
+        EditorLog.Info("GamePass", $"'{folder}' holds {older.Count} world(s) in the older format: {string.Join(", ", older)}");
+        modals.Show(new ModalRequest(
+            language.Resource("Main_GpUpgradeTitle"),
+            Paragraphs(language.Resource("Main_GpUpgradeMessage")),
+            ConfirmText: language.Resource("Main_GpUpgradeConfirm"),
+            OnConfirm: () => UpgradeThenOpenAsync(folder, older, open),
+            CancelText: language.Resource("Main_GpUpgradeSkip"),
             OnCancel: () => OpenThenExplainAsync(open)));
         return Task.CompletedTask;
+    }
+
+    private async Task UpgradeThenOpenAsync(string folder, IReadOnlyList<string> containers, Func<Task> open)
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                var set = GamePassSaveSet.Open(folder);
+                foreach (var name in containers) set.UpgradeContainerToLatest(name);
+            }).ConfigureAwait(false);
+            toasts.Show(language.Resource("Main_GpUpgraded", containers.Count), ToastKind.Success);
+        }
+        catch (Exception ex)
+        {
+            EditorLog.Error("GamePass", "Converting a Game Pass world to the newest format failed", ex);
+            toasts.Show(language.Resource("Main_GpUpgradeFailed"), ToastKind.Error);
+        }
+        await OpenThenExplainAsync(open).ConfigureAwait(false);
     }
 
     private async Task RepairThenOpenAsync(string folder, Func<Task> open)
@@ -127,7 +167,7 @@ public sealed class GamePassSafetyGuard(
             EditorLog.Error("GamePass", "Repairing a Game Pass save failed", ex);
             toasts.Show(language.Resource("Main_GpRepairFailed"), ToastKind.Error);
         }
-        await OpenThenExplainAsync(open).ConfigureAwait(false);
+        await OfferUpgradeThenOpenAsync(folder, open).ConfigureAwait(false);
     }
 
     /// <summary>

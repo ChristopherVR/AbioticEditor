@@ -356,15 +356,16 @@ public class GamePassTests
             var loaded = 0;
             foreach (var entry in set.Entries().Where(e => e.IsEditable))
             {
-                var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(set.ReadSave(entry)));
+                var gvas = set.ReadSave(entry);
+                // The header carries the game's own engine build (5.4.4, changelist 0x80100592) from
+                // the bundle, not the older one the stock template was captured from.
+                Assert.Equal(0x80100592u, BitConverter.ToUInt32(gvas, 22));
+                var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(gvas));
                 if (entry.Kind == GamePassSaveKind.Player)
                 {
-                    // One account is a Steam id whose save holds only the identifier and version
-                    // (nothing set apart from defaults), so it has no character data to read.
-                    if (save.Properties!.Any(p => p.Name.ToString().StartsWith("CharacterSaveData", StringComparison.Ordinal)))
-                    {
-                        PlayerSaveReader.ReadFrom(save);
-                    }
+                    // Includes the account whose save holds only an identifier and a version
+                    // (nothing set apart from defaults), which has no character data to read.
+                    PlayerSaveReader.ReadFrom(save);
                 }
                 else
                 {
@@ -373,6 +374,121 @@ public class GamePassTests
                 loaded++;
             }
             Assert.True(loaded >= 100, $"only {loaded} saves loaded");
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public void New_bundles_are_written_in_the_newest_format_with_the_games_own_engine_header()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+        Skip.IfNot(Fixtures.GamePassBundleV4Zip is not null, "the version 4 Game Pass fixture is not in this checkout");
+
+        var member = new AbfMember { Path = "Profile/Worlds/W/WorldSave_Region", SaveClass = GamePassMemberCodec.WorldSaveClass, Body = new byte[] { 1, 2, 3 } };
+        var created = AbfSaveBundle.Create(new[] { member });
+        Assert.Equal(AbfSaveBundle.LatestVersion, created.Version);
+        Assert.True(created.IsLatestFormat);
+
+        var reparsed = AbfSaveBundle.Parse(created.Serialize());
+        Assert.Equal(AbfSaveBundle.LatestVersion, reparsed.Version);
+        Assert.Equal(created.EnginePreamble.ToArray(), reparsed.EnginePreamble.ToArray());
+
+        // The embedded "latest" header is byte-for-byte what the real game wrote.
+        var tmp = Directory.CreateTempSubdirectory("v4hdr");
+        try
+        {
+            System.IO.Compression.ZipFile.ExtractToDirectory(Fixtures.GamePassBundleV4Zip!, tmp.FullName);
+            var blob = Directory.EnumerateFiles(tmp.FullName, "*", SearchOption.AllDirectories)
+                .Select(File.ReadAllBytes).First(b => AbfSaveBundle.LooksLikeBundle(b));
+            Assert.Equal(AbfSaveBundle.Parse(blob).EnginePreamble.ToArray(), created.EnginePreamble.ToArray());
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public void A_version3_world_keeps_its_format_through_edits_and_upgrades_only_when_asked()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+
+        var work = Directory.CreateTempSubdirectory("gp-v3up");
+        try
+        {
+            CopyTree(Fixtures.GamePassWgsDir!, work.FullName);
+            var set = GamePassSaveSet.Open(work.FullName);
+            set.AllowUnsafeWrites(GamePassWriteOverride.AcceptRiskOfLosingThisSave("test"));
+
+            var older = GamePassSaveSet.WorldsInOlderFormat(work.FullName);
+            var container = Assert.Single(older);
+            var player = set.EntriesForContainer(container).First(e => e.Kind == GamePassSaveKind.Player);
+            var before = set.ReadSave(player);
+
+            // An ordinary edit rewrites the bundle but must leave it in its own format.
+            set.WriteSave(player, before);
+            var afterEdit = GamePassSaveSet.Open(work.FullName);
+            Assert.Equal(older, GamePassSaveSet.WorldsInOlderFormat(work.FullName));
+            Assert.Equal(before, afterEdit.ReadSave(afterEdit.EntriesForContainer(container).First(e => e.Kind == GamePassSaveKind.Player)));
+
+            // Converting is a separate, explicit step: same saves, newest layout, nothing left to offer.
+            var memberBodies = set.EntriesForContainer(container).Select(e => set.ReadSave(e)).ToList();
+            Assert.True(afterEdit.UpgradeContainerToLatest(container));
+            Assert.False(afterEdit.UpgradeContainerToLatest(container));
+            Assert.Empty(GamePassSaveSet.WorldsInOlderFormat(work.FullName));
+
+            var reopened = GamePassSaveSet.Open(work.FullName);
+            Assert.Empty(reopened.ContainersInOlderFormat());
+            var entries = reopened.EntriesForContainer(container);
+            Assert.Equal(memberBodies.Count, entries.Count);
+            foreach (var entry in entries.Where(e => e.IsEditable))
+            {
+                // Same save content as before; only the header now names the newest engine build.
+                var gvas = reopened.ReadSave(entry);
+                Assert.Equal(0x80100592u, BitConverter.ToUInt32(gvas, 22));
+                UeSaveGame.SaveGame.LoadFrom(new MemoryStream(gvas));
+            }
+        }
+        finally
+        {
+            work.Delete(recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public void A_player_save_with_no_character_data_reads_as_empty_and_can_still_be_edited()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+        Skip.IfNot(Fixtures.GamePassBundleV4Zip is not null, "the version 4 Game Pass fixture is not in this checkout");
+
+        var tmp = Directory.CreateTempSubdirectory("v4empty");
+        try
+        {
+            System.IO.Compression.ZipFile.ExtractToDirectory(Fixtures.GamePassBundleV4Zip!, tmp.FullName);
+            var set = GamePassSaveSet.Open(Directory.GetDirectories(tmp.FullName).Single());
+            var entry = set.Entries().First(e => e.Kind == GamePassSaveKind.Player && e.FileName.Contains("76561198006644190", StringComparison.Ordinal));
+            var gvas = set.ReadSave(entry);
+
+            // Opening it changes nothing about the file.
+            var data = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(gvas)));
+            using (var unchanged = new MemoryStream())
+            {
+                data.Raw.WriteTo(unchanged);
+                Assert.Equal(gvas, unchanged.ToArray());
+            }
+            Assert.Equal(0, data.Stats.Money);
+            Assert.Empty(data.Inventory.Main);
+
+            // An edit creates the missing character data and survives a save and reload.
+            PlayerSaveWriter.ApplyStats(data, data.Stats with { Money = 321 });
+            using var edited = new MemoryStream();
+            data.Raw.WriteTo(edited);
+            var reread = PlayerSaveReader.ReadFrom(UeSaveGame.SaveGame.LoadFrom(new MemoryStream(edited.ToArray())));
+            Assert.Equal(321, reread.Stats.Money);
         }
         finally
         {
@@ -543,16 +659,21 @@ public class GamePassTests
             // Game Pass -> Steam, into a new folder.
             var back = GamePassConverter.GamePassToSteamWorld(wgs, $"MyWorld-WC", Path.Combine(tmp.FullName, "back"));
 
-            // Every save survives the round-trip byte-for-byte, not just the first one.
+            // Every save's content survives the round-trip byte-for-byte, not just the first one. A
+            // bundle member holds no header, and a new bundle is stamped with the newest game's engine
+            // header, so what comes back differs from the original only in that header; the content
+            // after it is compared.
             foreach (var name in playerNames)
             {
                 var restored = Path.Combine(back, "PlayerData", name);
                 Assert.True(File.Exists(restored), $"{name} did not come back from the round-trip");
-                Assert.Equal(File.ReadAllBytes(Path.Combine(steam, "PlayerData", name)), File.ReadAllBytes(restored));
+                Assert.Equal(
+                    GamePassMemberCodec.ToMemberBody(CharClass, File.ReadAllBytes(Path.Combine(steam, "PlayerData", name))),
+                    GamePassMemberCodec.ToMemberBody(CharClass, File.ReadAllBytes(restored)));
             }
             Assert.Equal(
-                File.ReadAllBytes(Path.Combine(steam, "WorldSave_MetaData.sav")),
-                File.ReadAllBytes(Path.Combine(back, "WorldSave_MetaData.sav")));
+                GamePassMemberCodec.ToMemberBody(GamePassMemberCodec.WorldMetadataSaveClass, File.ReadAllBytes(Path.Combine(steam, "WorldSave_MetaData.sav"))),
+                GamePassMemberCodec.ToMemberBody(GamePassMemberCodec.WorldMetadataSaveClass, File.ReadAllBytes(Path.Combine(back, "WorldSave_MetaData.sav"))));
         }
         finally
         {

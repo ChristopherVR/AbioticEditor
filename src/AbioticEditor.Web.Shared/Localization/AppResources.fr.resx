@@ -1456,6 +1456,24 @@ Les copies automatiques de l’éditeur n’empêchent pas Xbox de remplacer une
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
     <value>{0} partie(s) de cette sauvegarde corrigée(s).</value>
   </data>
+  <data name="Main_GpUpgradeTitle" xml:space="preserve">
+    <value>Passer ce monde au format de sauvegarde le plus récent ?</value>
+  </data>
+  <data name="Main_GpUpgradeMessage" xml:space="preserve">
+    <value>Ce monde est enregistré dans un ancien format Xbox. Le modifier le laisse tel quel, ce qui est le choix le plus sûr. Si vous jouez avec la dernière version d&apos;Abiotic Factor, vous pouvez le convertir maintenant. Les sauvegardes qu&apos;il contient ne changent pas, mais une version plus ancienne du jeu ne pourra plus l&apos;ouvrir. Tout votre dossier de sauvegarde est d&apos;abord copié dans une sauvegarde de secours.</value>
+  </data>
+  <data name="Main_GpUpgradeConfirm" xml:space="preserve">
+    <value>Convertir et ouvrir</value>
+  </data>
+  <data name="Main_GpUpgradeSkip" xml:space="preserve">
+    <value>Garder l&apos;ancien format</value>
+  </data>
+  <data name="Main_GpUpgraded" xml:space="preserve">
+    <value>{0} monde(s) converti(s) au format le plus récent.</value>
+  </data>
+  <data name="Main_GpUpgradeFailed" xml:space="preserve">
+    <value>Impossible de convertir ce monde. Il a été ouvert dans son format d&apos;origine.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Écriture de « {0} » dans vos sauvegardes Xbox…</value>
   </data>

@@ -52,9 +52,14 @@ public static class GamePassMemberCodec
     /// Reconstructs a full GVAS save from a headerless member body by prepending the class-matched
     /// header template and stamping the body's own length into the template's data-length field.
     /// </summary>
-    public static byte[] ToGvas(string saveClass, ReadOnlySpan<byte> memberBody)
+    /// <param name="enginePreamble">The owning bundle's engine block
+    /// (<see cref="AbfSaveBundle.EnginePreamble"/>). When given, the header carries it in place of the
+    /// template's own engine version and custom versions, so a member is described by the game build
+    /// that wrote it rather than the older build the template was captured from. Empty (a version 3
+    /// bundle) keeps the template as captured.</param>
+    public static byte[] ToGvas(string saveClass, ReadOnlySpan<byte> memberBody, ReadOnlySpan<byte> enginePreamble = default)
     {
-        var header = HeaderFor(saveClass)
+        var header = HeaderFor(saveClass, enginePreamble)
             ?? throw new NotSupportedException($"No GVAS header template for save class '{saveClass}'.");
         var result = new byte[header.Length + memberBody.Length];
         header.CopyTo(result, 0);
@@ -127,6 +132,22 @@ public static class GamePassMemberCodec
         WorldMetadataSaveClass => ("Abiotic_WorldMetadataSave_C\0", 33),
         _ => null,
     };
+
+    // A GVAS header is "GVAS" + save version, then the same engine block a version 4 bundle carries,
+    // then the class name and custom header. Swap the template's engine block for the bundle's.
+    private static byte[]? HeaderFor(string? saveClass, ReadOnlySpan<byte> enginePreamble)
+    {
+        var stock = HeaderFor(saveClass);
+        if (stock is null || enginePreamble.IsEmpty) return stock;
+
+        const int EngineBlockOffset = 8;
+        var stockEnd = AbfSaveBundle.SkipPreamble(stock, EngineBlockOffset);
+        var header = new byte[EngineBlockOffset + enginePreamble.Length + (stock.Length - stockEnd)];
+        stock.AsSpan(0, EngineBlockOffset).CopyTo(header);
+        enginePreamble.CopyTo(header.AsSpan(EngineBlockOffset));
+        stock.AsSpan(stockEnd).CopyTo(header.AsSpan(EngineBlockOffset + enginePreamble.Length));
+        return header;
+    }
 
     private static byte[]? HeaderFor(string? saveClass) => saveClass switch
     {

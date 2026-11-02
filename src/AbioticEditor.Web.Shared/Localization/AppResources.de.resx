@@ -1456,6 +1456,24 @@ Automatische Backups des Editors verhindern nicht, dass Xbox einen Spielstand er
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
     <value>{0} Teil(e) dieses Spielstands in Ordnung gebracht.</value>
   </data>
+  <data name="Main_GpUpgradeTitle" xml:space="preserve">
+    <value>Diese Welt auf das neueste Speicherformat umstellen?</value>
+  </data>
+  <data name="Main_GpUpgradeMessage" xml:space="preserve">
+    <value>Diese Welt ist in einem älteren Xbox-Format gespeichert. Beim Bearbeiten bleibt es dabei, das ist die sichere Wahl. Wenn du die neueste Version von Abiotic Factor spielst, kannst du sie jetzt umwandeln. Die enthaltenen Spielstände ändern sich nicht, aber eine ältere Spielversion kann die Welt dann nicht mehr öffnen. Dein gesamter Speicherordner wird vorher als Sicherung kopiert.</value>
+  </data>
+  <data name="Main_GpUpgradeConfirm" xml:space="preserve">
+    <value>Umwandeln und öffnen</value>
+  </data>
+  <data name="Main_GpUpgradeSkip" xml:space="preserve">
+    <value>Älteres Format behalten</value>
+  </data>
+  <data name="Main_GpUpgraded" xml:space="preserve">
+    <value>{0} Welt(en) auf das neueste Format umgestellt.</value>
+  </data>
+  <data name="Main_GpUpgradeFailed" xml:space="preserve">
+    <value>Diese Welt konnte nicht umgewandelt werden. Sie wurde im ursprünglichen Format geöffnet.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>"{0}" wird zurück in Ihre Xbox-Spielstände geschrieben…</value>
   </data>

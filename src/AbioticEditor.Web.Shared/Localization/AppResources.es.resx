@@ -1457,6 +1457,24 @@ Las copias automáticas del editor no impiden que Xbox sustituya una partida. Co
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
     <value>Se han arreglado {0} parte(s) de esta partida.</value>
   </data>
+  <data name="Main_GpUpgradeTitle" xml:space="preserve">
+    <value>¿Cambiar este mundo al formato de guardado más reciente?</value>
+  </data>
+  <data name="Main_GpUpgradeMessage" xml:space="preserve">
+    <value>Este mundo está guardado en un formato antiguo de Xbox. Al editarlo se mantiene así, que es la opción segura. Si juegas con la versión más reciente de Abiotic Factor, puedes convertirlo ahora. Las partidas que contiene no cambian, pero una versión anterior del juego ya no podrá abrirlo. Antes se copia toda la carpeta de guardado a una copia de seguridad.</value>
+  </data>
+  <data name="Main_GpUpgradeConfirm" xml:space="preserve">
+    <value>Convertir y abrir</value>
+  </data>
+  <data name="Main_GpUpgradeSkip" xml:space="preserve">
+    <value>Mantener el formato antiguo</value>
+  </data>
+  <data name="Main_GpUpgraded" xml:space="preserve">
+    <value>Se convirtieron {0} mundo(s) al formato más reciente.</value>
+  </data>
+  <data name="Main_GpUpgradeFailed" xml:space="preserve">
+    <value>No se pudo convertir este mundo. Se abrió en su formato original.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Escribiendo "{0}" de vuelta en tus guardados de Xbox…</value>
   </data>

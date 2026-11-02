@@ -1969,6 +1969,24 @@ If this save has modded content, use the desktop app instead.</value>
   <data name="Main_GpMidSyncRepaired" xml:space="preserve">
     <value>Tidied up {0} part(s) of this save.</value>
   </data>
+  <data name="Main_GpUpgradeTitle" xml:space="preserve">
+    <value>Switch this world to the newest save format?</value>
+  </data>
+  <data name="Main_GpUpgradeMessage" xml:space="preserve">
+    <value>This world is saved in an older Xbox format. Editing keeps it that way, which is the safe choice. If you play on the newest version of Abiotic Factor, you can convert it now. The saves inside do not change, but an older game version will no longer open it. Your whole save folder is copied to a backup first.</value>
+  </data>
+  <data name="Main_GpUpgradeConfirm" xml:space="preserve">
+    <value>Convert and open</value>
+  </data>
+  <data name="Main_GpUpgradeSkip" xml:space="preserve">
+    <value>Keep the older format</value>
+  </data>
+  <data name="Main_GpUpgraded" xml:space="preserve">
+    <value>Converted {0} world(s) to the newest save format.</value>
+  </data>
+  <data name="Main_GpUpgradeFailed" xml:space="preserve">
+    <value>Could not convert this world. It was opened in its original format.</value>
+  </data>
   <data name="Main_GpPacking" xml:space="preserve">
     <value>Writing "{0}" back into your Xbox saves…</value>
   </data>

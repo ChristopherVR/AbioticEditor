@@ -54,7 +54,7 @@ public static class PlayerSaveReader
     /// </summary>
     public static PlayerSaveData ReadFrom(SaveGame save)
     {
-        var root = GetCharacterSaveData(save);
+        var root = GetCharacterSaveData(save, create: false);
 
         var stats = ReadStats(root);
         var inventory = new PlayerInventory(
@@ -342,7 +342,13 @@ public static class PlayerSaveReader
 
     // ---------- internal helpers ----------
 
-    internal static IList<FPropertyTag> GetCharacterSaveData(SaveGame save)
+    /// <param name="create">What to do when the save has no <c>CharacterSaveData</c> at all. The game
+    /// leaves it out for a character that never spawned (every field is still at its default), which is
+    /// a healthy save. A reader passes <c>false</c> and gets an empty, detached list so opening the
+    /// file never changes it; a writer keeps the default and gets the struct added to the save so its
+    /// edit has somewhere to land. Only a save in the native 1.5 layout can be filled in this way,
+    /// because an older save's struct carries a compiler-generated name that cannot be guessed.</param>
+    internal static IList<FPropertyTag> GetCharacterSaveData(SaveGame save, bool create = true)
     {
         NativeSaveSchema.Register(save);
         if (save.Properties is null || save.Properties.Count == 0)
@@ -350,8 +356,17 @@ public static class PlayerSaveReader
             throw new InvalidDataException("Save has no properties.");
         }
 
-        var top = save.Properties.FindByPrefix("CharacterSaveData")
-            ?? throw new InvalidDataException("Player save is missing the CharacterSaveData property.");
+        var top = save.Properties.FindByPrefix("CharacterSaveData");
+        if (top is null)
+        {
+            if (!NativeSaveSchema.IsNative(save.Properties) && !WrittenByNativeBuild(save))
+            {
+                throw new InvalidDataException("Player save is missing the CharacterSaveData property.");
+            }
+            return create
+                ? NativeSaveSchema.CreateStruct(save.Properties, "CharacterSaveData", "AbioticCharacterSaveData")
+                : new List<FPropertyTag>();
+        }
 
         if (top.Property is not StructProperty sp || sp.Value is not PropertiesStruct ps)
         {
@@ -359,6 +374,14 @@ public static class PlayerSaveReader
         }
         return ps.Properties;
     }
+
+    // The first engine build (Community Update 5, 1.5) that writes characters as the native
+    // AbioticCharacterSaveData struct. A save from that build can carry SaveVersion 3 and still be
+    // native, so the version property alone cannot say what an empty save will look like once filled.
+    private const int FirstNativeEngineChangelist = 1050002;
+
+    private static bool WrittenByNativeBuild(SaveGame save)
+        => Compatibility.SaveHeaderEvidence.FromLoaded(save) is { EngineChangelist: >= FirstNativeEngineChangelist };
 
     private static CharacterStats ReadStats(IList<FPropertyTag> root)
     {
