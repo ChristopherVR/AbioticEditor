@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.34.0] - 2026-11-02
+
+### Features
+- Game Pass worlds keep their save format, and you choose when to move to the newest
+
+
 ## [2.33.3] - 2026-11-02
 
 ### Bug Fixes
