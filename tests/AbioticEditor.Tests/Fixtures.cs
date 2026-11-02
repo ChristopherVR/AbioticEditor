@@ -115,6 +115,24 @@ internal static class Fixtures
         }
     }
 
+    /// <summary>
+    /// A real Game Pass container from the newest game version (version 4 bundles), zipped:
+    /// <c>tests/fixtures/GamePassSaves/BundleV4/*.zip</c>. Null when absent so tests can skip.
+    /// </summary>
+    public static string? GamePassBundleV4Zip { get; } = LocateGamePassBundleV4Zip();
+
+    private static string? LocateGamePassBundleV4Zip()
+    {
+        foreach (var root in FixtureRoots())
+        {
+            var dir = Path.Combine(root, "GamePassSaves", "BundleV4");
+            if (!Directory.Exists(dir)) continue;
+            var zip = Directory.EnumerateFiles(dir, "*.zip").Order(StringComparer.Ordinal).FirstOrDefault();
+            if (zip is not null) return zip;
+        }
+        return null;
+    }
+
     private static string? LocateGamePassWgs()
     {
         foreach (var root in FixtureRoots())

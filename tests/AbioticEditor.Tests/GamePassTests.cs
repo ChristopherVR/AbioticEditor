@@ -6,7 +6,8 @@ namespace AbioticEditor.Tests;
 
 /// <summary>
 /// Game Pass / Xbox container support. These build a synthetic wgs + ABF_SAVE_VERSION layout from
-/// a real Steam fixture (no personal Game Pass data committed) and round-trip it. The Oodle-backed
+/// a real Steam fixture and round-trip it, plus one real version 4 Game Pass container (a player's
+/// own world, checked in at their request). The Oodle-backed
 /// bundle tests skip gracefully when no native Oodle library is available (e.g. offline CI).
 /// </summary>
 public class GamePassTests
@@ -293,6 +294,90 @@ public class GamePassTests
         var again = bundle.Serialize();
         Assert.True(again.AsSpan().IndexOf(preamble) > 0);
         Assert.Equal(body, Assert.Single(AbfSaveBundle.Parse(again).Members).Body);
+    }
+
+    [SkippableFact]
+    public void AbfBundle_version3_still_parses_and_stays_version3()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+        Skip.IfNot(Fixtures.GamePassWgsDir is not null, "the Game Pass fixture is not in this checkout");
+
+        var blobs = Directory.EnumerateFiles(Fixtures.GamePassWgsDir!, "*", SearchOption.AllDirectories)
+            .Where(p => AbfSaveBundle.LooksLikeBundle(File.ReadAllBytes(p)))
+            .ToList();
+        Assert.NotEmpty(blobs);
+        foreach (var blob in blobs)
+        {
+            var bundle = AbfSaveBundle.Parse(File.ReadAllBytes(blob));
+            Assert.Equal(3, bundle.Version);
+            Assert.NotEmpty(bundle.Members);
+
+            var again = AbfSaveBundle.Parse(bundle.Serialize());
+            Assert.Equal(3, again.Version);
+            Assert.Equal(bundle.Members.Select(m => m.Body), again.Members.Select(m => m.Body));
+        }
+    }
+
+    [SkippableFact]
+    public void Real_version4_game_pass_container_opens_and_its_saves_load()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+        Skip.IfNot(Fixtures.GamePassBundleV4Zip is not null, "the version 4 Game Pass fixture is not in this checkout");
+
+        var tmp = Directory.CreateTempSubdirectory("v4gp");
+        try
+        {
+            System.IO.Compression.ZipFile.ExtractToDirectory(Fixtures.GamePassBundleV4Zip!, tmp.FullName);
+            var root = Directory.GetDirectories(tmp.FullName).Single();
+
+            Assert.True(GamePassSaveSet.IsGamePassFolder(root));
+            var set = GamePassSaveSet.Open(root);
+            Assert.Empty(set.Faults);
+            Assert.False(set.NeedsAttention);
+
+            var blobs = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                .Where(p => AbfSaveBundle.LooksLikeBundle(File.ReadAllBytes(p)))
+                .ToList();
+            Assert.Equal(3, blobs.Count);
+            foreach (var blob in blobs)
+            {
+                var bundle = AbfSaveBundle.Parse(File.ReadAllBytes(blob));
+                Assert.Equal(4, bundle.Version);
+                Assert.Equal(56, bundle.Members.Count);
+                Assert.Equal((uint)bundle.Members.Sum(m => (long)m.Body.Length), bundle.Field1);
+
+                var again = AbfSaveBundle.Parse(bundle.Serialize());
+                Assert.Equal(4, again.Version);
+                Assert.Equal(bundle.Field1, again.Field1);
+                Assert.Equal(bundle.Members.Select(m => m.Path), again.Members.Select(m => m.Path));
+                Assert.Equal(bundle.Members.Select(m => m.Body), again.Members.Select(m => m.Body));
+            }
+
+            var loaded = 0;
+            foreach (var entry in set.Entries().Where(e => e.IsEditable))
+            {
+                var save = UeSaveGame.SaveGame.LoadFrom(new MemoryStream(set.ReadSave(entry)));
+                if (entry.Kind == GamePassSaveKind.Player)
+                {
+                    // One account is a Steam id whose save holds only the identifier and version
+                    // (nothing set apart from defaults), so it has no character data to read.
+                    if (save.Properties!.Any(p => p.Name.ToString().StartsWith("CharacterSaveData", StringComparison.Ordinal)))
+                    {
+                        PlayerSaveReader.ReadFrom(save);
+                    }
+                }
+                else
+                {
+                    AbioticEditor.Core.WorldSaves.WorldSaveReader.ReadFromSave(save);
+                }
+                loaded++;
+            }
+            Assert.True(loaded >= 100, $"only {loaded} saves loaded");
+        }
+        finally
+        {
+            tmp.Delete(recursive: true);
+        }
     }
 
     [SkippableFact]
