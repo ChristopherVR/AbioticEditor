@@ -246,6 +246,56 @@ public class GamePassTests
     }
 
     [SkippableFact]
+    public void AbfBundle_version4_engine_header_is_skipped_and_preserved()
+    {
+        Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");
+
+        var body = new byte[] { 9, 8, 7, 6, 5 };
+        const string Cls = "/Game/Blueprints/Saves/Abiotic_WorldSave.Abiotic_WorldSave_C";
+
+        using var ms = new MemoryStream();
+        using var w = new BinaryWriter(ms, Encoding.ASCII, leaveOpen: true);
+        WriteStr(w, "ABF_SAVE_VERSION");
+        w.Write(4);                       // version
+        var preambleStart = ms.Position;
+        w.Write(522);                     // save version
+        w.Write(1012);                    // package version
+        w.Write((ushort)5);
+        w.Write((ushort)4);
+        w.Write((ushort)4);
+        w.Write(0x80100592u);             // changelist
+        WriteStr(w, "++DF+ABF");
+        w.Write(3);                       // custom version format
+        w.Write(2);                       // custom version count
+        for (var i = 0; i < 2; i++)
+        {
+            w.Write(new byte[16]);
+            w.Write(i + 1);
+        }
+        var preamble = ms.ToArray()[(int)preambleStart..];
+        w.Write(body.Length);             // field1
+        w.Write(16);                      // field2
+        w.Write(1);                       // count
+        WriteStr(w, "Profile/Worlds/W/WorldSave_Region");
+        w.Write(body.Length);
+        WriteStr(w, Cls);
+        w.Write(0);
+        var comp = OodleCodec.Compress(body);
+        w.Write(1);
+        w.Write(comp.Length);
+        w.Flush();
+        ms.Write(comp, 0, comp.Length);
+
+        var bundle = AbfSaveBundle.Parse(ms.ToArray());
+        Assert.Equal(4, bundle.Version);
+        Assert.Equal(body, Assert.Single(bundle.Members).Body);
+
+        var again = bundle.Serialize();
+        Assert.True(again.AsSpan().IndexOf(preamble) > 0);
+        Assert.Equal(body, Assert.Single(AbfSaveBundle.Parse(again).Members).Body);
+    }
+
+    [SkippableFact]
     public void OodleCompress_roundtrips_large_payload()
     {
         Skip.IfNot(OodleCodec.IsAvailable, "no native Oodle library on this machine, so a Game Pass bundle cannot be unpacked");

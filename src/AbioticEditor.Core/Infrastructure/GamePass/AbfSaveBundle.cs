@@ -41,6 +41,7 @@ public sealed class AbfMember
 public sealed class AbfSaveBundle
 {
     private const string Marker = "ABF_SAVE_VERSION";
+    private const int PreambleVersion = 4;
 
     private AbfSaveBundle(int version, uint field1, uint field2, List<AbfMember> members)
     {
@@ -51,6 +52,10 @@ public sealed class AbfSaveBundle
     }
 
     public int Version { get; }
+
+    /// <summary>The engine-version block that version 4 bundles put after the version int, kept
+    /// verbatim so a re-serialized bundle still carries it. Null for version 3.</summary>
+    private byte[]? Preamble { get; init; }
 
     /// <summary>Opaque header fields preserved verbatim across a round-trip.</summary>
     public uint Field1 { get; }
@@ -94,6 +99,13 @@ public sealed class AbfSaveBundle
         }
 
         var version = ReadInt(data, ref pos);
+        byte[]? preamble = null;
+        if (version >= PreambleVersion)
+        {
+            var preambleStart = pos;
+            SkipPreamble(data, ref pos);
+            preamble = data[preambleStart..pos];
+        }
         var field1 = (uint)ReadInt(data, ref pos);
         var field2 = (uint)ReadInt(data, ref pos);
         var count = ReadInt(data, ref pos);
@@ -142,7 +154,25 @@ public sealed class AbfSaveBundle
             off += size;
         }
 
-        return new AbfSaveBundle(version, field1, field2, members);
+        return new AbfSaveBundle(version, field1, field2, members) { Preamble = preamble };
+    }
+
+    // Version 4 bundles carry an engine-version block between the version int and the size fields:
+    // [int SaveVersion][int PackageVersion][u16 major][u16 minor][u16 patch][u32 changelist]
+    // [FString branch][int customFormat][int count][count x (16-byte GUID + int version)].
+    private static void SkipPreamble(byte[] d, ref int pos)
+    {
+        pos += 4 + 4 + 2 + 2 + 2 + 4;
+        if (pos > d.Length) throw new InvalidDataException("Bundle header is truncated.");
+        ReadUnrealString(d, ref pos);
+        pos += 4;
+        if (pos + 4 > d.Length) throw new InvalidDataException("Bundle header is truncated.");
+        var entries = ReadInt(d, ref pos);
+        if (entries is < 0 or > 10_000 || pos + (long)entries * 20 > d.Length)
+        {
+            throw new InvalidDataException($"Implausible bundle custom version count {entries}.");
+        }
+        pos += entries * 20;
     }
 
     /// <summary>Serializes the bundle back to a blob: TOC + one Oodle-compressed member stream.</summary>
@@ -163,6 +193,7 @@ public sealed class AbfSaveBundle
         using var w = new BinaryWriter(ms, Encoding.ASCII, leaveOpen: true);
         WriteUnrealString(w, Marker);
         w.Write(Version);
+        if (Preamble is not null) w.Write(Preamble);
         // Field1 is the total uncompressed size; the game passes it verbatim to OodleLZ_Decompress
         // as rawLen. It must equal totalBody after edits change member sizes.
         w.Write((uint)totalBody);
