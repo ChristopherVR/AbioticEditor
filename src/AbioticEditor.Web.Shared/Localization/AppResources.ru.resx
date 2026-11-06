@@ -3773,4 +3773,6 @@
   <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
     <value>Персонаж из мода {0}. Редактор берёт его имя из данных этого мода.</value>
   </data>
+  <data name="WorldStory_ThisChapter" xml:space="preserve"><value>Эта глава</value></data>
+  <data name="WorldStory_ThisEntry" xml:space="preserve"><value>Эта запись</value></data>
 </root>

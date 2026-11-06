@@ -3774,4 +3774,6 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
     <value>Un personaje del mod {0}. El editor lo nombra a partir de los datos de ese mod.</value>
   </data>
+  <data name="WorldStory_ThisChapter" xml:space="preserve"><value>Este capítulo</value></data>
+  <data name="WorldStory_ThisEntry" xml:space="preserve"><value>Esta entrada</value></data>
 </root>

@@ -3773,4 +3773,6 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
     <value>Un personnage du mod {0}. L'éditeur le nomme à partir des données de ce mod.</value>
   </data>
+  <data name="WorldStory_ThisChapter" xml:space="preserve"><value>Ce chapitre</value></data>
+  <data name="WorldStory_ThisEntry" xml:space="preserve"><value>Cette entrée</value></data>
 </root>

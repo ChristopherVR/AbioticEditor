@@ -16,6 +16,7 @@
 @inject TraderVocabularyService TraderVocabulary
 @inject SaveWorkspaceSessionService Workspace
 @inject InventorySelectionService Selection
+@inject HostSpoilerPreferences Spoilers
 @implements IDisposable
 
 @* Native WorldStoryTab.xaml: the MAIN QUEST PROGRESSION panel with the minutes-played LCD row,
@@ -146,19 +147,20 @@
                 var current = IsCurrent(chapter);
                 var missing = MissingDependencies(index);
                 var status = StatusOf(chapter, missing);
+                var sealedChapter = ChapterConcealed(index);
                 <div class="ws-chapter-row @(ReferenceEquals(chapter, _selectedChapter) ? "selected" : null)" @key="chapter.Row"
                      role="option" aria-selected="@(ReferenceEquals(chapter, _selectedChapter) ? "true" : "false")" tabindex="0"
-                     title="@ChapterSummary(chapter)"
+                     title="@(sealedChapter ? L.Resource("Spoiler_ClassifiedHint") : ChapterSummary(chapter))"
                      @onclick="() => SelectChapter(chapter)" @onkeydown="e => ChapterKeyDown(e, chapter)">
                     <span class="ws-chapter-num">@((index + 1).ToString("D2"))</span>
                     <span class="ws-chapter-dot @(IsReached(index) ? "reached" : null)" role="presentation"></span>
                     <span class="ws-chapter-text">
-                        <strong>@ChapterTitle(chapter)</strong>
-                        @if (ChapterSummary(chapter) is { Length: > 0 } summary)
+                        <strong>@ShownChapterTitle(chapter)</strong>
+                        @if (!sealedChapter && ChapterSummary(chapter) is { Length: > 0 } summary)
                         {
                             <small>@summary</small>
                         }
-                        @if (missing.Count > 0)
+                        @if (!sealedChapter && missing.Count > 0)
                         {
                             <small class="ws-chapter-missing">@MissingDependenciesText(missing)</small>
                         }
@@ -214,20 +216,22 @@
                 @foreach (var (row, recipeRenderKey) in RenderKeys.With(VisibleWorldRecipeRows.Take(ShownRecipes), r => r.Id))
                 {
                     var unlocked = RecipeIsUnlocked(row.Id);
+                    var sealedRecipe = RecipeConcealed(row);
                     <div class="ws-recipe-row @(row.Id == _selectedWorldRecipeId ? "selected" : null)" @key="recipeRenderKey"
                          role="option" aria-selected="@(row.Id == _selectedWorldRecipeId ? "true" : "false")" tabindex="0"
+                         title="@(sealedRecipe ? L.Resource("Spoiler_ClassifiedHint") : null)"
                          @onclick="() => SelectRecipe(row)" @onkeydown="e => RecipeKeyDown(e, row)">
-                        <input type="checkbox" checked="@unlocked" aria-label="@row.DisplayName" disabled="@(!CanEditRecipes)" @key="@($"{recipeRenderKey}:{_gateNonce}")"
+                        <input type="checkbox" checked="@unlocked" aria-label="@ShownRecipeName(row)" disabled="@(!CanEditRecipes || sealedRecipe)" @key="@($"{recipeRenderKey}:{_gateNonce}")"
                                @onclick:stopPropagation="true" @onchange="e => SetRecipe(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">
-                            @if (row.Info?.CreatesItemId is { } createdId)
+                            @if (!sealedRecipe && row.Info?.CreatesItemId is { } createdId)
                             {
                                 <ItemIcon ItemId="@createdId" Alt="" />
                             }
                         </span>
                         <span class="ws-recipe-text">
-                            <strong>@row.DisplayName</strong>
-                            <small>@SubText(row)</small>
+                            <strong>@ShownRecipeName(row)</strong>
+                            <small>@(sealedRecipe ? L.Resource("Spoiler_ClassifiedShort") : SubText(row))</small>
                         </span>
                         <span class="ws-recipe-status">@L.Resource(unlocked ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
                     </div>
@@ -278,18 +282,19 @@
                 @foreach (var (row, globalRowRenderKey) in RenderKeys.With(VisibleGlobalListRows.Take(ShownGlobal), r => r.Id))
                 {
                     var present = GlobalListRowIsPresent(row.Id);
+                    var sealedEntry = GlobalConcealed(row.Id);
                     <div class="ws-recipe-row @(_selectedGlobalId == row.Id ? "selected" : null)" @key="globalRowRenderKey">
-                        <input type="checkbox" checked="@present" aria-label="@row.DisplayName" disabled="@(!Session.CanEditGlobalLists)"
+                        <input type="checkbox" checked="@present" aria-label="@ShownGlobalName(row)" disabled="@(!Session.CanEditGlobalLists || sealedEntry)"
                                @onchange="e => SetGlobalListRowAsync(row.Id, e.Value is bool value && value)" />
                         <span class="ws-recipe-icon">
-                            @if (CurrentGlobalListDef.Kind == "itemsPickedUp")
+                            @if (!sealedEntry && CurrentGlobalListDef.Kind == "itemsPickedUp")
                             {
                                 <ItemIcon ItemId="@row.Id" Alt="" />
                             }
                         </span>
-                        <button type="button" class="ws-recipe-text ws-recipe-open" title="View details" @onclick="() => SelectGlobalRow(row)">
-                            <strong>@row.DisplayName</strong>
-                            <small>@row.Id</small>
+                        <button type="button" class="ws-recipe-text ws-recipe-open" title="@(sealedEntry ? L.Resource("Spoiler_ClassifiedHint") : "View details")" @onclick="() => SelectGlobalRow(row)">
+                            <strong>@ShownGlobalName(row)</strong>
+                            <small>@(sealedEntry ? L.Resource("Spoiler_ClassifiedShort") : row.Id)</small>
                         </button>
                         <span class="ws-recipe-status">@L.Resource(present ? "PlayerRecipes_BadgeUnlocked" : "PlayerRecipes_BadgeLocked")</span>
                     </div>
@@ -503,7 +508,67 @@
         => string.IsNullOrEmpty(chapter.Summary) ? null : L.Resource($"WorldStory_ChapterSummary_{chapter.Row}");
 
     private string MissingDependenciesText(IReadOnlyList<StoryChapter> missing)
-        => L.Resource("WorldStory_NeedsFirst", string.Join(" → ", missing.Select(ChapterTitle)));
+        => L.Resource("WorldStory_NeedsFirst", string.Join(" → ", missing.Select(ShownChapterTitle)));
+
+    // ---------- spoiler guard (same preference and reveal flow as the TRADERS roster) ----------
+
+    /// <summary>A chapter this world has not reached yet is future content: its name, summary
+    /// and card art stay sealed until the player overrides the guard for that one chapter.
+    /// "Reached" comes from the save (the stored chapter row and the chapter trigger flags),
+    /// see <see cref="StorySpoilers"/>.</summary>
+    private bool ChapterConcealed(int index)
+        => Spoilers.Enabled
+           && StorySpoilers.IsFutureChapter(index, Session.StoryProgressionRow, HasWorldFlag)
+           && !Spoilers.IsRevealed(ChapterSpoilerKey(StoryProgressionCatalog.Chapters[index]));
+
+    private bool ChapterConcealed(StoryChapter chapter) => ChapterConcealed(StoryProgressionCatalog.IndexOf(chapter.Row));
+
+    private static string ChapterSpoilerKey(StoryChapter chapter) => $"story-chapter:{chapter.Row}";
+
+    private string ShownChapterTitle(StoryChapter chapter)
+        => ChapterConcealed(chapter) ? L.Resource("Spoiler_ClassifiedShort") : ChapterTitle(chapter);
+
+    /// <summary>A recipe nobody in this world has unlocked yet is a craftable spoiler. Shares the
+    /// player recipe book's reveal key, so revealing a recipe in one place reveals it in both.</summary>
+    private bool RecipeConcealed(WorldRecipeRow row)
+        => Spoilers.Enabled && !RecipeIsUnlocked(row.Id) && !Spoilers.IsRevealed(RecipeSpoilerKey(row.Id));
+
+    private static string RecipeSpoilerKey(string id) => $"recipe:{id}";
+
+    private string ShownRecipeName(WorldRecipeRow row)
+        => RecipeConcealed(row) ? L.Resource("Spoiler_Redacted") : row.DisplayName;
+
+    /// <summary>An email, journal entry, compendium page or item nobody in this world has seen
+    /// yet stays redacted in the WORLD-WIDE SEEN browser: its name alone can give the story away.</summary>
+    private bool GlobalConcealed(string id)
+        => Spoilers.Enabled && !GlobalListRowIsPresent(id) && !Spoilers.IsRevealed(GlobalSpoilerKey(id));
+
+    private string GlobalSpoilerKey(string id) => $"world-seen:{CurrentGlobalListDef.Kind}:{id}";
+
+    private string ShownGlobalName(GlobalListRow row)
+        => GlobalConcealed(row.Id) ? L.Resource("Spoiler_Redacted") : row.DisplayName;
+
+    /// <summary>The clearance override prompt, in the shared modal dialog (the same flow the
+    /// TRADERS roster and the recipe book use).</summary>
+    private void RequestReveal(string subjectKey, string spoilerKey, Action onRevealed) => Modals.Show(new ModalRequest(
+        L.Resource("Spoiler_OverrideTitle"),
+        SpoilerParagraph(L.Resource("Spoiler_OverrideMessage", L.Resource(subjectKey))),
+        ConfirmText: L.Resource("Spoiler_OverrideAccept"),
+        OnConfirm: async () => { Spoilers.Reveal(spoilerKey); InvalidateBrowserCaches(); onRevealed(); await InvokeAsync(StateHasChanged); },
+        CancelText: L.Resource("Spoiler_OverrideKeepSealed")));
+
+    private static RenderFragment SpoilerParagraph(string text) => builder =>
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, text);
+        builder.CloseElement();
+    };
+
+    /// <summary>Search must not find a sealed row by the name it is hiding (or by its internal
+    /// id, which often spells the same thing out).</summary>
+    private static bool SearchMatches(string term, string shownName, bool concealed, string id, string displayName)
+        => shownName.Contains(term, StringComparison.OrdinalIgnoreCase)
+           || (!concealed && (id.Contains(term, StringComparison.OrdinalIgnoreCase) || displayName.Contains(term, StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>Whether this chapter has happened in this world yet, named after the chapter
     /// itself rather than the marker the save happens to store it under.</summary>
@@ -552,6 +617,17 @@
     /// <summary>Tap-to-toggle: a second tap on the open chapter closes the pane.</summary>
     private void SelectChapter(StoryChapter chapter)
     {
+        // A sealed chapter prompts a clearance override instead of opening its detail, which
+        // would show its name, summary and card art (the TRADERS roster's rule).
+        if (ChapterConcealed(chapter))
+        {
+            RequestReveal("WorldStory_ThisChapter", ChapterSpoilerKey(chapter), () =>
+            {
+                _selectedChapter = chapter;
+                Selection.ShowDetail(ChapterKey(chapter), ChapterDetail(chapter));
+            });
+            return;
+        }
         if (ReferenceEquals(_selectedChapter, chapter) && Selection.DetailKey == ChapterKey(chapter))
         {
             CloseChapterDetail();
@@ -993,12 +1069,14 @@
         {
             var term = _recipeSearch.Trim();
             var all = AllWorldRecipeRows;
-            return _recipeVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term), () =>
+            return _recipeVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term, Session.GlobalRecipeIds.Count, Spoilers.Enabled, Spoilers.RevealedCount), () =>
             {
                 IEnumerable<WorldRecipeRow> rows = all;
                 if (!string.IsNullOrWhiteSpace(term))
-                    rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
-                return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
+                    rows = rows.Where(row => SearchMatches(term, ShownRecipeName(row), RecipeConcealed(row), row.Id, row.DisplayName));
+                // Sealed rows sort after the readable ones, so their place in the list does not
+                // hint at the name they are hiding.
+                return rows.OrderBy(RecipeConcealed).ThenBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
             });
         }
     }
@@ -1037,6 +1115,15 @@
     /// rather than the inline card this used to show below the whole recipe list.</summary>
     private void SelectRecipe(WorldRecipeRow row)
     {
+        if (RecipeConcealed(row))
+        {
+            RequestReveal("PlayerRecipes_ThisRecipe", RecipeSpoilerKey(row.Id), () =>
+            {
+                _selectedWorldRecipeId = row.Id;
+                Selection.ShowDetail(RecipeKey(row.Id), RecipeDetail(row));
+            });
+            return;
+        }
         if (_selectedWorldRecipeId == row.Id && Selection.DetailKey == RecipeKey(row.Id))
         {
             CloseRecipeDetail();
@@ -1177,6 +1264,11 @@
     /// game's own tables carry. A second click on the open row closes it.</summary>
     private void SelectGlobalRow(GlobalListRow row)
     {
+        if (GlobalConcealed(row.Id))
+        {
+            RequestReveal("WorldStory_ThisEntry", GlobalSpoilerKey(row.Id), () => SelectGlobalRow(row));
+            return;
+        }
         var isItem = CurrentGlobalListDef.Kind == "itemsPickedUp";
         if (_selectedGlobalId == row.Id
             && (isItem ? Selection.EncyclopediaItemId == row.Id : Selection.DetailKey == GlobalKey(row.Id)))
@@ -1301,12 +1393,12 @@
         {
             var term = _globalListSearch.Trim();
             var all = AllGlobalListRows;
-            return _globalVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term), () =>
+            return _globalVisibleMemo.Get((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(all), term, Spoilers.Enabled, Spoilers.RevealedCount), () =>
             {
                 IEnumerable<GlobalListRow> rows = all;
                 if (!string.IsNullOrWhiteSpace(term))
-                    rows = rows.Where(row => row.Id.Contains(term, StringComparison.OrdinalIgnoreCase) || row.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase));
-                return rows.OrderBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
+                    rows = rows.Where(row => SearchMatches(term, ShownGlobalName(row), GlobalConcealed(row.Id), row.Id, row.DisplayName));
+                return rows.OrderBy(row => GlobalConcealed(row.Id)).ThenBy(row => row.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(row => row.Id, StringComparer.Ordinal).ToList();
             });
         }
     }

@@ -5166,4 +5166,6 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="WorldNpcs_ModCompanionHint" xml:space="preserve">
     <value>A character from the {0} mod. The editor names them from that mod's own data.</value>
   </data>
+  <data name="WorldStory_ThisChapter" xml:space="preserve"><value>This chapter</value></data>
+  <data name="WorldStory_ThisEntry" xml:space="preserve"><value>This entry</value></data>
 </root>
