@@ -3570,6 +3570,12 @@ Rien n'est écrit tant que vous n'appuyez pas sur ENREGISTRER, et ANNULER le dé
   <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Chaque suggestion explique l’indice lié aux ingrédients ou aux découvertes qui l’a fait apparaître ici.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Ce sont des pistes à explorer, pas des recettes manquées avec certitude.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Vous avez ramassé les {0} types d’ingrédients de cette recette.</value></data>
+  <data name="RecipeGuide_CraftableCounts" xml:space="preserve"><value>Les objets que vous savez déjà fabriquer comptent comme trouvés, même si vous n’en avez jamais fait, car en fabriquer un puis le ramasser compterait en jeu.</value></data>
+  <data name="RecipeGuide_SeenOrCraftableInputs" xml:space="preserve"><value>Vous avez ramassé, ou pouvez fabriquer, les {0} types d’ingrédients de cette recette.</value></data>
+  <data name="RecipeLearning_PickupConditionMetWithCrafting" xml:space="preserve"><value>Vous avez ramassé, ou pouvez fabriquer, les types d’objets nécessaires pour découvrir cette recette.</value></data>
+  <data name="RecipeGuide_CraftableInputsIntro" xml:space="preserve"><value>Jamais ramassés, mais comptés car vous pouvez les fabriquer :</value></data>
+  <data name="RecipeGuide_CraftableInputKnown" xml:space="preserve"><value>{0} : vous connaissez déjà sa recette.</value></data>
+  <data name="RecipeGuide_CraftableInputSuggested" xml:space="preserve"><value>{0} : vous pourriez le fabriquer après avoir débloqué sa recette, également suggérée ici.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Quels ingrédients ?</value></data>
   <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Recette non apprise</value></data>
   <data name="RecipeGuide_Learned" xml:space="preserve"><value>Recette apprise</value></data>

@@ -96,6 +96,18 @@ public sealed class RecipeGraph
     }
 
     /// <summary>
+    /// Ingredient-only pickup rules for <see cref="RecipePickupInference"/> when no verified
+    /// learning catalog is loaded. Mirrors <see cref="FindPossibleMissed"/>: valid recipes with a
+    /// known output and only concrete inputs.
+    /// </summary>
+    public IReadOnlyList<RecipePickupRule> PickupRules()
+        => _recipes.Values.Where(recipe => !_invalid.Contains(recipe.Id) && _knownItems.Contains(recipe.CreatesItemId!)
+                && _ingredients[recipe.Id].All(input => IsConcrete(input.ItemId)))
+            .Select(recipe => new RecipePickupRule(recipe.Id,
+                _ingredients[recipe.Id].Select(input => (IReadOnlyList<string>)[input.ItemId]).ToArray()))
+            .ToArray();
+
+    /// <summary>
     /// Builds a bounded occurrence tree for the requested recipe. Route choices map stable paths
     /// (root, root.0, root.0.1) to recipe ids; only a recipe producing that branch's item is valid.
     /// Invalid choices fall back to the catalog's first route. The requested root recipe wins

@@ -156,13 +156,58 @@ public partial class PlayerRecipesTab
         ? L.Resource("Spoiler_Redacted")
         : string.Join(" + ", _recipeGraph.IngredientsFor(recipe).Select(input => $"{input.Count} × {CraftItemName(input.ItemId)}"));
 
+    // The widened pickup evidence is recomputed only when its inputs change, not on every render.
+    private RecipePickupInference _pickupInference = RecipePickupInference.Empty;
+    private (object? Learning, RecipeGraph Graph, object? Recipes, long Pickups, long Known)? _pickupInferenceKey;
+    private IReadOnlyList<RecipePickupRule>? _learningRules;
+    private object? _learningRulesSource;
+
+    private static long CollectionSignature(IEnumerable<string>? values)
+    {
+        if (values is null) return -1;
+        long count = 0, hash = 0;
+        foreach (var value in values)
+        {
+            count++;
+            hash ^= StringComparer.OrdinalIgnoreCase.GetHashCode(value ?? string.Empty);
+        }
+        return (count << 32) ^ (uint)hash;
+    }
+
+    /// <summary>Recipes the player knows and can craft now: learned, with no research still queued.</summary>
+    private IEnumerable<string> CraftableRecipeIds => Session.Recipes.Where(row => row.IsUnlocked && !IsResearchPending(row.Id)).Select(row => row.Id);
+
+    private RecipePickupInference PickupInference
+    {
+        get
+        {
+            var learning = _catalogSnapshot?.RecipeLearning;
+            var key = (learning as object, _recipeGraph, _catalogSnapshot?.Recipes as object,
+                CollectionSignature(Session.RecipeItemsPickedUp), CollectionSignature(CraftableRecipeIds));
+            if (_pickupInferenceKey == key) return _pickupInference;
+            IReadOnlyList<RecipePickupRule> rules;
+            if (learning is not null)
+            {
+                if (!ReferenceEquals(_learningRulesSource, learning)) { _learningRules = RecipePickupInference.RulesFrom(learning); _learningRulesSource = learning; }
+                rules = _learningRules!;
+            }
+            else rules = _recipeGraph.PickupRules();
+            _pickupInference = RecipePickupInference.Infer(rules, _catalogSnapshot?.Recipes ?? [], Session.RecipeItemsPickedUp, CraftableRecipeIds);
+            _pickupInferenceKey = key;
+            return _pickupInference;
+        }
+    }
+
+    private IReadOnlyList<RecipeCraftableItem> CraftedInputs(string recipeId) => PickupInference.CraftedInputsFor(recipeId);
+
     private IReadOnlyList<RecipeInfo> ReviewRecipes
     {
         get
         {
-            var ingredientRecipes = _catalogSnapshot?.RecipeLearning is { } learning
-                ? (_catalogSnapshot.Recipes.Where(recipe => RecipeLearningAssessment.Assess(learning, recipe.Id, Session.RecipeItemsPickedUp).PickupIngredientsState == RecipeDiscoveryState.KnownMet).ToArray())
-                : _recipeGraph.FindPossibleMissed([], Session.RecipeItemsPickedUp);
+            // Items the player can craft count as found: crafting one and picking it up would
+            // record it in game, which is how forgotten crafts block later recipes (issue #53).
+            var inference = PickupInference;
+            var ingredientRecipes = (_catalogSnapshot?.Recipes ?? []).Where(recipe => inference.IsMet(recipe.Id)).ToArray();
             _ingredientClueIds = ingredientRecipes.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var candidates = ingredientRecipes.Where(recipe => !IsLearned(recipe.Id));
             var discovered = _catalogSnapshot is { } snapshot

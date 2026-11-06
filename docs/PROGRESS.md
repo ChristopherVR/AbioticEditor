@@ -1,5 +1,23 @@
 # Abiotic Editor - Session history
 
+## Issue #53: missed-recipe check counts craftable items as found (2026-11-07)
+
+- Reporter feedback: items the player could craft but never made did not count toward other
+  recipes' pickup conditions. New Core `RecipePickupInference` (Services/Items) widens the
+  pickup history with the outputs of learned recipes that have no research queued, then
+  iterates to a fixed point: a newly met, unlearned recipe's output also counts, so chains
+  (ore -> wire -> coil -> motor) resolve. Rules come from the verified learning catalog
+  (`RulesFrom`, mirroring `RecipeLearningAssessment` pickup gating) or `RecipeGraph.PickupRules`
+  when no catalog is loaded. Null history still yields nothing.
+- The Check view lists, per suggestion, inputs never picked up but counted because they are
+  craftable, saying whether the recipe is already known or is itself a suggestion. Strings
+  added in en/de/es/fr/ru. The tab caches the inference keyed by catalog references plus
+  pickup/craftable-set signatures, so renders do not recompute it (the catalog/learning cache
+  from 6d266a40 is untouched).
+- Tests: `RecipePickupInferenceTests` (synthetic chains, substitutes, casing, and every fixture
+  player against the bundled English registry: pickup-only matches are preserved, every extra
+  match is explained by a craftable input). Fixture players gain up to 6 suggestions each.
+
 ## Mods everywhere: traders, companions, jobs and what is a mod (2026-10-31)
 
 - Tested with 15 more real mod.io downloads (Kizz Trader, Dr Kemp Companion, Gloop Trader,
