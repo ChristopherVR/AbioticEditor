@@ -15,12 +15,14 @@ namespace AbioticEditor.Web.Models;
 public sealed class LiveContainmentSession : IWorldContainmentSession
 {
     private readonly LiveContainmentChannel _channel;
+    private readonly HashSet<string> _seenCreatures = new(StringComparer.OrdinalIgnoreCase);
 
     private LiveContainmentSession(LiveContainmentChannel channel, LiveContainmentDirectory directory)
     {
         _channel = channel;
         Units = directory.Units;
         IsHost = directory.IsHost;
+        RememberHeldCreatures();
     }
 
     public static async Task<LiveContainmentSession> ConnectAsync(
@@ -66,6 +68,19 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
 
     bool IWorldContainmentSession.AppliesImmediately => true;
 
+    /// <inheritdoc cref="IWorldContainmentSession.EncounteredCreatures"/>
+    /// <remarks>The running game's bestiary is not exposed live, so this is every creature any
+    /// unit has been seen holding since connecting.</remarks>
+    public IReadOnlySet<string> EncounteredCreatures => ContainmentCreatureCatalog.EncounteredCreatures(_seenCreatures, []);
+
+    private void RememberHeldCreatures()
+    {
+        foreach (var unit in Units)
+        {
+            if (!string.IsNullOrWhiteSpace(unit.Creature)) _seenCreatures.Add(unit.Creature);
+        }
+    }
+
     public Task LoadContainmentUnitsAsync(CancellationToken cancellationToken = default) => RefreshAsync(cancellationToken);
 
     public string? CreatureInUnit(string unitId)
@@ -82,6 +97,7 @@ public sealed class LiveContainmentSession : IWorldContainmentSession
         var directory = await _channel.GetAsync(cancellationToken).ConfigureAwait(false);
         Units = directory.Units;
         IsHost = directory.IsHost;
+        RememberHeldCreatures();
         Changed?.Invoke();
     }
 

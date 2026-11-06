@@ -37,6 +37,14 @@ public interface IWorldContainmentSession
     IReadOnlyList<KeyValuePair<string, string>> OrphanedContainments { get; }
 
     /// <summary>
+    /// Containable creature rows this world shows the player has already met, for spoiler
+    /// protection: anything the save (or running game) already holds, plus any creature whose
+    /// bestiary entry the world has unlocked. Staged edits never add to it, so picking a creature
+    /// in the editor does not by itself reveal its name.
+    /// </summary>
+    IReadOnlySet<string> EncounteredCreatures { get; }
+
+    /// <summary>
     /// True when an edit takes effect immediately (live: the real game changes as soon as the
     /// call returns) rather than staging until the file session's own SAVE.
     /// </summary>

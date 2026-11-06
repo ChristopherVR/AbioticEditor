@@ -34,4 +34,23 @@ public class ContainmentCreatureCatalogTests
         Assert.Contains(refs, r => r.EndsWith("T_Compendium_Wraith", StringComparison.Ordinal));
         Assert.DoesNotContain(refs, r => r.Contains("Leyak", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void Encountered_CountsWhateverTheSaveHolds()
+    {
+        var met = ContainmentCreatureCatalog.EncounteredCreatures(["Leyak"], []);
+        Assert.Contains("Leyak", met);
+        Assert.DoesNotContain("Krasue", met);
+    }
+
+    [Fact]
+    public void Encountered_ReadsEachCreatureFromItsOwnBestiaryRow()
+    {
+        // The Krasue's bestiary entry is "LeyakB" (IS-0091-B), and the Leyak's own entry must
+        // not unlock it.
+        Assert.Contains("Krasue", ContainmentCreatureCatalog.EncounteredCreatures([], ["LeyakB"]));
+        var leyakOnly = ContainmentCreatureCatalog.EncounteredCreatures([], ["Leyak"]);
+        Assert.Contains("Leyak", leyakOnly);
+        Assert.DoesNotContain("Krasue", leyakOnly);
+    }
 }

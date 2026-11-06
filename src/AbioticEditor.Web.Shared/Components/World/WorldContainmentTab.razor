@@ -24,6 +24,8 @@
     else
     {
         var units = Session.ContainmentUnits;
+        // Read once per render: every row, picker option and summary line below asks it.
+        _encountered = Session.EncounteredCreatures;
 
         @if (Session.ContainmentScanFailures.Count > 0)
         {
@@ -80,7 +82,7 @@
                                     <option value="" selected="@(creature is null)">@L.Resource("WorldContainment_OptionEmpty")</option>
                                     @foreach (var option in ContainmentCreatureCatalog.Containable)
                                     {
-                                        <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@DisplayName(option.Row)</option>
+                                        <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@OccupantLabel(option.Row, IsConcealed(option.Row))</option>
                                     }
                                 </select>
                             </span>
@@ -145,7 +147,7 @@
         @if (Session.OrphanedContainments.Count > 0)
         {
             <p class="wm-status">@L.Resource("WorldContainment_OrphanedFormat",
-                string.Join(", ", Session.OrphanedContainments.Select(pair => DisplayName(pair.Key))))</p>
+                string.Join(", ", Session.OrphanedContainments.Select(pair => OccupantLabel(pair.Key, IsConcealed(pair.Key)))))</p>
             <div class="wc-list">
                 @* orphan.Key is a creature row name, not a per-entry id: two different orphaned
                    assignments can share the same creature species, so this needs RenderKeys too. *@
@@ -164,10 +166,12 @@
             </div>
         }
 
-        @if (FreeCreatures().Count > 0 && units.Count > 0)
+        @* Only creatures the player has met are named here: an unmet one is left out entirely
+           rather than counted, since even "one more out there" hints at what is still to come. *@
+        @if (FreeCreatures().Where(row => !IsConcealed(row)).ToArray() is { Length: > 0 } knownFree && units.Count > 0)
         {
             <p class="wm-status">@L.Resource("WorldContainment_FreeCreaturesFormat",
-                string.Join(", ", FreeCreatures().Select(DisplayName)))</p>
+                string.Join(", ", knownFree.Select(DisplayName)))</p>
         }
     }
 
@@ -244,10 +248,18 @@
         }
     }
 
-    // ---------- spoiler concealment (native rule: any contained anomaly is a candidate) ----------
+    // ---------- spoiler concealment ----------
+    //
+    // Only a creature the player has not met is sealed. Met means the save already holds it
+    // (contained right now, or recorded as contained) or the world's bestiary has its entry
+    // (see IWorldContainmentSession.EncounteredCreatures). Sealing one the player is looking at
+    // in their own unit hid the very thing they caught, while naming every containable creature
+    // in the picker and the "roaming free" line gave away ones they had never seen.
+
+    private IReadOnlySet<string> _encountered = new HashSet<string>();
 
     private bool IsConcealed(string creature)
-        => Spoilers.Enabled && !Spoilers.IsRevealed(SpoilerKey(creature));
+        => Spoilers.Enabled && !_encountered.Contains(creature) && !Spoilers.IsRevealed(SpoilerKey(creature));
 
     private static string SpoilerKey(string creature) => $"containment:{creature}";
 
