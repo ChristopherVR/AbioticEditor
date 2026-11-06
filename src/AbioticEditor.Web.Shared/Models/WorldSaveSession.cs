@@ -1007,6 +1007,15 @@ public sealed partial class WorldSaveSession : IWorldDoorsSession, IWorldContain
     /// <inheritdoc cref="IWorldContainmentSession.AppliesImmediately"/>
     bool IWorldContainmentSession.AppliesImmediately => false;
 
+    /// <inheritdoc cref="IWorldContainmentSession.EncounteredCreatures"/>
+    /// <remarks>Held creatures come from the containment map as last read or saved, not the staged
+    /// one, so choosing a creature in the picker does not reveal it before SAVE.</remarks>
+    public IReadOnlySet<string> EncounteredCreatures => ContainmentCreatureCatalog.EncounteredCreatures(
+        _originalContainments.Keys,
+        WorldUnlockValues(GlobalUnlockPrefix.CompEmail)
+            .Concat(WorldUnlockValues(GlobalUnlockPrefix.CompNarrative))
+            .Concat(WorldUnlockValues(GlobalUnlockPrefix.CompExploration)));
+
     Task IWorldContainmentSession.LoadContainmentUnitsAsync(CancellationToken cancellationToken) => LoadContainmentUnitsAsync();
 
     Task IWorldContainmentSession.SetContainmentUnitOccupantAsync(string unitId, string? creature, CancellationToken cancellationToken)

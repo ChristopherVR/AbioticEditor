@@ -2,6 +2,7 @@
 @using AbioticEditor.Core.WorldSaves
 @using AbioticEditor.Web.Models
 @inject SaveWorkspaceSessionService Workspace
+@inject AbioticEditor.Web.Services.HostSpoilerPreferences Spoilers
 
 @* A containment cell picked in the 3D view: the creature it holds, and changing or releasing it right
    here. Which creature sits in which cell is kept in the world's story save, not the area's, so the
@@ -9,6 +10,8 @@
 @if (_story is { } story && _isCell)
 {
     var creature = story.CreatureInUnit(UnitKey);
+    var encountered = story.EncounteredCreatures;
+    var concealed = creature is not null && IsConcealed(creature, encountered);
     <div class="b3d-containment" data-b3d="containment">
         <span class="wt-label">@L.Resource("World3D_ContainmentHolds")</span>
         <div class="b3d-character-head">
@@ -16,6 +19,10 @@
                 @if (creature is null)
                 {
                     <span class="material-symbol" aria-hidden="true">block</span>
+                }
+                else if (concealed)
+                {
+                    <span class="material-symbol" aria-hidden="true">skull</span>
                 }
                 else if (BundledImage(creature) is { } bundled)
                 {
@@ -29,8 +36,8 @@
                 }
             </span>
             <span class="b3d-character-title">
-                <strong data-b3d="containment-creature">@(creature is null ? L.Resource("WorldContainment_EmptyUnit") : ContainmentCreatureCatalog.DisplayName(creature))</strong>
-                @if (creature is not null) { <small class="wt-muted">@ContainmentCreatureCatalog.Lore(creature)</small> }
+                <strong data-b3d="containment-creature">@(creature is null ? L.Resource("WorldContainment_EmptyUnit") : Label(creature, encountered))</strong>
+                @if (creature is not null && !concealed) { <small class="wt-muted">@ContainmentCreatureCatalog.Lore(creature)</small> }
             </span>
         </div>
         <div class="b3d-links">
@@ -38,7 +45,7 @@
                 <option value="" selected="@(creature is null)">@L.Resource("WorldContainment_OptionEmpty")</option>
                 @foreach (var option in ContainmentCreatureCatalog.Containable)
                 {
-                    <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@ContainmentCreatureCatalog.DisplayName(option.Row)</option>
+                    <option value="@option.Row" selected="@string.Equals(option.Row, creature, StringComparison.OrdinalIgnoreCase)">@Label(option.Row, encountered)</option>
                 }
             </select>
             @if (creature is not null)
@@ -93,6 +100,14 @@
         Workspace.NotifyEdited();
         await OnChanged.InvokeAsync();
     }
+
+    /// <summary>Same spoiler rule as the Containment tab: a creature the world has not met yet
+    /// stays unnamed unless the player already chose to reveal it there.</summary>
+    private bool IsConcealed(string creature, IReadOnlySet<string> encountered)
+        => Spoilers.Enabled && !encountered.Contains(creature) && !Spoilers.IsRevealed($"containment:{creature}");
+
+    private string Label(string creature, IReadOnlySet<string> encountered)
+        => IsConcealed(creature, encountered) ? L.Resource("WorldContainment_ClassifiedAnomaly") : ContainmentCreatureCatalog.DisplayName(creature);
 
     /// <summary>The bundled portrait the Containment tab uses for these creatures.</summary>
     private static string? BundledImage(string creature)

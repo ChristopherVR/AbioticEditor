@@ -61,7 +61,10 @@ public static class ContainmentCreatureCatalog
     /// <param name="Index">Index into <c>LeyakContainmentData</c>.</param>
     /// <param name="StabilityItem">Item row the unit must be fed to hold stability.</param>
     /// <param name="BarColorHex">The unit's progress-bar colour, as authored in the blueprint.</param>
-    public readonly record struct ContainableCreature(string Row, int Index, string StabilityItem, string BarColorHex);
+    /// <param name="CompendiumRow">The creature's bestiary (<c>DT_Compendium</c>) row. It is not
+    /// always the creature row: the Krasue's entry is <c>LeyakB</c> ("IS-0091-B"). A world that
+    /// lists this row in any of its <c>GlobalCompendium*</c> arrays has met the creature.</param>
+    public readonly record struct ContainableCreature(string Row, int Index, string StabilityItem, string BarColorHex, string CompendiumRow);
 
     /// <summary>
     /// Every creature a containment unit can hold, in blueprint order. Read out of
@@ -70,9 +73,38 @@ public static class ContainmentCreatureCatalog
     /// </summary>
     public static IReadOnlyList<ContainableCreature> Containable { get; } =
     [
-        new("Leyak", 0, "food_greyeb", "FF003A"),
-        new("Krasue", 1, "food_milk", "00FFFF"),
+        new("Leyak", 0, "food_greyeb", "FF003A", "Leyak"),
+        new("Krasue", 1, "food_milk", "00FFFF", "LeyakB"),
     ];
+
+    /// <summary>
+    /// The containable creatures a world shows the player has already met, for spoiler
+    /// protection. A creature counts as met when the save already holds it (it is contained, or
+    /// recorded as contained, right now) or when the world's bestiary has unlocked its entry.
+    /// Anything in <paramref name="heldCreatures"/> is returned as-is even when it is not a
+    /// containable row, so whatever the save already shows is never treated as a secret.
+    /// </summary>
+    /// <param name="heldCreatures">Creature rows the save (or running game) currently holds.</param>
+    /// <param name="unlockedCompendiumRows">Every bestiary row the world has unlocked, from any
+    /// of its compendium lists.</param>
+    public static IReadOnlySet<string> EncounteredCreatures(
+        IEnumerable<string?> heldCreatures, IEnumerable<string?> unlockedCompendiumRows)
+    {
+        ArgumentNullException.ThrowIfNull(heldCreatures);
+        ArgumentNullException.ThrowIfNull(unlockedCompendiumRows);
+        var met = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var creature in heldCreatures)
+        {
+            if (!string.IsNullOrWhiteSpace(creature)) met.Add(creature);
+        }
+        var unlocked = new HashSet<string>(
+            unlockedCompendiumRows.Where(row => !string.IsNullOrWhiteSpace(row))!, StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in Containable)
+        {
+            if (unlocked.Contains(entry.CompendiumRow)) met.Add(entry.Row);
+        }
+        return met;
+    }
 
     /// <summary>
     /// The <c>LeyakContainmentData</c> index for a creature row, or -1 when the row is not one

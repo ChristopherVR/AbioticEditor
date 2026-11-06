@@ -316,4 +316,50 @@ public sealed class ContainmentSessionTests
         Assert.True(session.ContainmentScanUnavailable);
         Assert.Empty(session.ContainmentUnits);
     }
+
+    // ---------- spoiler protection: which creatures the world has met ----------
+
+    [Fact]
+    public void Encountered_legacy_world_knows_the_Leyak_it_holds_but_not_the_Krasue()
+    {
+        // The issue #60 shape: a Leyak sits in a unit and the Krasue was never met. The held
+        // Leyak must count as known, and the Krasue must stay unnamed.
+        using var world = TempWorld.From(Fixtures.CascadeDir);
+        if (world is null) return;
+
+        var session = world.OpenMetadata();
+
+        Assert.Contains("Leyak", session.EncounteredCreatures);
+        Assert.DoesNotContain("Krasue", session.EncounteredCreatures);
+    }
+
+    [Fact]
+    public async Task Encountered_ignores_a_staged_pick_until_it_is_saved()
+    {
+        using var world = TempWorld.From(Fixtures.CascadeDir);
+        if (world is null) return;
+
+        var session = world.OpenMetadata();
+        await session.LoadContainmentUnitsAsync();
+        var leyakUnit = session.Containments.Single(pair => pair.Key.Equals("Leyak", StringComparison.OrdinalIgnoreCase)).Value;
+
+        // Picking the Krasue in the editor is the player's own choice, not proof they have met it,
+        // and moving the Leyak out does not make the player forget it.
+        session.SetContainmentUnitOccupant(leyakUnit, "Krasue");
+        var met = session.EncounteredCreatures;
+        Assert.DoesNotContain("Krasue", met);
+        Assert.Contains("Leyak", met);
+    }
+
+    [Fact]
+    public void Encountered_newer_world_knows_both_creatures()
+    {
+        using var world = TempWorld.From(Fixtures.ServerWorldsDir);
+        if (world is null) return;
+
+        var session = world.OpenMetadata();
+
+        Assert.Contains("Leyak", session.EncounteredCreatures);
+        Assert.Contains("Krasue", session.EncounteredCreatures);
+    }
 }
