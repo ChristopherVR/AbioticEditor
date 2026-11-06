@@ -3570,6 +3570,12 @@ Es wird nichts geschrieben, bis Sie SPEICHERN drücken, und ZURÜCKSETZEN macht 
   <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Jeder Vorschlag erklärt, welcher Zutaten- oder Entdeckungshinweis dazu geführt hat.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Das sind Hinweise zum Nachgehen, keine sicher übersehenen Freischaltungen.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Du hast alle {0} Zutatenarten für dieses Rezept aufgehoben.</value></data>
+  <data name="RecipeGuide_CraftableCounts" xml:space="preserve"><value>Gegenstände, die du bereits herstellen kannst, zählen als gefunden, auch wenn du nie einen gebaut hast, denn Herstellen und Aufheben würde im Spiel zählen.</value></data>
+  <data name="RecipeGuide_SeenOrCraftableInputs" xml:space="preserve"><value>Du hast alle {0} Zutatenarten für dieses Rezept aufgehoben oder kannst sie herstellen.</value></data>
+  <data name="RecipeLearning_PickupConditionMetWithCrafting" xml:space="preserve"><value>Du hast die für die Entdeckung dieses Rezepts nötigen Gegenstandsarten aufgehoben oder kannst sie herstellen.</value></data>
+  <data name="RecipeGuide_CraftableInputsIntro" xml:space="preserve"><value>Nie aufgehoben, aber mitgezählt, weil du sie herstellen kannst:</value></data>
+  <data name="RecipeGuide_CraftableInputKnown" xml:space="preserve"><value>{0}: Du kennst das Rezept bereits.</value></data>
+  <data name="RecipeGuide_CraftableInputSuggested" xml:space="preserve"><value>{0}: Du könntest es herstellen, nachdem du sein Rezept freigeschaltet hast, das hier ebenfalls vorgeschlagen wird.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Welche Zutaten?</value></data>
   <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Rezept nicht gelernt</value></data>
   <data name="RecipeGuide_Learned" xml:space="preserve"><value>Rezept gelernt</value></data>

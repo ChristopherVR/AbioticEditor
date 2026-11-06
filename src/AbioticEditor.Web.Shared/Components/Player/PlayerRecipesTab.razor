@@ -25,7 +25,7 @@
     {
         <RecipeDiscoveryReport Graph="_recipeGraph" Recipes="ReviewRecipes" CatalogAvailable="@(_rows is { Count: > 0 })"
                                HasPickupHistory="@(Session.RecipeItemsPickedUp is not null)" AppliesImmediately="Session.AppliesImmediately"
-                               HasDiscoveryHistory="HasDiscoveryHistory" Assessment="AssessRecipe" IngredientClue="HasIngredientClue"
+                               HasDiscoveryHistory="HasDiscoveryHistory" Assessment="AssessRecipe" IngredientClue="HasIngredientClue" CraftedInputs="CraftedInputs"
                                HasLearningCatalog="@(_catalogSnapshot?.RecipeLearning is not null)"
                                ItemName="CraftItemName" Concealed="ConcealedInfo" Learned="IsLearned" Staged="Session.IsRecipeUnlockStaged"
                                CanUndo="CanUndoRecipe" ResearchPending="IsResearchPending" Feedback="RecipeFeedback" Busy="_recipeWriteBusy"

@@ -18,7 +18,7 @@ else if (!HasPickupHistory && !HasDiscoveryHistory && !HasLearningCatalog)
 else
 {
     <p class="recipe-workflow-copy" role="status">@L.Resource("RecipeGuide_CheckCount", Recipes.Count, Recipes.Count(recipe => !Learned(recipe.Id)), Recipes.Count(recipe => Learned(recipe.Id)))</p>
-    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CheckClue") @L.Resource("RecipeGuide_CheckCaution")</p>
+    <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_CheckClue") @L.Resource("RecipeGuide_CraftableCounts") @L.Resource("RecipeGuide_CheckCaution")</p>
     @if (!HasPickupHistory) { <p class="recipe-workflow-copy">@L.Resource("RecipeGuide_PickupUnavailableSources")</p> }
     <p class="recipe-workflow-copy">@L.Resource(AppliesImmediately ? "RecipeGuide_LiveHelp" : "RecipeGuide_SaveHelp")</p>
     @if (Recipes.Count == 0)
@@ -63,9 +63,10 @@ else
                     {
                         <p>@L.Resource("RecipeGuide_RecordedGrantClue")</p>
                     }
+                    var crafted = IngredientClue(recipe.Id) ? CraftedInputs(recipe.Id) : [];
                     @if (IngredientClue(recipe.Id) && !HasLearningCatalog)
                     {
-                        <p>@L.Resource("RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
+                        <p>@L.Resource(crafted.Count > 0 ? "RecipeGuide_SeenOrCraftableInputs" : "RecipeGuide_SeenInputs", Graph.IngredientsFor(recipe).Count)</p>
                         <details>
                             <summary>@L.Resource("RecipeGuide_WhichInputs")</summary>
                             <ul>
@@ -73,8 +74,18 @@ else
                             </ul>
                         </details>
                     }
-                    @if (HasLearningCatalog && IngredientClue(recipe.Id)) { <p>@L.Resource("RecipeLearning_PickupConditionMet")</p> }
+                    @if (HasLearningCatalog && IngredientClue(recipe.Id)) { <p>@L.Resource(crafted.Count > 0 ? "RecipeLearning_PickupConditionMetWithCrafting" : "RecipeLearning_PickupConditionMet")</p> }
                     else if (HasLearningCatalog && assessment.RecordedSourceState != RecipeDiscoveryState.KnownMet) { <p>@L.Resource("RecipeLearning_KnownConditionClue")</p> }
+                    @if (crafted.Count > 0)
+                    {
+                        <p>@L.Resource("RecipeGuide_CraftableInputsIntro")</p>
+                        <ul class="recipe-craftable-inputs">
+                            @foreach (var input in crafted)
+                            {
+                                <li>@L.Resource(input.Inferred ? "RecipeGuide_CraftableInputSuggested" : "RecipeGuide_CraftableInputKnown", ItemName(input.ItemId))</li>
+                            }
+                        </ul>
+                    }
                 }
                 @if (!concealed && Feedback(recipe.Id) is { Length: > 0 } feedback)
                 {
@@ -102,6 +113,7 @@ else
     [Parameter] public bool HasLearningCatalog { get; set; }
     [Parameter] public Func<string, RecipeDiscoveryAssessment> Assessment { get; set; } = id => new(id, []);
     [Parameter] public Func<string, bool> IngredientClue { get; set; } = _ => true;
+    [Parameter] public Func<string, IReadOnlyList<RecipeCraftableItem>> CraftedInputs { get; set; } = _ => [];
     [Parameter] public Func<string, bool> ResearchPending { get; set; } = _ => false;
     [Parameter] public bool AppliesImmediately { get; set; }
     [Parameter] public bool Busy { get; set; }

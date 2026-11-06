@@ -3571,6 +3571,12 @@ No se escribe nada hasta que pulses GUARDAR, y REVERTIR lo deshace antes de eso.
   <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Cada sugerencia explica la pista de ingredientes o de descubrimiento por la que aparece aquí.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Son pistas que investigar, no desbloqueos omitidos confirmados.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Has recogido los {0} tipos de ingredientes de esta receta.</value></data>
+  <data name="RecipeGuide_CraftableCounts" xml:space="preserve"><value>Los objetos que ya sabes fabricar cuentan como encontrados aunque nunca hayas hecho uno, porque fabricarlo y recogerlo contaría en el juego.</value></data>
+  <data name="RecipeGuide_SeenOrCraftableInputs" xml:space="preserve"><value>Has recogido, o puedes fabricar, los {0} tipos de ingredientes de esta receta.</value></data>
+  <data name="RecipeLearning_PickupConditionMetWithCrafting" xml:space="preserve"><value>Has recogido, o puedes fabricar, los tipos de objetos necesarios para descubrir esta receta.</value></data>
+  <data name="RecipeGuide_CraftableInputsIntro" xml:space="preserve"><value>Nunca recogidos, pero contados porque puedes fabricarlos:</value></data>
+  <data name="RecipeGuide_CraftableInputKnown" xml:space="preserve"><value>{0}: ya conoces su receta.</value></data>
+  <data name="RecipeGuide_CraftableInputSuggested" xml:space="preserve"><value>{0}: podrías fabricarlo tras desbloquear su receta, que también se sugiere aquí.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>¿Qué ingredientes?</value></data>
   <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Receta sin aprender</value></data>
   <data name="RecipeGuide_Learned" xml:space="preserve"><value>Receta aprendida</value></data>

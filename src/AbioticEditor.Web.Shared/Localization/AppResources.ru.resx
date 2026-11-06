@@ -3570,6 +3570,12 @@
   <data name="RecipeGuide_CheckClue" xml:space="preserve"><value>Каждая рекомендация объясняет, какая подсказка об ингредиентах или открытиях привела к её появлению.</value></data>
   <data name="RecipeGuide_CheckCaution" xml:space="preserve"><value>Это подсказки для проверки, а не подтверждённые пропущенные рецепты.</value></data>
   <data name="RecipeGuide_SeenInputs" xml:space="preserve"><value>Вы подбирали все {0} типов ингредиентов для этого рецепта.</value></data>
+  <data name="RecipeGuide_CraftableCounts" xml:space="preserve"><value>Предметы, которые вы уже умеете создавать, считаются найденными, даже если вы их ни разу не делали: создание и подбор такого предмета засчитались бы в игре.</value></data>
+  <data name="RecipeGuide_SeenOrCraftableInputs" xml:space="preserve"><value>Вы подбирали или можете создать все {0} типов ингредиентов для этого рецепта.</value></data>
+  <data name="RecipeLearning_PickupConditionMetWithCrafting" xml:space="preserve"><value>Вы подбирали или можете создать предметы, нужные для открытия этого рецепта.</value></data>
+  <data name="RecipeGuide_CraftableInputsIntro" xml:space="preserve"><value>Ни разу не подобраны, но засчитаны, потому что вы можете их создать:</value></data>
+  <data name="RecipeGuide_CraftableInputKnown" xml:space="preserve"><value>{0}: вы уже знаете этот рецепт.</value></data>
+  <data name="RecipeGuide_CraftableInputSuggested" xml:space="preserve"><value>{0}: можно создать после открытия его рецепта, который тоже предложен здесь.</value></data>
   <data name="RecipeGuide_WhichInputs" xml:space="preserve"><value>Какие ингредиенты?</value></data>
   <data name="RecipeGuide_NotLearned" xml:space="preserve"><value>Рецепт не изучен</value></data>
   <data name="RecipeGuide_Learned" xml:space="preserve"><value>Рецепт изучен</value></data>
