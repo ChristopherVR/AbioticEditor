@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [2.35.0] - 2026-11-06
+
+### Features
+- Missed-recipe check now counts things you can already craft
+
+
+### Bug Fixes
+- Containment units stop hiding creatures you caught and naming ones you have not met
+- Spoiler protection now covers the Story tab
+
+
 ## [2.34.0] - 2026-11-02
 
 ### Features
