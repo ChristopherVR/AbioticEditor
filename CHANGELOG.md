@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.35.1] - 2026-11-07
+
+### Bug Fixes
+- The editor now tells you why item pictures show as question marks
+- Mods kept in their own folder now show their real icons instead of question marks
+
+
 ## [2.35.0] - 2026-11-06
 
 ### Features
