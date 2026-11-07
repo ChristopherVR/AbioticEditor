@@ -3,7 +3,18 @@
 @inject HostLanguageService Languages
 @inject HostSettingsService HostSettings
 
-@if (HostSettings.GameDataHealth == GameDataHealthStatus.MappingsOutdated)
+@if (HostSettings.GameDataHealth is GameDataHealthStatus.GameNotFound or GameDataHealthStatus.MappingsMissing)
+{
+    var notFound = HostSettings.GameDataHealth == GameDataHealthStatus.GameNotFound;
+    <section class="game-data-notice" role="alert" inert="@(Inert ? "" : null)">
+        <div>
+            <strong>@Languages.Resource(notFound ? "GameDataNotice_NotFoundTitle" : "GameDataNotice_MappingsMissingTitle")</strong>
+            <p>@Languages.Resource(notFound ? "GameDataNotice_NotFoundBody" : "GameDataNotice_MappingsMissingBody")</p>
+        </div>
+        <button type="button" class="secondary" @onclick="OnOpenSettings">@Languages.Resource("GameDataNotice_OpenSettings")</button>
+    </section>
+}
+else if (HostSettings.GameDataHealth == GameDataHealthStatus.MappingsOutdated)
 {
     <section class="game-data-notice" role="alert" inert="@(Inert ? "" : null)">
         <div>

@@ -57,7 +57,8 @@ public sealed class HostSettingsService
             try
             {
                 var provider = GameDataGate.CreateProvider(_languages.EffectiveGameDataLanguage);
-                if (provider is not null) SetGameDataHealth(Core.Assets.GameDataHealth.Check(provider));
+                if (provider is not null) SetGameDataHealth(ProviderHealth(provider));
+                else if (!OperatingSystem.IsBrowser() && GameDataRegistry.SuppliedRegistry is null) SetGameDataHealth(GameDataHealthStatus.GameNotFound);
             }
             catch (Exception exception)
             {
@@ -65,6 +66,11 @@ public sealed class HostSettingsService
             }
         });
     }
+
+    // A provider without mappings is reported as its own state (no icons or names can be read),
+    // rather than the generic "unreadable" that the health probe returns for it.
+    private static GameDataHealthStatus ProviderHealth(GameAssetProvider provider)
+        => provider.HasMappings ? Core.Assets.GameDataHealth.Check(provider) : GameDataHealthStatus.MappingsMissing;
 
     private void SetGameDataHealth(GameDataHealthStatus status)
     {
@@ -145,12 +151,12 @@ public sealed class HostSettingsService
             Interlocked.Exchange(ref _modSummaries, null);
             if (provider is null)
             {
-                SetGameDataHealth(GameDataHealthStatus.Healthy);
+                SetGameDataHealth(GameDataHealthStatus.GameNotFound);
                 return new(false, GameDataReloadOutcome.NoInstall);
             }
             if (!provider.HasMappings)
             {
-                SetGameDataHealth(GameDataHealthStatus.Healthy);
+                SetGameDataHealth(GameDataHealthStatus.MappingsMissing);
                 return new(false, GameDataReloadOutcome.MissingMappings, PaksPath);
             }
             var health = Core.Assets.GameDataHealth.Check(provider);

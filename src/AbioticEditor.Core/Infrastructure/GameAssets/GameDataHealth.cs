@@ -16,6 +16,12 @@ public enum GameDataHealthStatus
 
     /// <summary>The check itself failed (for example a file was locked), so nothing can be said either way.</summary>
     Unreadable,
+
+    /// <summary>No Abiotic Factor install could be found, so there is nothing to read item icons or names from.</summary>
+    GameNotFound,
+
+    /// <summary>The game was found but no usable <c>Mappings.usmap</c> is available, so its tables cannot be parsed.</summary>
+    MappingsMissing,
 }
 
 /// <summary>
