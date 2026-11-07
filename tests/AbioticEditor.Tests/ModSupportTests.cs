@@ -42,6 +42,21 @@ public sealed class ModSupportTests
     }
 
     [Fact]
+    public void FindModPaks_IncludesPaksInCustomSubfolders()
+    {
+        using var tmp = new TempDir();
+        var paks = Directory.CreateDirectory(Path.Combine(tmp.Path, "Paks")).FullName;
+        File.WriteAllText(Path.Combine(paks, "pakchunk0-Windows.pak"), "base");
+        var custom = Directory.CreateDirectory(Path.Combine(paks, "MyMods", "Nested")).FullName;
+        File.WriteAllText(Path.Combine(custom, "CustomFolderMod.pak"), "mod");
+
+        var found = AfInstallLocator.FindModPaks(paks).Select(Path.GetFileName).ToList();
+
+        Assert.Single(found);
+        Assert.Equal("CustomFolderMod.pak", found[0]);
+    }
+
+    [Fact]
     public void FindModPaks_EmptyWhenNoModFolders()
     {
         using var tmp = new TempDir();

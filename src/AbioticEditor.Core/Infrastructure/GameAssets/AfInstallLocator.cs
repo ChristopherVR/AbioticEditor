@@ -108,10 +108,25 @@ public static class AfInstallLocator
             return Array.Empty<string>();
         }
 
-        var result = new List<string>();
-        foreach (var sub in ModSubfolderNames)
+        // The game mounts paks from any folder under Paks, so a mod dropped in a custom folder
+        // (e.g. Paks/MyMods) works in game and must be mounted here too. The conventional folders
+        // come first so their load order stays stable; every other subfolder follows.
+        var folders = new List<string>();
+        try
         {
-            var dir = Path.Combine(paksDirectory, sub);
+            folders.AddRange(ModSubfolderNames.Select(s => Path.Combine(paksDirectory, s)));
+            folders.AddRange(Directory.EnumerateDirectories(paksDirectory)
+                .Where(d => !ModSubfolderNames.Contains(Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
+                .OrderBy(d => d, StringComparer.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            // Unreadable Paks directory: fall back to whatever was gathered.
+        }
+
+        var result = new List<string>();
+        foreach (var dir in folders)
+        {
             if (!Directory.Exists(dir)) continue;
             try
             {
