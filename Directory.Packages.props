@@ -17,7 +17,7 @@
   <ItemGroup>
     <!-- CLI. The GA 2.0 line replaced the beta4 SetHandler API with SetAction +
          ParseResult; Program.cs's Build().Parse(args).InvokeAsync() is GA-shaped. -->
-    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
+    <PackageVersion Include="System.CommandLine" Version="3.0.0" />
 
     <!-- JavaScript plugin runtime. Jint is a pure-managed ES interpreter with no native deps,
          so it works across the CLI and local Razor host. -->
