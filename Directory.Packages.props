@@ -35,7 +35,7 @@
          ASP.NET Core shared framework the desktop host builds against, so the Components types
          its screens use come from this package instead. -->
     <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
 
     <!-- Transitive override (NOT a CUE4Parse mirror — Dependabot SHOULD keep this current):
          CUE4Parse references Microsoft.Bcl.Memory 9.0.0, which has a known vulnerability
