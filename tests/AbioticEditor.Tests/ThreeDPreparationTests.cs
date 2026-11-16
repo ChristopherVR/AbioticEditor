@@ -67,7 +67,9 @@ public sealed class ThreeDPreparationTests
             otherDone.Set();
         });
 
-        var first = await Task.WhenAny(other, Task.Delay(TimeSpan.FromSeconds(10)));
+        using var timeout = new CancellationTokenSource();
+        var first = await Task.WhenAny(other, Task.Delay(TimeSpan.FromSeconds(10), timeout.Token));
+        await timeout.CancelAsync();
         Assert.True(first == other, "The other read never got the game files while the long read ran.");
         await longRead.WaitAsync(TimeSpan.FromSeconds(30));
         Assert.True(longReadFinished);

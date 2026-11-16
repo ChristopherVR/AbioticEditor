@@ -110,7 +110,7 @@ public sealed class WorldLivePetsSpeciesChangeContractTests
     private static string PetsLuaSource() => File.ReadAllText(LiveAgentPath("Scripts", "areas", "pets.lua"));
 
     private static string CoreSource(params string[] parts)
-        => File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Core", Path.Combine(parts)));
+        => File.ReadAllText(Path.Combine([UiSource.RepositoryRoot, "src", "AbioticEditor.Core", .. parts]));
 
     private static string ModelSource(string file) => UiSource.ReadAllText("Models", file);
 

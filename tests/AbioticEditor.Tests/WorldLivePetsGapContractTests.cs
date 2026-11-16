@@ -111,7 +111,7 @@ public sealed class WorldLivePetsGapContractTests
     }
 
     private static string CoreSource(params string[] parts)
-        => File.ReadAllText(Path.Combine(UiSource.RepositoryRoot, "src", "AbioticEditor.Core", Path.Combine(parts)));
+        => File.ReadAllText(Path.Combine([UiSource.RepositoryRoot, "src", "AbioticEditor.Core", .. parts]));
 
     private static string WorldSource(string file) => UiSource.ReadAllText("Components", "World", file);
     private static string ModelSource(string file) => UiSource.ReadAllText("Models", file);
