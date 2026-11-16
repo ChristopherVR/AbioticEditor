@@ -1,0 +1,10 @@
+/* The top-down picture fills the panel's width and keeps its shape. */
+.base-footprint {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    aspect-ratio: 320 / 200;
+    border: 1px solid var(--wt-border, #2A352A);
+    border-radius: 4px;
+}

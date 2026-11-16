@@ -62,6 +62,7 @@ public sealed partial class WorldSaveSession
     /// <summary>Clears the staged edits without touching the status line (used by <see cref="Revert"/>).</summary>
     private void ClearBaseEdits()
     {
+        ReleaseBaseMoves();
         _baseEdits.RevertAll();
         LastBaseEditRefusal = [];
         PlacedTransformsRevision++;

@@ -1,5 +1,47 @@
 # Abiotic Editor - Session history
 
+## Issue #69: move a base to another world, export and import base files (2026-11-17)
+
+- Core `BasePackage` (Services/World): lifts player-built pieces into a detached GVAS holding only
+  `DeployedObjectMap` and `PowerSocketMap` entries for them (staged moves applied), plus a readable
+  summary. File form `.abase.json`: format/version, source world, area file, level packages, piece
+  list, and the records gzip+base64 (`saveEncoding: "gzip"`). The 505-piece fixture base is about
+  550 KB; the first draft that copied the rest of the area along was 8.5 MB. `LevelMismatch` refuses
+  another area (actor-path package not used by the target's own pieces).
+- `StagedBaseEdits.StageTransplant` reuses the other-world duplication path (Donor) for a whole
+  group with `TransplantPolicy` (contents copied with fresh item ids, internal power and teleporter
+  pairs kept and re-tagged, external links dropped). `RestageDuplication` changes a staged copy's
+  offset/yaw keeping its minted keys. Donor copies with contents report `contents-carried` (Info)
+  instead of the duplicate warning. `DeletePolicy.MovedAway` removes the source (outlets dropped,
+  inbound plugs unplugged, bed claims released, teleporter peers left unpaired, other references
+  still refuse unless the panel's "let those links point at nothing" is ticked).
+- Session (`WorldSaveSession.BaseMove.cs`): `OtherWorldsWithThisArea`, `CreateBasePackage`,
+  `StageMoveTo(target, ...)` (copy staged in the target session, removal here, tracked as a
+  `StagedBaseMove`; undo, a revert here, or pruning drops the target half too), `StagedCopyOfAll`,
+  `MoveStagedCopy`/`TurnStagedCopy`. The move uses `Workspace.GetTransferWorldAsync` +
+  `RegisterTransfer`, so one SAVE writes the receiving world first, then the source.
+- UI: shared `BaseMovePanel` (move / export / import, top-down `BaseFootprint` picture, nudge and
+  turn buttons, exact numbers, "where I'm looking" in 3D) on the Bases map (selected base) and in
+  the 3D view (selection buttons, HUD **Import a base file**, **Select the whole base**). In 3D a
+  staged copy is draggable and R-turnable as one group (`base3d.js` lets mark-2 pieces drag; the tab
+  routes drag/gizmo/R/group move to the copy).
+- Tests: `BaseMoveTests` (package contents, file round trip and bad files, transplant adds exactly
+  the new pieces with all their items, restage keeps ids, whole-base removal), and
+  `BaseMoveSessionTests` (other-world listing, a real two-world move written to disk, undo and
+  revert drop both halves, imported copy drag/turn).
+- Found by driving the app on two fixture worlds: the panel checked the removal before the world's
+  other saves were read, so a containment record in `WorldSave_MetaData.sav` and sockets in
+  `WorldSave_Facility_Dam_Waterfall.sav` only refused the removal at SAVE, after the receiving world
+  had been written (a copy, not a move). Fixed twice over: the panel now awaits
+  `LoadOtherSavesAsync` before the removal check (blockers show up front; "let those links point at
+  nothing" covers them via the new `DeletePolicy.CrossSaveLinks`), and
+  `SaveWorkspaceSessionService.SaveSessionGroupAsync` calls `EnsureBaseEditsCanApply` on every linked
+  world before writing any. Re-run in the app: 505 pieces, 10,339 items; source 16.5 MB to 10.3 MB,
+  receiver 16.5 MB to 22.7 MB, both with `.bak`.
+- CLI: `world object export` (`--out`, `--remove`, `--leave-links`, `--dry-run`) and
+  `world object import` (`--file`, `--dx/--dy/--dz/--yaw`); `BaseMoveCliTests`.
+- Open: an in-game load of a moved base (same-spot transplant into a second world).
+
 ## Issue #53: missed-recipe check counts craftable items as found (2026-11-07)
 
 - Reporter feedback: items the player could craft but never made did not count toward other

@@ -5178,4 +5178,77 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   </data>
   <data name="WorldStory_ThisChapter" xml:space="preserve"><value>This chapter</value></data>
   <data name="WorldStory_ThisEntry" xml:space="preserve"><value>This entry</value></data>
+  <data name="BaseMove_OpenMove" xml:space="preserve"><value>Move to another world ({0})...</value></data>
+  <data name="BaseMove_OpenExport" xml:space="preserve"><value>Export to a file ({0})...</value></data>
+  <data name="BaseMove_OpenImport" xml:space="preserve"><value>Import a base file...</value></data>
+  <data name="BaseMove_SelectWholeBase" xml:space="preserve"><value>Select the whole base ({0})</value></data>
+  <data name="BaseMove_MoveTitleFormat" xml:space="preserve"><value>MOVE {0} PIECE(S) TO ANOTHER WORLD</value></data>
+  <data name="BaseMove_ExportTitleFormat" xml:space="preserve"><value>EXPORT {0} PIECE(S) TO A FILE</value></data>
+  <data name="BaseMove_ImportTitle" xml:space="preserve"><value>IMPORT A BASE FILE</value></data>
+  <data name="BaseMove_ImportIntro" xml:space="preserve"><value>Pick a base file you exported from this editor. The pieces land on the same spot they stood on in their old world, and you can shift and turn them before you SAVE.</value></data>
+  <data name="BaseMove_PickFile" xml:space="preserve"><value>Choose a base file...</value></data>
+  <data name="BaseMove_FileType" xml:space="preserve"><value>Base file</value></data>
+  <data name="BaseMove_FileUnreadable" xml:space="preserve"><value>The base file could not be opened</value></data>
+  <data name="BaseMove_NothingToMove" xml:space="preserve"><value>Nothing here can be moved. Only pieces a player built can move; the ones that came with the level stay where they are.</value></data>
+  <data name="BaseMove_Pieces" xml:space="preserve"><value>Pieces</value></data>
+  <data name="BaseMove_ItemsInside" xml:space="preserve"><value>Items inside them</value></data>
+  <data name="BaseMove_FromWorld" xml:space="preserve"><value>From world</value></data>
+  <data name="BaseMove_SkippedLevelFormat" xml:space="preserve"><value>{0} piece(s) came with the level, so they stay where they are.</value></data>
+  <data name="BaseMove_WhatMoves" xml:space="preserve"><value>What moves</value></data>
+  <data name="BaseMove_KindItemsFormat" xml:space="preserve"><value>{0} item(s) inside</value></data>
+  <data name="BaseMove_TargetWorld" xml:space="preserve"><value>Move to</value></data>
+  <data name="BaseMove_ChooseWorld" xml:space="preserve"><value>Choose a world...</value></data>
+  <data name="BaseMove_LoadingWorld" xml:space="preserve"><value>Reading that world...</value></data>
+  <data name="BaseMove_WorldUnreadable" xml:space="preserve"><value>That world could not be read</value></data>
+  <data name="BaseMove_NoOtherWorlds" xml:space="preserve"><value>None of your other worlds on this computer has this area. Export the pieces to a file instead, then import the file in the other world.</value></data>
+  <data name="BaseMove_NoOtherWorldsHere" xml:space="preserve"><value>Other worlds can only be reached when the editor opens your save folder on this computer. Export the pieces to a file instead, then import the file in the other world.</value></data>
+  <data name="BaseMove_UseExport" xml:space="preserve"><value>Export to a file instead</value></data>
+  <data name="BaseMove_OtherArea" xml:space="preserve"><value>These pieces come from a different area of the game, so they cannot be put down here. Open the same area in the other world.</value></data>
+  <data name="BaseMove_WhereItLands" xml:space="preserve"><value>Where it lands</value></data>
+  <data name="BaseMove_Picture" xml:space="preserve"><value>The pieces that move, from above</value></data>
+  <data name="BaseMove_PictureLegend" xml:space="preserve"><value>Orange: the pieces that move. Grey: what already stands there.</value></data>
+  <data name="BaseMove_SameSpot" xml:space="preserve"><value>On the same spot as before.</value></data>
+  <data name="BaseMove_ShiftedFormat" xml:space="preserve"><value>Shifted {0} m along X, {1} m along Y, {2} m up, and turned {3}°.</value></data>
+  <data name="BaseMove_Nudge" xml:space="preserve"><value>Shift and turn</value></data>
+  <data name="BaseMove_NudgeNorth" xml:space="preserve"><value>1 m toward the top of the picture</value></data>
+  <data name="BaseMove_NudgeSouth" xml:space="preserve"><value>1 m toward the bottom of the picture</value></data>
+  <data name="BaseMove_NudgeEast" xml:space="preserve"><value>1 m to the right</value></data>
+  <data name="BaseMove_NudgeWest" xml:space="preserve"><value>1 m to the left</value></data>
+  <data name="BaseMove_NudgeUp" xml:space="preserve"><value>Half a metre up</value></data>
+  <data name="BaseMove_NudgeDown" xml:space="preserve"><value>Half a metre down</value></data>
+  <data name="BaseMove_Up" xml:space="preserve"><value>Up</value></data>
+  <data name="BaseMove_Down" xml:space="preserve"><value>Down</value></data>
+  <data name="BaseMove_Exact" xml:space="preserve"><value>Exact numbers</value></data>
+  <data name="BaseMove_ShiftX" xml:space="preserve"><value>X (m)</value></data>
+  <data name="BaseMove_ShiftY" xml:space="preserve"><value>Y (m)</value></data>
+  <data name="BaseMove_ShiftZ" xml:space="preserve"><value>Up (m)</value></data>
+  <data name="BaseMove_Turn" xml:space="preserve"><value>Turn (°)</value></data>
+  <data name="BaseMove_BackToSameSpot" xml:space="preserve"><value>Back to the same spot</value></data>
+  <data name="BaseMove_WhereImLooking" xml:space="preserve"><value>Where I'm looking</value></data>
+  <data name="BaseMove_DragHint" xml:space="preserve"><value>You can also drag the new pieces in the view, and press R to turn them.</value></data>
+  <data name="BaseMove_CloseByFormat" xml:space="preserve"><value>{0} new piece(s) would sit very close to something already there. Have a look in the 3D view after you SAVE, or shift them a little.</value></data>
+  <data name="BaseMove_CannotLand" xml:space="preserve"><value>The pieces cannot be put down like this:</value></data>
+  <data name="BaseMove_RemoveAfterMove" xml:space="preserve"><value>Remove them from this world (a move, not a copy)</value></data>
+  <data name="BaseMove_RemoveAfterExport" xml:space="preserve"><value>Also remove them from this world</value></data>
+  <data name="BaseMove_RemoveBlocked" xml:space="preserve"><value>They cannot be removed from this world yet:</value></data>
+  <data name="BaseMove_LeaveLinks" xml:space="preserve"><value>Remove them anyway, and let those links point at nothing</value></data>
+  <data name="BaseMove_MoveButtonFormat" xml:space="preserve"><value>Move {0} piece(s) to {1}</value></data>
+  <data name="BaseMove_MovedFormat" xml:space="preserve"><value>{0} piece(s) are ready to move to {1}.</value></data>
+  <data name="BaseMove_MovedToastFormat" xml:space="preserve"><value>{0} piece(s) are ready to move to {1}. Press SAVE to write both worlds.</value></data>
+  <data name="BaseMove_SaveWritesBoth" xml:space="preserve"><value>Press SAVE to write both worlds. The world that gets the pieces is written first, and each world keeps a .bak backup. Everything stored inside comes along; the editor keeps links between the moved pieces and unplugs anything they were linked to outside the group.</value></data>
+  <data name="BaseMove_MoveFailed" xml:space="preserve"><value>The pieces could not be moved</value></data>
+  <data name="BaseMove_MoveFailedHint" xml:space="preserve"><value>Nothing was changed. Try again, or export them to a file instead.</value></data>
+  <data name="BaseMove_Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="BaseMove_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="BaseMove_ExportWhereDesktop" xml:space="preserve"><value>The file goes into your Downloads folder. Keep it until the pieces are safely in their new world.</value></data>
+  <data name="BaseMove_ExportWhereBrowser" xml:space="preserve"><value>The file is downloaded by your browser. Keep it until the pieces are safely in their new world.</value></data>
+  <data name="BaseMove_ExportButton" xml:space="preserve"><value>Export</value></data>
+  <data name="BaseMove_Exported" xml:space="preserve"><value>Exported. Open the other world and use Import a base file there.</value></data>
+  <data name="BaseMove_ExportedRemoved" xml:space="preserve"><value>Exported. The pieces will be removed from this world when you press SAVE. Open the other world and use Import a base file there.</value></data>
+  <data name="BaseMove_ExportedToastFormat" xml:space="preserve"><value>{0} piece(s) exported to a base file.</value></data>
+  <data name="BaseMove_ExportFailed" xml:space="preserve"><value>The base file could not be written</value></data>
+  <data name="BaseMove_ExportFailedHint" xml:space="preserve"><value>Nothing was changed. Check there is space in your Downloads folder and try again.</value></data>
+  <data name="BaseMove_PutDown" xml:space="preserve"><value>Put it down here</value></data>
+  <data name="BaseMove_ImportedHint" xml:space="preserve"><value>The new pieces are drawn in light blue in the 3D view. Shift or turn them here until they sit right, then press SAVE.</value></data>
+  <data name="BaseMove_NotABaseFile" xml:space="preserve"><value>This is not a base file from the editor. It may be damaged, or made by a newer version of the editor (update the editor to open it).</value></data>
 </root>

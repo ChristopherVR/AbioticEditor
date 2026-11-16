@@ -1,0 +1,32 @@
+/* Shift and turn buttons: a compact wrap of small buttons that stays usable on a phone. */
+.base-move-pad {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 6px 0;
+}
+
+.base-move-pad .wt-btn {
+    min-width: 2.4rem;
+    padding: 4px 8px;
+}
+
+/* The panel also opens on the Bases map, outside the 3D view whose scoped styles these mirror. */
+.b3d-panel { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; min-height: 0; height: auto; }
+.b3d-op { border-color: rgba(240, 132, 24, 0.6); }
+.b3d-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.b3d-close { width: 24px; height: 24px; padding: 0; line-height: 1; font-size: 12px; color: var(--muted, #a9cbe0); background: transparent; border: 1px solid transparent; cursor: pointer; }
+.b3d-close:hover { color: #fff; border-color: rgba(255, 255, 255, 0.25); }
+.b3d-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; margin: 0; }
+.b3d-fields dt { color: var(--muted, #a9cbe0); }
+.b3d-fields dd { margin: 0; word-break: break-word; }
+.b3d-links { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.b3d-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.b3d-numbers label { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.b3d-numbers input { width: 100%; min-width: 0; box-sizing: border-box; }
+.b3d-list { margin: 0; padding-left: 18px; font-size: 12px; max-height: 200px; overflow-y: auto; }
+.b3d-feedback { margin: 0; font-size: 12px; color: var(--accent, #f08418); }
+.b3d-warning { margin: 0; }
+.b3d-details > summary { cursor: pointer; color: var(--muted, #a9cbe0); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.b3d-details[open] > summary { margin-bottom: 6px; }
+.base-move { max-width: 560px; }

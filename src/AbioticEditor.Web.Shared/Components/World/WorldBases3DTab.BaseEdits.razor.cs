@@ -158,6 +158,11 @@ public partial class WorldBases3DTab
             _groupFeedback = L.Resource("World3D_InvalidNumber");
             return;
         }
+        if (SelectedStagedCopy is { } copy)
+        {
+            await MoveCopyAsync(copy, dx, dy, dz);
+            return;
+        }
         await RunGroupAsync(keys => Session.StageGroupMove(keys, dx, dy, dz));
     }
 
@@ -166,6 +171,11 @@ public partial class WorldBases3DTab
         if (!TryNumber(_grpYaw, out var degrees))
         {
             _groupFeedback = L.Resource("World3D_InvalidNumber");
+            return;
+        }
+        if (SelectedStagedCopy is { } copy)
+        {
+            await TurnCopyAsync(copy, degrees);
             return;
         }
         var pivot = PivotFor(_grpPivot, _selected);

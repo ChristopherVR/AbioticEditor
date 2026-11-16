@@ -2368,7 +2368,8 @@ function buildView(host, dotnet) {
     let draggable = false;
     const SNAP_M = 0.1;
     function canDrag(o) {
-        return draggable && o && o.built && !o.mark && !walkOn; // not a piece staged for removal, nor a copy not yet saved
+        // Not a piece staged for removal. A staged copy (mark 2) drags too: its whole copy moves with it.
+        return draggable && o && o.built && o.mark !== 1 && !walkOn;
     }
 
     renderer.domElement.addEventListener("pointermove", e => {
@@ -2395,7 +2396,9 @@ function buildView(host, dotnet) {
             setSelection([o.key], o.key);
             dotnet.invokeMethodAsync("OnPicked", o.key, false).catch(() => { });
         }
-        const group = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined && objects[i].built && !objects[i].mark);
+        // Saved pieces drag with saved pieces, staged copies with staged copies.
+        const mark = o.mark || 0;
+        const group = [...selectedKeys].map(k => keyToIndex.get(k)).filter(i => i !== undefined && objects[i].built && (objects[i].mark || 0) === mark);
         const starts = new Map(group.map(i => [i, objects[i].p.slice()]));
         const at = new THREE.Vector3(o.p[0], o.p[1], o.p[2]);
         const vertical = e.altKey;
@@ -2452,7 +2455,7 @@ function buildView(host, dotnet) {
         drag = null;
         controls.enabled = !walkOn;
         renderer.domElement.style.cursor = "grab";
-        if (moved && finished.group.length > 1) {
+        if (moved && (finished.group.length > 1 || objects[finished.idx]?.mark === 2)) {
             // A whole selection moved: staged as one group move (the editor converts the step).
             const from = finished.origin, to = finished.origin.clone().add(finished.delta);
             dotnet.invokeMethodAsync("OnGroupDragged", [from.x, from.y, from.z], [to.x, to.y, to.z]).catch(() => { });

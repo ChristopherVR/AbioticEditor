@@ -211,6 +211,51 @@ public sealed class StagedBaseEdits
         return dup;
     }
 
+    /// <summary>
+    /// The policy a moved base is put down with: everything stored inside comes along, links between
+    /// the moved pieces are kept (teleporter pairs get a tag of their own in the new world), and links
+    /// to anything left behind are dropped.
+    /// </summary>
+    public static DuplicatePolicy TransplantPolicy { get; } = new()
+    {
+        Contents = ContentsMode.Copy,
+        ExternalPowerLinks = ReferencePolicy.Drop,
+        ExternalTeleporterPeers = ReferencePolicy.Drop,
+        RemapInternalTeleporterPairs = true,
+    };
+
+    /// <summary>
+    /// Stages putting down every piece of <paramref name="package"/> in this save: the group is turned by
+    /// <paramref name="yawDegrees"/> about its middle and then shifted by <paramref name="offset"/> from
+    /// where it stood in its old world. With no offset and no turn the pieces land on the same spot,
+    /// which is right for another world of the same area. See <see cref="TransplantPolicy"/>.
+    /// </summary>
+    public StagedDuplication StageTransplant(BasePackage package, PlacedVector offset, double yawDegrees = 0)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        var sources = package.Pieces.Select(p => p.Key).Distinct(StringComparer.Ordinal).ToList();
+        var minted = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var s in sources) minted[s] = _idFactory();
+        var dup = new StagedDuplication(
+            _nextId++, sources, offset, yawDegrees, GroupPivot.Centroid, TransplantPolicy, minted,
+            package.Donor, package.SourceWorld ?? "another world");
+        _duplications.Add(dup);
+        return dup;
+    }
+
+    /// <summary>
+    /// Changes where a staged copy lands (its offset and turn), keeping the ids already minted for it so
+    /// anything that refers to the copies (a staged plug, the view's selection) still finds them. Returns
+    /// the updated copy, or null when <paramref name="id"/> is not staged.
+    /// </summary>
+    public StagedDuplication? RestageDuplication(int id, PlacedVector offset, double yawDegrees)
+    {
+        var i = _duplications.FindIndex(d => d.Id == id);
+        if (i < 0) return null;
+        _duplications[i] = _duplications[i] with { Offset = offset, YawDegrees = yawDegrees };
+        return _duplications[i];
+    }
+
     // ---------- staging: power ----------
 
     /// <summary>

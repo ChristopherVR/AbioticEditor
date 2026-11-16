@@ -95,6 +95,20 @@ The view checks every piece you move, copy or place. It warns when one cuts into
 
 **Changes** on the view lists everything waiting for **SAVE**. Nothing is written until you press it, and the editor keeps a `.bak` copy as always.
 
+## Moving a base to another world
+
+You can pick up a whole base, with everything stored in its crates and benches, and put it down in another world.
+
+Choose what moves. On the **Map**, pick a base in the list. In the **3D view**, select pieces (Ctrl-click adds more), or pick a base in **Base to show** and press **Select the whole base**. Only pieces you built move. Things that came with the level stay where they are.
+
+Then choose one of these:
+
+- **Move to another world** lists your other worlds on this computer that have the same area. Pick one. The pieces land on the same spot they stood on here. A small picture from above shows them in orange over what already stands in that world in grey. Use the arrows and turn buttons to shift them, or type exact numbers. Press **Move**, then **SAVE**. Both worlds are written: the one that gets the pieces first, then this one. Each keeps a `.bak`.
+- **Export to a file** saves the pieces in a base file (in your Downloads folder, or as a browser download). Tick **Also remove them from this world** to make it a move. Keep the file until the pieces are safely in their new world.
+- **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base file down in the world you have open. The new pieces are drawn in light blue in the 3D view. Drag them, or press **R** to turn them, until they sit right, then press **SAVE**.
+
+Links between the moved pieces are kept: power cables, and teleporter pads that were paired with each other (they get a pairing of their own in the new world). Links to anything left behind are unplugged. A claimed bed arrives unclaimed. A base can only go to the same area of the game, for example from the Facility to the Facility of another world.
+
 ## Show in 3D from any list
 
 Most world tabs have a **Show in 3D** button next to what you pick: a door, a container, a chemistry bench, an item on the ground, a vehicle, a character, a pet, a button, a breakable wall, a resource node and the other lists of world objects. It opens the 3D view and takes you there. A piece you built is selected. A door or a character has its marker picked. Anything else gets an orange pin that shows through walls.

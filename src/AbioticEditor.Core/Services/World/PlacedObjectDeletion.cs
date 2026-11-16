@@ -39,8 +39,32 @@ public sealed record DeletePolicy
     /// <summary>A Void chest (shared inventory that outlives the chest). Default <see cref="ReferencePolicy.Keep"/>.</summary>
     public ReferencePolicy SharedInventories { get; init; } = ReferencePolicy.Keep;
 
+    /// <summary>
+    /// A socket in ANOTHER save (another area, which this edit does not write) that plugs into a deleted
+    /// object, when <see cref="InboundPlugs"/> is <see cref="ReferencePolicy.Drop"/>: it cannot be unplugged
+    /// from here. <see cref="ReferencePolicy.Refuse"/> (default) stops; <see cref="ReferencePolicy.Keep"/>
+    /// leaves it pointing at nothing.
+    /// </summary>
+    public ReferencePolicy CrossSaveLinks { get; init; } = ReferencePolicy.Refuse;
+
     /// <summary>The safe default policy.</summary>
     public static DeletePolicy Default { get; } = new();
+
+    /// <summary>
+    /// Removing pieces that were moved to another world: their outlets go with them, anything left
+    /// behind that was plugged into them is unplugged, a claimed bed is let go (the copy in the new
+    /// world is unclaimed) and pads left behind lose their partner. Other records that name a piece
+    /// still stop the move, as they do for a delete.
+    /// </summary>
+    public static DeletePolicy MovedAway { get; } = new()
+    {
+        OwnedSocketRecords = ReferencePolicy.Drop,
+        InboundPlugs = ReferencePolicy.Drop,
+        OtherReferences = ReferencePolicy.Refuse,
+        BedClaims = ReferencePolicy.Drop,
+        TeleporterPeers = ReferencePolicy.Keep,
+        SharedInventories = ReferencePolicy.Keep,
+    };
 }
 
 /// <summary>What deleting one object would do.</summary>
@@ -237,6 +261,10 @@ public static class PlacedObjectDeletion
                         }
                         set.Add(key);
                         actions.Add($"Unplug socket {Short(link.SourceEntryKey)}.");
+                        break;
+                    case ReferencePolicy.Drop when policy.CrossSaveLinks == ReferencePolicy.Keep:
+                        issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "cross-save-link",
+                            $"Socket {Short(link.SourceEntryKey)} lives in {link.SourceSave} and will point at nothing.", key));
                         break;
                     case ReferencePolicy.Drop:
                         issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "cross-save-link",

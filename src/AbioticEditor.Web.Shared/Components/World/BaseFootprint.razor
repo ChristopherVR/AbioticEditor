@@ -1,0 +1,73 @@
+@namespace AbioticEditor.Web.Components.World
+@using System.Globalization
+
+@* A small top-down picture of a base being moved: the pieces that move (orange), and the pieces
+   already standing in the world they land in (grey), so overlaps and the landing spot can be seen
+   before anything is staged. Same orientation as the Bases map (X to the right, Y down). *@
+<svg class="base-footprint" viewBox="0 0 @W @H" role="img" aria-label="@Label" data-base-move="footprint">
+    <rect x="0" y="0" width="@W" height="@H" fill="#101810" />
+    @if (Layout() is { } map)
+    {
+        @foreach (var p in Existing)
+        {
+            if (!map.Inside(p)) continue;
+            <circle cx="@F(map.Px(p.X))" cy="@F(map.Py(p.Y))" r="2" fill="#5E6B5E" />
+        }
+        @foreach (var p in Incoming)
+        {
+            <rect x="@F(map.Px(p.X) - 3)" y="@F(map.Py(p.Y) - 3)" width="6" height="6" fill="#F28C28" stroke="#101810" stroke-width="0.6" />
+        }
+        var bar = map.ScaleBarCm();
+        var barPx = bar * map.Scale;
+        <line x1="10" y1="@(H - 12)" x2="@F(10 + barPx)" y2="@(H - 12)" stroke="#A89B7F" stroke-width="2" />
+        @* Razor reserves a bare <text> tag, so the SVG label goes in as markup. *@
+        @((MarkupString)FormattableString.Invariant($"<text x=\"10\" y=\"{H - 16}\" font-size=\"9\" fill=\"#A89B7F\">{bar / 100:0} m</text>"))
+    }
+</svg>
+
+@code {
+    private const int W = 320, H = 200;
+
+    /// <summary>Where the moving pieces stand (save space, cm).</summary>
+    [Parameter] public IReadOnlyList<PlacedVector> Incoming { get; set; } = [];
+
+    /// <summary>Pieces already in the world they land in (save space, cm). Only those near the move are drawn.</summary>
+    [Parameter] public IReadOnlyList<PlacedVector> Existing { get; set; } = [];
+
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    private static string F(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
+
+    private sealed record Map(double MinX, double MinY, double MaxX, double MaxY, double Scale)
+    {
+        public double Px(double x) => 12 + ((x - MinX) * Scale);
+        public double Py(double y) => 12 + ((y - MinY) * Scale);
+        public bool Inside(PlacedVector p) => p.X >= MinX && p.X <= MaxX && p.Y >= MinY && p.Y <= MaxY;
+
+        /// <summary>A round length (cm) about a quarter of the picture wide.</summary>
+        public double ScaleBarCm()
+        {
+            var target = (W - 24) / 4.0 / Scale;
+            foreach (var step in new double[] { 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000 })
+            {
+                if (step >= target) return step;
+            }
+            return 100000;
+        }
+    }
+
+    private Map? Layout()
+    {
+        if (Incoming.Count == 0) return null;
+        // Frame the moving pieces with a margin of a fifth of their size (at least 8 m) all round.
+        var minX = Incoming.Min(p => p.X); var maxX = Incoming.Max(p => p.X);
+        var minY = Incoming.Min(p => p.Y); var maxY = Incoming.Max(p => p.Y);
+        var margin = Math.Max(800, Math.Max(maxX - minX, maxY - minY) * 0.2);
+        minX -= margin; maxX += margin; minY -= margin; maxY += margin;
+        var scale = Math.Min((W - 24) / (maxX - minX), (H - 24) / (maxY - minY));
+        // Centre the framed area in the picture.
+        var spareX = ((W - 24) / scale - (maxX - minX)) / 2;
+        var spareY = ((H - 24) / scale - (maxY - minY)) / 2;
+        return new Map(minX - spareX, minY - spareY, maxX + spareX, maxY + spareY, scale);
+    }
+}

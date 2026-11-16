@@ -189,6 +189,30 @@
         </div>
     </div>
 
+    @* Moving a base to another world, exporting it to a file, or importing one (issue 69). File
+       saves only: a running game cannot take a whole base at once. *@
+    @if (Session is WorldSaveSession moveSession && !Session.AppliesImmediately)
+    {
+        var movable = MovableKeys(moveSession);
+        <div class="wt-card bases-move" data-bases="move-bar">
+            <div class="b3d-links">
+                @if (SelectedBase is { } moveBase)
+                {
+                    <button type="button" class="wt-btn" data-bases="move-open" disabled="@(movable.Count == 0)"
+                            @onclick="() => OpenBaseMove(BaseMovePanel.MoveMode, movable)">@L.Resource("BaseMove_OpenMove", movable.Count)</button>
+                    <button type="button" class="wt-btn" data-bases="export-open" disabled="@(movable.Count == 0)"
+                            @onclick="() => OpenBaseMove(BaseMovePanel.ExportMode, movable)">@L.Resource("BaseMove_OpenExport", movable.Count)</button>
+                }
+                <button type="button" class="wt-btn wt-plain" data-bases="import-open" @onclick="() => OpenBaseMove(BaseMovePanel.ImportMode, [])">@L.Resource("BaseMove_OpenImport")</button>
+            </div>
+            @if (_baseMoveMode is not null)
+            {
+                <BaseMovePanel Session="moveSession" Keys="_baseMoveKeys" Mode="@_baseMoveMode"
+                               OnClose="CloseBaseMove" OnStaged="StateHasChanged" OnImported="_ => StateHasChanged()" SwitchMode="m => _baseMoveMode = m" />
+            }
+        </div>
+    }
+
     @if (SelectedBase is { } worldBaseDetail)
     {
         <div class="wt-md bases-detail">

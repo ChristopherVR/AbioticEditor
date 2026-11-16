@@ -34,6 +34,8 @@ internal static class PlacedObjectEditCommands
         cmd.Subcommands.Add(BuildRotate(quiet));
         cmd.Subcommands.Add(BuildDelete(quiet));
         cmd.Subcommands.Add(BuildDuplicate(quiet));
+        cmd.Subcommands.Add(BuildExport(quiet));
+        cmd.Subcommands.Add(BuildImport(quiet));
         return cmd;
     }
 
@@ -173,6 +175,90 @@ internal static class PlacedObjectEditCommands
                 new PlacedVector(parse.GetValue(dx), parse.GetValue(dy), parse.GetValue(dz)),
                 parse.GetValue(yaw), ParsePivot(parse.GetValue(pivot)), policy);
             return Finish(path, data, edits, parse.GetValue(c.DryRun), parse.GetValue(c.Json), parse.GetValue(quiet), "copied");
+        }));
+        return cmd;
+    }
+
+    // ---------- export / import (moving a base between worlds) ----------
+
+    private static Command BuildExport(Option<bool> quiet)
+    {
+        var cmd = new Command("export",
+            "Write the selected player-built objects, with everything stored inside them and their own outlet records, "
+            + "to a base file (" + BasePackage.FileExtension + "). Level-placed objects are left out. With --remove the "
+            + "objects are also taken out of the save (a move); otherwise the save is not touched.");
+        var c = AddCommon(cmd);
+        var output = new Option<string>("--out", "-o") { Description = "The base file to write (default: a name from the world, area and piece count, in the current folder)." };
+        var remove = new Option<bool>("--remove") { Description = "Also remove the exported objects from the save (writes it, previous kept as .bak)." };
+        var leave = new Option<bool>("--leave-links") { Description = "With --remove: let other records that name a removed object point at nothing instead of refusing." };
+        cmd.Options.Add(output);
+        cmd.Options.Add(remove);
+        cmd.Options.Add(leave);
+        cmd.SetAction(parse => Cli.Run(() =>
+        {
+            var (path, data, edits) = Open(parse.GetValue(c.Save));
+            var world = Path.GetFileName(Path.GetDirectoryName(path));
+            BasePackage package;
+            IReadOnlyList<BasePackageSkip> skipped;
+            try { package = BasePackage.Create(data, ParseKeys(parse.GetValue(c.Keys)), world, Path.GetFileName(path), out skipped); }
+            catch (InvalidOperationException ex) { throw new CliUserErrorException(ex.Message); }
+            foreach (var s in skipped) Cli.Warn($"{s.Key}: left out ({s.Reason})");
+            var file = parse.GetValue(output) is { Length: > 0 } o ? Path.GetFullPath(o) : Path.GetFullPath(package.SuggestedFileName());
+            var dry = parse.GetValue(c.DryRun);
+            if (parse.GetValue(remove))
+            {
+                edits.OtherSaves = ReadSiblings(path);
+                edits.StageDelete(package.Pieces.Select(p => p.Key),
+                    parse.GetValue(leave) ? DeletePolicy.MovedAway with { OtherReferences = ReferencePolicy.Keep } : DeletePolicy.MovedAway);
+                if (!edits.Preview(data).CanApply && !dry)
+                {
+                    // Nothing is written, the base file included, so a refused move never leaves a stray copy behind.
+                    return Finish(path, data, edits, dryRun: false, parse.GetValue(c.Json), parse.GetValue(quiet), "deleted");
+                }
+            }
+            if (!dry)
+            {
+                File.WriteAllBytes(file, package.ToJson());
+                Cli.Info(parse.GetValue(quiet), $"Wrote {package.Pieces.Count} object(s) with {package.StoredItems} stored item(s) to {file}.");
+            }
+            else
+            {
+                Cli.Info(parse.GetValue(quiet), $"Would write {package.Pieces.Count} object(s) with {package.StoredItems} stored item(s) to {file}.");
+            }
+            return edits.IsEmpty ? Cli.Ok : Finish(path, data, edits, dry, parse.GetValue(c.Json), parse.GetValue(quiet), "deleted");
+        }));
+        return cmd;
+    }
+
+    private static Command BuildImport(Option<bool> quiet)
+    {
+        var cmd = new Command("import",
+            "Put the objects of a base file into a save: new keys, actor paths and outlet ids, everything stored inside comes "
+            + "along, links between them are kept and teleporter pairs get a fresh tag. By default they land on the spot "
+            + "they stood on in their old world (right for another world of the same area).");
+        var save = new Argument<string>("save") { Description = "Path to a WorldSave_*.sav file." };
+        var file = new Option<string>("--file", "-f") { Description = "The base file (" + BasePackage.FileExtension + ").", Required = true };
+        var dx = Num("--dx", "Shift along X (cm).");
+        var dy = Num("--dy", "Shift along Y (cm).");
+        var dz = Num("--dz", "Shift along Z, up (cm).");
+        var yaw = Num("--yaw", "Turn the group by this many degrees about its middle before shifting.");
+        var dry = new Option<bool>("--dry-run") { Description = "Print the preview and write nothing." };
+        var json = new Option<bool>("--json") { Description = "Print the preview as JSON." };
+        cmd.Arguments.Add(save);
+        foreach (var o in new Option[] { file, dx, dy, dz, yaw, dry, json }) cmd.Options.Add(o);
+        cmd.SetAction(parse => Cli.Run(() =>
+        {
+            var (path, data, edits) = Open(parse.GetValue(save));
+            var source = Cli.RequireFile(parse.GetValue(file), "base file");
+            BasePackage package;
+            try { package = BasePackage.Parse(File.ReadAllBytes(source)); }
+            catch (InvalidDataException ex) { throw new CliUserErrorException(ex.Message); }
+            if (package.LevelMismatch(data) is { } other)
+            {
+                throw new CliUserErrorException($"the base comes from another area ({other}); open the same area's save of the other world.");
+            }
+            edits.StageTransplant(package, new PlacedVector(parse.GetValue(dx), parse.GetValue(dy), parse.GetValue(dz)), parse.GetValue(yaw));
+            return Finish(path, data, edits, parse.GetValue(dry), parse.GetValue(json), parse.GetValue(quiet), "copied");
         }));
         return cmd;
     }

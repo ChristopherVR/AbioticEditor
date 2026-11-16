@@ -342,6 +342,13 @@ public static partial class PlacedObjectDuplication
                             $"{proxies} planted or spawned item proxy(ies) are not copied.", sourceKey));
                     }
                 }
+                else if ((contents.Count > 0 || proxies > 0) && dup.Donor is not null)
+                {
+                    // A piece carried over from another world brings what it holds; nothing is duplicated
+                    // unless the original is kept as well (the move panel removes it).
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Info, "contents-carried",
+                        $"{contents.Count} stored slot(s) come along with it.", sourceKey));
+                }
                 else if (contents.Count > 0 || proxies > 0)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Warning, "contents-copied",

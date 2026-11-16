@@ -58,6 +58,7 @@
                     @if (_moveOptIn)
                     {
                         <button type="button" class="b3d-hud-btn" data-b3d="place-open" @onclick="OpenPlaceAsync">@L.Resource("World3D_AddObject")</button>
+                        <button type="button" class="b3d-hud-btn" data-b3d="base-import-open" @onclick="() => OpenBaseMoveAsync(BaseMovePanel.ImportMode)">@L.Resource("BaseMove_OpenImport")</button>
                     }
                     @if (_basePreview is not null || Session.LastBaseEditRefusal.Count > 0)
                     {
@@ -602,6 +603,13 @@
                         </div>
                     </div>
                 }
+                @* Moving the selection to another world, exporting it, or importing a base file (issue 69). *@
+                @if (_moveOptIn && _baseMoveMode is not null)
+                {
+                    <BaseMovePanel @ref="_baseMovePanel" Session="Session" Keys="_baseMoveKeys" Mode="@_baseMoveMode"
+                                   OnClose="CloseBaseMove" OnStaged="BaseMoveStagedAsync" OnImported="BaseImportedAsync"
+                                   SwitchMode="SwitchBaseMoveAsync" ViewPoint="ViewPointAsync" />
+                }
                 @if (_levelPicked is not null)
                 {
                     <div class="wt-card b3d-panel" data-b3d="level-card">
@@ -862,6 +870,10 @@
                                                 @onclick="StartDeleteAsync">@L.Resource("World3D_DeleteButtonFormat", _selected.Count)</button>
                                         <button type="button" class="wt-btn" data-b3d="duplicate-open" disabled="@(_selected.Count == 0)"
                                                 @onclick="StartDuplicateAsync">@L.Resource("World3D_DuplicateButtonFormat", _selected.Count)</button>
+                                        <button type="button" class="wt-btn" data-b3d="base-move-open" disabled="@(MovableSelectionCount == 0)"
+                                                @onclick="() => OpenBaseMoveAsync(BaseMovePanel.MoveMode)">@L.Resource("BaseMove_OpenMove", MovableSelectionCount)</button>
+                                        <button type="button" class="wt-btn" data-b3d="base-export-open" disabled="@(MovableSelectionCount == 0)"
+                                                @onclick="() => OpenBaseMoveAsync(BaseMovePanel.ExportMode)">@L.Resource("BaseMove_OpenExport", MovableSelectionCount)</button>
                                     }
                                     else
                                     {
@@ -1017,6 +1029,13 @@
                            aria-label="@L.Resource("World3D_Search")" @oninput="OnSearchInput" />
                     <button type="button" class="wt-btn" data-b3d="select-all" disabled="@(_visible.Length == 0)" @onclick="SelectAllShownAsync">@L.Resource("World3D_SelectAllShown")</button>
                 </div>
+                @* On its own line: the search row has no room for a third button on a narrow panel. *@
+                @if (FocusBase is { } focus)
+                {
+                    <div class="b3d-links">
+                        <button type="button" class="wt-btn" data-b3d="select-base" @onclick="SelectWholeBaseAsync">@L.Resource("BaseMove_SelectWholeBase", focus.Deployables.Count)</button>
+                    </div>
+                }
         <div class="wt-card b3d-panel" data-b3d="objects">
             <span class="wt-label">@L.Resource("World3D_Select")</span>
             <div class="b3d-object-list b3d-object-list-tall">
@@ -1896,6 +1915,14 @@
     [JSInvokable]
     public async Task OnGizmoCommitted(string key, string mode, double[] position, double[] rotation)
     {
+        // A piece of a staged copy (not in the save yet) moves its whole copy.
+        if (Session.StagedCopyOf(key) is { } copy && string.Equals(mode, "translate", StringComparison.Ordinal))
+        {
+            var now = _basePreview?.Duplications.FirstOrDefault(r => string.Equals(r.NewKey, key, StringComparison.Ordinal))?.After?.Translation;
+            var to = PlacedSceneSpace.FromViewer(new PlacedVector(position[0], position[1], position[2]));
+            if (now is { } from) await MoveCopyAsync(copy, to.X - from.X, to.Y - from.Y, to.Z - from.Z);
+            return;
+        }
         PlacedTransformStageResult result;
         if (string.Equals(mode, "translate", StringComparison.Ordinal))
         {
@@ -1916,6 +1943,12 @@
     {
         var a = PlacedSceneSpace.FromViewer(new PlacedVector(from[0], from[1], from[2]));
         var b = PlacedSceneSpace.FromViewer(new PlacedVector(to[0], to[1], to[2]));
+        if (SelectedStagedCopy is { } copy)
+        {
+            await MoveCopyAsync(copy, b.X - a.X, b.Y - a.Y, b.Z - a.Z);
+            StateHasChanged();
+            return;
+        }
         await RunGroupAsync(keys => Session.StageGroupMove(keys, b.X - a.X, b.Y - a.Y, b.Z - a.Z));
         StateHasChanged();
     }
@@ -1925,6 +1958,12 @@
     public async Task OnRotateKey(double degrees)
     {
         if (!_moveOptIn || _selected.Count == 0) return;
+        if (SelectedStagedCopy is { } copy)
+        {
+            await TurnCopyAsync(copy, degrees);
+            StateHasChanged();
+            return;
+        }
         await RunGroupAsync(keys => Session.StageGroupRotate(keys, degrees, PivotFor(PivotCentroid, keys)));
         StateHasChanged();
     }

@@ -523,6 +523,17 @@ public sealed class SaveWorkspaceSessionService : IDisposable
         BusyOperation = "Writing save and backup..."; Changed?.Invoke();
         try
         {
+            // A base move stages a copy in one world and the removal in another: check every world
+            // can apply its base edits before writing any, so a refused removal never leaves the
+            // pieces written into both worlds.
+            if (group.Count > 1)
+            {
+                foreach (var path in group)
+                {
+                    if (_transferWorlds.TryGetValue(path, out var linked) && linked.IsDirty) linked.EnsureBaseEditsCanApply();
+                }
+            }
+
             // Keep all links on failure, so a retry can finish the remaining writes.
             foreach (var path in group.AsEnumerable().Reverse())
             {
