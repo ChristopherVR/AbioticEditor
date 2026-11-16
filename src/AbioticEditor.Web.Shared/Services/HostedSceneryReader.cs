@@ -228,7 +228,10 @@ public sealed partial class HostedSceneryReader : IDisposable
         // Level files download in the background; a query waits a moment for them, then answers with
         // what has arrived and counts the rest as pending, so the view asks again (as on the desktop).
         var reads = maps.Select(LevelFor).ToList();
-        await Task.WhenAny(Settled(reads), Task.Delay(wait)).ConfigureAwait(false);
+        using var timer = new CancellationTokenSource();
+        var settled = Settled(reads);
+        await Task.WhenAny(settled, Task.Delay(wait, timer.Token)).ConfigureAwait(false);
+        await timer.CancelAsync().ConfigureAwait(false);
         var ready = new List<Level>();
         var pending = 0;
         foreach (var read in reads)
