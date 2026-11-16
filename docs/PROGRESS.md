@@ -40,7 +40,39 @@
   receiver 16.5 MB to 22.7 MB, both with `.bak`.
 - CLI: `world object export` (`--out`, `--remove`, `--leave-links`, `--dry-run`) and
   `world object import` (`--file`, `--dx/--dy/--dz/--yaw`); `BaseMoveCliTests`.
-- Open: an in-game load of a moved base (same-spot transplant into a second world).
+- Follow-up (same day), the limits the first cut left:
+  - Between areas: fixtures show every player-built piece (3,603 objects) in `WorldSave_Facility.sav`
+    under `/Game/Maps/Facility.Facility:PersistentLevel`, including pieces standing in other
+    sectors, which share one coordinate frame. So Cafeteria to Dam is a long shift inside the
+    Facility save. New Core `BaseDestinations`: same spot (same map only), the 10
+    `RespawnTerminalCatalog` sectors (12 m out from each terminal's sitting spot, terminal floor Z),
+    beside each bench-anchored base (named with its nearest sector), and the median of the area's
+    own pieces for a map with no sectors. `BaseDestination.OffsetFor` puts the package middle on
+    the point and its lowest piece on the floor.
+  - Other maps (portal worlds): the planner no longer refuses. A piece whose level is not in the
+    target goes into the level the target's own player-built pieces use; with none, the most common
+    level of the area's own pieces (Warning `other-map`; Info when taken from player pieces).
+    `DuplicationRowPlan.NewActorFullPath` + `SetSoftObjectPath` rewrite package and asset;
+    instance numbers are minted against the target level. `LevelMismatch` is gone;
+    `BasePackage.IsOtherMap` tells the UI the old spot means nothing there.
+  - Areas list: `WorldSaveSession.OtherAreas` (same area of other worlds first, then this world's
+    other areas, then the rest). A save whose name extends another save's name plus `_`
+    (`Facility_Dam`) is a sector and is left out, as is MetaData.
+  - 3D placement for direct moves: Import gained **Bring a base here** (pick an area and one of its
+    bases via `MovableBases`); `source.StageMoveTo(this, ...)` stages both halves, and the copy is
+    dragged and turned in this 3D view. `SaveSessionGroupAsync` now writes sessions that give pieces
+    away (`StagedBaseMoves.Count > 0`) after every receiving one, whichever is selected.
+  - Re-run in the app on fixture copies: Cascade Base 2 (102 pieces) to NewWorld's Mines (NewWorld
+    911 to 1,013 built, 111 within 80 m of the Mines terminal; Cascade 911 to 809), and Base 3 (16)
+    brought from NewWorld into Cascade's 3D view at the Hydroplant and nudged 10 m (Cascade 927,
+    NewWorld 895). Portal-world target panel showed the other-map notes.
+  - CLI `world object import --to "<sector or base>"`; refuses a cross-map import with no place.
+- Simplified on request: the panel no longer shows coordinates, step sizes, nudge arrows or shift
+  read-outs. The player picks a place from a grouped list (same spot / this area / parts of the
+  Facility / next to one of your bases); fine adjustment is dragging (and R) in the 3D view only.
+  The offset numbers still exist inside the session and the CLI (`--dx/--dy/--dz/--yaw`).
+- Open: an in-game load of a moved base, and of pieces put into a portal world (no fixture has
+  player-built pieces outside the Facility).
 
 ## Issue #53: missed-recipe check counts craftable items as found (2026-11-07)
 

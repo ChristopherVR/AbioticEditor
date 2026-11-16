@@ -186,4 +186,54 @@ public sealed class BaseMoveSessionTests
         there.EnsureBaseEditsCanApply();
         Assert.Equal(OriginalBytes, File.ReadAllBytes(worlds.There));
     }
+
+    [Fact]
+    public void Areas_list_this_worlds_own_areas_and_other_worlds_but_not_sectors_or_the_story_save()
+    {
+        if (!HasServerFacility) return;
+        using var worlds = new TwoWorlds();
+        var folder = Path.GetDirectoryName(worlds.Here)!;
+        foreach (var name in new[] { "WorldSave_MetaData.sav", "WorldSave_V_Alps.sav", "WorldSave_Facility_Dam.sav" })
+        {
+            var from = Path.Combine(Fixtures.ServerWorldsDir!, name);
+            if (File.Exists(from)) File.Copy(from, Path.Combine(folder, name));
+        }
+        var here = Open(worlds.Here);
+
+        var areas = here.OtherAreas();
+
+        Assert.Contains(areas, a => a.IsThisWorld && a.Area == "V Alps");
+        Assert.Contains(areas, a => !a.IsThisWorld && a.World == "NewWorld" && a.Area == "Facility");
+        Assert.DoesNotContain(areas, a => a.Area.StartsWith("Facility ", StringComparison.Ordinal));
+        Assert.DoesNotContain(areas, a => a.Area == "MetaData");
+        Assert.DoesNotContain(areas, a => Path.GetFullPath(a.FilePath) == Path.GetFullPath(worlds.Here));
+        // The usual move first: the same area of another world.
+        Assert.Equal("NewWorld", areas[0].World);
+        Assert.Equal("Facility", areas[0].Area);
+    }
+
+    [Fact]
+    public async Task A_base_brought_here_from_another_world_lands_here_and_leaves_there()
+    {
+        if (!HasServerFacility) return;
+        using var worlds = new TwoWorlds();
+        var there = Open(worlds.Here);   // the world the base is in
+        var here = Open(worlds.There);   // the world it is brought to (the one open in the 3D view)
+        var (chosen, keys) = there.MovableBases().OrderBy(b => b.Keys.Count).First(b => there.PreviewMoveAway(b.Keys, false).CanApply);
+        var package = there.CreateBasePackage(keys, out _);
+        var place = here.BaseDestinationsFor(package).First(d => d.Kind == BaseDestinationKind.Sector);
+
+        var copy = there.StageMoveTo(here, package, place.OffsetFor(package), 0, removeHere: true, leaveDanglingLinks: false);
+        Assert.Same(copy, here.StagedCopyOfAll(copy.NewKeys.Values.ToList()));
+        Assert.True(here.MoveStagedCopy(copy.Id, 1000, 0, 0));
+        Assert.Single(there.StagedBaseMoves);
+
+        await here.SaveAsync();
+        await there.SaveAsync();
+        var landed = WorldSaveReader.ReadFromFile(worlds.There);
+        Assert.All(copy.NewKeys.Values, k => Assert.NotNull(WorldMapAccessor.FindEntry(landed.Raw, "DeployedObjectMap", k)));
+        var left = WorldSaveReader.ReadFromFile(worlds.Here);
+        Assert.All(keys, k => Assert.Null(WorldMapAccessor.FindEntry(left.Raw, "DeployedObjectMap", k)));
+        Assert.NotNull(chosen);
+    }
 }

@@ -117,7 +117,11 @@ internal sealed record DuplicationRowPlan(
     int? TeleporterTarget,
     bool ClearBedClaim,
     IReadOnlyDictionary<string, string> KeyMap,
-    IReadOnlyDictionary<string, string> PathMap);
+    IReadOnlyDictionary<string, string> PathMap)
+{
+    /// <summary>The copy's whole actor path when it moves to another level (another map); null keeps the level.</summary>
+    public string? NewActorFullPath { get; init; }
+}
 
 /// <summary>The result of planning duplications (reads only).</summary>
 public sealed class DuplicationPlan
@@ -195,6 +199,30 @@ public static partial class PlacedObjectDuplication
         foreach (var e in WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap"))
         {
             if (WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_") is { Package: { } pkg }) livePackages.Add(pkg);
+        }
+
+        // The level this save keeps its player-built pieces in (the most common one, should there be several).
+        var homeLevel = WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap")
+            .Where(e => PlacedObjectCensus.KeyShape(e.Key) == "guid32" && e.Props.TryGetBool("DeployedByPlayer_") == true)
+            .Select(e => WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_"))
+            .Where(p => p is { Package.Length: > 0, Asset.Length: > 0 })
+            .GroupBy(p => (Package: p!.Value.Package!, Asset: p.Value.Asset!))
+            .OrderByDescending(g => g.Count())
+            .Select(g => ((string Package, string Asset)?)g.Key)
+            .FirstOrDefault();
+        // None built here yet: the level the area's own pieces use (a portal world's main level). The
+        // game writes a piece built in the Facility under the Facility's main level the same way.
+        var homeIsGuess = false;
+        if (homeLevel is null)
+        {
+            homeLevel = WorldMapAccessor.Entries(data.Raw, "DeployedObjectMap")
+                .Select(e => WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_"))
+                .Where(p => p is { Package.Length: > 0, Asset.Length: > 0 })
+                .GroupBy(p => (Package: p!.Value.Package!, Asset: p.Value.Asset!))
+                .OrderByDescending(g => g.Count())
+                .Select(g => ((string Package, string Asset)?)g.Key)
+                .FirstOrDefault();
+            homeIsGuess = homeLevel is not null;
         }
 
         var mintedKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -292,26 +320,44 @@ public static partial class PlacedObjectDuplication
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "pivot", "The pivot could not be resolved (no position).", sourceKey));
                 }
 
-                // Actor path: same level, new unused instance number.
+                // Actor path: same level, new unused instance number. A piece carried over from another
+                // map goes into the level this save keeps its player-built pieces in (the same level
+                // the game writes for a piece the player builds here).
                 string newSub = string.Empty;
                 string? newFullPath = null;
+                string? newLevel = null;
+                var sourcePath = WorldMapAccessor.GetSoftObjectPath(props, "ActorPath_");
+                var (outPackage, outAsset) = (sourcePath?.Package, sourcePath?.Asset);
                 if (dup.Donor is not null && livePackages.Count > 0
-                    && WorldMapAccessor.GetSoftObjectPath(props, "ActorPath_") is { Package: { } donorPackage }
+                    && sourcePath is { Package: { } donorPackage }
                     && !livePackages.Contains(donorPackage))
                 {
-                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "other-map",
-                        $"This object belongs to another map ({donorPackage}), so it cannot be placed in this save.", sourceKey));
+                    if (homeLevel is { } home)
+                    {
+                        (outPackage, outAsset) = home;
+                        newLevel = home.Package + "." + home.Asset;
+                        issues.Add(homeIsGuess
+                            ? new BaseEditIssue(BaseEditSeverity.Warning, "other-map",
+                                $"This piece comes from another map ({donorPackage}). Nothing you built is in this area yet, so it is put into the level the area's own pieces use ({home.Package}).", sourceKey)
+                            : new BaseEditIssue(BaseEditSeverity.Info, "other-map",
+                                $"This piece comes from another map ({donorPackage}); it is put into this area's own level ({home.Package}).", sourceKey));
+                    }
+                    else
+                    {
+                        issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "other-map",
+                            $"This piece comes from another map ({donorPackage}), and this save names no level to put it in.", sourceKey));
+                    }
                 }
-                if (WorldMapAccessor.GetSoftObjectPath(props, "ActorPath_") is { SubPath: { } sub } ap
+                if (sourcePath is { SubPath: { } sub } ap
                     && InstanceSuffix().Match(sub) is { Success: true } sm)
                 {
-                    var prefix = PrefixOf(ap.Package, ap.Asset, sub);
+                    var prefix = PrefixOf(outPackage, outAsset, sub);
                     var n = nextInstance.GetValueOrDefault(prefix, 2147483000L);
                     string candidate;
                     do
                     {
                         newSub = sub[..sm.Index] + "_" + n.ToString(CultureInfo.InvariantCulture);
-                        candidate = PlacedObjectCensus.FullSoftPath(ap.Package, ap.Asset, newSub)!;
+                        candidate = PlacedObjectCensus.FullSoftPath(outPackage, outAsset, newSub)!;
                         n--;
                     }
                     while (usedPaths.Contains(candidate) && n > 0);
@@ -476,7 +522,10 @@ public static partial class PlacedObjectDuplication
 
                 var keyMapSnapshot = keyMap;
                 var plan = new DuplicationRowPlan(
-                    dup, sourceKey, newKey, newSub, newT, newR, socketRemaps, tagTarget, clearBed, keyMapSnapshot, pathMap);
+                    dup, sourceKey, newKey, newSub, newT, newR, socketRemaps, tagTarget, clearBed, keyMapSnapshot, pathMap)
+                {
+                    NewActorFullPath = newLevel is null ? null : newFullPath,
+                };
                 var row = new DuplicationPreviewRow(
                     dup.Id, sourceKey, newKey, className, before, after, newFullPath, socketRemaps,
                     tagBefore, tagAfter, dup.Policy.Contents, contents, clearBed, issues, PlacedObjectCensus.ClassPathOf(props));

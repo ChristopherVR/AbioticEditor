@@ -6,11 +6,14 @@
 @inject ToastService Toasts
 
 @* Moving a base (GitHub issue 69), shared by the Bases map and the 3D view:
-     - Move: the chosen pieces go to another world on this computer that has the same area. They
-       land on the same spot by default and can be shifted and turned first; a picture shows them
-       over what already stands there. One SAVE then writes both worlds (the one receiving them first).
+     - Move: the chosen pieces go to another area: another world on this computer, or another area of
+       this world (a portal world, say). They go to a place picked from a list (the same spot, a
+       sector of the Facility, beside a base already there) and can be shifted and turned first; a
+       picture shows them over what already stands there. One SAVE writes both saves (the one
+       receiving them first).
      - Export: the pieces go into a base file, to keep or share, optionally removed from this world.
-     - Import: a base file is put down in this world, and can be shifted and turned until SAVE.
+     - Import: a base file, or a base brought straight from another world or area, is put down here.
+       In the 3D view it can then be dragged and turned like any piece until SAVE.
    Only pieces a player built ever move. Everything stored inside them comes along, links between
    them are kept and links to anything left behind are dropped. *@
 <div class="wt-card b3d-panel b3d-op base-move" data-base-move-panel="@Mode">
@@ -21,8 +24,47 @@
 
     @if (Mode == ImportMode && _package is null)
     {
+        @* Where an imported base comes from: a base file, or straight from another world or area. *@
         <p class="wt-muted">@L.Resource("BaseMove_ImportIntro")</p>
-        <button type="button" class="wt-btn" data-base-move="pick-file" disabled="@_busy" @onclick="PickFileAsync">@L.Resource("BaseMove_PickFile")</button>
+        <div class="b3d-links">
+            <button type="button" class="wt-btn" data-base-move="pick-file" disabled="@_busy" @onclick="PickFileAsync">@L.Resource("BaseMove_PickFile")</button>
+        </div>
+        @if (_areas.Count > 0)
+        {
+            <span class="wt-label">@L.Resource("BaseMove_BringTitle")</span>
+            <p class="wt-muted">@L.Resource("BaseMove_BringIntro")</p>
+            <label class="wt-field">
+                <span>@L.Resource("BaseMove_BringFrom")</span>
+                <select class="wt-input" data-base-move="source" disabled="@_busy" @onchange="e => ChooseSourceAsync(e.Value?.ToString())">
+                    <option value="" selected="@(_sourcePath is null)">@L.Resource("BaseMove_ChooseArea")</option>
+                    @foreach (var a in _areas)
+                    {
+                        <option value="@a.FilePath" selected="@(string.Equals(_sourcePath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option>
+                    }
+                </select>
+            </label>
+            @if (_source is not null)
+            {
+                @if (_sourceBases.Count == 0)
+                {
+                    <p class="wt-muted" data-base-move="no-bases">@L.Resource("BaseMove_NoBasesThere")</p>
+                }
+                else
+                {
+                    <label class="wt-field">
+                        <span>@L.Resource("BaseMove_BringWhich")</span>
+                        <select class="wt-input" data-base-move="source-base" disabled="@_busy" @onchange="e => ChooseSourceBaseAsync(e.Value?.ToString())">
+                            <option value="" selected="true">@L.Resource("BaseMove_ChooseBase")</option>
+                            @foreach (var b in _sourceBases)
+                            {
+                                <option value="@b.Base.Name">@L.Resource("BaseMove_BaseOptionFormat", b.Base.Name, b.Keys.Count)</option>
+                            }
+                        </select>
+                    </label>
+                }
+            }
+        }
+        @if (_busy) { <p class="wt-muted" data-base-move="loading">@L.Resource("BaseMove_LoadingWorld")</p> }
         @if (_error is not null) { <p class="error-text" role="alert" data-base-move="error">@_error</p> }
     }
     else if (_package is null)
@@ -37,7 +79,7 @@
         <dl class="b3d-fields" data-base-move="summary">
             <dt>@L.Resource("BaseMove_Pieces")</dt><dd data-base-move="pieces">@package.Pieces.Count</dd>
             <dt>@L.Resource("BaseMove_ItemsInside")</dt><dd data-base-move="items">@package.StoredItems</dd>
-            @if (Mode == ImportMode && package.SourceWorld is { } from) { <dt>@L.Resource("BaseMove_FromWorld")</dt><dd>@from</dd> }
+            @if (Mode == ImportMode && SourceLabel() is { } from) { <dt>@L.Resource("BaseMove_FromWorld")</dt><dd>@from</dd> }
         </dl>
         @if (_skippedLevel > 0) { <p class="wt-muted" data-base-move="skipped">@L.Resource("BaseMove_SkippedLevelFormat", _skippedLevel)</p> }
         <details class="b3d-details" data-base-move="kinds">
@@ -54,17 +96,16 @@
 
         @if (Mode == MoveMode)
         {
-            var worlds = _worlds;
             @if (_staged is not null)
             {
-                <p class="b3d-feedback" role="status" data-base-move="moved">@L.Resource("BaseMove_MovedFormat", package.Pieces.Count, _targetWorld ?? "")</p>
+                <p class="b3d-feedback" role="status" data-base-move="moved">@L.Resource("BaseMove_MovedFormat", package.Pieces.Count, _targetLabel ?? "")</p>
                 <p class="wt-muted">@L.Resource("BaseMove_SaveWritesBoth")</p>
                 <div class="b3d-links">
                     <button type="button" class="wt-btn wt-plain" data-base-move="undo" @onclick="UndoMoveAsync">@L.Resource("BaseMove_Undo")</button>
                     <button type="button" class="wt-btn" data-base-move="done" @onclick="CloseAsync">@L.Resource("BaseMove_Done")</button>
                 </div>
             }
-            else if (!Session.CanReachOtherWorlds || worlds.Count == 0)
+            else if (_areas.Count == 0)
             {
                 <p class="wt-muted" data-base-move="no-worlds">@L.Resource(Session.CanReachOtherWorlds ? "BaseMove_NoOtherWorlds" : "BaseMove_NoOtherWorldsHere")</p>
                 @if (SwitchMode.HasDelegate)
@@ -78,9 +119,9 @@
                     <span>@L.Resource("BaseMove_TargetWorld")</span>
                     <select class="wt-input" data-base-move="target" disabled="@_busy" @onchange="e => ChooseTargetAsync(e.Value?.ToString())">
                         <option value="" selected="@(_targetPath is null)">@L.Resource("BaseMove_ChooseWorld")</option>
-                        @foreach (var w in worlds)
+                        @foreach (var a in _areas)
                         {
-                            <option value="@w.FilePath" selected="@(string.Equals(_targetPath, w.FilePath, StringComparison.OrdinalIgnoreCase))">@w.World</option>
+                            <option value="@a.FilePath" selected="@(string.Equals(_targetPath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option>
                         }
                     </select>
                 </label>
@@ -88,23 +129,21 @@
             }
         }
 
-        @if (Mode == ImportMode || (Mode == MoveMode && _target is not null && _staged is null) || (Mode == ImportMode && _staged is not null))
+        @if ((Mode == ImportMode) || (Mode == MoveMode && _target is not null && _staged is null))
         {
-            @if (_mismatch is not null)
-            {
-                <p class="error-text" role="alert" data-base-move="mismatch">@L.Resource("BaseMove_OtherArea")</p>
-            }
-            else
-            {
-                @Placement()
-            }
+            @Placement()
         }
 
-        @if (Mode == ExportMode || (Mode == MoveMode && _target is not null && _staged is null && _mismatch is null))
+        @if (RemovalSession is { } remover && _staged is null && (Mode == ExportMode || (Mode == MoveMode && _target is not null) || (Mode == ImportMode && _source is not null)))
         {
             <label class="wt-check">
                 <input type="checkbox" data-base-move="remove" checked="@_removeHere" @onchange="OnRemoveChanged" />
-                @L.Resource(Mode == MoveMode ? "BaseMove_RemoveAfterMove" : "BaseMove_RemoveAfterExport")
+                @(Mode switch
+                {
+                    MoveMode => L.Resource("BaseMove_RemoveAfterMove"),
+                    ImportMode => L.Resource("BaseMove_RemoveFromSourceFormat", SourceLabel() ?? ""),
+                    _ => L.Resource("BaseMove_RemoveAfterExport"),
+                })
             </label>
             @if (_removeHere && _scanning)
             {
@@ -139,20 +178,21 @@
             </div>
         }
 
-        @if (Mode == MoveMode && _target is not null && _staged is null && _mismatch is null)
+        @if (Mode == MoveMode && _target is not null && _staged is null)
         {
             <div class="b3d-links">
                 <button type="button" class="wt-btn" data-base-move="move" disabled="@(_busy || _scanning || _preview is null || !_preview.Preview.CanApply || RemovalBlocked)"
-                        @onclick="MoveAsync">@L.Resource("BaseMove_MoveButtonFormat", package.Pieces.Count, _targetWorld ?? "")</button>
+                        @onclick="MoveAsync">@L.Resource("BaseMove_MoveButtonFormat", package.Pieces.Count, _targetLabel ?? "")</button>
             </div>
         }
 
-        @if (Mode == ImportMode && _mismatch is null)
+        @if (Mode == ImportMode)
         {
             <div class="b3d-links">
                 @if (_staged is null)
                 {
-                    <button type="button" class="wt-btn" data-base-move="import" disabled="@(_busy || _preview is null || !_preview.Preview.CanApply)" @onclick="ImportAsync">@L.Resource("BaseMove_PutDown")</button>
+                    <button type="button" class="wt-btn" data-base-move="import" disabled="@(_busy || _scanning || _preview is null || !_preview.Preview.CanApply || RemovalBlocked)" @onclick="ImportAsync">@L.Resource(_source is null ? "BaseMove_PutDown" : "BaseMove_BringHere")</button>
+                    <button type="button" class="wt-btn wt-plain" data-base-move="start-over" @onclick="StartOver">@L.Resource("BaseMove_StartOver")</button>
                 }
                 else
                 {
@@ -160,7 +200,11 @@
                     <button type="button" class="wt-btn" data-base-move="done" @onclick="CloseAsync">@L.Resource("BaseMove_Done")</button>
                 }
             </div>
-            @if (_staged is not null) { <p class="wt-muted" data-base-move="imported">@L.Resource("BaseMove_ImportedHint")</p> }
+            @if (_staged is not null)
+            {
+                <p class="wt-muted" data-base-move="imported">@L.Resource("BaseMove_ImportedHint")</p>
+                @if (_source is not null) { <p class="wt-muted">@L.Resource("BaseMove_SaveWritesBoth")</p> }
+            }
         }
         @if (_error is not null) { <p class="error-text" role="alert" data-base-move="error">@_error</p> }
     }
@@ -171,7 +215,7 @@
     public const string ExportMode = "export";
     public const string ImportMode = "import";
 
-    /// <summary>The world the pieces are in (move, export) or land in (import).</summary>
+    /// <summary>The save the pieces are in (move, export) or land in (import).</summary>
     [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = default!;
 
     /// <summary>The chosen pieces (move and export). Level pieces in it are left out and counted.</summary>
@@ -188,7 +232,7 @@
     /// <summary>An import was put down: the keys of its new pieces (the 3D view selects them).</summary>
     [Parameter] public EventCallback<IReadOnlyList<string>> OnImported { get; set; }
 
-    /// <summary>Lets "there is no other world" offer the export instead.</summary>
+    /// <summary>Lets "there is nowhere to move to" offer the export instead.</summary>
     [Parameter] public EventCallback<string> SwitchMode { get; set; }
 
     /// <summary>The 3D view's "where I'm looking" point (save space, cm), when the host has one.</summary>
@@ -201,40 +245,65 @@
 
     // where it lands
     private double _dx, _dy, _dz, _yaw;
+    private string _destination = "";
+    private IReadOnlyList<BaseDestination> _destinations = [];
     private BasePreviewResult? _preview;
 
-    // move
-    private string? _targetPath, _targetWorld, _mismatch;
+    // move (this save gives the pieces to _target)
+    private string? _targetPath, _targetLabel;
     private WorldSaveSession? _target;
     private StagedDuplication? _staged;
 
-    // removal here
+    // bring (this save takes the pieces from _source)
+    private string? _sourcePath;
+    private WorldSaveSession? _source;
+    private IReadOnlyList<(WorldBase Base, IReadOnlyList<string> Keys)> _sourceBases = [];
+
+    // removal from the giving save
     private bool _removeHere = true, _leaveLinks;
     private BaseEditPreview? _removal;
 
     private bool _exported;
-    private IReadOnlyList<WorldSaveSession.OtherWorldArea> _worlds = [];
+    private IReadOnlyList<WorldSaveSession.AreaChoice> _areas = [];
     private string? _lastMode;
     private IReadOnlyList<string>? _lastKeys;
+    private bool _scanning;
 
-    /// <summary>The world the pieces land in: the chosen other world for a move, this one for an import.</summary>
+    /// <summary>The save the pieces land in: the chosen area for a move, this one for an import.</summary>
     private WorldSaveSession? Landing => Mode == ImportMode ? Session : _target;
 
-    private bool RemovalBlocked => _removeHere && Mode != ImportMode && _removal is { CanApply: false };
+    /// <summary>The save the pieces leave: this one for a move or export, the chosen area when bringing a base here.</summary>
+    private WorldSaveSession? RemovalSession => Mode == ImportMode ? _source : Session;
 
-    private bool _scanning;
+    private bool RemovalBlocked => _removeHere && RemovalSession is not null && _removal is { CanApply: false };
+
+    private string AreaLabel(WorldSaveSession.AreaChoice a)
+        => a.IsThisWorld ? L.Resource("BaseMove_ThisWorldAreaFormat", a.Area) : L.Resource("BaseMove_AreaOptionFormat", a.World, a.Area);
+
+    private string? SourceLabel()
+        => _source is not null && _areas.FirstOrDefault(a => string.Equals(a.FilePath, _sourcePath, StringComparison.OrdinalIgnoreCase)) is { } a
+            ? AreaLabel(a)
+            : _package?.SourceWorld;
 
     /// <summary>
     /// Removing pieces must see what the world's other saves (other areas, the story save) say about
-    /// them, or a link found only at SAVE would stop the removal after the other world got its copy.
+    /// them, or a link found only at SAVE would stop the removal after the other save got its copy.
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (!ApplyParameters() || Mode == ImportMode || _package is null || Session.OtherSavesLoaded) return;
-        _scanning = true;
-        StateHasChanged();
-        try { await Session.LoadOtherSavesAsync(); }
-        finally { _scanning = false; }
+        if (!ApplyParameters() || Mode == ImportMode || _package is null) return;
+        await ScanRemovalSideAsync(Session);
+    }
+
+    private async Task ScanRemovalSideAsync(WorldSaveSession giver)
+    {
+        if (!giver.OtherSavesLoaded)
+        {
+            _scanning = true;
+            StateHasChanged();
+            try { await giver.LoadOtherSavesAsync(); }
+            finally { _scanning = false; }
+        }
         RecomputeRemoval();
     }
 
@@ -244,18 +313,9 @@
         if (_lastMode == Mode && ReferenceEquals(_lastKeys, Keys)) return false;
         _lastMode = Mode;
         _lastKeys = Keys;
-        _error = null;
-        _exported = false;
-        _staged = null;
-        _preview = null;
-        _target = null;
-        _targetPath = null;
-        _mismatch = null;
-        _removeHere = Mode == MoveMode;
-        _leaveLinks = false;
-        _dx = _dy = _dz = _yaw = 0;
-        // Read the folder once per opening, not on every render.
-        _worlds = Mode == MoveMode ? Session.OtherWorldsWithThisArea() : [];
+        ResetState();
+        // Read the folders once per opening, not on every render.
+        _areas = Mode == ExportMode ? [] : Session.OtherAreas();
         if (Mode == ImportMode) { _package = null; return true; }
         try
         {
@@ -270,6 +330,30 @@
         }
         RecomputeRemoval();
         return true;
+    }
+
+    private void ResetState()
+    {
+        _error = null;
+        _exported = false;
+        _staged = null;
+        _preview = null;
+        _target = null;
+        _targetPath = null;
+        _source = null;
+        _sourcePath = null;
+        _sourceBases = [];
+        _removeHere = Mode != ExportMode;
+        _leaveLinks = false;
+        _destination = "";
+        _destinations = [];
+        _dx = _dy = _dz = _yaw = 0;
+    }
+
+    private void StartOver()
+    {
+        ResetState();
+        _package = null;
     }
 
     private string Title() => Mode switch
@@ -294,41 +378,40 @@
         // Pieces, not pairs: one new piece close to three old ones counts once.
         var hints = _preview?.Preview.ProximityHints.SelectMany(h => new[] { h.KeyA, h.KeyB }).Where(mine.Contains).Distinct(StringComparer.Ordinal).Count() ?? 0;
         var blocking = _preview?.Preview.Issues.Where(i => i.IsBlocking).Select(i => i.Message).Distinct().ToList() ?? [];
+        var otherMap = _package is not null && landing is not null && landing.IsOtherMap(_package);
+        var levelNote = _preview?.Preview.Issues.FirstOrDefault(i => i.Code == "other-map" && !i.IsBlocking);
 
         <span class="wt-label">@L.Resource("BaseMove_WhereItLands")</span>
+        @if (otherMap) { <p class="wt-muted b3d-warning" data-base-move="other-map">@L.Resource("BaseMove_OtherMapNote")</p> }
+        @if (levelNote is { Severity: BaseEditSeverity.Warning }) { <p class="wt-muted b3d-warning" data-base-move="level-guess">@L.Resource("BaseMove_OtherMapNoPieces")</p> }
+        @* Just a list of places by name: the same spot, a part of the Facility, next to a base already
+           there. No numbers; fine adjustment is dragging the pieces in the 3D view. *@
+        <select class="wt-input" aria-label="@L.Resource("BaseMove_WhereItLands")" data-base-move="destination" @onchange="e => ChooseDestinationAsync(e.Value?.ToString())">
+            @if (_destination.Length == 0)
+            {
+                <option value="" selected="true">@L.Resource(_staged is not null ? "BaseMove_DestWhereDragged" : "BaseMove_DestChoose")</option>
+            }
+            @foreach (var group in DestinationGroups())
+            {
+                <optgroup label="@group.Label">
+                    @foreach (var (d, i) in group.Items)
+                    {
+                        var value = i.ToString(CultureInfo.InvariantCulture);
+                        <option value="@value" selected="@(_destination == value)">@DestinationLabel(d)</option>
+                    }
+                </optgroup>
+            }
+        </select>
         <BaseFootprint Incoming="@incoming" Existing="@existing" Label="@L.Resource("BaseMove_Picture")" />
         <small class="wt-muted">@L.Resource("BaseMove_PictureLegend")</small>
-        <p class="wt-muted" data-base-move="spot">@(_dx == 0 && _dy == 0 && _dz == 0 && _yaw == 0
-            ? L.Resource("BaseMove_SameSpot")
-            : L.Resource("BaseMove_ShiftedFormat", Num(_dx / 100), Num(_dy / 100), Num(_dz / 100), Num(_yaw)))</p>
-        <div class="base-move-pad" role="group" aria-label="@L.Resource("BaseMove_Nudge")">
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeNorth")" data-base-move="nudge-n" @onclick="() => NudgeAsync(0, -100, 0, 0)">&#x2191;</button>
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeWest")" data-base-move="nudge-w" @onclick="() => NudgeAsync(-100, 0, 0, 0)">&#x2190;</button>
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeEast")" data-base-move="nudge-e" @onclick="() => NudgeAsync(100, 0, 0, 0)">&#x2192;</button>
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeSouth")" data-base-move="nudge-s" @onclick="() => NudgeAsync(0, 100, 0, 0)">&#x2193;</button>
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeUp")" data-base-move="nudge-up" @onclick="() => NudgeAsync(0, 0, 50, 0)">@L.Resource("BaseMove_Up")</button>
-            <button type="button" class="wt-btn wt-plain" title="@L.Resource("BaseMove_NudgeDown")" data-base-move="nudge-down" @onclick="() => NudgeAsync(0, 0, -50, 0)">@L.Resource("BaseMove_Down")</button>
-            <button type="button" class="wt-btn wt-plain" data-base-move="turn-left" @onclick="() => NudgeAsync(0, 0, 0, -15)">&#x21BA; 15°</button>
-            <button type="button" class="wt-btn wt-plain" data-base-move="turn-right" @onclick="() => NudgeAsync(0, 0, 0, 15)">&#x21BB; 15°</button>
-            <button type="button" class="wt-btn wt-plain" data-base-move="turn-90" @onclick="() => NudgeAsync(0, 0, 0, 90)">&#x21BB; 90°</button>
-        </div>
-        <details class="b3d-details">
-            <summary>@L.Resource("BaseMove_Exact")</summary>
-            <div class="b3d-numbers">
-                <label>@L.Resource("BaseMove_ShiftX")<input class="wt-input" inputmode="decimal" value="@Num(_dx / 100)" data-base-move="dx" @onchange="e => SetNumberAsync(e, v => _dx = v * 100)" /></label>
-                <label>@L.Resource("BaseMove_ShiftY")<input class="wt-input" inputmode="decimal" value="@Num(_dy / 100)" data-base-move="dy" @onchange="e => SetNumberAsync(e, v => _dy = v * 100)" /></label>
-                <label>@L.Resource("BaseMove_ShiftZ")<input class="wt-input" inputmode="decimal" value="@Num(_dz / 100)" data-base-move="dz" @onchange="e => SetNumberAsync(e, v => _dz = v * 100)" /></label>
-                <label>@L.Resource("BaseMove_Turn")<input class="wt-input" inputmode="decimal" value="@Num(_yaw)" data-base-move="yaw" @onchange="e => SetNumberAsync(e, v => _yaw = v)" /></label>
-            </div>
-        </details>
-        <div class="b3d-links">
-            <button type="button" class="wt-btn wt-plain" data-base-move="reset" @onclick="ResetSpotAsync">@L.Resource("BaseMove_BackToSameSpot")</button>
-            @if (ViewPoint is not null && Mode == ImportMode)
-            {
+        @if (ViewPoint is not null && Mode == ImportMode)
+        {
+            <div class="b3d-links">
                 <button type="button" class="wt-btn wt-plain" data-base-move="to-view" @onclick="ToViewAsync">@L.Resource("BaseMove_WhereImLooking")</button>
-            }
-        </div>
+            </div>
+        }
         @if (Mode == ImportMode && _staged is not null && ViewPoint is not null) { <small class="wt-muted">@L.Resource("BaseMove_DragHint")</small> }
+        @if (Mode == MoveMode) { <small class="wt-muted" data-base-move="bring-hint">@L.Resource("BaseMove_BringHint")</small> }
         @if (hints > 0) { <p class="wt-muted b3d-warning" data-base-move="close-by">@L.Resource("BaseMove_CloseByFormat", hints)</p> }
         @if (blocking.Count > 0)
         {
@@ -337,33 +420,56 @@
         }
     };
 
+    private sealed record DestinationGroup(string Label, IReadOnlyList<(BaseDestination Place, int Index)> Items);
+
+    /// <summary>The places in a few plain groups, in the order a player looks for them.</summary>
+    private IEnumerable<DestinationGroup> DestinationGroups()
+    {
+        var indexed = _destinations.Select((d, i) => (d, i)).ToList();
+        foreach (var (kind, label) in new[]
+        {
+            (BaseDestinationKind.SameSpot, "BaseMove_GroupSameSpot"),
+            (BaseDestinationKind.AreaMiddle, "BaseMove_GroupArea"),
+            (BaseDestinationKind.Sector, "BaseMove_GroupSectors"),
+            (BaseDestinationKind.BesideBase, "BaseMove_GroupBases"),
+        })
+        {
+            var items = indexed.Where(x => x.d.Kind == kind).ToList();
+            if (items.Count > 0) yield return new DestinationGroup(L.Resource(label), items);
+        }
+    }
+
+    private string DestinationLabel(BaseDestination d) => d.Kind switch
+    {
+        BaseDestinationKind.SameSpot => L.Resource("BaseMove_DestSameSpot"),
+        BaseDestinationKind.Sector => L.Resource("BaseMove_DestSectorFormat", d.Name),
+        BaseDestinationKind.AreaMiddle => L.Resource("BaseMove_DestAreaMiddle"),
+        _ when d.NearSector is { } sector => L.Resource("BaseMove_DestBaseNearFormat", d.Name, sector),
+        _ => L.Resource("BaseMove_DestBaseFormat", d.Name),
+    };
+
     private static IReadOnlyList<PlacedVector> PiecePositions(BasePackage package)
         => package.Pieces.Where(p => p.Position is not null).Select(p => p.Position!.Value).ToList();
 
-    private static string Num(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
-
-    private async Task NudgeAsync(double dx, double dy, double dz, double yaw)
+    /// <summary>The places in the landing save, and a first choice: the same spot when it is the same map, else the first place listed.</summary>
+    private void LoadDestinations()
     {
-        _dx += dx; _dy += dy; _dz += dz; _yaw = (_yaw + yaw) % 360;
-        await PlacementChangedAsync();
+        _destinations = [];
+        _destination = "";
+        if (_package is null || Landing is not { } landing) return;
+        _destinations = landing.BaseDestinationsFor(_package);
+        if (_destinations.Count == 0) return;
+        _destination = "0";
+        var offset = _destinations[0].OffsetFor(_package);
+        (_dx, _dy, _dz, _yaw) = (offset.X, offset.Y, offset.Z, 0);
     }
 
-    private async Task SetNumberAsync(ChangeEventArgs e, Action<double> set)
+    private async Task ChooseDestinationAsync(string? value)
     {
-        if (!double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
-            && !double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.CurrentCulture, out v))
-        {
-            _error = L.Resource("World3D_InvalidNumber");
-            return;
-        }
-        _error = null;
-        set(v);
-        await PlacementChangedAsync();
-    }
-
-    private async Task ResetSpotAsync()
-    {
-        _dx = _dy = _dz = _yaw = 0;
+        _destination = value ?? "";
+        if (_package is null || !int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var i) || i >= _destinations.Count) return;
+        var offset = _destinations[i].OffsetFor(_package);
+        (_dx, _dy, _dz, _yaw) = (offset.X, offset.Y, offset.Z, 0);
         await PlacementChangedAsync();
     }
 
@@ -375,6 +481,7 @@
         _dx = Math.Round(at.X - centre.X);
         _dy = Math.Round(at.Y - centre.Y);
         _dz = Math.Round(at.Z - floor);
+        _destination = "";
         await PlacementChangedAsync();
     }
 
@@ -401,6 +508,7 @@
         }
         _staged = now;
         (_dx, _dy, _dz, _yaw) = (now.Offset.X, now.Offset.Y, now.Offset.Z, now.YawDegrees);
+        _destination = "";
         RecomputePreview();
         StateHasChanged();
     }
@@ -408,23 +516,22 @@
     private void RecomputePreview()
     {
         _preview = null;
-        if (_package is null || Landing is not { } landing || _mismatch is not null) return;
+        if (_package is null || Landing is not { } landing) return;
         if (_staged is not null && Mode == ImportMode)
         {
-            var all = landing.PreviewBaseEdits();
-            _preview = new BasePreviewResult(all, _staged.Id);
+            _preview = new BasePreviewResult(landing.PreviewBaseEdits(), _staged.Id);
             return;
         }
         _preview = landing.PreviewBaseTransplant(_package, new PlacedVector(_dx, _dy, _dz), _yaw);
     }
 
-    // ---- removal here -----------------------------------------------------------------------
+    // ---- removal from the giving save -------------------------------------------------------
 
     private void RecomputeRemoval()
     {
         _removal = null;
-        if (!_removeHere || _package is null || Mode == ImportMode) return;
-        _removal = Session.PreviewMoveAway(_package.Pieces.Select(p => p.Key).ToList(), _leaveLinks);
+        if (!_removeHere || _package is null || RemovalSession is not { } giver) return;
+        _removal = giver.PreviewMoveAway(_package.Pieces.Select(p => p.Key).ToList(), _leaveLinks);
     }
 
     private void OnRemoveChanged(ChangeEventArgs e)
@@ -446,9 +553,8 @@
         _error = null;
         _target = null;
         _preview = null;
-        _mismatch = null;
         _targetPath = string.IsNullOrEmpty(path) ? null : path;
-        _targetWorld = _worlds.FirstOrDefault(w => string.Equals(w.FilePath, path, StringComparison.OrdinalIgnoreCase))?.World;
+        _targetLabel = _areas.FirstOrDefault(a => string.Equals(a.FilePath, path, StringComparison.OrdinalIgnoreCase)) is { } area ? AreaLabel(area) : null;
         if (_targetPath is null || _package is null) return;
         _busy = true;
         StateHasChanged();
@@ -456,7 +562,7 @@
         {
             _target = await Workspace.GetTransferWorldAsync(_targetPath);
             if (_target is null) { _error = L.Resource("BaseMove_WorldUnreadable"); return; }
-            _mismatch = _target.BasePackageMismatch(_package);
+            LoadDestinations();
             RecomputePreview();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or NotSupportedException)
@@ -478,7 +584,7 @@
             _staged = Session.StageMoveTo(_target, _package, new PlacedVector(_dx, _dy, _dz), _yaw, _removeHere, _leaveLinks);
             Workspace.RegisterTransfer(Session, _target);
             Workspace.NotifyEdited();
-            Toasts.Show(L.Resource("BaseMove_MovedToastFormat", _package.Pieces.Count, _targetWorld ?? ""), ToastKind.Success);
+            Toasts.Show(L.Resource("BaseMove_MovedToastFormat", _package.Pieces.Count, _targetLabel ?? ""), ToastKind.Success);
             await OnStaged.InvokeAsync();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -529,7 +635,7 @@
         }
     }
 
-    // ---- import -----------------------------------------------------------------------------
+    // ---- import: from a file ----------------------------------------------------------------
 
     private async Task PickFileAsync()
     {
@@ -546,10 +652,10 @@
             await using var stream = await picked.OpenReadAsync(CancellationToken.None);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            var package = BasePackage.Parse(buffer.ToArray());
-            _package = package;
-            _mismatch = Session.BasePackageMismatch(package);
-            _dx = _dy = _dz = _yaw = 0;
+            _package = BasePackage.Parse(buffer.ToArray());
+            _source = null;
+            _removeHere = false;
+            LoadDestinations();
             RecomputePreview();
         }
         catch (InvalidDataException)
@@ -566,10 +672,77 @@
         }
     }
 
+    // ---- import: brought straight from another world or area --------------------------------
+
+    private async Task ChooseSourceAsync(string? path)
+    {
+        _error = null;
+        _source = null;
+        _sourceBases = [];
+        _sourcePath = string.IsNullOrEmpty(path) ? null : path;
+        if (_sourcePath is null) return;
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            _source = await Workspace.GetTransferWorldAsync(_sourcePath);
+            if (_source is null) { _error = L.Resource("BaseMove_WorldUnreadable"); return; }
+            _sourceBases = _source.MovableBases();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or NotSupportedException)
+        {
+            _error = Errors.Present(ex, L.Resource("BaseMove_WorldUnreadable"), L.Resource("PlayerUi_CheckFileReadable"));
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ChooseSourceBaseAsync(string? name)
+    {
+        if (_source is null || _sourceBases.FirstOrDefault(b => b.Base.Name == name) is not { Keys.Count: > 0 } chosen) return;
+        _error = null;
+        try
+        {
+            _package = _source.CreateBasePackage(chosen.Keys, out var skipped);
+            _skippedLevel = skipped.Count(s => s.Reason == "level-placed");
+        }
+        catch (InvalidOperationException)
+        {
+            _error = L.Resource("BaseMove_NothingToMove");
+            return;
+        }
+        _removeHere = true;
+        LoadDestinations();
+        RecomputePreview();
+        await ScanRemovalSideAsync(_source);
+    }
+
     private async Task ImportAsync()
     {
         if (_package is null) return;
-        _staged = Session.StageBaseTransplant(_package, new PlacedVector(_dx, _dy, _dz), _yaw);
+        _error = null;
+        try
+        {
+            if (_source is not null)
+            {
+                // Brought straight from another save: staged here (the copy) and there (the removal),
+                // linked so one SAVE writes both, the save that receives the pieces first.
+                _staged = _source.StageMoveTo(Session, _package, new PlacedVector(_dx, _dy, _dz), _yaw, _removeHere, _leaveLinks);
+                Workspace.RegisterTransfer(_source, Session);
+            }
+            else
+            {
+                _staged = Session.StageBaseTransplant(_package, new PlacedVector(_dx, _dy, _dz), _yaw);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            _staged = null;
+            _error = Errors.Present(ex, L.Resource("BaseMove_MoveFailed"), L.Resource("BaseMove_MoveFailedHint"));
+            return;
+        }
         Workspace.NotifyEdited();
         RecomputePreview();
         await OnStaged.InvokeAsync();
@@ -578,9 +751,14 @@
 
     private async Task UndoImportAsync()
     {
-        if (_staged is not null) Session.RevertPlacedDuplication(_staged.Id);
+        if (_staged is not null)
+        {
+            if (_source?.StagedBaseMoves.FirstOrDefault(m => m.TargetCopyId == _staged.Id && ReferenceEquals(m.Target, Session)) is { } move) _source.UndoMove(move);
+            else Session.RevertPlacedDuplication(_staged.Id);
+        }
         _staged = null;
         Workspace.NotifyEdited();
+        RecomputeRemoval();
         RecomputePreview();
         await OnStaged.InvokeAsync();
     }

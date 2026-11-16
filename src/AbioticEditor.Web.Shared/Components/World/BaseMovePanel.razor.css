@@ -30,3 +30,4 @@
 .b3d-details > summary { cursor: pointer; color: var(--muted, #a9cbe0); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 .b3d-details[open] > summary { margin-bottom: 6px; }
 .base-move { max-width: 560px; }
+.base-move-step { width: auto; min-width: 4.5rem; }

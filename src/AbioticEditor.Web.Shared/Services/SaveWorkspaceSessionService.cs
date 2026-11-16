@@ -534,8 +534,13 @@ public sealed class SaveWorkspaceSessionService : IDisposable
                 }
             }
 
-            // Keep all links on failure, so a retry can finish the remaining writes.
-            foreach (var path in group.AsEnumerable().Reverse())
+            // Keep all links on failure, so a retry can finish the remaining writes. A world that gives
+            // pieces away in a base move is written last, after every world that receives them, so a
+            // failed write never leaves the pieces in neither world.
+            var order = group.AsEnumerable().Reverse()
+                .OrderBy(path => _transferWorlds.TryGetValue(path, out var w) && w.StagedBaseMoves.Count > 0 ? 1 : 0)
+                .ToList();
+            foreach (var path in order)
             {
                 if (_transferPlayers.TryGetValue(path, out var player) && player.IsDirty) await player.SaveAsync(cancellationToken);
                 else if (_transferWorlds.TryGetValue(path, out var world) && world.IsDirty) await world.SaveAsync(cancellationToken);

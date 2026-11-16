@@ -96,7 +96,10 @@ internal static class PlacedObjectCloner
 
         // 3. Identity: map key and actor path.
         objectPair.Key.Value = new FString(plan.NewKey);
-        if (!WorldMapAccessor.SetSoftObjectSubPath(props, "ActorPath_", plan.NewActorSubPath))
+        var pathSet = plan.NewActorFullPath is { } full
+            ? WorldMapAccessor.SetSoftObjectPath(props, "ActorPath_", full)
+            : WorldMapAccessor.SetSoftObjectSubPath(props, "ActorPath_", plan.NewActorSubPath);
+        if (!pathSet)
         {
             throw new InvalidOperationException("Could not set the copy's actor path.");
         }
@@ -175,7 +178,8 @@ internal static class PlacedObjectCloner
             problems.Add($"{plan.SourceKey}: the copy's AssetID does not match its new key.");
         }
         if (WorldMapAccessor.GetSoftObjectPath(copy.Properties, "ActorPath_") is not { } ap
-            || ap.SubPath != plan.NewActorSubPath)
+            || ap.SubPath != plan.NewActorSubPath
+            || (plan.NewActorFullPath is { } wanted && PlacedObjectCensus.FullSoftPath(ap.Package, ap.Asset, ap.SubPath) != wanted))
         {
             problems.Add($"{plan.SourceKey}: the copy's actor path was not set.");
         }

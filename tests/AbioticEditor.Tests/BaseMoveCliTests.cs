@@ -70,6 +70,12 @@ public sealed class BaseMoveCliTests
 
             var bad = await Run(["world", "object", "import", there, "--file", here]);
             Assert.NotEqual(0, bad.Exit);
+
+            var unknown = await Run(["world", "object", "import", there, "--file", file, "--to", "Nowhere", "--dry-run"]);
+            Assert.NotEqual(0, unknown.Exit);
+            Assert.Contains("Manufacturing West", unknown.Err, StringComparison.Ordinal);
+            var mines = await Run(["world", "object", "import", there, "--file", file, "--to", "The Mines", "--dry-run"]);
+            Assert.True(mines.Exit == 0, mines.Err + mines.Out);
         }
         finally
         {

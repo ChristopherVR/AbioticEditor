@@ -83,6 +83,75 @@ public sealed partial class WorldSaveSession
         return found;
     }
 
+    /// <summary>One area save a base can be moved to or brought from: this world's other areas, or any area of another world.</summary>
+    /// <param name="World">The world's folder name.</param>
+    /// <param name="Area">The area's name (from its save file: "Facility", "V Alps").</param>
+    /// <param name="FilePath">The area's save file.</param>
+    /// <param name="IsThisWorld">True for another area of the world this save belongs to.</param>
+    public sealed record AreaChoice(string World, string Area, string FilePath, bool IsThisWorld);
+
+    /// <summary>
+    /// Every area a base can go to or come from, other than this save: the other areas of this world and
+    /// every area of the player's other worlds on this computer. Sectors that are part of another area's
+    /// map are left out (a save named <c>Facility_Dam</c> is a sector of <c>Facility</c>: what is built
+    /// there is kept in the Facility save), as is the story save. Empty when the folder is out of reach.
+    /// </summary>
+    public IReadOnlyList<AreaChoice> OtherAreas()
+    {
+        var found = new List<AreaChoice>();
+        if (!CanReachOtherWorlds) return found;
+        try
+        {
+            if (System.IO.Path.GetDirectoryName(_path) is not { Length: > 0 } dir) return found;
+            var here = System.IO.Path.GetFullPath(dir);
+            var worlds = System.IO.Path.GetDirectoryName(dir) is { Length: > 0 } parent && Directory.Exists(parent)
+                ? Directory.EnumerateDirectories(parent).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).ToList()
+                : [dir];
+            if (!worlds.Any(w => string.Equals(System.IO.Path.GetFullPath(w), here, StringComparison.OrdinalIgnoreCase))) worlds.Insert(0, dir);
+            foreach (var world in worlds)
+            {
+                var isHere = string.Equals(System.IO.Path.GetFullPath(world), here, StringComparison.OrdinalIgnoreCase);
+                foreach (var (area, file) in BuildAreas(world))
+                {
+                    if (string.Equals(System.IO.Path.GetFullPath(file), System.IO.Path.GetFullPath(_path), StringComparison.OrdinalIgnoreCase)) continue;
+                    found.Add(new AreaChoice(System.IO.Path.GetFileName(world), area, file, isHere));
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseMove", $"Could not list the areas: {ex.Message}");
+        }
+        // The same area of the other worlds first (the usual move), then this world's other areas, then the rest.
+        var mine = System.IO.Path.GetFileName(_path);
+        return found
+            .OrderBy(a => !a.IsThisWorld && string.Equals(System.IO.Path.GetFileName(a.FilePath), mine, StringComparison.OrdinalIgnoreCase) ? 0 : a.IsThisWorld ? 1 : 2)
+            .ToList();
+    }
+
+    /// <summary>The area saves of one world folder that keep their own built pieces (not the sectors of another area).</summary>
+    private static IEnumerable<(string Area, string File)> BuildAreas(string world)
+    {
+        var names = Directory.EnumerateFiles(world, "WorldSave_*.sav")
+            .Select(f => (Name: System.IO.Path.GetFileNameWithoutExtension(f)["WorldSave_".Length..], File: f))
+            .Where(a => !a.Name.Equals("MetaData", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var all = names.Select(n => n.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, file) in names.OrderBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (all.Any(other => !other.Equals(name, StringComparison.OrdinalIgnoreCase) && name.StartsWith(other + "_", StringComparison.OrdinalIgnoreCase))) continue;
+            yield return (name.Replace('_', ' '), file);
+        }
+    }
+
+    /// <summary>The bases in this save (pieces a player built only), for "bring a base here" from it.</summary>
+    public IReadOnlyList<(WorldBase Base, IReadOnlyList<string> Keys)> MovableBases()
+        => BaseDetector.Detect(Deployables)
+            .Select(b => (b, (IReadOnlyList<string>)b.Deployables.Select(d => d.Id)
+                .Where(k => FindPlacedObject(k) is { DeployedByPlayer: true } && !IsPlacedDeletionStaged(k)).ToList()))
+            .Where(x => x.Item2.Count > 0)
+            .ToList();
+
     /// <summary>
     /// Lifts the chosen pieces into a package (reads only). Pieces moved in the editor but not saved
     /// travel from where they now stand. Level pieces and unknown keys are left out (see <paramref name="skipped"/>).
@@ -90,8 +159,11 @@ public sealed partial class WorldSaveSession
     public BasePackage CreateBasePackage(IEnumerable<string> keys, out IReadOnlyList<BasePackageSkip> skipped)
         => BasePackage.Create(_data, keys, WorldName, FileNameOf(_path), out skipped, CurrentPlacedTransform);
 
-    /// <summary>Why <paramref name="package"/> cannot go into this world (it belongs to another area), or null.</summary>
-    public string? BasePackageMismatch(BasePackage package) => package.LevelMismatch(_data);
+    /// <summary>True when the package comes from another map than this save (its old spot means nothing here).</summary>
+    public bool IsOtherMap(BasePackage package) => package.IsOtherMap(_data);
+
+    /// <summary>The places the package can be put down in this save (same spot, named sectors, beside a base).</summary>
+    public IReadOnlyList<BaseDestination> BaseDestinationsFor(BasePackage package) => BaseDestinations.For(package, _data);
 
     /// <summary>What putting the package down here would do, with everything already staged. Stages nothing.</summary>
     public BasePreviewResult PreviewBaseTransplant(BasePackage package, PlacedVector offset, double yawDegrees)

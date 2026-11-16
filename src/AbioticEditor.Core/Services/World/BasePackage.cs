@@ -311,20 +311,30 @@ public sealed class BasePackage
     // ---------- fitting it into a target world ----------
 
     /// <summary>
-    /// Why the package cannot go into <paramref name="target"/> at all, or null when it can: the pieces
-    /// belong to a different level (another area of the game), which the target's own pieces show.
-    /// A target with no pieces of its own cannot be checked and is allowed.
+    /// True when the pieces come from a different map than <paramref name="target"/> (another area of the
+    /// game with its own level, not just another sector of the Facility). Then their old spot means
+    /// nothing in the target, so a place must be chosen there; the pieces are put into the level the
+    /// target keeps its player-built pieces in.
     /// </summary>
-    public string? LevelMismatch(WorldSaveData target)
+    public bool IsOtherMap(WorldSaveData target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        var here = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var e in WorldMapAccessor.Entries(target.Raw, "DeployedObjectMap"))
+        var here = LevelsOf(target, playerBuiltOnly: false);
+        return here.Count > 0 && LevelPackages.Any(p => !here.Contains(p));
+    }
+
+    /// <summary>True when nothing the player built is in <paramref name="target"/> yet (the level is then taken from the area's own pieces).</summary>
+    public static bool HasNoPlayerPieces(WorldSaveData target)
+        => LevelsOf(target ?? throw new ArgumentNullException(nameof(target)), playerBuiltOnly: true).Count == 0;
+
+    private static HashSet<string> LevelsOf(WorldSaveData save, bool playerBuiltOnly)
+    {
+        var levels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var e in WorldMapAccessor.Entries(save.Raw, "DeployedObjectMap"))
         {
-            if (WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_") is { Package: { Length: > 0 } pkg }) here.Add(pkg);
+            if (playerBuiltOnly && (PlacedObjectCensus.KeyShape(e.Key) != "guid32" || e.Props.TryGetBool("DeployedByPlayer_") != true)) continue;
+            if (WorldMapAccessor.GetSoftObjectPath(e.Props, "ActorPath_") is { Package: { Length: > 0 } pkg }) levels.Add(pkg);
         }
-        if (here.Count == 0) return null;
-        var foreign = LevelPackages.Where(p => !here.Contains(p)).ToList();
-        return foreign.Count == 0 ? null : foreign[0];
+        return levels;
     }
 }

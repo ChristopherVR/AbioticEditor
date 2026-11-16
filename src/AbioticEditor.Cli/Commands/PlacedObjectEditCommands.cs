@@ -242,10 +242,15 @@ internal static class PlacedObjectEditCommands
         var dy = Num("--dy", "Shift along Y (cm).");
         var dz = Num("--dz", "Shift along Z, up (cm).");
         var yaw = Num("--yaw", "Turn the group by this many degrees about its middle before shifting.");
+        var to = new Option<string>("--to")
+        {
+            Description = "Where to put it: a Facility sector (\"Manufacturing West\", \"The Mines\"...) or a base already there (\"Base 2\"). "
+                + "--dx/--dy/--dz/--yaw then shift it from there. Required when the base comes from another map. Run with an unknown name to list the places.",
+        };
         var dry = new Option<bool>("--dry-run") { Description = "Print the preview and write nothing." };
         var json = new Option<bool>("--json") { Description = "Print the preview as JSON." };
         cmd.Arguments.Add(save);
-        foreach (var o in new Option[] { file, dx, dy, dz, yaw, dry, json }) cmd.Options.Add(o);
+        foreach (var o in new Option[] { file, dx, dy, dz, yaw, to, dry, json }) cmd.Options.Add(o);
         cmd.SetAction(parse => Cli.Run(() =>
         {
             var (path, data, edits) = Open(parse.GetValue(save));
@@ -253,11 +258,22 @@ internal static class PlacedObjectEditCommands
             BasePackage package;
             try { package = BasePackage.Parse(File.ReadAllBytes(source)); }
             catch (InvalidDataException ex) { throw new CliUserErrorException(ex.Message); }
-            if (package.LevelMismatch(data) is { } other)
+            var places = BaseDestinations.For(package, data);
+            var start = new PlacedVector(0, 0, 0);
+            if (parse.GetValue(to) is { Length: > 0 } wanted)
             {
-                throw new CliUserErrorException($"the base comes from another area ({other}); open the same area's save of the other world.");
+                var place = places.FirstOrDefault(p => p.Kind != BaseDestinationKind.SameSpot && string.Equals(p.Name, wanted.Trim(), StringComparison.OrdinalIgnoreCase))
+                    ?? throw new CliUserErrorException($"'{wanted}' is not a place in this save. Places: "
+                        + string.Join(", ", places.Where(p => p.Kind != BaseDestinationKind.SameSpot).Select(p => p.Name)) + ".");
+                start = place.OffsetFor(package);
             }
-            edits.StageTransplant(package, new PlacedVector(parse.GetValue(dx), parse.GetValue(dy), parse.GetValue(dz)), parse.GetValue(yaw));
+            else if (package.IsOtherMap(data) && parse.GetValue(dx) == 0 && parse.GetValue(dy) == 0 && parse.GetValue(dz) == 0)
+            {
+                throw new CliUserErrorException("the base comes from another map, so its old spot means nothing here. Choose a place with --to ("
+                    + string.Join(", ", places.Select(p => p.Name).Where(n => n.Length > 0)) + ") or give --dx/--dy/--dz.");
+            }
+            edits.StageTransplant(package,
+                new PlacedVector(start.X + parse.GetValue(dx), start.Y + parse.GetValue(dy), start.Z + parse.GetValue(dz)), parse.GetValue(yaw));
             return Finish(path, data, edits, parse.GetValue(dry), parse.GetValue(json), parse.GetValue(quiet), "copied");
         }));
         return cmd;

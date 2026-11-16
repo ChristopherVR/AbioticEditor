@@ -23,7 +23,7 @@ abioticeditor world list <world.sav>             # editable world-state maps (el
 abioticeditor world show <world.sav> <feature>   # entries + fields for one map
 abioticeditor world set <world.sav> <feature> <entry> <field> <value>
 abioticeditor world object export <world.sav> -k <keys> -o base.abase.json --remove   # take a base out to a file
-abioticeditor world object import <other-world.sav> -f base.abase.json  # put it down in another world
+abioticeditor world object import <other-world.sav> -f base.abase.json --to "The Mines"  # put it down (--to: a sector or "Base 2")
 abioticeditor compare <a> <b>                    # diff two saves, or two folders of saves
 abioticeditor steamid <player.sav> <newid64>     # reassign the owning Steam account
 abioticeditor ini list <file.ini>                # sections of an ini file

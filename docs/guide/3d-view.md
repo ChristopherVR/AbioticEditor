@@ -95,19 +95,21 @@ The view checks every piece you move, copy or place. It warns when one cuts into
 
 **Changes** on the view lists everything waiting for **SAVE**. Nothing is written until you press it, and the editor keeps a `.bak` copy as always.
 
-## Moving a base to another world
+## Moving a base to another world or area
 
-You can pick up a whole base, with everything stored in its crates and benches, and put it down in another world.
+You can pick up a whole base, with everything stored in its crates and benches, and put it down somewhere else: another sector of the Facility, another world, or another area such as a portal world.
 
 Choose what moves. On the **Map**, pick a base in the list. In the **3D view**, select pieces (Ctrl-click adds more), or pick a base in **Base to show** and press **Select the whole base**. Only pieces you built move. Things that came with the level stay where they are.
 
 Then choose one of these:
 
-- **Move to another world** lists your other worlds on this computer that have the same area. Pick one. The pieces land on the same spot they stood on here. A small picture from above shows them in orange over what already stands in that world in grey. Use the arrows and turn buttons to shift them, or type exact numbers. Press **Move**, then **SAVE**. Both worlds are written: the one that gets the pieces first, then this one. Each keeps a `.bak`.
-- **Export to a file** saves the pieces in a base file (in your Downloads folder, or as a browser download). Tick **Also remove them from this world** to make it a move. Keep the file until the pieces are safely in their new world.
-- **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base file down in the world you have open. The new pieces are drawn in light blue in the 3D view. Drag them, or press **R** to turn them, until they sit right, then press **SAVE**.
+- **Move to another world or area** lists your other worlds on this computer and the other areas of this world. Pick one, then pick a place from the list: the same spot it is on now, a part of the Facility (the Office Sector, Manufacturing West, the Hydroplant, the Mines and the rest), next to one of your bases there, or the middle of a portal world. A small picture from above shows your base in orange over what is already there in grey. Press **Move**, then **SAVE**.
+- **Export to a file** saves the pieces in a base file (in your Downloads folder, or as a browser download). Tick **Also remove them from this world** to make it a move. Keep the file until the pieces are safely in their new place.
+- **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base down in the area you have open. Choose a base file, or **Bring a base here** from another world or area on this computer, and pick a place for it. In the 3D view the new pieces are drawn in light blue: drag them, or press **R** to turn them, until they sit right. Then press **SAVE**.
 
-Links between the moved pieces are kept: power cables, and teleporter pads that were paired with each other (they get a pairing of their own in the new world). Links to anything left behind are unplugged. A claimed bed arrives unclaimed. A base can only go to the same area of the game, for example from the Facility to the Facility of another world.
+A move writes both saves with one **SAVE**: the one that gets the pieces first, then the one they leave. Each keeps a `.bak`. If anything still points at the pieces (a power socket in another area, a containment record), the editor says so before anything is saved, and you can tick **let those links point at nothing**.
+
+Links between the moved pieces are kept: power cables, and teleporter pads that were paired with each other (they get a pairing of their own in the new place). Links to anything left behind are unplugged. A claimed bed arrives unclaimed. Moving to a portal world where you have never built anything puts the pieces in that world's own level; look them over in the game after you SAVE.
 
 ## Show in 3D from any list
 
