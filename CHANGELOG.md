@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [2.35.2] - 2026-11-16
+
+### Bug Fixes
+- Tidy up a few background timers and file paths in the test suite
+- Level scenery loading no longer leaves a timer running in the background
+
+
 ## [2.35.1] - 2026-11-07
 
 ### Bug Fixes
