@@ -109,6 +109,10 @@
          the choice is read back here, from the browser's own storage (a WebAssembly app's file
          system does not survive a reload). Anything unexpected falls through to a plain start
          rather than leaving the player with a page that never loads. -->
+    <!-- GitHub Pages now and then answers one of the app's many files with a brief "503 Service
+         Unavailable" page. The runtime checked that page against the file's checksum, refused it,
+         and the whole app failed to start. Each file is now fetched again (up to three more times,
+         a moment apart, skipping the browser cache) before giving up; the checksum check stays. -->
     <script>
         (function () {
             let options = {};
@@ -116,6 +120,25 @@
                 const saved = localStorage.getItem("abiotic.language");
                 if (saved) options = { applicationCulture: saved };
             } catch { /* storage blocked: start in the browser's own language */ }
+            function fetchWithRetry(uri, integrity, attempt) {
+                const init = { cache: attempt > 0 ? "no-cache" : "default" };
+                if (integrity) init.integrity = integrity;
+                return fetch(uri, init)
+                    .then(function (response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status + " for " + uri);
+                        return response;
+                    })
+                    .catch(function (error) {
+                        if (attempt >= 3) throw error;
+                        return new Promise(function (resolve) { setTimeout(resolve, 800 * (attempt + 1)); })
+                            .then(function () { return fetchWithRetry(uri, integrity, attempt + 1); });
+                    });
+            }
+            options.loadBootResource = function (type, name, defaultUri, integrity) {
+                // The runtime's own script must stay a plain URL (it is loaded as a module).
+                if (type === "dotnetjs") return null;
+                return fetchWithRetry(defaultUri, integrity, 0);
+            };
             Blazor.start(options).catch(function () { });
         })();
     </script>
