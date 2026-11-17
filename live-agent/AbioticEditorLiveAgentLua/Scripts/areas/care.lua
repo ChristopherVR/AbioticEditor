@@ -17,7 +17,35 @@ return function(ctx)
         ["garden-plots"] = "GardenPlot_ParentBP_C",
         ["power-chairs"] = "Deployed_Furniture_Chair_PowerChair_C",
         ["chemistry-benches"] = "Deployed_ChemistryBench_C",
+        ["sconce-lamps"] = "Deployed_Lamp_Sconce_C",
+        ["teleporter-pads"] = "Deployed_TeleporterPad_C",
     }
+    -- A pad's tag is saved as {Key = EDynamicProperty::TeleporterFrequency, Value = n} in its
+    -- ChangeableData dynamic-property array (the same array the offline editor reads).
+    local function frequencyKey()
+        local enum = StaticFindObject("/Script/AbioticFactor.EDynamicProperty")
+        if not enum or not enum:IsValid() then return nil end
+        local key
+        enum:ForEachName(function(name, value)
+            local label = type(name) == "string" and name or name:ToString()
+            if label == "EDynamicProperty::TeleporterFrequency" then key = value end
+        end)
+        return key
+    end
+    local function frequency(obj)
+        local key = frequencyKey()
+        local okArray, array = pcall(function() return ctx.slotFields.get(obj.ChangeableData, "DynamicProperties") end)
+        if key == nil or not okArray or not array then return 0 end
+        for i = 1, #array do
+            local entry = array[i]
+            if (tonumber(entry.Key) or tonumber(tostring(entry.Key))) == key then return tonumber(entry.Value) or 0 end
+        end
+        return 0
+    end
+    local function lampOn(obj)
+        local ok, on = pcall(function() return obj.SwitchOn end)
+        return ok and on == true
+    end
     local function valid(obj) return obj and obj:IsValid() end
     local function number(value, maximum)
         if type(value) ~= "number" or value ~= value or value < 0 or value > maximum or value % 1 ~= 0 then
@@ -68,6 +96,10 @@ return function(ctx)
             end
         elseif feature == "power-chairs" then
             table.insert(fields, field("charge", "Battery charge", charge(obj), "integer", host, nil, 200))
+        elseif feature == "sconce-lamps" then
+            table.insert(fields, field("on", "Lamp on", lampOn(obj), "bool", host))
+        elseif feature == "teleporter-pads" then
+            table.insert(fields, field("tag", "Tag", frequency(obj), "tag", host))
         else
             local inv = obj.BenchInventory
             if inv and inv.CurrentInventory then
@@ -172,6 +204,15 @@ return function(ctx)
                 local component = obj.RechargeableComponent
                 if not valid(component) then error("chair battery is unavailable") end
                 component:Server_ModifyBattery(value - charge(obj), true)
+            elseif feature == "sconce-lamps" and id == "on" then
+                -- The lamp's own switch (what flicking it in game calls), saved as it changes.
+                if type(value) ~= "boolean" then error("lamp state must be on or off") end
+                obj:Server_ToggleLight(value, false)
+            elseif feature == "teleporter-pads" and id == "tag" then
+                -- The pad's own "Set New Location ID" (the real name has spaces), as choosing a tag on the pad does: it updates
+                -- the saved tag and the game's list of where each tag leads.
+                value = number(value, 100000)
+                obj["Set New Location ID"](obj, tostring(value), true)
             elseif feature == "chemistry-benches" and id == "process" then
                 -- The editor's "start mixing": the same AttemptToActivateProcessing(InteractCharacter)
                 -- the valve interaction ends up calling, handed the local player's own character

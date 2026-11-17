@@ -5265,4 +5265,33 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="BaseMove_StoodOnFloorFormat" xml:space="preserve"><value>{0} of {1} pieces now stand on the floor under them.</value></data>
   <data name="BaseMove_FloorNotLoaded" xml:space="preserve"><value>No floor found under the pieces yet. Look at the place in the 3D view so its level loads, then press Stand them all on the floor.</value></data>
   <data name="BaseMove_Working" xml:space="preserve"><value>Working...</value></data>
+  <data name="LiveMove_AppliesNow" xml:space="preserve"><value>The game is running, so this happens at once: there is no SAVE step. The editor asks the game to save before and after, so the world on disk always matches.</value></data>
+  <data name="LiveMove_NeedsAgent" xml:space="preserve"><value>Moving bases needs the updated live connection. Reinstall it from Live editing setup, then restart the game.</value></data>
+  <data name="LiveMove_HostOnly" xml:space="preserve"><value>Only the player hosting the game can move bases.</value></data>
+  <data name="LiveMove_ImportIntro" xml:space="preserve"><value>Put down a base you exported to a file, or bring one from another world or area on this computer. It is placed piece by piece in the running world and refilled.</value></data>
+  <data name="LiveMove_SkippedFormat" xml:space="preserve"><value>{0} piece(s) are left out: they came with the level, or the game has not saved them yet.</value></data>
+  <data name="LiveMove_WithinThisWorld" xml:space="preserve"><value>Somewhere else in this world</value></data>
+  <data name="LiveMove_RemoveAfterExport" xml:space="preserve"><value>Also remove them from the running world</value></data>
+  <data name="LiveMove_PlaceNowFormat" xml:space="preserve"><value>Place {0} piece(s) now</value></data>
+  <data name="LiveMove_MoveNowFormat" xml:space="preserve"><value>Move {0} piece(s) now</value></data>
+  <data name="LiveMove_SavingFirst" xml:space="preserve"><value>Asking the game to save first...</value></data>
+  <data name="LiveMove_FailedHint" xml:space="preserve"><value>The running world was not changed. Check the game is still running, then try again.</value></data>
+  <data name="LiveMove_ExportedRemoved" xml:space="preserve"><value>Exported, and the pieces were removed from the running world. Import the file where you want them.</value></data>
+  <data name="LiveMove_Moving" xml:space="preserve"><value>Moving the pieces...</value></data>
+  <data name="LiveMove_MovedWithinFormat" xml:space="preserve"><value>{0} piece(s) moved, with everything inside them. The game has saved.</value></data>
+  <data name="LiveMove_MovedOutFormat" xml:space="preserve"><value>{0} piece(s) moved to {1}. That world was written first, then the pieces were removed here and the game saved.</value></data>
+  <data name="LiveMove_PlacingFormat" xml:space="preserve"><value>Placing piece {0} of {1}...</value></data>
+  <data name="LiveMove_PlacedFormat" xml:space="preserve"><value>{0} piece(s) placed in the running world and refilled. The game has saved.</value></data>
+  <data name="LiveMove_Turn" xml:space="preserve"><value>Turn</value></data>
+  <data name="LiveMove_RemoveConfirmFormat" xml:space="preserve"><value>Remove {0} piece(s) from the running world, with everything inside them? This happens at once and cannot be undone here.</value></data>
+  <data name="LiveMove_RemoveNow" xml:space="preserve"><value>Remove now</value></data>
+  <data name="LiveMove_RemoveFailed" xml:space="preserve"><value>The pieces could not be removed</value></data>
+  <data name="LiveMove_CopyFailed" xml:space="preserve"><value>The pieces could not be copied</value></data>
+  <data name="Live_TabSconceLamps" xml:space="preserve"><value>Sconce Lamps</value></data>
+  <data name="Live_TabTeleporterPads" xml:space="preserve"><value>Teleporter Pads</value></data>
+  <data name="LiveWorld_ClockPaused" xml:space="preserve"><value>The clock is paused: time stands still.</value></data>
+  <data name="LiveWorld_ClockRunning" xml:space="preserve"><value>The clock is running.</value></data>
+  <data name="LiveWorld_PauseClock" xml:space="preserve"><value>Pause the clock</value></data>
+  <data name="LiveWorld_ResumeClock" xml:space="preserve"><value>Start the clock again</value></data>
+  <data name="LiveMove_SourceKept" xml:space="preserve"><value>The base was left in the other world too, because some of what it held could not be put back here. Nothing was lost.</value></data>
 </root>

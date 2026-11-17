@@ -219,6 +219,9 @@ return function(ctx)
                         installedUpgrades = benchInstalledUpgrades(obj),
                         paintColor = deployablePaintColor(obj),
                         deployedByPlayer = obj.DeployedByPlayer == true,
+                        -- The piece's key in the world save (DeployedObjectMap), so the editor can
+                        -- find its saved record after asking the game to save (base moving).
+                        assetId = textValue(obj.SpawnedAssetID),
                     })
                 end
             end
@@ -336,7 +339,7 @@ return function(ctx)
                     replication.mark(helper, obj, "PaintedColor")
                     if savedPaint.write(obj, payload.paintColor) then
                         replication.mark(helper, obj, "ChangeableData")
-                        pcall(function() obj:SaveDeployable() end)
+                        pcall(function() obj:SaveDeployable(false) end)
                     end
                 end)
                 if not ok then error("could not set this object's paint colour on this game build: " .. tostring(err)) end
@@ -350,14 +353,59 @@ return function(ctx)
     end
     local function targetOf(payload)
         if not finite(payload.x) or not finite(payload.y) or not finite(payload.z)
-            or (payload.yaw ~= nil and not finite(payload.yaw)) then error("invalid placement coordinates") end
+            or (payload.yaw ~= nil and not finite(payload.yaw))
+            or (payload.pitch ~= nil and not finite(payload.pitch))
+            or (payload.roll ~= nil and not finite(payload.roll)) then error("invalid placement coordinates") end
         return { X = payload.x, Y = payload.y, Z = payload.z }
     end
+
     local function builtActor(id)
         if not ctx.isHost() then error("only the host can place or move objects") end
         local actor = id and ctx.findByFullName("AbioticDeployed_ParentBP_C", id)
         if not actor or actor.DeployedByPlayer ~= true then error("select an existing player-built object") end
         return actor
+    end
+
+    -- The class a new piece is made from: a placed piece of the same kind when the world has one
+    -- (donorId), else the class itself by its path. A class no piece in the world uses may not be
+    -- loaded yet, so its blueprint package is loaded first (UE4SS LoadAsset).
+    local function placementClass(payload)
+        if payload.donorId then return builtActor(payload.donorId):GetClass(), nil end
+        local path = payload.classPath
+        if type(path) ~= "string" or not path:find("^/Game/") then error("a placed object or a class to place is required") end
+        local class = StaticFindObject(path)
+        if (not class or not class:IsValid()) and type(LoadAsset) == "function" then
+            local package = path:match("^([^%.]+)")
+            pcall(function() LoadAsset(package) end)
+            class = StaticFindObject(path)
+        end
+        if not class or not class:IsValid() then error("this kind of object could not be loaded in the running game: " .. path) end
+        local world
+        for _, any in ipairs(ctx.findAll("AbioticDeployed_ParentBP_C")) do
+            local ok, found = pcall(function() return any:GetWorld() end)
+            if ok and found then world = found break end
+        end
+        if not world then world = ctx.UEHelpers.GetPlayerController():GetWorld() end
+        return class, world
+    end
+
+    -- Removes player-built pieces from the running world, the way picking one up would: the
+    -- piece's own SaveDeployable(RemoveFromSave = true) takes its record out of the world save,
+    -- then the actor goes. What it held goes with it (a base move has already copied it).
+    ctx.handlers["bases.remove"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            local ids = payload.ids or {}
+            if #ids == 0 then error("choose at least one object to remove") end
+            local actors = {}
+            for i = 1, #ids do actors[i] = builtActor(ids[i]) end
+            local removed = 0
+            for _, actor in ipairs(actors) do
+                pcall(function() actor:SaveDeployable(true) end)
+                local ok = pcall(function() actor:K2_DestroyActor() end)
+                if ok then removed = removed + 1 end
+            end
+            return { removed = removed }
+        end, respond)
     end
 
     -- UE4SS's documented UWorld:SpawnActor accepts class, FVector and FRotator directly.
@@ -366,7 +414,8 @@ return function(ctx)
     -- these construction fields and SaveDeployable(RemoveFromSave: bool).
     ctx.handlers["bases.spawn"] = function(payload, respond)
         ctx.runOnGameThread(function()
-            local donor = builtActor(payload.donorId)
+            if not ctx.isHost() then error("only the host can place or move objects") end
+            local class, world = placementClass(payload)
             local position = targetOf(payload)
             if type(payload.assetId) ~= "string" or #payload.assetId ~= 32 or payload.assetId:find("[^%x]") then
                 error("a new unique object identity is required")
@@ -376,7 +425,8 @@ return function(ctx)
                 if identity and identity:lower() == payload.assetId:lower() then error("object identity already exists") end
             end
             local helper = replication.requireHelper()
-            local actor = donor:GetWorld():SpawnActor(donor:GetClass(), position, { Pitch = 0, Yaw = payload.yaw or 0, Roll = 0 })
+            world = world or (payload.donorId and builtActor(payload.donorId):GetWorld())
+            local actor = world:SpawnActor(class, position, { Pitch = payload.pitch or 0, Yaw = payload.yaw or 0, Roll = payload.roll or 0 })
             if not actor or not actor:IsValid() then error("the game could not place this object") end
             local ok, failure = pcall(function()
                 actor.SpawnedAssetID = payload.assetId

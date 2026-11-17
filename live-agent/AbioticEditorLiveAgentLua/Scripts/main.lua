@@ -1382,6 +1382,14 @@ handlers["world.set"] = function(payload, respond)
                 end
             end)
         end
+        if payload.paused ~= nil then
+            -- The manager's own Toggle Day Night Cycle(Pause): pausing holds its clock timer,
+            -- resuming starts the timer again. DayNightManuallyPaused is the flag it reads back.
+            local pause = payload.paused == true
+            -- The function's real name has spaces ("Toggle Day Night Cycle").
+            manager["Toggle Day Night Cycle"](manager, pause)
+            pcall(function() manager.DayNightManuallyPaused = pause end)
+        end
         if payload.day ~= nil then
             manager.CurrentDay = payload.day
             pcall(function() manager:OnRep_CurrentDay() end)
@@ -1811,6 +1819,9 @@ local function containerInventory(container)
     local ok, inv = pcall(function() return container:GetContainerInventory() end)
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return direct end) end
     if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.BenchInventory end) end
+    -- A charging station keeps the item it charges in its own ChargeStationInventory
+    -- (Deployed_ChargingStation_ParentBP), the one storage it saves.
+    if not ok or not inv or not inv:IsValid() then ok, inv = pcall(function() return container.ChargeStationInventory end) end
     if ok and inv and inv:IsValid() then
         local shared = not (directOk and direct and direct:IsValid() and fullName(direct) == fullName(inv))
         return inv, shared
@@ -1833,6 +1844,14 @@ local function findContainer(name)
     for _, class in ipairs(CONTAINER_CLASSES) do
         local actor = findByFullName(class, name)
         if actor then return actor end
+    end
+    -- Any other placed piece that carries its own storage (a fridge, a rack, a pot...): found by
+    -- the placed-object parent class and accepted only when it really has an inventory, so a base
+    -- moved in live can have what each of its pieces held put back.
+    local actor = findByFullName("AbioticDeployed_ParentBP_C", name)
+    if actor then
+        local inv = containerInventory(actor)
+        if inv then return actor end
     end
 end
 

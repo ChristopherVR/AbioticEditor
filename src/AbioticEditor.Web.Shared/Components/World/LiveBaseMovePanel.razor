@@ -1,0 +1,391 @@
+@namespace AbioticEditor.Web.Components.World
+@using System.Globalization
+@using AbioticEditor.Core.LiveEditing
+@using AbioticEditor.Core.LiveEditing.World
+@inject ISaveExporter Exporter
+@inject AbioticEditor.Ui.IFilePicker FilePicker
+@inject ToastService Toasts
+
+@* Moving a base with the game running (live editing), the same moves the offline panel makes:
+     - Move: somewhere else in this world (the live pieces move, keeping everything), or to another
+       world or area on this computer (the game saves, the pieces' exact records go into the other
+       world, then the pieces are removed here and the game saves again).
+     - Export: the game saves and the pieces go into a base file; optionally removed here.
+     - Import: a base file, or a base from another world or area, is placed piece by piece in the
+       running world and refilled.
+   Live changes happen at once: there is no SAVE step. The game's own save is used throughout. *@
+<div class="wt-card b3d-panel b3d-op base-move" data-base-move-panel="live-@Mode">
+    <div class="b3d-panel-head">
+        <span class="wt-label accent-orange-text">@Title()</span>
+        <button type="button" class="b3d-close" aria-label="@L.Resource("World3D_Cancel")" data-base-move="close" @onclick="() => OnClose.InvokeAsync()">&#x2715;</button>
+    </div>
+    <p class="wt-muted" data-base-move="live-note">@L.Resource("LiveMove_AppliesNow")</p>
+    @if (Bases.Mover is null || !Bases.IsHost)
+    {
+        <p class="error-text" role="alert">@L.Resource(Bases.IsHost ? "LiveMove_NeedsAgent" : "LiveMove_HostOnly")</p>
+    }
+    else if (_status is not null)
+    {
+        <p class="wt-muted" role="status" data-base-move="live-status">@_status</p>
+    }
+
+    @if (_done is not null)
+    {
+        <p class="b3d-feedback" role="status" data-base-move="live-done">@_done</p>
+        @if (_notes.Count > 0) { <ul class="b3d-list" data-base-move="live-notes">@foreach (var n in _notes) { <li>@n</li> }</ul> }
+        <div class="b3d-links"><button type="button" class="wt-btn" data-base-move="done" @onclick="() => OnClose.InvokeAsync()">@L.Resource("BaseMove_Done")</button></div>
+    }
+    else if (Mode == BaseMovePanel.ImportMode && _package is null && !_busy)
+    {
+        <p class="wt-muted">@L.Resource("LiveMove_ImportIntro")</p>
+        <div class="b3d-links">
+            <button type="button" class="wt-btn" data-base-move="pick-file" @onclick="PickFileAsync">@L.Resource("BaseMove_PickFile")</button>
+        </div>
+        @if (_areas.Count > 0)
+        {
+            <span class="wt-label">@L.Resource("BaseMove_BringTitle")</span>
+            <label class="wt-field">
+                <span>@L.Resource("BaseMove_BringFrom")</span>
+                <select class="wt-input" data-base-move="source" @onchange="e => ChooseSourceAsync(e.Value?.ToString())">
+                    <option value="" selected="@(_sourcePath is null)">@L.Resource("BaseMove_ChooseArea")</option>
+                    @foreach (var a in _areas) { <option value="@a.FilePath" selected="@(string.Equals(_sourcePath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option> }
+                </select>
+            </label>
+            @if (_source is not null)
+            {
+                @if (_sourceBases.Count == 0) { <p class="wt-muted">@L.Resource("BaseMove_NoBasesThere")</p> }
+                else
+                {
+                    <label class="wt-field">
+                        <span>@L.Resource("BaseMove_BringWhich")</span>
+                        <select class="wt-input" data-base-move="source-base" @onchange="e => ChooseSourceBaseAsync(e.Value?.ToString())">
+                            <option value="" selected="true">@L.Resource("BaseMove_ChooseBase")</option>
+                            @foreach (var b in _sourceBases) { <option value="@b.Base.Name">@L.Resource("BaseMove_BaseOptionFormat", b.Base.Name, b.Keys.Count)</option> }
+                        </select>
+                    </label>
+                }
+            }
+        }
+    }
+    else if (_package is { } package && _running is { } running)
+    {
+        <dl class="b3d-fields" data-base-move="summary">
+            <dt>@L.Resource("BaseMove_Pieces")</dt><dd data-base-move="pieces">@package.Pieces.Count</dd>
+            <dt>@L.Resource("BaseMove_ItemsInside")</dt><dd>@package.StoredItems</dd>
+        </dl>
+        @if (_skipped > 0) { <p class="wt-muted">@L.Resource("LiveMove_SkippedFormat", _skipped)</p> }
+
+        @if (Mode == BaseMovePanel.MoveMode)
+        {
+            <label class="wt-field">
+                <span>@L.Resource("BaseMove_TargetWorld")</span>
+                <select class="wt-input" data-base-move="target" disabled="@_busy" @onchange="e => ChooseTargetAsync(e.Value?.ToString())">
+                    <option value="" selected="@(_targetPath is null)">@L.Resource("LiveMove_WithinThisWorld")</option>
+                    @foreach (var a in _areas) { <option value="@a.FilePath" selected="@(string.Equals(_targetPath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option> }
+                </select>
+            </label>
+        }
+
+        @if (Mode != BaseMovePanel.ExportMode)
+        {
+            var landing = LandingData;
+            var incoming = LiveBaseMover.Placements(package, _offset, _yaw).Values.Where(t => t.Translation is not null).Select(t => t.Translation!.Value).ToList();
+            var mine = Mode == BaseMovePanel.MoveMode && _targetPath is null ? package.Pieces.Select(p => p.Key).ToHashSet(StringComparer.OrdinalIgnoreCase) : [];
+            var existing = landing?.Deployables.Where(d => !mine.Contains(d.Id)).Select(d => new PlacedVector(d.X, d.Y, d.Z)).ToList() ?? [];
+            <span class="wt-label">@L.Resource("BaseMove_WhereItLands")</span>
+            <select class="wt-input" aria-label="@L.Resource("BaseMove_WhereItLands")" data-base-move="destination" disabled="@_busy" @onchange="e => ChooseDestination(e.Value?.ToString())">
+                @if (_destination.Length == 0) { <option value="" selected="true">@L.Resource("BaseMove_DestChoose")</option> }
+                @for (var i = 0; i < _destinations.Count; i++)
+                {
+                    var value = i.ToString(CultureInfo.InvariantCulture);
+                    <option value="@value" selected="@(_destination == value)">@DestinationLabel(_destinations[i])</option>
+                }
+            </select>
+            <BaseFootprint Incoming="@incoming" Existing="@existing" Label="@L.Resource("BaseMove_Picture")" />
+            <small class="wt-muted">@L.Resource("BaseMove_PictureLegend")</small>
+            <div class="base-move-pad" role="group" aria-label="@L.Resource("LiveMove_Turn")">
+                <button type="button" class="wt-btn wt-plain" data-base-move="turn-left" @onclick="() => Turn(-90)">&#x21BA; 90°</button>
+                <button type="button" class="wt-btn wt-plain" data-base-move="turn-right" @onclick="() => Turn(90)">&#x21BB; 90°</button>
+            </div>
+            @if (_blocking.Count > 0)
+            {
+                <p class="error-text" role="alert" data-base-move="blocked">@L.Resource("BaseMove_CannotLand")</p>
+                <ul class="b3d-list">@foreach (var b in _blocking.Take(6)) { <li>@b</li> }</ul>
+            }
+        }
+
+        @if (Mode != BaseMovePanel.ImportMode && !(Mode == BaseMovePanel.MoveMode && _targetPath is null))
+        {
+            <label class="wt-check">
+                <input type="checkbox" data-base-move="remove" checked="@_remove" @onchange="e => _remove = e.Value is true" />
+                @L.Resource(Mode == BaseMovePanel.MoveMode ? "BaseMove_RemoveAfterMove" : "LiveMove_RemoveAfterExport")
+            </label>
+        }
+        @if (Mode == BaseMovePanel.ImportMode && _source is not null)
+        {
+            <label class="wt-check">
+                <input type="checkbox" data-base-move="remove" checked="@_remove" @onchange="e => _remove = e.Value is true" />
+                @L.Resource("BaseMove_RemoveFromSourceFormat", AreaLabel(_areas.First(a => string.Equals(a.FilePath, _sourcePath, StringComparison.OrdinalIgnoreCase))))
+            </label>
+        }
+
+        <div class="b3d-links">
+            <button type="button" class="wt-btn" data-base-move="live-go" disabled="@(_busy || Bases.Mover is null || !Bases.IsHost || _blocking.Count > 0 || (Mode != BaseMovePanel.ExportMode && _destination.Length == 0))"
+                    @onclick="GoAsync">@(_busy ? L.Resource("BaseMove_Working") : GoLabel(package))</button>
+        </div>
+    }
+    @if (_error is not null) { <p class="error-text" role="alert" data-base-move="error">@_error</p> }
+</div>
+
+@code {
+    /// <summary>The running world's bases.</summary>
+    [Parameter, EditorRequired] public LiveBasesSession Bases { get; set; } = default!;
+
+    /// <summary>The chosen live pieces (move and export).</summary>
+    [Parameter] public IReadOnlyList<string> Keys { get; set; } = [];
+
+    /// <summary><see cref="BaseMovePanel.MoveMode"/>, <see cref="BaseMovePanel.ExportMode"/> or <see cref="BaseMovePanel.ImportMode"/>.</summary>
+    [Parameter] public string Mode { get; set; } = BaseMovePanel.MoveMode;
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>The running world changed (the host refreshes its lists and views).</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private RunningWorldSave? _running;
+    private LiveLift? _lift;
+    private BasePackage? _package;
+    private int _skipped;
+    private IReadOnlyList<WorldArea> _areas = [];
+    private string? _targetPath;
+    private WorldSaveSession? _target;
+    private string? _sourcePath;
+    private WorldSaveSession? _source;
+    private IReadOnlyList<(WorldBase Base, IReadOnlyList<string> Keys)> _sourceBases = [];
+    private IReadOnlyList<string> _sourceKeys = [];
+    private IReadOnlyList<BaseDestination> _destinations = [];
+    private string _destination = "";
+    private PlacedVector _offset = new(0, 0, 0);
+    private double _yaw;
+    private bool _remove = true, _busy;
+    private string? _status, _error, _done;
+    private List<string> _notes = [];
+    private List<string> _blocking = [];
+    private string? _lastMode;
+    private IReadOnlyList<string>? _lastKeys;
+
+    private WorldSaveData? LandingData => Mode == BaseMovePanel.MoveMode && _targetPath is not null ? _target?.ReadOnlyData : _running?.Data;
+
+    private string Title() => Mode switch
+    {
+        BaseMovePanel.ExportMode => L.Resource("BaseMove_ExportTitleFormat", _package?.Pieces.Count ?? Keys.Count),
+        BaseMovePanel.ImportMode => L.Resource("BaseMove_ImportTitle"),
+        _ => L.Resource("BaseMove_MoveTitleFormat", _package?.Pieces.Count ?? Keys.Count),
+    };
+
+    private string GoLabel(BasePackage package) => Mode switch
+    {
+        BaseMovePanel.ExportMode => L.Resource("BaseMove_ExportButton"),
+        BaseMovePanel.ImportMode => L.Resource("LiveMove_PlaceNowFormat", package.Pieces.Count),
+        _ => L.Resource("LiveMove_MoveNowFormat", package.Pieces.Count),
+    };
+
+    private string AreaLabel(WorldArea a) => L.Resource("BaseMove_AreaOptionFormat", a.World, a.Area);
+
+    private string DestinationLabel(BaseDestination d) => d.Kind switch
+    {
+        BaseDestinationKind.SameSpot => L.Resource("BaseMove_DestSameSpot"),
+        BaseDestinationKind.Sector => L.Resource("BaseMove_DestSectorFormat", d.Name),
+        BaseDestinationKind.AreaMiddle => L.Resource("BaseMove_DestAreaMiddle"),
+        _ when d.NearSector is { } sector => L.Resource("BaseMove_DestBaseNearFormat", d.Name, sector),
+        _ => L.Resource("BaseMove_DestBaseFormat", d.Name),
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_lastMode == Mode && ReferenceEquals(_lastKeys, Keys)) return;
+        _lastMode = Mode;
+        _lastKeys = Keys;
+        _running = null; _lift = null; _package = null; _target = null; _targetPath = null; _source = null; _sourcePath = null;
+        _destinations = []; _destination = ""; _offset = new(0, 0, 0); _yaw = 0; _done = null; _error = null; _notes = []; _blocking = [];
+        _remove = Mode != BaseMovePanel.ImportMode;
+        if (Bases.Mover is not { } mover || !Bases.IsHost) return;
+        await RunAsync(L.Resource("LiveMove_SavingFirst"), async () =>
+        {
+            if (Mode == BaseMovePanel.ImportMode)
+            {
+                _running = await mover.SaveAndReadAsync();
+            }
+            else
+            {
+                var pieces = Bases.LivePieces(Keys).Where(p => p.DeployedByPlayer).ToList();
+                if (pieces.Count == 0) { _error = L.Resource("BaseMove_NothingToMove"); return; }
+                _lift = await mover.LiftAsync(pieces);
+                _running = _lift.World;
+                _package = _lift.Package;
+                _skipped = Keys.Count - _lift.LiveIdByKey.Count;
+            }
+            // The running world's own saves belong to the game while it runs: only other worlds are offered.
+            _areas = WorldAreas.List(_running.Folder).Where(a => !a.IsThisWorld).ToList();
+            LoadDestinations();
+        });
+    }
+
+    private async Task RunAsync(string status, Func<Task> work)
+    {
+        _busy = true;
+        _status = status;
+        _error = null;
+        StateHasChanged();
+        try { await work(); }
+        catch (Exception ex) when (ex is LiveAgentException or IOException or InvalidOperationException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+        {
+            _error = Errors.Present(ex, L.Resource("BaseMove_MoveFailed"), L.Resource("LiveMove_FailedHint"));
+        }
+        finally
+        {
+            _busy = false;
+            _status = null;
+        }
+    }
+
+    private void LoadDestinations()
+    {
+        _destinations = [];
+        _destination = "";
+        if (_package is null || LandingData is not { } landing) return;
+        var within = Mode == BaseMovePanel.MoveMode && _targetPath is null;
+        _destinations = BaseDestinations.For(_package, landing).Where(d => !(within && d.Kind == BaseDestinationKind.SameSpot)).ToList();
+        if (_destinations.Count > 0) ChooseDestination("0");
+    }
+
+    private void ChooseDestination(string? value)
+    {
+        _destination = value ?? "";
+        if (_package is null || !int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var i) || i >= _destinations.Count) return;
+        _offset = _destinations[i].OffsetFor(_package);
+        _yaw = 0;
+        CheckLanding();
+    }
+
+    private void Turn(double degrees)
+    {
+        _yaw = (_yaw + degrees) % 360;
+        CheckLanding();
+    }
+
+    /// <summary>Blocking findings for a move into another world (the same checks the offline move makes).</summary>
+    private void CheckLanding()
+    {
+        _blocking = [];
+        if (_package is null || Mode != BaseMovePanel.MoveMode || _targetPath is null || _target is null) return;
+        _blocking = _target.PreviewBaseTransplant(_package, _offset, _yaw).Preview.Issues.Where(i => i.IsBlocking).Select(i => i.Message).Distinct().ToList();
+    }
+
+    private async Task ChooseTargetAsync(string? path)
+    {
+        _targetPath = string.IsNullOrEmpty(path) ? null : path;
+        _target = null;
+        if (_targetPath is not null)
+        {
+            await RunAsync(L.Resource("BaseMove_LoadingWorld"), () =>
+            {
+                _target = new WorldSaveSession(WorldSaveReader.ReadFromFile(_targetPath), _targetPath);
+                return Task.CompletedTask;
+            });
+        }
+        LoadDestinations();
+    }
+
+    private async Task PickFileAsync()
+    {
+        _error = null;
+        try
+        {
+            var picked = await FilePicker.PickFileAsync(new() { Title = L.Resource("BaseMove_PickFile"), FileTypes = [new(L.Resource("BaseMove_FileType"), [".json"])] });
+            if (picked is null) return;
+            await using var stream = await picked.OpenReadAsync(CancellationToken.None);
+            _package = BasePackage.Parse(stream);
+            _source = null;
+            _remove = false;
+            LoadDestinations();
+        }
+        catch (InvalidDataException) { _error = L.Resource("BaseMove_NotABaseFile"); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Microsoft.JSInterop.JSException)
+        {
+            _error = Errors.Present(ex, L.Resource("BaseMove_FileUnreadable"), L.Resource("PlayerUi_CheckFileReadable"));
+        }
+    }
+
+    private async Task ChooseSourceAsync(string? path)
+    {
+        _sourcePath = string.IsNullOrEmpty(path) ? null : path;
+        _source = null;
+        _sourceBases = [];
+        if (_sourcePath is null) return;
+        await RunAsync(L.Resource("BaseMove_LoadingWorld"), () =>
+        {
+            _source = new WorldSaveSession(WorldSaveReader.ReadFromFile(_sourcePath), _sourcePath);
+            _sourceBases = _source.MovableBases();
+            return Task.CompletedTask;
+        });
+    }
+
+    private Task ChooseSourceBaseAsync(string? name)
+    {
+        if (_source is null || _sourceBases.FirstOrDefault(b => b.Base.Name == name) is not { Keys.Count: > 0 } chosen) return Task.CompletedTask;
+        _sourceKeys = chosen.Keys;
+        _package = _source.CreateBasePackage(chosen.Keys, out _);
+        _remove = true;
+        LoadDestinations();
+        return Task.CompletedTask;
+    }
+
+    private async Task GoAsync()
+    {
+        if (_package is null || Bases.Mover is not { } mover) return;
+        var package = _package;
+        await RunAsync(L.Resource("BaseMove_Working"), async () =>
+        {
+            switch (Mode)
+            {
+                case BaseMovePanel.ExportMode:
+                    await Exporter.ExportAsync(package.SuggestedFileName(), package.ToJson());
+                    if (_remove && _lift is not null) await mover.RemoveAsync(_lift.LiveIdByKey.Values.ToList());
+                    _done = L.Resource(_remove ? "LiveMove_ExportedRemoved" : "BaseMove_Exported");
+                    break;
+                case BaseMovePanel.MoveMode when _targetPath is null && _lift is not null:
+                    _status = L.Resource("LiveMove_Moving");
+                    StateHasChanged();
+                    await mover.MoveWithinAsync(_lift, _offset, _yaw);
+                    _done = L.Resource("LiveMove_MovedWithinFormat", package.Pieces.Count);
+                    break;
+                case BaseMovePanel.MoveMode when _target is not null && _lift is not null:
+                    // The receiving world is written first; only then do the pieces leave the running world.
+                    _target.StageBaseTransplant(package, _offset, _yaw);
+                    await _target.SaveAsync();
+                    if (_remove) await mover.RemoveAsync(_lift.LiveIdByKey.Values.ToList());
+                    _done = L.Resource("LiveMove_MovedOutFormat", package.Pieces.Count, AreaLabel(_areas.First(a => string.Equals(a.FilePath, _targetPath, StringComparison.OrdinalIgnoreCase))));
+                    break;
+                case BaseMovePanel.ImportMode:
+                    var progress = new Progress<(int Done, int Total)>(p => { _status = L.Resource("LiveMove_PlacingFormat", p.Done, p.Total); InvokeAsync(StateHasChanged); });
+                    var result = await mover.BringAsync(package, _offset, _yaw, null, Bases.DonorsByClass, progress);
+                    _notes = result.Notes.ToList();
+                    // Never take the base out of the other world when some of what it held did not
+                    // arrive: the original stays, so nothing is lost.
+                    if (result.ContentsNotRefilled > 0 && _remove)
+                        _notes.Add(L.Resource("LiveMove_SourceKept"));
+                    else if (_remove && _source is not null && _sourceKeys.Count > 0)
+                    {
+                        _source.StageMoveAway(_sourceKeys, leaveDanglingLinks: true);
+                        await _source.SaveAsync();
+                    }
+                    _done = L.Resource("LiveMove_PlacedFormat", result.Placed.Count);
+                    break;
+            }
+            await Bases.RefreshAsync();
+            Toasts.Show(_done ?? "", ToastKind.Success);
+            await OnChanged.InvokeAsync();
+        });
+    }
+}

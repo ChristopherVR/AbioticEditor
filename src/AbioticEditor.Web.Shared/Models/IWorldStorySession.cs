@@ -65,6 +65,11 @@ public interface IWorldStorySession
     Task TriggerWeatherAsync(string weather, CancellationToken cancellationToken = default);
     Task QueueWeatherAsync(string weather, CancellationToken cancellationToken = default);
 
+    /// <summary>Whether the running world's clock is held still (live only; null when this session
+    /// cannot pause the clock).</summary>
+    bool? ClockPaused => null;
+    Task SetClockPausedAsync(bool paused, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
     /// <summary>True only live: resetting portal worlds is something the running game does
     /// (it deletes their saves itself), not an edit to the open file.</summary>
     bool SupportsPortalWorldReset { get; }

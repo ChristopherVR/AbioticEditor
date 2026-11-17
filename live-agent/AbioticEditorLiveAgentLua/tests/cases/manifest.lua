@@ -44,4 +44,5 @@ return {
     "cu5_native",
     "effects",
     "toggles",
+    "worldsave",
 }

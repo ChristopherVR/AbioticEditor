@@ -1,3 +1,4 @@
+using AbioticEditor.Core.LiveEditing;
 using AbioticEditor.Core.LiveEditing.World;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -93,9 +94,13 @@ public sealed class LivePowerSocketsFeatureSession : IWorldFeaturesSession
                 ReadOnlyOrUnavailable("socketId", "Socket ID", s.SocketId,
                     "The socket's own persistent id (its GetPowerSocketID() value, the same id "
                         + "space the save file stores)."),
-                WorldMapField.ReadOnly("pluggedInDevice", "Plugged-in device", s.PluggedInDevice ?? "nothing plugged in",
-                    hint: "The real class of whatever is currently plugged into this socket, read "
-                        + "from the live actor reference itself."),
+                IsHost && s.PluggedInDeviceId is not null
+                    ? new WorldMapField("pluggedInDevice", "Plugged-in device", s.PluggedInDevice, WorldFieldKind.Enum, Editable: true,
+                        Options: [s.PluggedInDevice ?? "plugged in", NothingPlugged],
+                        Hint: "Choose \"nothing plugged in\" to pull the cable out, as a player would. Applies immediately.")
+                    : WorldMapField.ReadOnly("pluggedInDevice", "Plugged-in device", s.PluggedInDevice ?? NothingPlugged,
+                        hint: "The real class of whatever is currently plugged into this socket, read "
+                            + "from the live actor reference itself."),
                 ReadOnlyOrUnavailable("hasTimer", "Timer armed", BoolText(s.HasTimer),
                     "Read-only live: the game's only save path for this socket unconditionally "
                         + "resets the timer state to off every time it runs, so nothing here can be "
@@ -108,16 +113,35 @@ public sealed class LivePowerSocketsFeatureSession : IWorldFeaturesSession
             })).ToArray();
         return new WorldMapFeatureSnapshot(
             PowerSocketsFeatureId, "Power Sockets",
-            "Power sockets currently loaded near you. Everything here is read-only live: the "
-                + "game's own save logic always clears a socket's timer state when it persists, so "
-                + "there is no live path to arm one that would survive - edit the save file directly "
-                + "for that.",
+            "Power sockets currently loaded near you. A plugged-in cable can be pulled out here. "
+                + "The timer is read-only live: the game's own save logic always clears a socket's "
+                + "timer state when it persists, so edit the save file directly for that.",
             MapName: "PowerSocketMap", SupportsRemoval: false, RemoveActionLabel: string.Empty, entries);
     }
 
     private static string? BoolText(bool? value) => value is { } known ? (known ? "true" : "false") : null;
 
-    public Task<WorldEditResult> SetMapFeatureField(string featureId, string entryKey, string fieldId, string? value)
+    private const string NothingPlugged = "nothing plugged in";
+
+    public async Task<WorldEditResult> SetMapFeatureField(string featureId, string entryKey, string fieldId, string? value)
+    {
+        if (fieldId == "pluggedInDevice" && string.Equals(featureId, PowerSocketsFeatureId, StringComparison.Ordinal)
+            && Sockets.FirstOrDefault(s => string.Equals(s.Id, entryKey, StringComparison.Ordinal)) is { PluggedInDeviceId: not null } socket)
+        {
+            if (!IsHost) return WorldEditResult.Failure("only the host can unplug devices.");
+            if (!string.Equals(value, NothingPlugged, StringComparison.OrdinalIgnoreCase)) return WorldEditResult.NoChange;
+            try
+            {
+                await _channel.PlugAsync(socket.Id, null, null, attach: false).ConfigureAwait(false);
+                await RefreshAsync().ConfigureAwait(false);
+                return WorldEditResult.Success;
+            }
+            catch (LiveAgentException ex) { return WorldEditResult.Failure(ex.Message); }
+        }
+        return await RefuseAsync(featureId, entryKey, fieldId).ConfigureAwait(false);
+    }
+
+    private Task<WorldEditResult> RefuseAsync(string featureId, string entryKey, string fieldId)
     {
         if (!string.Equals(featureId, PowerSocketsFeatureId, StringComparison.Ordinal))
         {

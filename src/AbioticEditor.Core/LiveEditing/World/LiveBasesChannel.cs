@@ -32,7 +32,7 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
         var deployables = (wire.Deployables ?? [])
             .Select(d => new LiveDeployable(d.Id, d.ClassName, d.X, d.Y, d.Z, d.CustomName, d.HasInventory,
                 d.StoredItemCount, d.SupportsUpgrades, d.InstalledUpgrades ?? [], d.CanEditUpgrades ?? wire.SupportsBenchUpgrades,
-                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW, d.Region, d.DeployedByPlayer))
+                d.PaintColor, d.ClassPath, d.QuatX, d.QuatY, d.QuatZ, d.QuatW, d.Region, d.DeployedByPlayer, d.AssetId))
             .ToList();
         return new LiveDeployableDirectory(deployables, wire.IsHost, wire.SupportsBenchUpgrades, wire.SupportsBenchUpgradeRemoval, wire.SupportsPlacement);
     }
@@ -64,12 +64,36 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
     }
     public Task MoveAsync(string id, double x, double y, double z, double? yaw = null, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("bases.move", new { id, x, y, z, yaw }, cancellationToken);
+
+    /// <summary>
+    /// Places a new player-built piece: copied from <paramref name="donorId"/> (a piece of the same
+    /// kind already in the world) or made from <paramref name="classPath"/> when the world has none.
+    /// It starts empty and unnamed; <paramref name="assetId"/> becomes its save key. Host only.
+    /// </summary>
+    public async Task<string> SpawnAsync(string? donorId, string? classPath, string assetId, double x, double y, double z,
+        double pitch, double yaw, double roll, CancellationToken cancellationToken = default)
+    {
+        var result = await _channel.RequestAsync<PlacedWire>("bases.spawn",
+            new { donorId, classPath, assetId, x, y, z, pitch, yaw, roll }, cancellationToken).ConfigureAwait(false);
+        return result.Id;
+    }
+
+    /// <summary>Removes player-built pieces from the running world (and its save), with what they hold. Host only.</summary>
+    public async Task<int> RemoveAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var result = await _channel.RequestAsync<RemovedWire>("bases.remove", new { ids }, cancellationToken).ConfigureAwait(false);
+        return result.Removed;
+    }
+
+    private sealed record RemovedWire(int Removed);
     private sealed record PlacedWire(string Id);
     private sealed record DirectoryWire(IReadOnlyList<DeployableWire>? Deployables, bool IsHost, bool SupportsBenchUpgrades, bool SupportsBenchUpgradeRemoval, bool SupportsPlacement = false);
     private sealed record DeployableWire(string Id, string ClassName, double X, double Y, double Z,
         string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
         IReadOnlyList<string>? InstalledUpgrades, bool? CanEditUpgrades, int? PaintColor,
-        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false);
+        string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false,
+        string? AssetId = null);
     private sealed record SetWire(string Id, string? CustomName, string? UpgradeRow, bool? UpgradeInstalled, int? PaintColor);
 }
 
@@ -84,7 +108,8 @@ public sealed class LiveBasesChannel(ILiveGameChannel channel)
 public sealed record LiveDeployable(string Id, string ClassName, double X, double Y, double Z,
     string? CustomName, bool HasInventory, int StoredItemCount, bool SupportsUpgrades,
     IReadOnlyList<string> InstalledUpgrades, bool CanEditUpgrades = false, int? PaintColor = null,
-    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false);
+    string? ClassPath = null, double QuatX = 0, double QuatY = 0, double QuatZ = 0, double QuatW = 1, string? Region = null, bool DeployedByPlayer = false,
+    string? AssetId = null);
 
 /// <summary>Every loaded deployable, whether this process has host authority to change them, and
 /// whether bench-upgrade installation is available live (yes, since round 77 - see

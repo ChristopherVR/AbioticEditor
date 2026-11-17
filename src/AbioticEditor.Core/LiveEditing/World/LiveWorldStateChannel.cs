@@ -24,7 +24,7 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
     /// <summary>Applies whichever fields of <paramref name="edit"/> are non-null, immediately.</summary>
     public Task SetAsync(LiveWorldStateEdit edit, CancellationToken cancellationToken = default)
         => _channel.RequestAsync<object?>("world.set",
-            new SetWire(edit.TimeSeconds, edit.Day, edit.Weather, edit.NextWeather), cancellationToken);
+            new SetWire(edit.TimeSeconds, edit.Day, edit.Weather, edit.NextWeather, edit.Paused), cancellationToken);
 
     /// <summary>Resets every resettable portal world through the game's own
     /// <c>ResetVignettes()</c>, which deletes those worlds' saves so they come back fresh.
@@ -40,7 +40,7 @@ public sealed class LiveWorldStateChannel(ILiveGameChannel channel)
 
     private sealed record StateWire(int Day, double TimeSeconds, bool IsNight, bool Paused,
         string? CurrentWeather, IReadOnlyList<string>? WeatherOptions, bool IsHost, int? MinutesPassed, bool CanSetMinutesPassed);
-    private sealed record SetWire(double? TimeSeconds, int? Day, string? Weather, string? NextWeather);
+    private sealed record SetWire(double? TimeSeconds, int? Day, string? Weather, string? NextWeather, bool? Paused);
 }
 
 /// <summary>The running game's clock and weather, as read by <see cref="LiveWorldStateChannel.GetAsync"/>.</summary>
@@ -60,4 +60,4 @@ public sealed record LiveWorldState(int Day, double TimeSeconds, bool IsNight, b
 /// <summary>One world edit; a null field is left untouched. <paramref name="Weather"/> triggers
 /// that event now; <paramref name="NextWeather"/> queues it for the next in-game day.</summary>
 public sealed record LiveWorldStateEdit(double? TimeSeconds = null, int? Day = null,
-    string? Weather = null, string? NextWeather = null);
+    string? Weather = null, string? NextWeather = null, bool? Paused = null);

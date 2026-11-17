@@ -20,7 +20,7 @@ public sealed class LiveDeployedCareSession : IWorldFeaturesSession, IChemistryB
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        if (featureId is not ("garden-plots" or "power-chairs" or "chemistry-benches"))
+        if (featureId is not ("garden-plots" or "power-chairs" or "chemistry-benches" or "sconce-lamps" or "teleporter-pads"))
             throw new ArgumentOutOfRangeException(nameof(featureId));
         return new(channel, featureId, await channel.GetAsync(featureId, cancellationToken).ConfigureAwait(false));
     }
@@ -72,16 +72,29 @@ public sealed class LiveDeployedCareSession : IWorldFeaturesSession, IChemistryB
     public WorldMapFeatureSnapshot? MapFeature(string featureId)
     {
         if (featureId != FeatureId) return null;
-        var title = FeatureId switch { "garden-plots" => "Garden plots", "power-chairs" => "Power chairs", _ => "Chemistry benches" };
+        var title = FeatureId switch
+        {
+            "garden-plots" => "Garden plots", "power-chairs" => "Power chairs", "sconce-lamps" => "Sconce lamps",
+            "teleporter-pads" => "Teleporter pads", _ => "Chemistry benches",
+        };
         var entries = _directory.Entries.Select(entry => new WorldMapEntry(entry.Id, entry.Label,
-            entry.Fields.Select(field => new WorldMapField(field.Id, field.Label, field.Value,
-                field.Kind switch { "integer" => WorldFieldKind.Integer, "enum" => WorldFieldKind.Enum, _ => WorldFieldKind.Text },
-                IsHost && field.Editable, field.Options,
+            entry.Fields.Select(field => new WorldMapField(field.Id, field.Label, DisplayValue(field),
+                field.Kind switch
+                {
+                    "integer" => WorldFieldKind.Integer, "enum" or "tag" => WorldFieldKind.Enum, "bool" => WorldFieldKind.Bool,
+                    _ => WorldFieldKind.Text,
+                },
+                IsHost && field.Editable, field.Kind == "tag" ? TeleporterTagCatalog.ChoicesFor(TagOf(field)) : field.Options,
                 field.Maximum is { } maximum ? $"0 to {maximum.ToString(CultureInfo.InvariantCulture)}. Applies immediately." : null)).ToArray(),
             entry.ContainerId, entry.ContainerId is null ? null : "Edit flask contents")).ToArray();
         return new(FeatureId, title, "Loaded objects in the running world. Changes apply immediately.",
             "DeployedObjectMap", false, string.Empty, entries);
     }
+
+    // A pad's tag arrives as its saved number and is shown by name, as in the offline editor.
+    private static int TagOf(LiveCareField field)
+        => int.TryParse(field.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0;
+    private static string? DisplayValue(LiveCareField field) => field.Kind == "tag" ? TeleporterTagCatalog.Label(TagOf(field)) : field.Value;
 
     public async Task<WorldEditResult> SetMapFeatureField(string featureId, string entryKey, string fieldId, string? value)
     {
@@ -99,6 +112,16 @@ public sealed class LiveDeployedCareSession : IWorldFeaturesSession, IChemistryB
         }
         else if (field.Kind == "enum" && value is not null && field.Options?.Contains(value, StringComparer.Ordinal) == true)
             parsed = value;
+        else if (field.Kind == "bool" && WorldMapAccessor.TryParseBool(value, out var on))
+        {
+            if (bool.TryParse(field.Value, out var current) && current == on) return WorldEditResult.NoChange;
+            parsed = on;
+        }
+        else if (field.Kind == "tag" && TeleporterTagCatalog.Frequency(value) is { } tag)
+        {
+            if (tag == TagOf(field)) return WorldEditResult.NoChange;
+            parsed = tag;
+        }
         else return WorldEditResult.Failure("Choose a valid value from the list.");
         if (field.Value == value) return WorldEditResult.NoChange;
         Interlocked.Increment(ref _pendingOperations);

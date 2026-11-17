@@ -31,4 +31,5 @@ return {
     "areas.triggers",
     "areas.effects",
     "areas.toggles",
+    "areas.worldsave",
 }

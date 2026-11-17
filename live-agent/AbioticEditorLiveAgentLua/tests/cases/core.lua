@@ -66,6 +66,7 @@ return function(H)
         OnRep_CurrentTimeInSeconds = function() end, OnRep_IsNight = function() end, OnRep_CurrentDay = function() end,
         IsCurrentlyDaytime = function(self) return self.CurrentTimeInSeconds < 75000 end,
         TriggerWeatherEvent = function(self, row) self.CurrentWeatherEvent = row.RowName end,
+        ["Toggle Day Night Cycle"] = function(self, pause) self.ToggledPause = pause end,
     }))
     H.world.static("/Script/AbioticFactor.Default__WeatherEventHandleFunctionLibrary", H.object("WeatherEventHandleFunctionLibrary", {}, {
         GetAllWeatherEventRowNames = function(_, out) out[1] = H.outParam(H.fname("Fog")) end,
@@ -76,6 +77,11 @@ return function(H)
     H.ok(H.dispatch("world.set", { timeSeconds = 80000, weather = "Fog" }), "world.set")
     H.eq(H.field(manager, "IsNight"), true, "night recomputed from IsCurrentlyDaytime")
     H.eq(H.ok(H.dispatch("world.get")).currentWeather, "Fog", "weather triggered")
+    H.ok(H.dispatch("world.set", { paused = true }), "pause the clock")
+    H.eq(H.field(manager, "ToggledPause"), true, "the manager's own pause toggle is used")
+    H.eq(H.ok(H.dispatch("world.get")).paused, true, "the clock reads back paused")
+    H.ok(H.dispatch("world.set", { paused = false }), "resume the clock")
+    H.eq(H.ok(H.dispatch("world.get")).paused, false, "the clock reads back running")
 
     -- doors, containers, dropped items: one of each, host-gated writes.
     local door = H.world.add(H.object("SimpleDoor_ParentBP_C", { DoorState = 0, OneWayDoor_HasBeenUnlocked = false, DoorDisabled = false },
@@ -109,6 +115,28 @@ return function(H)
     H.eq(one.container.label, containers.containers[1].label, "containers.get carries the label like the listing")
     H.eq(one.isHost, true, "containers.get reports authority like the listing")
     H.fails(H.dispatch("containers.get", { id = "no such container" }), "not found", "containers.get rejects an unknown id")
+    -- A placed piece outside the two container families that still carries storage (a fridge, a
+    -- rack): found through the placed-object parent class, so a moved base's contents go back in.
+    local rack = H.world.add(H.object("Deployed_WeaponRack_C", { __bases = { "AbioticDeployed_ParentBP_C" },
+        ContainerInventory = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+            { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("None") },
+              ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0,
+              CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } } } },
+            { OnRep_CurrentInventory = function() end }),
+    }, { K2_GetActorLocation = function() return H.vector(7, 8, 9) end }))
+    H.ok(H.dispatch("containers.set", { id = rack:GetFullName(), edits = { { slotIndex = 0, itemId = "scrap_metal", stack = 1 } } }), "a storage piece outside the container families is writable")
+    H.eq(H.ok(H.dispatch("containers.get", { id = rack:GetFullName() })).container.slots[1].itemId, "scrap_metal", "its slot was written")
+    local charger = H.world.add(H.object("Deployed_CraftedChargingStation_C", { __bases = { "AbioticDeployed_ParentBP_C" },
+        ChargeStationInventory = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
+            { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("None") },
+              ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0,
+              CurrentItemDurability_4_24B4D0E64E496B43FB8D3CA2B9D161C8 = 0, MaxItemDurability_6_F5D5F0D64D4D6050CCCDE4869785012B = 0 } } } },
+            { OnRep_CurrentInventory = function() end }),
+    }, { K2_GetActorLocation = function() return H.vector(1, 1, 1) end }))
+    H.ok(H.dispatch("containers.set", { id = charger:GetFullName(), edits = { { slotIndex = 0, itemId = "scrap_metal", stack = 1 } } }), "a charging station's slot is writable")
+    H.eq(H.ok(H.dispatch("containers.get", { id = charger:GetFullName() })).container.slots[1].itemId, "scrap_metal", "the charger holds the item")
+    local plain = H.world.add(H.object("Deployed_Chair_C", { __bases = { "AbioticDeployed_ParentBP_C" } }, {}))
+    H.fails(H.dispatch("containers.get", { id = plain:GetFullName() }), "not found", "a placed piece with no storage is still not a container")
 
     local item = H.world.add(H.object("Abiotic_Item_Dropped_C", { HasBeenPickedUp = false, ItemDataRow = { RowName = H.fname("scrap_cloth") },
         ChangeableData = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 3 } },

@@ -47,6 +47,22 @@ public sealed class LiveBasesSession : IWorldBasesSession
         await _channel.MoveAsync(id, x, y, z, yaw, cancellationToken).ConfigureAwait(false);
         await RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
+    /// <summary>
+    /// Base moving with the running game (save, lift, move, bring in, remove). Null when the host has
+    /// not given this session a connection to move bases with.
+    /// </summary>
+    public LiveBaseMover? Mover { get; set; }
+
+    /// <summary>The live pieces behind <paramref name="ids"/> (unknown ids are skipped).</summary>
+    public IReadOnlyList<LiveDeployable> LivePieces(IEnumerable<string> ids)
+        => ids.Select(id => _byId.GetValueOrDefault(id)).Where(d => d is not null).Select(d => d!).ToList();
+
+    /// <summary>One live piece of each kind already in the world, by class path (used when a kind cannot be loaded by its class).</summary>
+    public IReadOnlyDictionary<string, string> DonorsByClass
+        => _byId.Values.Where(d => d.DeployedByPlayer && d.ClassPath is { Length: > 0 })
+            .GroupBy(d => d.ClassPath!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
     public PlacedVector? PositionFor(string id) => _byId.GetValueOrDefault(id) is { } d ? new(d.X, d.Y, d.Z) : null;
     public string? RegionFor(string id) => _byId.GetValueOrDefault(id)?.Region;
     public IReadOnlyList<Base3DObject> SceneObjects

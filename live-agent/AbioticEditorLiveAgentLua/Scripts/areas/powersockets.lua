@@ -66,6 +66,7 @@
 -- offline). `powered` is a bonus read-only field off the confirmed `IsPowered()` function (present
 -- on PowerSocket_ParentBP_C itself, per the dump).
 return function(ctx)
+    local socketIdOf
     local PARENT_CLASS = "PowerSocket_ParentBP_C"
     -- Data-only fallback root list (see header) - empty today; every confirmed socket asset chains
     -- to PARENT_CLASS.
@@ -97,6 +98,24 @@ return function(ctx)
 
     -- Same explicit-if discipline buttons.lua documents (an `and/or` ternary silently loses a real
     -- `false` reading) - never collapsed to a one-liner.
+    -- A socket's own id (its save key: the owning piece's id plus an outlet digit, or a wall
+    -- socket's key), as text whether the game hands back a Lua string or an FString.
+    socketIdOf = function(socket)
+        local value = socket:GetPowerSocketID()
+        if type(value) == "string" then return value end
+        local ok, text = pcall(function() return value:ToString() end)
+        if ok and type(text) == "string" then return text end
+        return nil
+    end
+
+    local function findSocketById(socketId)
+        for _, socket in ipairs(allSockets()) do
+            local ok, id = pcall(function() return socketIdOf(socket) end)
+            if ok and id and id:lower() == socketId:lower() then return socket end
+        end
+        return nil
+    end
+
     local function boolOrNil(ok, value)
         if ok and type(value) == "boolean" then return value end
         return nil
@@ -133,7 +152,12 @@ return function(ctx)
                 local name = ctx.fullName(socket)
                 if name then
                     local x, y, z = ctx.actorLocation(socket)
-                    local okId, socketId = pcall(function() return socket:GetPowerSocketID() end)
+                    local okId, socketId = pcall(function() return socketIdOf(socket) end)
+                    local okDev, deviceId = pcall(function()
+                        local device = socket.PluggedInDevice
+                        if device ~= nil and device:IsValid() then return ctx.fullName(device) end
+                        return nil
+                    end)
                     local okHasTimer, hasTimerRaw = readSaveDataLeaf(socket, "bHasTimer", HAS_TIMER_LEAF)
                     local okTimerMode, timerModeRaw = readSaveDataLeaf(socket, "TimerMode", TIMER_MODE_LEAF)
                     local okPowered, powered = pcall(function() return socket:IsPowered() end)
@@ -142,6 +166,7 @@ return function(ctx)
                         label = ctx.classLabel(name),
                         socketId = (okId and type(socketId) == "string") and socketId or nil,
                         pluggedInDevice = describeDevice(socket),
+                        pluggedInDeviceId = okDev and deviceId or nil,
                         hasTimer = boolOrNil(okHasTimer, hasTimerRaw),
                         timerMode = (okTimerMode and tonumber(timerModeRaw)) or nil,
                         powered = boolOrNil(okPowered, powered),
@@ -151,6 +176,33 @@ return function(ctx)
             end
         end
         return result
+    end
+
+    -- Plugging a device into a socket (or unplugging it), the way a player's cable does: the game's
+    -- own Request_SetNewCableConnection (Abiotic_PlayerCharacter) calls the socket's
+    -- ChangePluggedInState(Attach, DeployedActor, PlayerCharacter, false); this makes the same call
+    -- as the host. The socket is found by its actor name or by its save id (socketId).
+    ctx.handlers["powersockets.plug"] = function(payload, respond)
+        ctx.runOnGameThread(function()
+            if not ctx.isHost() then error("only the host can plug devices in") end
+            local socket = (payload.id and findSocket(payload.id)) or (payload.socketId and findSocketById(payload.socketId))
+            if not socket then error("power socket not found (it may have been unloaded or destroyed)") end
+            local attach = payload.attach ~= false
+            local device
+            if attach then
+                device = payload.deviceId and ctx.findByFullName("AbioticDeployed_ParentBP_C", payload.deviceId)
+                if not device then error("the device to plug in was not found") end
+            else
+                local ok, current = pcall(function() return socket.PluggedInDevice end)
+                device = ok and current or nil
+                if device == nil or not device:IsValid() then return { pluggedInDevice = describeDevice(socket) } end
+            end
+            local controller = ctx.UEHelpers.GetPlayerController()
+            local pawn = controller and controller:IsValid() and controller.Pawn or nil
+            if not pawn or not pawn:IsValid() then error("no player to plug the cable with") end
+            socket:ChangePluggedInState(attach, device, pawn, false)
+            return { pluggedInDevice = describeDevice(socket) }
+        end, respond)
     end
 
     ctx.handlers["powersockets.list"] = function(_, respond)

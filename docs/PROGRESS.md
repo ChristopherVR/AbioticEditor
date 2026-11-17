@@ -1,5 +1,43 @@
 # Abiotic Editor - Session history
 
+## Live editing parity: base moving and the remaining gaps (2026-11-17)
+
+Base moving now works with the game running, with the same choices as offline. The Bases tab and
+the live 3D view get a move bar (somewhere else in this world, out to another world or area,
+save to a file, bring in from a file or another world). The editor asks the game to save before
+and after (`world.save` then polling `world.saving`), so the file on disk always matches.
+Core: `LiveBaseMover` (lift by save id, move within, write-then-remove out, bring in by class
+path with refilled storage, name, paint, upgrades and the cables between the pieces, rolling
+back on failure). Live 3D: multi-select (Ctrl/Shift-click), select the whole base, remove with a
+confirm, copy, move, export, import.
+
+Other live gaps closed: pausing/restarting the clock (`world.set paused`), sconce lamps on/off and
+teleporter pad tags (`care` features), and pulling out a cable on the Power Sockets tab
+(`powersockets.plug`).
+
+Verified in the running game (LiveMove_Test, hosting): base moved within the world (6 pieces,
+"Mario weird") and in from LiveMove_Target (8 pieces, then 28 pieces with 10 cables reconnected
+and storage refilled, game saved); clock paused for 45 s with no change then ran again; a pad's
+tag changed and changed back; a sconce lamp switched on; a Megalight unplugged. 1710 Lua harness
+checks pass; related .NET tests pass.
+
+Bugs found by the in-game run and fixed:
+- Blueprint functions whose real names contain spaces (`Toggle Day Night Cycle`,
+  `Set New Location ID`): the bytecode dump file names swap spaces for underscores, so read the
+  JSON `Name` before calling one from Lua.
+- `SaveDeployable` needs its one argument. The bench-upgrade save called it with none, so every
+  live upgrade change reported a failure after the tags had already changed; the repaint save did
+  the same inside a `pcall` and silently never saved. Both now pass `false`, and the harness fake
+  rejects a call without it.
+- Storage on placed pieces outside the two container families (racks, fridges) and a charging
+  station's `ChargeStationInventory` could not be refilled. `findContainer` now falls back to any
+  placed piece that really has an inventory, and `containerInventory` reads the charger's slot.
+  A refill that still fails becomes a note, and the base is then left in the other world too so
+  nothing is lost.
+
+Follow-ups: stoves keep food in several cooking inventories with their own save-repair logic; only
+the main one is refilled live (the move says so). Teleporter pads arrive without a pairing.
+
 ## Issue #69: move a base to another world, export and import base files (2026-11-17)
 
 - Core `BasePackage` (Services/World): lifts player-built pieces into a detached GVAS holding only

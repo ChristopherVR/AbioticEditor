@@ -179,9 +179,20 @@ After applying a visibility flag, the agent calls `OnRep_TransmogVisibility()` s
 | `minutesPassed` | number? | Total world play time in minutes (see `world.setPlaytime` below) |
 | `canSetMinutesPassed` | bool | Whether this process can change `minutesPassed` |
 
-`world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather"}`. `weather`
+`world.set` takes any subset of `{"timeSeconds","day","weather","nextWeather","paused"}`. `weather`
 triggers that event immediately (`None` ends the current one); `nextWeather` queues it for the
-next in-game day. Host only.
+next in-game day. `paused` calls the manager's own `Toggle Day Night Cycle(Pause)` (the real
+function name contains spaces; pausing holds its clock timer, resuming re-initialises it) and sets
+`DayNightManuallyPaused`, which `world.get` reports back as `paused`. Host only.
+
+### `world.save` / `world.saving` - save the running world now
+
+`world.save` asks the game to save, the same way its own save action does:
+`Default__SaveCurrentWorld:SaveCurrentWorld(PlayerController)` then `:Activate()`. `world.saving`
+returns `{"saving":bool,"worldName"?}` from the game instance's `bIsSaving` and
+`ActiveWorldSaveName`, so the editor can wait for the write to finish before reading the file.
+Host only. Base moving uses this pair before and after every change, so the world on disk always
+matches the running game.
 
 ### `world.setPlaytime` - total world play time
 
@@ -377,12 +388,21 @@ with an identity rotation. Rows include `deployedByPlayer`, and the directory in
 position membership in the cooked streaming brushes for the selected section; explicit actor or
 spawner sections retain priority over the broad Facility outer.
 
-`bases.spawn` takes `{"donorId","assetId","x","y","z","yaw"?}` and returns `{"id"}`.
-`donorId` must identify an existing player-built deployable. Only its class is reused; the new
-actor starts with class defaults and a fresh 32-digit hexadecimal asset identity. Inventory,
+`bases.spawn` takes `{"donorId"?,"classPath"?,"assetId","x","y","z","pitch"?,"yaw"?,"roll"?}` and
+returns `{"id"}`. The class comes from `classPath` (found with `StaticFindObject`, or loaded with
+`LoadAsset` on its package) or, failing that, from `donorId`, an existing player-built deployable
+whose class is reused; the new actor starts with class defaults and the given 32-digit hexadecimal
+asset identity (`assetId`, which is also its save key: rows report it as `assetId`). Inventory,
 wiring and donor state are not copied. Duplicate identities and non-finite coordinates fail.
 The actor is initialized as fully constructed, marked for replication and saved through the
 game's SaveDeployable routine. Initialization failure removes the partial spawn.
+
+`bases.remove` takes `{"ids":[...]}` and removes player-built pieces: each piece's own
+`SaveDeployable(RemoveFromSave = true)` takes its record out of the world save, then
+`K2_DestroyActor`. Returns `{"removed":n}`. Host only.
+
+`SaveDeployable` always takes its one argument: a call with none fails in the game ("UFunction
+expected 1 parameters"). The bench-upgrade and repaint paths pass `false`.
 
 `bases.move` takes `{"id","x","y","z","yaw"?}`. It only moves player-built objects and
 preserves pitch/roll; omitted yaw preserves the current rotation. A blocked K2_TeleportTo fails
@@ -947,7 +967,7 @@ combination the file editor supports having no live equivalent.
 
 Not yet exercised in the running game.
 
-## `powersockets.list` / `powersockets.set` - power sockets
+## `powersockets.list` / `powersockets.plug` / `powersockets.set` - power sockets
 
 The live twin of the `power-sockets` world-map feature
 (`Core/WorldSaves/Services/WorldMapFeatures/PowerSocketMapFeature.cs`, the save's `PowerSocketMap`).
@@ -963,7 +983,18 @@ confirmed from each class's own `super=` chain) comes back with no class name ha
 reference directly and reports its real class name ("nothing plugged in" when free) - it needs no
 game-data catalog, unlike the offline feature's asset-id resolution.
 
-**Read-only, and confirmed to have no live-settable path at all** (`powersockets.set` exists only
+Rows also carry `pluggedInDeviceId`, the live id of the plugged-in piece.
+
+`powersockets.plug` takes `{"id"?,"socketId"?,"deviceId"?,"attach"?}` (host only): the socket by
+its live id or by its save id, and with `attach` true (the default) the placed piece `deviceId`
+to plug in, or with `attach` false nothing (whatever is plugged in is pulled out). It makes the
+same call a player's cable does: the game's `Request_SetNewCableConnection` on the player
+character calls the socket's `ChangePluggedInState(Attach, DeployedActor, PlayerCharacter, false)`,
+and so does this, with the host's own character. Replies `{"pluggedInDevice"}`. Base moving uses it
+to reconnect the cables between the pieces of a base it brings into the running world (each new
+piece's outlets are its new asset id plus the outlet digit).
+
+**The timer is read-only, with no live-settable path at all** (`powersockets.set` exists only
 to give a named, evidenced refusal rather than a generic "unknown command" - the C# session
 (`LivePowerSocketsFeatureSession`) already refuses every field locally before ever reaching it).
 Traced `PowerSocket_ParentBP_C`'s own bytecode exhaustively (every hash-suffixed struct-member
@@ -1174,7 +1205,15 @@ re-allow overlap on its linked trigger arrays, then call `SaveTriggerData()` - a
 complete reset than a bare `timesTriggered=0` write, so `reset` on the same row as a
 `timesTriggered` value ignores the latter. Not yet exercised in the running game.
 
-## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches
+## `care.list` / `care.set` - deployed-object care: gardens, Power Chairs, chemistry benches, lamps, teleporter pads
+
+Two more `featureId`s: `"sconce-lamps"` (`Deployed_Lamp_Sconce_C`, parent
+`AbioticDeployed_Lamp_ParentBP_C`) reports one `on` field (`kind` `"bool"`, the lamp's `SwitchOn`)
+and sets it with the lamp's own `Server_ToggleLight(On, SkipSave = false)`. `"teleporter-pads"`
+(`Deployed_TeleporterPad_C`) reports one `tag` field (`kind` `"tag"`: the raw
+`EDynamicProperty::TeleporterFrequency` value from the pad's `ChangeableData` dynamic properties;
+the editor shows it by name) and sets it with the pad's own `Set New Location ID(SyncedLocationID,
+Force = true)`, which also updates the game state's list of where each tag leads.
 
 **Implemented, awaiting in-game verification.** The live counterpart of watering/fertilizing a
 garden plot, charging a Power Chair, and reading a chemistry bench's flask contents. Unlike most

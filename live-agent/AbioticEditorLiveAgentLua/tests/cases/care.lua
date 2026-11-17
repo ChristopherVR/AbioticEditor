@@ -64,6 +64,36 @@ return function(H)
     local chair = H.world.add(H.object("Deployed_Furniture_Chair_PowerChair_C", {ChangeableData=data, RechargeableComponent=component}))
     H.ok(H.dispatch("care.set", {featureId="power-chairs",id=chair:GetFullName(),fieldId="charge",value=200}), "chair charge set")
     H.eq(data.LiquidLevel_46_D6414A6E49082BC020AADC89CC29E35A, 200, "chair charge delta applied")
+
+    -- Sconce lamps: the lamp's own switch, saved as it changes.
+    local lamp = H.world.add(H.object("Deployed_Lamp_Sconce_C", { SwitchOn = false }, {
+        Server_ToggleLight = function(self, on, skipSave)
+            H.eq(skipSave, false, "the lamp switch saves")
+            rawget(self, "__fields").SwitchOn = on
+        end,
+    }))
+    local lamps = H.ok(H.dispatch("care.list", {featureId="sconce-lamps"}), "lamps listed")
+    H.eq(lamps.entries[1].fields[1].value, "false", "lamp reads off")
+    H.eq(lamps.entries[1].fields[1].kind, "bool", "lamp field is on/off")
+    H.ok(H.dispatch("care.set", {featureId="sconce-lamps",id=lamp:GetFullName(),fieldId="on",value=true}), "lamp switched on")
+    H.eq(lamp.SwitchOn, true, "lamp is on")
+    H.fails(H.dispatch("care.set", {featureId="sconce-lamps",id=lamp:GetFullName(),fieldId="on",value=3}), "on or off", "a number is not a lamp state")
+
+    -- Teleporter pads: the saved tag in the dynamic-property array; set with the pad's own function.
+    H.world.static("/Script/AbioticFactor.EDynamicProperty", H.object("UEnum", {}, {
+        ForEachName = function(_, fn) fn("EDynamicProperty::PaintColor", 6); fn("EDynamicProperty::TeleporterFrequency", 9) end,
+    }))
+    local padData = { DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = { { Key = 6, Value = 2 }, { Key = 9, Value = 4 } } }
+    local pad = H.world.add(H.object("Deployed_TeleporterPad_C", { ChangeableData = padData }, {
+        ["Set New Location ID"] = function(_, id, force)
+            H.eq(force, true, "the pad's tag is forced, as choosing it in game")
+            padData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7[2].Value = tonumber(id)
+        end,
+    }))
+    local pads = H.ok(H.dispatch("care.list", {featureId="teleporter-pads"}), "pads listed")
+    H.eq(pads.entries[1].fields[1].value, "4", "pad reads its saved tag")
+    H.ok(H.dispatch("care.set", {featureId="teleporter-pads",id=pad:GetFullName(),fieldId="tag",value=12}), "pad tag set")
+    H.eq(padData.DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7[2].Value, 12, "pad tag changed")
     local benchInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {
         { ItemDataTable_18_BF1052F141F66A976F4844AB2B13062B = { RowName = H.fname("Empty") },
           ChangeableData_12_2B90E1F74F648135579D39A49F5A2313 = { CurrentStack_9_D443B69044D640B0989FD8A629801A49 = 0, DynamicProperties_50_5C138DB145048726E8C0FEAC7C9600F7 = {} } },

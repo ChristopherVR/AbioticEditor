@@ -171,6 +171,7 @@ function H.install()
     H.playerController = nil
     H.gameState = nil
     H.gameMode = nil
+    H.gameInstance = nil
     package.preload["UEHelpers"] = function()
         return {
             GetPlayerController = function() return H.playerController or H.object("PlayerController", { __valid = false }) end,
@@ -180,6 +181,7 @@ function H.install()
             end,
             GetGameStateBase = function() return H.gameState end,
             GetGameModeBase = function() return H.gameMode end,
+            GetGameInstance = function() return H.gameInstance end,
         }
     end
     -- os.getenv is only used to build the ipc path; keep it deterministic.
@@ -471,6 +473,7 @@ function H.clientSession()
     local pawn = H.hostSession()
     rawget(pawn, "__methods").HasAuthority = function() return false end
     H.gameMode = nil
+    H.gameInstance = nil
     return pawn
 end
 

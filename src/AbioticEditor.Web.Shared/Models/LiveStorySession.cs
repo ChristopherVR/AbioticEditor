@@ -216,6 +216,16 @@ public sealed class LiveStorySession : IWorldStorySession
         Changed?.Invoke();
     }
 
+    public bool? ClockPaused => _world.Paused;
+
+    public async Task SetClockPausedAsync(bool paused, CancellationToken cancellationToken = default)
+    {
+        await _worldChannel.SetAsync(new LiveWorldStateEdit(Paused: paused), cancellationToken).ConfigureAwait(false);
+        Status = null;
+        await RefreshWorldAsync(cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke();
+    }
+
     // ---------- weather (live only) ----------
 
     public bool SupportsWeather => true;

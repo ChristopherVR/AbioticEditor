@@ -117,7 +117,7 @@ return function(H)
         ChangeableData={GameplayTags_45_1A018E824E25CC7BA608A6B2835209A1=tagData},
     }, {
         K2_GetActorLocation=function() return H.vector(0,0,0) end,
-        FlushNetDormancy=function() end, OnRep_UpgradeTagContainer=function() end, SaveDeployable=function() end,
+        FlushNetDormancy=function() end, OnRep_UpgradeTagContainer=function() end, SaveDeployable=function(_, remove) if remove ~= false then error("UFunction expected 1 parameters, received 0") end end,
     }))
     H.ok(H.dispatch("bases.set",{id=writable:GetFullName(),upgradeRow="TougherBench",upgradeInstalled=true}), "install through replicated and saved tags")
     H.eq(writable.UpgradeTagContainer.GameplayTags[1].TagName:ToString(), "BenchUpgrade.TougherBench", "replicated tag installed")
@@ -147,7 +147,7 @@ return function(H)
     }, {
         K2_GetActorLocation = function() return H.vector(9, 9, 9) end,
         OnRep_PaintedColor = function() end,
-        SaveDeployable = function() end,
+        SaveDeployable = function(self, remove) rawget(self, "__fields").SavedWith = remove end,
     }))
     local marksBefore = H.calls(netHelper, "MarkPropertyDirty")
     H.ok(H.dispatch("bases.set", { id = paintable:GetFullName(), paintColor = 8 }), "paint the crafting bench")
@@ -160,6 +160,7 @@ return function(H)
     H.eq(saved[2].Key, 6, "the saved paint entry keeps the PaintColor key")
     H.eq(saved[2].Value, 8, "the saved paint entry carries the new colour")
     H.eq(H.calls(paintable, "SaveDeployable"), 1, "the deployable is asked to save after the repaint")
+    H.eq(H.field(paintable, "SavedWith"), false, "the repaint save keeps the piece in the save (the game's save function needs its argument)")
 
     -- A deployable without a saved dynamic-property array still repaints live (no error).
     local plainPaintable = H.world.add(H.object("Deployed_Rug_Default_C", {
@@ -222,10 +223,10 @@ return function(H)
     -- New placement starts from class defaults, never a copied donor inventory or identity.
     local spawned, failSave, blocked
     local gameWorld = H.object("World", {}, { SpawnActor = function(_, cls, position, rotation)
-        H.eq(cls, "locker-class", "spawn uses the donor's class")
+        H.check(cls == "locker-class" or (type(cls) == "table" and cls.__className == "LockerClass"), "spawn uses the donor's (or the named) class")
         spawned = H.world.add(H.object("Deployed_Locker_ParentBP_C", {
             __bases = { "AbioticDeployed_ParentBP_C" }, ChangeableData = {},
-            ConstructionLevel_Max = 100, ContainerInventory = {},
+            ConstructionLevel_Max = 100, ContainerInventory = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = {} }),
         }, {
             OnRep_DeployedByPlayer = function() end,
             OnRep_ConstructionLevel_Current = function() end,
@@ -269,6 +270,30 @@ return function(H)
     H.eq(H.calls(spawned, "SaveDeployable"), 1, "new actor saved")
     H.fails(H.dispatch("bases.spawn", payload), "already exists", "duplicate identity refused")
     H.fails(H.dispatch("bases.spawn", { donorId = donor:GetFullName(), assetId = string.rep("b", 32), x = 0/0, y = 0, z = 0 }), "coordinates", "NaN refused")
+    local spawnedRow
+    for _, d in ipairs(H.ok(H.dispatch("bases.list")).deployables) do if d.id == spawned:GetFullName() then spawnedRow = d end end
+    H.eq(spawnedRow and spawnedRow.assetId, payload.assetId, "the list reports a piece's save id (base moving finds its record by it)")
+
+    -- A kind no piece in the world uses is placed from its class path (base moving brings pieces in).
+    local keep = spawned
+    H.world.static("/Game/Blueprints/DeployedObjects/Deployed_Locker.Deployed_Locker_C", H.object("LockerClass", { __className = "LockerClass" }))
+    local byClass = H.ok(H.dispatch("bases.spawn", { classPath = "/Game/Blueprints/DeployedObjects/Deployed_Locker.Deployed_Locker_C",
+        assetId = string.rep("d", 32), x = 1, y = 2, z = 3, yaw = 90, pitch = 0, roll = 0 }), "place from a class path")
+    H.check(byClass and byClass.id ~= nil, "a class-path placement reports the new piece")
+    H.fails(H.dispatch("bases.spawn", { classPath = "/Game/Nope/Missing.Missing_C", assetId = string.rep("e", 32), x = 1, y = 2, z = 3 }),
+        "could not be loaded", "an unknown class is refused by name")
+    H.fails(H.dispatch("bases.spawn", { classPath = "not-a-path", assetId = string.rep("e", 32), x = 1, y = 2, z = 3 }),
+        "required", "a class path outside the game is refused")
+
+    -- Removing pieces (base moving out of the running world): taken out of the save, then destroyed.
+    local victim = spawned
+    local removed = H.ok(H.dispatch("bases.remove", { ids = { victim:GetFullName() } }), "remove a built piece")
+    H.eq(removed and removed.removed, 1, "one piece removed")
+    H.eq(H.calls(victim, "K2_DestroyActor"), 1, "the actor is destroyed")
+    H.fails(H.dispatch("bases.remove", { ids = { benchId } }), "player-built", "a level piece cannot be removed")
+    H.fails(H.dispatch("bases.remove", { ids = {} }), "at least one", "an empty removal is refused")
+    spawned = keep
+    rawset(spawned, "__valid", true)
     H.fails(H.dispatch("bases.move", { id = benchId, x = 0, y = 0, z = 0 }), "player-built", "map object cannot be moved")
     H.ok(H.dispatch("bases.move", { id = spawned:GetFullName(), x = 0, y = 0, z = 0 }), "move built object")
     blocked = true

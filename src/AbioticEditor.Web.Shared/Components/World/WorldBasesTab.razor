@@ -213,6 +213,31 @@
         </div>
     }
 
+    @* The same moves with the game running: applied at once through the live connection. *@
+    @if (Session is LiveBasesSession liveMoveSession)
+    {
+        var liveMovable = SelectedBase is { } liveBase
+            ? BaseFloors.MainFloorIds(liveBase).Where(liveMoveSession.IsPlayerBuilt).ToList()
+            : new List<string>();
+        <div class="wt-card bases-move" data-bases="live-move-bar">
+            <div class="b3d-links">
+                @if (SelectedBase is not null)
+                {
+                    <button type="button" class="wt-btn" data-bases="live-move-open" disabled="@(liveMovable.Count == 0 || !liveMoveSession.IsHost)"
+                            @onclick="() => OpenBaseMove(BaseMovePanel.MoveMode, liveMovable)">@L.Resource("BaseMove_OpenMove", liveMovable.Count)</button>
+                    <button type="button" class="wt-btn" data-bases="live-export-open" disabled="@(liveMovable.Count == 0 || !liveMoveSession.IsHost)"
+                            @onclick="() => OpenBaseMove(BaseMovePanel.ExportMode, liveMovable)">@L.Resource("BaseMove_OpenExport", liveMovable.Count)</button>
+                }
+                <button type="button" class="wt-btn wt-plain" data-bases="live-import-open" disabled="@(!liveMoveSession.IsHost)"
+                        @onclick="() => OpenBaseMove(BaseMovePanel.ImportMode, [])">@L.Resource("BaseMove_OpenImport")</button>
+            </div>
+            @if (_baseMoveMode is not null)
+            {
+                <LiveBaseMovePanel Bases="liveMoveSession" Keys="_baseMoveKeys" Mode="@_baseMoveMode" OnClose="CloseBaseMove" OnChanged="StateHasChanged" />
+            }
+        </div>
+    }
+
     @if (SelectedBase is { } worldBaseDetail)
     {
         <div class="wt-md bases-detail">

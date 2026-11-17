@@ -57,6 +57,26 @@ return function(H)
     H.eq(plugRow.hasTimer, false, "hasTimer reads back the only value this module can ever observe")
     H.eq(plugRow.timerMode, 0, "timerMode reads back the raw byte (0 = NewEnumerator0)")
     H.eq(plugRow.powered, true, "powered reads IsPowered()")
+    H.eq(plugRow.pluggedInDeviceId, device:GetFullName(), "the plugged device is named, so the editor can tell which piece it is")
+
+    -- Plugging a device in the way a player's cable does (ChangePluggedInState on the socket).
+    local lamp = H.world.add(H.object("Deployed_Lamp_C", { __bases = { "AbioticDeployed_ParentBP_C" }, DeployedByPlayer = true }, {}))
+    local calls = {}
+    rawget(empty, "__methods").ChangePluggedInState = function(self, attach, dev, pawn, fromSave)
+        calls[#calls + 1] = { attach = attach, dev = dev, pawn = pawn, fromSave = fromSave }
+        rawget(self, "__fields").PluggedInDevice = attach and dev or nil
+    end
+    H.playerController = H.object("PlayerController", { Pawn = H.object("Abiotic_PlayerCharacter_C", {}) })
+    local plugged2 = H.ok(H.dispatch("powersockets.plug", { socketId = "/Game/Maps/Facility.Facility:PersistentLevel.PowerSocket_ParentBP_C_2", deviceId = lamp:GetFullName() }), "plug by save id")
+    H.eq(#calls, 1, "the socket's own plug function is called once")
+    H.eq(calls[1].attach, true, "attach")
+    H.check(calls[1].dev == lamp, "the chosen device is plugged in")
+    H.eq(calls[1].fromSave, false, "not a load-from-save plug")
+    H.eq(plugged2.pluggedInDevice, "Deployed_Lamp_C", "the reply names what is now plugged in")
+    H.ok(H.dispatch("powersockets.plug", { id = empty:GetFullName(), attach = false }), "unplug by name")
+    H.eq(calls[2].attach, false, "unplug")
+    H.fails(H.dispatch("powersockets.plug", { id = empty:GetFullName(), deviceId = "nope" }), "not found", "an unknown device is refused")
+    H.fails(H.dispatch("powersockets.plug", { socketId = "missing" , deviceId = lamp:GetFullName() }), "not found", "an unknown socket is refused")
 
     -- powersockets.set: hasTimer is refused outright, by name, never silently ignored.
     local setReply = H.dispatch("powersockets.set", { sockets = { { id = plugRow.id, hasTimer = true } } })

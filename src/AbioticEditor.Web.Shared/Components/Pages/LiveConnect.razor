@@ -382,7 +382,7 @@ else
 
     private async Task<IWorldFeaturesSession?> ResolveLiveFeaturesAsync(string feature)
     {
-        if (feature is "garden-plots" or "power-chairs" or "chemistry-benches")
+        if (feature is "garden-plots" or "power-chairs" or "chemistry-benches" or "sconce-lamps" or "teleporter-pads")
         {
             if (!_care.TryGetValue(feature, out var care) && _channel is { } channel)
                 _care[feature] = care = await LiveDeployedCareSession.ConnectAsync(new LiveDeployedCareChannel(channel), feature);
@@ -451,7 +451,8 @@ else
     private LiveTriggersFeatureSession? _triggers;
     private readonly Dictionary<string, LiveDeployedCareSession> _care = new(StringComparer.Ordinal);
     private static readonly (string Id, string TitleKey)[] CareFeatures =
-        [("garden-plots", "Live_TabGardenPlots"), ("power-chairs", "Live_TabPowerChairs"), ("chemistry-benches", "Live_TabChemistryBenches")];
+        [("garden-plots", "Live_TabGardenPlots"), ("power-chairs", "Live_TabPowerChairs"), ("chemistry-benches", "Live_TabChemistryBenches"),
+         ("sconce-lamps", "Live_TabSconceLamps"), ("teleporter-pads", "Live_TabTeleporterPads")];
     private string? _careContainerFilter;
 
     private async Task OpenCareContainerAsync(string id)
@@ -817,6 +818,7 @@ else
                     break;
                 case "bases":
                     _bases ??= await TryConnectWorldAreaAsync(() => LiveBasesSession.ConnectAsync(new LiveBasesChannel(channel)));
+                    if (_bases is not null) _bases.Mover ??= new LiveBaseMover(channel);
                     _vehicles ??= await TryConnectWorldAreaAsync(() => LiveVehiclesSession.ConnectAsync(new LiveVehiclesChannel(channel)));
                     if (_spawn is null)
                     {
@@ -879,6 +881,8 @@ else
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
+                case "sconce-lamps":
+                case "teleporter-pads":
                     if (!_care.ContainsKey(_worldTab))
                     {
                         var care = await TryConnectWorldAreaAsync(() => LiveDeployedCareSession.ConnectAsync(new LiveDeployedCareChannel(channel), _worldTab));
@@ -1185,6 +1189,8 @@ else
                 case "garden-plots":
                 case "power-chairs":
                 case "chemistry-benches":
+                case "sconce-lamps":
+                case "teleporter-pads":
                     if (_care.TryGetValue(_worldTab, out var care)) yield return care;
                     break;
                 // "entitlements" has no live session backing it - offline-only.

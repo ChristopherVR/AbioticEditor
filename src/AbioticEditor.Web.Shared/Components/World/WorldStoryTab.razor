@@ -83,6 +83,13 @@
                         <label class="live-inventory-field">@L.Resource("LiveWorld_DayNumber")<input type="number" min="0" disabled="@(!Session.CanSetWorldClock || _busy)" @bind="_clockDay" /></label>
                         <button class="secondary" type="button" disabled="@(!Session.CanSetWorldClock || _busy)" @onclick="SetClockDayAsync">@L.Resource("LiveWorld_SetDay")</button>
                     </div>
+                    @if (Session.ClockPaused is { } paused)
+                    {
+                        <div class="live-inventory-controls live-world-controls">
+                            <span>@L.Resource(paused ? "LiveWorld_ClockPaused" : "LiveWorld_ClockRunning")</span>
+                            <button class="secondary" type="button" data-world="clock-pause" disabled="@(!Session.CanSetWorldClock || _busy)" @onclick="() => RunAsync(() => Session.SetClockPausedAsync(!paused))">@L.Resource(paused ? "LiveWorld_ResumeClock" : "LiveWorld_PauseClock")</button>
+                        </div>
+                    }
                 </div>
 
                 @if (Session.SupportsWeather)

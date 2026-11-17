@@ -44,6 +44,10 @@ public class BlueprintBytecodeProbe
             var key = provider.Files.Keys.FirstOrDefault(k => k.EndsWith("/" + name + ".uasset", StringComparison.OrdinalIgnoreCase));
             if (key is null) { File.WriteAllText(Path.Combine(outDir, name + ".missing.txt"), "not found"); continue; }
             var package = provider.LoadPackage(key[..^".uasset".Length]);
+            // The parent class chain, for a blueprint with no functions of its own (it inherits them).
+            var parents = package.GetExports().OfType<UClass>()
+                .Select(c => c.Name + " <- " + (c.SuperStruct?.Name ?? "?")).ToList();
+            File.WriteAllLines(Path.Combine(outDir, name + ".super.txt"), parents);
             foreach (var function in package.GetExports().OfType<UFunction>())
                 File.WriteAllText(Path.Combine(outDir, $"{name}.{string.Concat(function.Name.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'))}.json"),
                     JsonConvert.SerializeObject(function, Formatting.Indented));

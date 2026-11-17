@@ -30,14 +30,27 @@ public sealed class LivePowerSocketsChannel(ILiveGameChannel channel)
             .ConfigureAwait(false);
         var sockets = (wire.Sockets ?? [])
             .Select(s => new LivePowerSocket(s.Id, s.Label, s.SocketId, s.PluggedInDevice, s.HasTimer, s.TimerMode,
-                s.Powered, s.X, s.Y, s.Z))
+                s.Powered, s.X, s.Y, s.Z, s.PluggedInDeviceId))
             .ToList();
         return new LivePowerSocketDirectory(sockets, wire.IsHost);
     }
 
+    /// <summary>
+    /// Plugs <paramref name="deviceId"/> (a placed piece's live id) into a socket, or unplugs whatever
+    /// it powers when <paramref name="attach"/> is false, the way a player's cable does. The socket is
+    /// named by its live id or by its save id (<paramref name="socketId"/>). Host only. Returns the
+    /// socket's description of what is now plugged in.
+    /// </summary>
+    public async Task<string?> PlugAsync(string? id, string? socketId, string? deviceId, bool attach = true, CancellationToken cancellationToken = default)
+    {
+        var result = await _channel.RequestAsync<PlugWire>("powersockets.plug", new { id, socketId, deviceId, attach }, cancellationToken).ConfigureAwait(false);
+        return result?.PluggedInDevice;
+    }
+
+    private sealed record PlugWire(string? PluggedInDevice);
     private sealed record DirectoryWire(IReadOnlyList<SocketWire>? Sockets, bool IsHost);
     private sealed record SocketWire(string Id, string Label, string? SocketId, string? PluggedInDevice,
-        bool? HasTimer, int? TimerMode, bool? Powered, double X, double Y, double Z);
+        bool? HasTimer, int? TimerMode, bool? Powered, double X, double Y, double Z, string? PluggedInDeviceId = null);
 }
 
 /// <summary>One loaded power-socket actor. <paramref name="Id"/> is the game's full object name
@@ -51,7 +64,7 @@ public sealed class LivePowerSocketsChannel(ILiveGameChannel channel)
 /// function. Every nullable field is null specifically when it could not be read off this actor
 /// right now, never a guessed default.</summary>
 public sealed record LivePowerSocket(string Id, string Label, string? SocketId, string? PluggedInDevice,
-    bool? HasTimer, int? TimerMode, bool? Powered, double X, double Y, double Z);
+    bool? HasTimer, int? TimerMode, bool? Powered, double X, double Y, double Z, string? PluggedInDeviceId = null);
 
 /// <summary>Every loaded power socket plus whether this process has host authority (irrelevant
 /// today since nothing here is settable, kept for shape symmetry with every other live area).</summary>

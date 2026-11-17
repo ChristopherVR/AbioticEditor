@@ -65,6 +65,7 @@ function M.set(obj, row, installed)
     replication.mark(helper, obj, "ChangeableData")
     obj:FlushNetDormancy()
     obj:OnRep_UpgradeTagContainer()
-    obj:SaveDeployable()
+    -- SaveDeployable takes one argument (RemoveFromSave); false keeps the bench in the save.
+    obj:SaveDeployable(false)
 end
 return M

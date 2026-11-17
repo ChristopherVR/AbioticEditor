@@ -13,6 +13,11 @@
 <div class="live3d" @ref="_root">
     <div class="live3d-tools">
         <button class="wt-btn" disabled="@(!Bases.IsHost || !Bases.SupportsPlacement || _refreshing)" title="@(Bases.SupportsPlacement ? null : "Connect the updated live agent to place objects")" @onclick="OpenAddAsync">Add object</button>
+        <button class="wt-btn" data-b3d="live-import-open" disabled="@(!Bases.IsHost || Bases.Mover is null)" @onclick="() => OpenMove(BaseMovePanel.ImportMode)">@L.Resource("BaseMove_OpenImport")</button>
+        @if (FocusBase is { } focus)
+        {
+            <button class="wt-btn" data-b3d="live-select-base" @onclick="SelectWholeBaseAsync">@L.Resource("BaseMove_SelectWholeBase", BaseFloors.MainFloorIds(focus).Count(Bases.IsPlayerBuilt))</button>
+        }
         <button class="wt-btn" @onclick="FrameAsync">@L.Resource("World3D_FrameAll")</button>
         <button class="wt-btn" disabled="@_refreshing" @onclick="ReloadAsync">@L.Resource("LiveNpcs_Refresh")</button>
         <label class="wt-check"><input type="checkbox" checked="@_levelOn" @onchange="e => SetLevelAsync(e.Value is true)" />@L.Resource("World3D_LevelShow")</label>
@@ -22,7 +27,24 @@
     <div class="live3d-layout">
         <div class="b3d-stage"><div class="live3d-canvas" data-b3d="canvas" @ref="_host"></div></div>
         <aside class="live3d-inspector" data-b3d="inspect-pane">
-            @if (_adding)
+            @if (_moveMode is not null)
+            {
+                <LiveBaseMovePanel Bases="Bases" Keys="_moveKeys" Mode="@_moveMode" OnClose="CloseMove" OnChanged="AfterLiveChangeAsync" />
+            }
+            else if (_picked.Count > 1)
+            {
+                var builtPicked = _picked.Where(Bases.IsPlayerBuilt).ToList();
+                <h3>@L.Resource("World3D_SelectionFormat", _picked.Count)</h3>
+                <ul class="b3d-list" data-b3d="live-selection">
+                    @foreach (var (key, rowKey) in RenderKeys.With(_picked.Take(40).ToList(), k => k))
+                    {
+                        <li @key="rowKey">@(Bases.Deployables.FirstOrDefault(d => d.Id == key)?.DisplayName ?? key)</li>
+                    }
+                </ul>
+                @SelectionActions(builtPicked)
+                <button class="wt-btn wt-plain" @onclick="() => OnPicked(null, false)">@L.Resource("World3D_ClearSelection")</button>
+            }
+            else if (_adding)
             {
                 <h3>Add object</h3>
                 <label class="wt-field">Object type<select class="wt-input" @bind="_donorId">
@@ -78,6 +100,7 @@
                 }
                 @if (piece.HasInventory)
                 { <button class="wt-btn" @onclick="() => OnOpenContainer.InvokeAsync(piece.Id)">Open inventory</button> }
+                @if (Bases.IsPlayerBuilt(piece.Id)) { @SelectionActions([piece.Id]) }
                 @if (ClassFacts.SupportsPaint(piece))
                 {
                     <label class="wt-field">Paint colour
@@ -124,6 +147,96 @@
     private bool _levelOn = true, _disposed, _refreshing, _loading = true;
     private LiveBasesSession? _subscribed;
     private bool _adding;
+
+    // ---- several pieces, removing, copying and moving bases (the same tools as offline) ----
+    private List<string> _picked = [];
+    private string? _moveMode;
+    private IReadOnlyList<string> _moveKeys = [];
+    private bool _confirmRemove;
+
+    private RenderFragment SelectionActions(IReadOnlyList<string> keys) => __builder =>
+    {
+        <div class="editor-actions" data-b3d="live-actions">
+            @if (_confirmRemove)
+            {
+                <p class="error-text" role="alert">@L.Resource("LiveMove_RemoveConfirmFormat", keys.Count)</p>
+                <button class="wt-btn b3d-danger" data-b3d="live-remove-confirm" disabled="@_refreshing" @onclick="() => RemoveAsync(keys)">@L.Resource("LiveMove_RemoveNow")</button>
+                <button class="wt-btn wt-plain" @onclick="() => _confirmRemove = false">@L.Resource("World3D_Cancel")</button>
+            }
+            else
+            {
+                <button class="wt-btn b3d-danger" data-b3d="live-remove" disabled="@(!Bases.IsHost || Bases.Mover is null || keys.Count == 0 || _refreshing)" @onclick="() => _confirmRemove = true">@L.Resource("World3D_DeleteButtonFormat", keys.Count)</button>
+                <button class="wt-btn" data-b3d="live-copy" disabled="@(!Bases.IsHost || Bases.Mover is null || keys.Count == 0 || _refreshing)" @onclick="() => CopyAsync(keys)">@L.Resource("World3D_DuplicateButtonFormat", keys.Count)</button>
+                <button class="wt-btn" data-b3d="live-move-open" disabled="@(!Bases.IsHost || Bases.Mover is null || keys.Count == 0)" @onclick="() => OpenMove(BaseMovePanel.MoveMode, keys)">@L.Resource("BaseMove_OpenMove", keys.Count)</button>
+                <button class="wt-btn" data-b3d="live-export-open" disabled="@(!Bases.IsHost || Bases.Mover is null || keys.Count == 0)" @onclick="() => OpenMove(BaseMovePanel.ExportMode, keys)">@L.Resource("BaseMove_OpenExport", keys.Count)</button>
+            }
+        </div>
+    };
+
+    private void OpenMove(string mode, IReadOnlyList<string>? keys = null)
+    {
+        _moveKeys = (keys ?? []).ToList();
+        _moveMode = mode;
+        _confirmRemove = false;
+    }
+
+    private void CloseMove() => _moveMode = null;
+
+    private async Task AfterLiveChangeAsync()
+    {
+        await RefreshSceneAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>Selects the base chosen in the Bases tab: its main floor's pieces a player built.</summary>
+    private async Task SelectWholeBaseAsync()
+    {
+        if (FocusBase is null || _view is null) return;
+        _picked = BaseFloors.MainFloorIds(FocusBase).Where(Bases.IsPlayerBuilt).ToList();
+        _selected = _picked.FirstOrDefault();
+        await _view.InvokeVoidAsync("setSelection", _picked, _selected);
+        await _view.InvokeVoidAsync("frameSelection");
+        StateHasChanged();
+    }
+
+    /// <summary>Removes the pieces from the running world (live changes are immediate, so this asked first).</summary>
+    private async Task RemoveAsync(IReadOnlyList<string> keys)
+    {
+        if (Bases.Mover is not { } mover) return;
+        _refreshing = true;
+        try
+        {
+            await mover.RemoveAsync(keys);
+            _confirmRemove = false;
+            await Bases.RefreshAsync();
+            await OnPicked(null, false);
+            _error = null;
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, L.Resource("LiveMove_RemoveFailed"), L.Resource("LiveMove_FailedHint")); }
+        finally { _refreshing = false; await RefreshSceneAsync(); }
+    }
+
+    /// <summary>Copies the pieces beside themselves: the game saves, the copies are placed empty (as offline), and the game saves again.</summary>
+    private async Task CopyAsync(IReadOnlyList<string> keys)
+    {
+        if (Bases.Mover is not { } mover) return;
+        _refreshing = true;
+        try
+        {
+            var lift = await mover.LiftAsync(Bases.LivePieces(keys));
+            var xs = lift.Package.Pieces.Where(p => p.Position is not null).Select(p => p.Position!.Value.X).ToList();
+            var step = Math.Max(200, Math.Ceiling(((xs.Count > 1 ? xs.Max() - xs.Min() : 0) + 100) / 50) * 50);
+            var result = await mover.BringAsync(lift.Package, new PlacedVector(step, 0, 0), 0, null, Bases.DonorsByClass, withContents: false);
+            await Bases.RefreshAsync();
+            await RefreshSceneAsync();
+            _picked = result.Placed.Values.ToList();
+            _selected = _picked.FirstOrDefault();
+            if (_view is not null) await _view.InvokeVoidAsync("setSelection", _picked, _selected);
+            _error = null;
+        }
+        catch (Exception ex) { _error = Errors.Present(ex, L.Resource("LiveMove_CopyFailed"), L.Resource("LiveMove_FailedHint")); }
+        finally { _refreshing = false; StateHasChanged(); }
+    }
     private string? _donorId;
     private double _placeX, _placeY, _placeZ, _placeYaw;
     private async Task OpenAddAsync()
@@ -351,11 +464,22 @@
     [JSInvokable] public async Task OnPicked(string? key, bool additive)
     {
         _adding = false;
+        _confirmRemove = false;
+        // Ctrl- or Shift-click adds a piece to the selection (or takes it out), as in the offline view.
+        if (additive && key is not null && Bases.IsPlayerBuilt(key))
+        {
+            if (!_picked.Remove(key)) _picked.Add(key);
+            key = _picked.LastOrDefault();
+        }
+        else
+        {
+            _picked = key is null ? [] : [key];
+        }
         _selected = key; _entry = null; _features = null; _error = null; _recallStation = null;
         _vehicleId = Vehicles?.Vehicles.Any(v => v.Id == key) == true ? key : null;
         if (_view is not null)
         {
-            await _view.InvokeVoidAsync("setSelection", key is null ? Array.Empty<string>() : new[] { key }, key);
+            await _view.InvokeVoidAsync("setSelection", _picked, key);
             await SetToolAsync(null);
         }
         if (Bases.Deployables.FirstOrDefault(o => o.Id == key) is { ClassName: { } className } && className.Contains("GardenPlot", StringComparison.Ordinal))

@@ -42,6 +42,9 @@ public sealed partial class WorldSaveSession
         _baseMoves.Clear();
     }
 
+    /// <summary>The loaded save, for read-only views (pictures, place lists). Never edited through this.</summary>
+    public WorldSaveData ReadOnlyData => _data;
+
     /// <summary>The name of the world this save belongs to (its folder), for labels.</summary>
     public string WorldName
     {
@@ -98,50 +101,10 @@ public sealed partial class WorldSaveSession
     /// </summary>
     public IReadOnlyList<AreaChoice> OtherAreas()
     {
-        var found = new List<AreaChoice>();
-        if (!CanReachOtherWorlds) return found;
-        try
-        {
-            if (System.IO.Path.GetDirectoryName(_path) is not { Length: > 0 } dir) return found;
-            var here = System.IO.Path.GetFullPath(dir);
-            var worlds = System.IO.Path.GetDirectoryName(dir) is { Length: > 0 } parent && Directory.Exists(parent)
-                ? Directory.EnumerateDirectories(parent).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).ToList()
-                : [dir];
-            if (!worlds.Any(w => string.Equals(System.IO.Path.GetFullPath(w), here, StringComparison.OrdinalIgnoreCase))) worlds.Insert(0, dir);
-            foreach (var world in worlds)
-            {
-                var isHere = string.Equals(System.IO.Path.GetFullPath(world), here, StringComparison.OrdinalIgnoreCase);
-                foreach (var (area, file) in BuildAreas(world))
-                {
-                    if (string.Equals(System.IO.Path.GetFullPath(file), System.IO.Path.GetFullPath(_path), StringComparison.OrdinalIgnoreCase)) continue;
-                    found.Add(new AreaChoice(System.IO.Path.GetFileName(world), area, file, isHere));
-                }
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseMove", $"Could not list the areas: {ex.Message}");
-        }
-        // The same area of the other worlds first (the usual move), then this world's other areas, then the rest.
-        var mine = System.IO.Path.GetFileName(_path);
-        return found
-            .OrderBy(a => !a.IsThisWorld && string.Equals(System.IO.Path.GetFileName(a.FilePath), mine, StringComparison.OrdinalIgnoreCase) ? 0 : a.IsThisWorld ? 1 : 2)
+        if (!CanReachOtherWorlds || System.IO.Path.GetDirectoryName(_path) is not { Length: > 0 } dir) return [];
+        return WorldAreas.List(dir, _path, message => AbioticEditor.Core.Diagnostics.EditorLog.Warn("BaseMove", message))
+            .Select(a => new AreaChoice(a.World, a.Area, a.FilePath, a.IsThisWorld))
             .ToList();
-    }
-
-    /// <summary>The area saves of one world folder that keep their own built pieces (not the sectors of another area).</summary>
-    private static IEnumerable<(string Area, string File)> BuildAreas(string world)
-    {
-        var names = Directory.EnumerateFiles(world, "WorldSave_*.sav")
-            .Select(f => (Name: System.IO.Path.GetFileNameWithoutExtension(f)["WorldSave_".Length..], File: f))
-            .Where(a => !a.Name.Equals("MetaData", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var all = names.Select(n => n.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var (name, file) in names.OrderBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
-        {
-            if (all.Any(other => !other.Equals(name, StringComparison.OrdinalIgnoreCase) && name.StartsWith(other + "_", StringComparison.OrdinalIgnoreCase))) continue;
-            yield return (name.Replace('_', ' '), file);
-        }
     }
 
     /// <summary>The bases in this save (pieces a player built only), for "bring a base here" from it.</summary>
