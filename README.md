@@ -24,6 +24,8 @@ Repair a world. Repack a backpack. Rearrange your base in 3D. Abiotic Editor is 
 
 **Your base, in 3D.** See your base drawn with the game's own models and the level around it. Walk through it, move and copy pieces, place new ones from a picture palette, and wire up power. **Show in 3D** on any list takes you straight to that door, crate or trader.
 
+**Move a whole base.** Pick up a base you built, with everything stored in its crates and benches, and put it down in another part of the Facility, a portal world, or another world on your computer. Choose the exact spot in a 3D view of the world it is going to, and the editor stands it on the floor and warns you about anything that would float, sink into a wall or end up over a drop. You can also save a base to a file to keep or share, and it works while you play too.
+
 **Repairs and moves.** Compare two saves, move items between worlds, convert between Steam and Game Pass, repair Game Pass saves, and adjust dedicated-server settings.
 
 **Live editing.** Change a world while the game is running, through a small helper the editor installs for you.
@@ -58,12 +60,21 @@ The desktop app draws your base with the game's own models, read from your insta
 
 [Read the 3D view guide](https://christophervr.github.io/AbioticEditor/guide/3d-view).
 
+### Moving a base
+
+Move a whole base to another area or another world, with everything inside it. You choose the exact spot in a 3D view of the world it is going to, drawn with the level and what is already built there, and the bar at the bottom says if any piece would float, cut into a wall or stand over a drop.
+
+![Choosing where a moved base goes, in a 3D view of the world it is going to](docs/public/screenshots/62-base-place-3d.png)
+
+[Read the step-by-step guide to moving a base](https://christophervr.github.io/AbioticEditor/guide/moving-bases).
+
 ## Common missions
 
 | I need to... | Guide |
 | --- | --- |
 | Find my way around the app | [Desktop app tour](https://christophervr.github.io/AbioticEditor/guide/desktop-app) |
 | See and change my base in 3D | [Bases and the 3D view](https://christophervr.github.io/AbioticEditor/guide/3d-view) |
+| Move a base to another area or world | [Moving a base](https://christophervr.github.io/AbioticEditor/guide/moving-bases) |
 | Open a save from a folder or zip in a browser | [Browser editor](https://christophervr.github.io/AbioticEditor/guide/browser-editor) |
 | Set up the desktop app on Linux or Steam Deck | [Linux and Steam Deck](https://christophervr.github.io/AbioticEditor/guide/linux-local-host) |
 | Move supplies to another world | [Transfer items](https://christophervr.github.io/AbioticEditor/guide/transfer-items) |
