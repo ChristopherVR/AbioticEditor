@@ -97,6 +97,8 @@ The view checks every piece you move, copy or place. It warns when one cuts into
 
 ## Moving a base to another world or area
 
+For a step-by-step walkthrough with pictures, see [Moving a base](/guide/moving-bases).
+
 You can pick up a whole base, with everything stored in its crates and benches, and put it down somewhere else: another sector of the Facility, another world, or another area such as a portal world.
 
 Choose what moves. On the **Map**, pick a base in the list. In the **3D view**, select pieces (Ctrl-click adds more), or pick a base in **Base to show** and press **Select the whole base**. Only pieces you built move. Things that came with the level stay where they are.

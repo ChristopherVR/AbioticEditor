@@ -128,6 +128,12 @@ See the [desktop app tour](./desktop-app#edit-a-world) and [More world tools](./
 
 ![A containment cell in the 3D view of Abiotic Editor](/screenshots/57-3d-containment.png)
 
+### Choosing where a moved base goes
+
+![Choosing where a moved base goes in the 3D view of Abiotic Editor](/screenshots/62-base-place-3d.png)
+
+*Choosing where a moved base goes: the world it is going to is drawn around it, and the bar says if anything does not stand on the floor.* See [Moving a base](/guide/moving-bases).
+
 See [Bases and the 3D view](./3d-view).
 
 ## Settings and tools

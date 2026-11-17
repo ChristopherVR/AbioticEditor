@@ -95,6 +95,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Desktop app tour', link: '/guide/desktop-app' },
             { text: 'Bases & the 3D view', link: '/guide/3d-view' },
+            { text: 'Moving a base', link: '/guide/moving-bases' },
             { text: 'More world tools', link: '/guide/review-features' },
             { text: 'Screenshot tour', link: '/guide/screenshots' },
             { text: 'Edit in your browser', link: '/guide/browser-editor' },
