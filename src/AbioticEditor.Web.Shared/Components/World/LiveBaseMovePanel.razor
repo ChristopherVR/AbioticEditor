@@ -5,6 +5,7 @@
 @inject ISaveExporter Exporter
 @inject AbioticEditor.Ui.IFilePicker FilePicker
 @inject ToastService Toasts
+@inject ISaveFileSystem Files
 
 @* Moving a base with the game running (live editing), the same moves the offline panel makes:
      - Move: somewhere else in this world (the live pieces move, keeping everything), or to another
@@ -202,7 +203,7 @@
             {
                 _placeSession ??= Mode == BaseMovePanel.MoveMode && _target is not null
                     ? _target
-                    : new WorldSaveSession(WorldSaveReader.ReadFromFile(_running.File), _running.File);
+                    : new WorldSaveSession(WorldSaveReader.ReadFromFile(_running.File), _running.File, Files);
                 _placeCopyId = _placeSession.StageBaseTransplant(_package, _offset, _yaw).Id;
                 // Moving within this world: the base's current pieces are taken out of the scratch
                 // copy, so the view shows them gone and does not count them as in the way.
@@ -346,7 +347,7 @@
         {
             await RunAsync(L.Resource("BaseMove_LoadingWorld"), () =>
             {
-                _target = new WorldSaveSession(WorldSaveReader.ReadFromFile(_targetPath), _targetPath);
+                _target = new WorldSaveSession(WorldSaveReader.ReadFromFile(_targetPath), _targetPath, Files);
                 return Task.CompletedTask;
             });
         }
@@ -381,7 +382,7 @@
         if (_sourcePath is null) return;
         await RunAsync(L.Resource("BaseMove_LoadingWorld"), () =>
         {
-            _source = new WorldSaveSession(WorldSaveReader.ReadFromFile(_sourcePath), _sourcePath);
+            _source = new WorldSaveSession(WorldSaveReader.ReadFromFile(_sourcePath), _sourcePath, Files);
             _sourceBases = _source.MovableBases();
             return Task.CompletedTask;
         });

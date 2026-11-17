@@ -640,7 +640,7 @@ public sealed class Base3DViewerTests
     {
         var js = UiSource.ReadAllText("wwwroot", "base3d.js");
         Assert.Contains("checkPlacement(keys)", js, StringComparison.Ordinal);
-        Assert.Contains("floorAt(point)", js, StringComparison.Ordinal);
+        Assert.Contains("floorAt(point, ignoreKeys)", js, StringComparison.Ordinal); // the pieces being stood on the floor are never the floor
         Assert.Contains("const SUPPORT_REACH_M", js, StringComparison.Ordinal); // a wall lamp or ceiling hook counts as held up
         var checks = UiSource.ReadAllText("Components", "World", "WorldBases3DTab.Checks.razor.cs");
         Assert.Contains("Session.StagedPlacedTransforms", checks, StringComparison.Ordinal); // moved pieces
