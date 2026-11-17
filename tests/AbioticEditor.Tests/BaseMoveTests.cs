@@ -1,3 +1,5 @@
+using UeSaveGame.PropertyTypes;
+using UeSaveGame;
 using AbioticEditor.Core.Saves;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Core.WorldSaves.Features;
@@ -233,5 +235,122 @@ public sealed class BaseMoveTests
         Assert.Equal(mines.Point.X, package.Centre!.Value.X + shift.X, 0);
         Assert.Equal(mines.Point.Y, package.Centre!.Value.Y + shift.Y, 0);
         Assert.Equal(mines.Point.Z, package.FloorZ!.Value + shift.Z, 0);
+    }
+
+    [Fact]
+    public void Outlet_ids_are_found_on_saves_from_game_update_1_5()
+    {
+        // Native (1.5) saves name the outlet id SocketID instead of PowerSocket_<hash>. Copying a base
+        // rewrites that id for each copied outlet; when it could not be found, the copy kept the
+        // original's id and the safety check refused it (found moving a real base between two 1.5 worlds).
+        var props = NativeSaveSchema.CreateStruct(new List<FPropertyTag>(), "Socket", "AbioticPowerSocketSave");
+        props.Add(new FPropertyTag(new FString("SocketID"), new(new FString("StrProperty"), []), EPropertyTagFlags.None)
+        {
+            Property = new StrProperty(new FString("SocketID")) { Value = new FString("ABC1") },
+        });
+
+        Assert.Equal("ABC1", props.GetString("PowerSocket_"));
+        Assert.Same(props[0], props.FindByPrefix("PowerSocket_"));
+    }
+
+    [Fact]
+    public void A_base_split_over_two_far_apart_floors_moves_its_main_floor_and_lands_on_the_floor()
+    {
+        // Found moving a real base: the map groups pieces by distance on the map only, so a bench up top
+        // and crates 175 m below were one base, and moving it whole left most pieces in the air.
+        WorldDeployable Piece(string id, double z, bool bench = false)
+            => new(id, bench ? "Deployed_CraftingBench_Default_C" : "Deployed_StorageCrate_C", 0, 0, z, false, 0);
+        var pieces = new[]
+        {
+            Piece("a", -15800, bench: true), Piece("b", -15790), Piece("c", -15400), Piece("d", -15200),
+            Piece("x", -33300), Piece("y", -33290),
+        };
+        var main = BaseFloors.MainFloorIds(new WorldBase("Base 1", 0, 0, pieces));
+        Assert.Equal(["a", "b", "c", "d"], main.Order());
+        Assert.Equal(2, BaseFloors.Split(pieces, p => p.Z).Count);
+        // A tall building of the player's own (storeys a few metres apart) stays one floor.
+        Assert.Single(BaseFloors.Split(new[] { 0.0, 400, 800, 1200, 1600 }, z => z));
+    }
+
+    [Fact]
+    public void The_landing_floor_is_the_main_floor_not_a_stray_piece_far_below()
+    {
+        if (!HasServerFacility) return;
+        var source = Load();
+        var keys = BiggestBase(source).Take(10).ToList();
+        var package = BasePackage.Create(source, keys, "Cascade", "WorldSave_Facility.sav", out _);
+        var mainFloor = package.FloorZ!.Value;
+        // The floor is the lowest piece of the floor most pieces stand on.
+        var zs = package.Pieces.Select(p => p.Position!.Value.Z).ToList();
+        Assert.Contains(mainFloor, zs);
+        Assert.True(zs.Count(z => z >= mainFloor && z - mainFloor <= BaseFloors.FloorGap * zs.Count) >= zs.Count / 2);
+    }
+
+    private static string? NativeFacility()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var path = Path.Combine(dir.FullName, "tests", "fixtures", "Update1_5", "WorldSave_Facility.sav");
+            if (File.Exists(path)) return path;
+        }
+        return null;
+    }
+
+    [Fact]
+    public void A_base_cannot_go_between_saves_of_the_old_and_the_new_game_layout()
+    {
+        // Found in the game: pieces from a 1.5 world put into an older world vanished when the game
+        // upgraded that world (it could not read them: no position, no level). Both directions refuse.
+        if (!HasServerFacility || NativeFacility() is not { } nativePath) return;
+        var native = WorldSaveReader.ReadFromFile(nativePath);
+        var old = Load();
+        Assert.True(PlacedObjectDuplication.IsNativeSave(native));
+        Assert.False(PlacedObjectDuplication.IsNativeSave(old));
+
+        var fromOld = BasePackage.Create(old, BiggestBase(old).Take(3), "Old", "WorldSave_Facility.sav", out _);
+        var intoNative = new StagedBaseEdits(Counter('G'));
+        intoNative.StageTransplant(fromOld, new PlacedVector(0, 0, 0));
+        Assert.Contains(intoNative.Preview(native).Issues, i => i.IsBlocking && i.Code == "save-format");
+
+        // The other 1.5 fixture has pieces a player built.
+        var pets = WorldSaveReader.ReadFromFile(Path.Combine(Path.GetDirectoryName(nativePath)!, "PlacedPets", "WorldSave_Facility.sav"));
+        var nativeKeys = PlacedObjectCensus.Build(pets).Objects!.Where(o => o.DeployedByPlayer == true && o.Key.Length == 32 && o.Transform?.Translation is not null).Select(o => o.Key).Take(3).ToList();
+        Assert.NotEmpty(nativeKeys);
+        var fromNative = BasePackage.Parse(BasePackage.Create(pets, nativeKeys, "New", "WorldSave_Facility.sav", out _).ToJson());
+        var intoOld = new StagedBaseEdits(Counter('H'));
+        intoOld.StageTransplant(fromNative, new PlacedVector(0, 0, 0));
+        Assert.Contains(intoOld.Preview(old).Issues, i => i.IsBlocking && i.Code == "save-format");
+
+        // The same layout on both sides is fine.
+        var intoNativeToo = new StagedBaseEdits(Counter('J'));
+        intoNativeToo.StageTransplant(fromNative, new PlacedVector(500, 0, 0));
+        Assert.DoesNotContain(intoNativeToo.Preview(WorldSaveReader.ReadFromFile(nativePath)).Issues, i => i.Code == "save-format");
+    }
+
+    [Fact]
+    public void Single_pieces_of_a_staged_base_can_be_stood_at_their_own_heights()
+    {
+        // Found in the game: a base put down on a flat floor kept the heights of its old place, so pieces
+        // floated, the game dropped them and a bench was lost. The 3D view stands each piece on the floor.
+        if (!HasServerFacility) return;
+        var keys = BiggestBase(Load()).Take(5).ToList();
+        var package = BasePackage.Create(Load(), keys, "Cascade", "WorldSave_Facility.sav", out _);
+        var edits = new StagedBaseEdits(Counter('C'));
+        var staged = edits.StageTransplant(package, new PlacedVector(1000, 0, 0));
+        var target = Load();
+        var first = keys[0];
+
+        Assert.NotNull(edits.SetPieceHeights(staged.Id, new Dictionary<string, double> { [first] = 1234 }));
+        var rows = edits.Preview(target).Duplications;
+        Assert.Equal(1234, rows.Single(r => r.SourceKey == first).After!.Translation!.Value.Z);
+        var other = rows.First(r => r.SourceKey != first);
+        Assert.NotEqual(1234, other.After!.Translation!.Value.Z);
+
+        // Moving the base again starts from the group's own heights; the floor is found again there.
+        edits.RestageDuplication(staged.Id, new PlacedVector(2000, 0, 0), 0);
+        Assert.NotEqual(1234, edits.Preview(target).Duplications.Single(r => r.SourceKey == first).After!.Translation!.Value.Z);
+        Assert.Null(edits.SetPieceHeights(999, new Dictionary<string, double>()));
+        var result = edits.ApplyTo(target);
+        Assert.True(result.Applied, string.Join(" | ", result.Issues.Where(i => i.IsBlocking).Select(i => i.Code + ": " + i.Message)));
     }
 }

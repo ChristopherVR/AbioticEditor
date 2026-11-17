@@ -238,6 +238,26 @@ return function(H)
         }))
         return spawned
     end })
+    -- A piece whose inventory does not read as a list (found live after moving a base:
+    -- "attempt to get length of a UObject value (field 'CurrentInventory')") is listed with no
+    -- count; it no longer stops the whole listing.
+    -- Like the game's UObject: valid, but has no length.
+    local unreadable = setmetatable({ IsValid = function() return true end },
+        { __len = function() error("attempt to get length of a UObject value") end })
+    local oddInv = H.object("Abiotic_InventoryComponent_C", { CurrentInventory = unreadable })
+    local odd = H.world.add(H.object("Deployed_Odd_ParentBP_C", {
+        __bases = { "AbioticDeployed_ParentBP_C" },
+        ContainerInventory = oddInv,
+    }, {
+        K2_GetActorLocation = function() return H.vector(7, 7, 7) end,
+    }))
+    local withOdd = H.ok(H.dispatch("bases.list"), "bases.list survives an unreadable inventory")
+    local oddRow
+    for _, d in ipairs(withOdd.deployables) do if d.id == odd:GetFullName() then oddRow = d end end
+    H.check(oddRow ~= nil, "the odd piece is still listed")
+    H.eq(oddRow and oddRow.hasInventory, false, "an unreadable inventory reads as no inventory")
+    for i = #H.world.objects, 1, -1 do if H.world.objects[i] == odd then table.remove(H.world.objects, i) end end
+
     local donor = H.world.add(H.object("Deployed_Locker_ParentBP_C", {
         __bases = { "AbioticDeployed_ParentBP_C" }, DeployedByPlayer = true, ContainerInventory = containerInv,
     }, { GetWorld = function() return gameWorld end, GetClass = function() return "locker-class" end }))

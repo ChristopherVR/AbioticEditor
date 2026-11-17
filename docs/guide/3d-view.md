@@ -107,6 +107,12 @@ Then choose one of these:
 - **Export to a file** saves the pieces in a base file (in your Downloads folder, or as a browser download). Tick **Also remove them from this world** to make it a move. Keep the file until the pieces are safely in their new place.
 - **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base down in the area you have open. Choose a base file, or **Bring a base here** from another world or area on this computer, and pick a place for it. In the 3D view the new pieces are drawn in light blue: drag them, or press **R** to turn them, until they sit right. Then press **SAVE**.
 
+In the 3D view every incoming piece is stood on the floor under it, so a base moved to a differently shaped place does not float or sink. If the level there has not loaded yet, look at the place and press **Stand them all on the floor**. A move from the Map keeps the heights the pieces have now, so for a very different place use **Bring a base here** in the 3D view instead.
+
+When the map has grouped pieces from floors far apart into one base (a bench up top and a few crates on a level far below), only the floor with the base's benches moves; the panel says how many pieces stay.
+
+Both worlds must be saved by the same version of the game. If one was last played before game update 1.5, load it in the game once (it offers to upgrade it), then move the base.
+
 A move writes both saves with one **SAVE**: the one that gets the pieces first, then the one they leave. Each keeps a `.bak`. If anything still points at the pieces (a power socket in another area, a containment record), the editor says so before anything is saved, and you can tick **let those links point at nothing**.
 
 Links between the moved pieces are kept: power cables, and teleporter pads that were paired with each other (they get a pairing of their own in the new place). Links to anything left behind are unplugged. A claimed bed arrives unclaimed. Moving to a portal world where you have never built anything puts the pieces in that world's own level; look them over in the game after you SAVE.

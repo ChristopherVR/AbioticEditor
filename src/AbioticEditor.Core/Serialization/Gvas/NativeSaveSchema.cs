@@ -83,6 +83,7 @@ internal static class NativeSaveSchema
             ("AbioticCorpseSave", "IsLooted") => "bLooted",
             ("AbioticResourceNodeSave", "HasBeenPickedUp") => "bPickedUp",
             ("AbioticPortalSave", "PortalActive") => "bActive",
+            ("AbioticPowerSocketSave", "PowerSocket") => "SocketID",
             _ => stem,
         };
     }

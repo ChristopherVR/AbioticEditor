@@ -5231,7 +5231,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="BaseMove_ExportFailed" xml:space="preserve"><value>The base file could not be written</value></data>
   <data name="BaseMove_ExportFailedHint" xml:space="preserve"><value>Nothing was changed. Check there is space in your Downloads folder and try again.</value></data>
   <data name="BaseMove_PutDown" xml:space="preserve"><value>Put it down here</value></data>
-  <data name="BaseMove_ImportedHint" xml:space="preserve"><value>The new pieces are drawn in light blue in the 3D view. Drag them, or press R to turn them, until they sit right, then press SAVE.</value></data>
+  <data name="BaseMove_ImportedHint" xml:space="preserve"><value>The new pieces are drawn in light blue in the 3D view and stand on the floor under them. Drag them, or press R to turn them, until they sit right, then press SAVE.</value></data>
   <data name="BaseMove_NotABaseFile" xml:space="preserve"><value>This is not a base file from the editor. It may be damaged, or made by a newer version of the editor (update the editor to open it).</value></data>
   <data name="BaseMove_ThisWorldAreaFormat" xml:space="preserve"><value>This world: {0}</value></data>
   <data name="BaseMove_AreaOptionFormat" xml:space="preserve"><value>{0}: {1}</value></data>
@@ -5252,7 +5252,7 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="BaseMove_DestChoose" xml:space="preserve"><value>Choose a place...</value></data>
   <data name="BaseMove_OtherMapNote" xml:space="preserve"><value>This is a different part of the game from where the base is now, so choose a place for it.</value></data>
   <data name="BaseMove_OtherMapNoPieces" xml:space="preserve"><value>You have not built anything in this area yet, so the editor puts the pieces in the level the area's own furniture uses. Check them in the game after you SAVE.</value></data>
-  <data name="BaseMove_BringHint" xml:space="preserve"><value>Want to drag it into position yourself? Open the place it is going to, choose Import a base file there, then Bring a base here.</value></data>
+  <data name="BaseMove_BringHint" xml:space="preserve"><value>The pieces keep the heights they have now, so on a floor shaped differently some may float or sink. To have every piece stood on the floor, open the place it is going to in the 3D view, choose Import a base file, then Bring a base here.</value></data>
   <data name="BaseMove_DestBaseNearFormat" xml:space="preserve"><value>Next to {0} ({1})</value></data>
   <data name="BaseMove_DestAreaMiddle" xml:space="preserve"><value>The middle of this area</value></data>
   <data name="BaseMove_DestWhereDragged" xml:space="preserve"><value>Where you put it in the 3D view</value></data>
@@ -5260,4 +5260,9 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="BaseMove_GroupArea" xml:space="preserve"><value>This area</value></data>
   <data name="BaseMove_GroupSectors" xml:space="preserve"><value>Parts of the Facility</value></data>
   <data name="BaseMove_GroupBases" xml:space="preserve"><value>Next to one of your bases</value></data>
+  <data name="BaseMove_OtherFloorsFormat" xml:space="preserve"><value>{0} piece(s) of this base are on a floor far above or below it, so they stay where they are.</value></data>
+  <data name="BaseMove_StandOnFloor" xml:space="preserve"><value>Stand them all on the floor</value></data>
+  <data name="BaseMove_StoodOnFloorFormat" xml:space="preserve"><value>{0} of {1} pieces now stand on the floor under them.</value></data>
+  <data name="BaseMove_FloorNotLoaded" xml:space="preserve"><value>No floor found under the pieces yet. Look at the place in the 3D view so its level loads, then press Stand them all on the floor.</value></data>
+  <data name="BaseMove_Working" xml:space="preserve"><value>Working...</value></data>
 </root>

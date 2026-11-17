@@ -71,6 +71,31 @@
   read-outs. The player picks a place from a grouped list (same spot / this area / parts of the
   Facility / next to one of your bases); fine adjustment is dragging (and R) in the 3D view only.
   The offset numbers still exist inside the session and the CLI (`--dx/--dy/--dz/--yaw`).
+- In-game verification (2026-11-17), throwaway copies `BaseMove_From` (Cascade) and `BaseMove_To`:
+  - Native 1.5 outlet records name their id `SocketID`, not `PowerSocket_<hash>`: copies kept the
+    source id and `PlacedObjectCloner.Validate` refused the save (nothing written). Fixed with a
+    `NativeSaveSchema.Name` mapping (`AbioticPowerSocketSave`, `PowerSocket` -> `SocketID`); power
+    editing on native saves benefits too.
+  - `BaseDetector` groups by 2D distance only: the "Hot Stuff" base was an underground laser spot
+    (5 pieces, Z -15806) plus a surface workshop (11 pieces, Z ~1600-1900) 175 m apart. Moved whole,
+    11 pieces hung 175 m in the air. New `BaseFloors` (15 m gap splits floors; main floor = most
+    benches, then most pieces); `MovableKeysOf`, `PiecesOnOtherFloors`; `BasePackage.FloorZ`/`Centre`
+    use the main floor.
+  - Moving native records into a pre-1.5 save: the game's own upgrade read them as empty (no actor
+    path, 0,0,0) and never spawned them. Now refused both ways (`save-format`, Blocking) with "load
+    it in the game once" advice; `PlacedObjectDuplication.IsNativeSave`.
+  - Native to native (CU5LiveTest copy), Office Sector destination: all 11 loaded live
+    (`bases.list`), but pieces kept their old relative heights; after teleporting nearby and leaving,
+    the game had dropped the charging station to the floor and the crafting bench was gone. Added
+    per-piece heights (`StagedDuplication.PieceHeights`, `StagedBaseEdits.SetPieceHeights`, cleared
+    by any restage) and "Stand them all on the floor" in the 3D import panel (also automatic after
+    put-down / drag / turn), using the view's `floorAt` within 10 m. Bring-here run: 7 of 11 found a
+    floor; after a session standing among them and the game's save, 11 of 11 survived, bench at
+    2925, each bag still holding its item.
+  - Live mod: `bases.list` failed for the whole world on one inventory that read as a UObject
+    ("attempt to get length of a UObject value (field 'CurrentInventory')"); the count is now
+    pcall-guarded per piece (harness case added; 1646 checks). Needs a mod reinstall + game restart.
+  - Move/Put down buttons show "Working..." while staging (several seconds on a big save).
 - Open: an in-game load of a moved base, and of pieces put into a portal world (no fixture has
   player-built pieces outside the Facility).
 

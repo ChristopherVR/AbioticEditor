@@ -147,10 +147,32 @@ public sealed partial class WorldSaveSession
     /// <summary>The bases in this save (pieces a player built only), for "bring a base here" from it.</summary>
     public IReadOnlyList<(WorldBase Base, IReadOnlyList<string> Keys)> MovableBases()
         => BaseDetector.Detect(Deployables)
-            .Select(b => (b, (IReadOnlyList<string>)b.Deployables.Select(d => d.Id)
-                .Where(k => FindPlacedObject(k) is { DeployedByPlayer: true } && !IsPlacedDeletionStaged(k)).ToList()))
+            .Where(b => b.BenchCount > 0)
+            .Select(b => (b, MovableKeysOf(b)))
             .Where(x => x.Item2.Count > 0)
             .ToList();
+
+    /// <summary>
+    /// The pieces of <paramref name="worldBase"/> a move takes: built by a player, not already being
+    /// removed, and on the base's main floor (see <see cref="BaseFloors"/>). Pieces on a floor far above
+    /// or below stay where they are.
+    /// </summary>
+    public IReadOnlyList<string> MovableKeysOf(WorldBase worldBase)
+    {
+        ArgumentNullException.ThrowIfNull(worldBase);
+        var main = BaseFloors.MainFloorIds(worldBase).ToHashSet(StringComparer.Ordinal);
+        return worldBase.Deployables.Select(d => d.Id)
+            .Where(k => main.Contains(k) && FindPlacedObject(k) is { DeployedByPlayer: true } && !IsPlacedDeletionStaged(k))
+            .ToList();
+    }
+
+    /// <summary>How many player-built pieces of <paramref name="worldBase"/> stand on another floor and stay put.</summary>
+    public int PiecesOnOtherFloors(WorldBase worldBase)
+    {
+        ArgumentNullException.ThrowIfNull(worldBase);
+        var main = BaseFloors.MainFloorIds(worldBase).ToHashSet(StringComparer.Ordinal);
+        return worldBase.Deployables.Count(d => !main.Contains(d.Id) && FindPlacedObject(d.Id) is { DeployedByPlayer: true });
+    }
 
     /// <summary>
     /// Lifts the chosen pieces into a package (reads only). Pieces moved in the editor but not saved
@@ -198,6 +220,15 @@ public sealed partial class WorldSaveSession
     public bool RestageCopy(int id, PlacedVector offset, double yawDegrees)
     {
         if (_baseEdits.RestageDuplication(id, offset, yawDegrees) is null) return false;
+        PlacedTransformsRevision++;
+        UpdateStatus();
+        return true;
+    }
+
+    /// <summary>Stands single pieces of a staged copy at the given heights (by source key). False when it is not staged.</summary>
+    public bool SetStagedCopyHeights(int id, IReadOnlyDictionary<string, double> heights)
+    {
+        if (_baseEdits.SetPieceHeights(id, heights) is null) return false;
         PlacedTransformsRevision++;
         UpdateStatus();
         return true;

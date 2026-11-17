@@ -70,7 +70,8 @@ public partial class WorldBases3DTab
     private Task SelectWholeBaseAsync()
     {
         if (FocusBase is null) return Task.CompletedTask;
-        var keys = FocusBase.Deployables.Select(d => d.Id).Where(k => Session.FindPlacedObject(k) is not null).ToList();
+        // The base's main floor: pieces on a level far above or below are not part of what moves.
+        var keys = Session.MovableKeysOf(FocusBase).ToList();
         return SetSelectionAsync(keys, keys.FirstOrDefault(), frame: true);
     }
 
@@ -84,13 +85,13 @@ public partial class WorldBases3DTab
     {
         Session.MoveStagedCopy(copy.Id, dx, dy, dz);
         await AfterEditAsync(PlacedTransformStageResult.Ok);
-        _baseMovePanel?.SyncFromStaged();
+        if (_baseMovePanel is not null) await _baseMovePanel.SyncFromStagedAsync();
     }
 
     private async Task TurnCopyAsync(StagedDuplication copy, double degrees)
     {
         Session.TurnStagedCopy(copy.Id, degrees);
         await AfterEditAsync(PlacedTransformStageResult.Ok);
-        _baseMovePanel?.SyncFromStaged();
+        if (_baseMovePanel is not null) await _baseMovePanel.SyncFromStagedAsync();
     }
 }

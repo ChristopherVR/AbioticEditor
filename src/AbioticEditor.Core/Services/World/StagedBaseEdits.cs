@@ -252,7 +252,21 @@ public sealed class StagedBaseEdits
     {
         var i = _duplications.FindIndex(d => d.Id == id);
         if (i < 0) return null;
-        _duplications[i] = _duplications[i] with { Offset = offset, YawDegrees = yawDegrees };
+        _duplications[i] = _duplications[i] with { Offset = offset, YawDegrees = yawDegrees, PieceHeights = null };
+        return _duplications[i];
+    }
+
+    /// <summary>
+    /// Stands single pieces of a staged copy at the given heights (save Z, cm, by source key), for
+    /// example on the floor found under each one. Pieces not listed keep the group's height. Returns
+    /// the updated copy, or null when <paramref name="id"/> is not staged.
+    /// </summary>
+    public StagedDuplication? SetPieceHeights(int id, IReadOnlyDictionary<string, double> heights)
+    {
+        ArgumentNullException.ThrowIfNull(heights);
+        var i = _duplications.FindIndex(d => d.Id == id);
+        if (i < 0) return null;
+        _duplications[i] = _duplications[i] with { PieceHeights = new Dictionary<string, double>(heights, StringComparer.Ordinal) };
         return _duplications[i];
     }
 

@@ -207,7 +207,7 @@
             </div>
             @if (_baseMoveMode is not null)
             {
-                <BaseMovePanel Session="moveSession" Keys="_baseMoveKeys" Mode="@_baseMoveMode"
+                <BaseMovePanel Session="moveSession" Keys="_baseMoveKeys" Mode="@_baseMoveMode" PiecesOnOtherFloors="@(SelectedBase is { } floorBase && _baseMoveMode != BaseMovePanel.ImportMode ? moveSession.PiecesOnOtherFloors(floorBase) : 0)"
                                OnClose="CloseBaseMove" OnStaged="StateHasChanged" OnImported="_ => StateHasChanged()" SwitchMode="m => _baseMoveMode = m" />
             }
         </div>

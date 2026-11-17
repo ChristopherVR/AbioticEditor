@@ -98,13 +98,27 @@ public sealed class BasePackage
     {
         get
         {
-            var at = Pieces.Where(p => p.Position is not null).Select(p => p.Position!.Value).ToList();
-            return at.Count == 0 ? null : new PlacedVector(at.Average(p => p.X), at.Average(p => p.Y), at.Average(p => p.Z));
+            var placed = Pieces.Where(p => p.Position is not null).ToList();
+            if (placed.Count == 0) return null;
+            var at = BaseFloors.Main(placed, p => p.Position!.Value.Z, _ => false).Select(p => p.Position!.Value).ToList();
+            return new PlacedVector(at.Average(p => p.X), at.Average(p => p.Y), at.Average(p => p.Z));
         }
     }
 
-    /// <summary>The lowest point any piece stands on (its Z), or null.</summary>
-    public double? FloorZ => Pieces.Where(p => p.Position is not null).Select(p => (double?)p.Position!.Value.Z).Min();
+    /// <summary>
+    /// The floor the base stands on (Z): the lowest piece of its main floor (the floor with the most
+    /// pieces, see <see cref="BaseFloors"/>), so a stray piece far below does not lift the whole base
+    /// into the air when it is put down somewhere else. Null when no piece has a position.
+    /// </summary>
+    public double? FloorZ
+    {
+        get
+        {
+            var placed = Pieces.Where(p => p.Position is not null).ToList();
+            if (placed.Count == 0) return null;
+            return BaseFloors.Main(placed, p => p.Position!.Value.Z, _ => false).Min(p => p.Position!.Value.Z);
+        }
+    }
 
     /// <summary>The carried pieces' records as a save the duplication planner reads its sources from.</summary>
     internal WorldSaveData Donor

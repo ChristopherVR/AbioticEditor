@@ -18,9 +18,7 @@ public partial class WorldBasesTab
     {
         var stamp = (_selectedBaseName, session.PlacedTransformsRevision);
         if (_movableCache is { } cached && cached.Base == stamp._selectedBaseName && cached.Revision == stamp.PlacedTransformsRevision) return cached.Keys;
-        var keys = SelectedBase?.Deployables
-            .Where(d => session.FindPlacedObject(d.Id) is { DeployedByPlayer: true } && !session.IsPlacedDeletionStaged(d.Id))
-            .Select(d => d.Id).ToList() ?? [];
+        var keys = SelectedBase is { } b ? session.MovableKeysOf(b).ToList() : [];
         _movableCache = (stamp._selectedBaseName, stamp.PlacedTransformsRevision, keys);
         return keys;
     }

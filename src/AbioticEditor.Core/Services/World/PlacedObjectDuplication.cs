@@ -71,7 +71,15 @@ public sealed record StagedDuplication(
     DuplicatePolicy Policy,
     IReadOnlyDictionary<string, string> NewKeys,
     WorldSaveData? Donor = null,
-    string? DonorName = null);
+    string? DonorName = null)
+{
+    /// <summary>
+    /// Heights (save Z, cm) for single copies, by source key: a piece stood on the floor found under it
+    /// at its new place. They replace the group's shifted height for those pieces only; null keeps the
+    /// group's own heights. Cleared whenever the copy is moved or turned again.
+    /// </summary>
+    public IReadOnlyDictionary<string, double>? PieceHeights { get; init; }
+}
 
 /// <summary>How one power outlet record of a source object is copied.</summary>
 public sealed record SocketRemap(
@@ -225,6 +233,11 @@ public static partial class PlacedObjectDuplication
             homeIsGuess = homeLevel is not null;
         }
 
+        // Game update 1.5 saves its records in a new layout. A piece in one layout cannot go into a save
+        // in the other: the game would not read it there (proven: an old-layout world upgraded by the game
+        // kept such pieces with no position and never showed them).
+        var targetNative = IsNativeSave(data);
+
         var mintedKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var dup in duplications)
         {
@@ -268,6 +281,12 @@ public static partial class PlacedObjectDuplication
                     continue;
                 }
 
+                if (dup.Donor is not null && NativeSaveSchema.IsNative(props) != targetNative)
+                {
+                    issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "save-format", targetNative
+                        ? "The base comes from a world saved by an older version of the game. Load that world in the game once (it offers to upgrade it), then move the base again."
+                        : "This world was saved by an older version of the game. Load it in the game once (it offers to upgrade it), then move the base again.", sourceKey));
+                }
                 if (PlacedObjectCensus.KeyShape(sourceKey) != "guid32" || props.TryGetBool("DeployedByPlayer_") != true)
                 {
                     issues.Add(new BaseEditIssue(BaseEditSeverity.Blocking, "level-placed",
@@ -299,6 +318,7 @@ public static partial class PlacedObjectDuplication
                 {
                     var moved = dup.YawDegrees == 0 ? t : PlacementMath.RotateAboutZ(t, pivot, dup.YawDegrees);
                     newT = new PlacedVector(moved.X + dup.Offset.X, moved.Y + dup.Offset.Y, moved.Z + dup.Offset.Z);
+                    if (dup.PieceHeights?.TryGetValue(sourceKey, out var standOn) == true) newT = newT.Value with { Z = standOn };
                 }
                 if (dup.YawDegrees != 0)
                 {
@@ -541,6 +561,11 @@ public static partial class PlacedObjectDuplication
         }
         return new DuplicationPlan(rows, all, rowPlans);
     }
+
+    /// <summary>True when a save uses the record layout of game update 1.5 (or later).</summary>
+    internal static bool IsNativeSave(WorldSaveData save)
+        => (save.Raw.Properties is { } top && NativeSaveSchema.IsNative(top))
+           || WorldMapAccessor.Entries(save.Raw, "DeployedObjectMap").Take(1).Any(e => NativeSaveSchema.IsNative(e.Props));
 
     private static string? ExternalLink(
         ReferencePolicy policy, string device, string socketId, string source, List<BaseEditIssue> issues,

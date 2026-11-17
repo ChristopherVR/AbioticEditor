@@ -192,12 +192,18 @@ return function(ctx)
                     local hasInventory = inv ~= nil and inv.CurrentInventory ~= nil
                     local stored = 0
                     if hasInventory then
-                        for i = 1, #inv.CurrentInventory do
-                            local rowName = ctx.slotRowName(inv.CurrentInventory[i])
-                            if rowName ~= "" and rowName ~= "None" and rowName ~= "Empty" then
-                                stored = stored + 1
+                        -- One piece whose inventory does not read as a list (found live: "attempt to
+                        -- get length of a UObject value") must not stop the whole listing; that piece
+                        -- is listed with no count instead.
+                        local okCount = pcall(function()
+                            for i = 1, #inv.CurrentInventory do
+                                local rowName = ctx.slotRowName(inv.CurrentInventory[i])
+                                if rowName ~= "" and rowName ~= "None" and rowName ~= "Empty" then
+                                    stored = stored + 1
+                                end
                             end
-                        end
+                        end)
+                        if not okCount then hasInventory, stored = false, 0 end
                     end
                     table.insert(result, {
                         id = name,
