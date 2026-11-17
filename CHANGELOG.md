@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.36.1] - 2026-11-17
+
+### Documentation
+- The README and Nexus page now say you can move a whole base
+
+
 ## [2.36.0] - 2026-11-17
 
 ### Features
