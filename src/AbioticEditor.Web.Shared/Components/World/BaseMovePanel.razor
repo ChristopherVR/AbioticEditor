@@ -33,16 +33,7 @@
         {
             <span class="wt-label">@L.Resource("BaseMove_BringTitle")</span>
             <p class="wt-muted">@L.Resource("BaseMove_BringIntro")</p>
-            <label class="wt-field">
-                <span>@L.Resource("BaseMove_BringFrom")</span>
-                <select class="wt-input" data-base-move="source" disabled="@_busy" @onchange="e => ChooseSourceAsync(e.Value?.ToString())">
-                    <option value="" selected="@(_sourcePath is null)">@L.Resource("BaseMove_ChooseArea")</option>
-                    @foreach (var a in _areas)
-                    {
-                        <option value="@a.FilePath" selected="@(string.Equals(_sourcePath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option>
-                    }
-                </select>
-            </label>
+            <BaseAreaPicker Areas="AreaList" Purpose="@BaseAreaPicker.FromPurpose" SelectedPath="@_sourcePath" Disabled="@_busy" OnPicked="ChooseSourceAsync" />
             @if (_source is not null)
             {
                 @if (_sourceBases.Count == 0)
@@ -118,16 +109,7 @@
             }
             else
             {
-                <label class="wt-field">
-                    <span>@L.Resource("BaseMove_TargetWorld")</span>
-                    <select class="wt-input" data-base-move="target" disabled="@_busy" @onchange="e => ChooseTargetAsync(e.Value?.ToString())">
-                        <option value="" selected="@(_targetPath is null)">@L.Resource("BaseMove_ChooseWorld")</option>
-                        @foreach (var a in _areas)
-                        {
-                            <option value="@a.FilePath" selected="@(string.Equals(_targetPath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option>
-                        }
-                    </select>
-                </label>
+                <BaseAreaPicker Areas="AreaList" SelectedPath="@_targetPath" Disabled="@_busy" OnPicked="ChooseTargetAsync" />
                 @if (_busy) { <p class="wt-muted" data-base-move="loading">@L.Resource("BaseMove_LoadingWorld")</p> }
             }
         }
@@ -355,6 +337,23 @@
 
     private bool _exported;
     private IReadOnlyList<WorldSaveSession.AreaChoice> _areas = [];
+
+    /// <summary>The areas in the shape the picker takes (made once per opening).</summary>
+    private IReadOnlyList<WorldArea> AreaList
+    {
+        get
+        {
+            if (!ReferenceEquals(_areaListFor, _areas))
+            {
+                _areaListFor = _areas;
+                _areaList = _areas.Select(a => new WorldArea(a.World, a.Area, a.FilePath, a.IsThisWorld)).ToList();
+            }
+            return _areaList;
+        }
+    }
+
+    private IReadOnlyList<WorldSaveSession.AreaChoice>? _areaListFor;
+    private IReadOnlyList<WorldArea> _areaList = [];
     private string? _lastMode;
     private IReadOnlyList<string>? _lastKeys;
     private bool _scanning;

@@ -1,0 +1,241 @@
+@namespace AbioticEditor.Web.Components.World
+@using System.Globalization
+
+@* Where a base goes (or comes from), in two plain steps instead of one long list:
+     1. what kind of place: somewhere else in this world (live only), another area of this world (a
+        portal world), or another world on this computer;
+     2. which one: the areas of this world, or a searchable list of worlds and then their areas, the
+        main map first.
+   Once chosen it folds into one line with a Change button. Used by the offline and live move panels
+   for both "move to" and "bring from". *@
+<div class="area-picker" data-base-move="area-picker">
+    @if (Chosen is { } chosen && !_open)
+    {
+        <div class="area-picker-chosen" data-base-move="area-chosen">
+            <span class="material-symbol" aria-hidden="true">@ScopeIcon(chosen)</span>
+            <span class="area-picker-chosen-text">
+                <small>@L.Resource(Purpose == FromPurpose ? "AreaPicker_ComingFrom" : "AreaPicker_GoingTo")</small>
+                <strong>@ChosenLabel(chosen)</strong>
+            </span>
+            <button type="button" class="wt-btn wt-plain" data-base-move="area-change" disabled="@Disabled" @onclick="Reopen">@L.Resource("AreaPicker_Change")</button>
+        </div>
+    }
+    else
+    {
+        <span class="wt-label">@L.Resource(Purpose == FromPurpose ? "AreaPicker_FromTitle" : "AreaPicker_ToTitle")</span>
+        <div class="area-picker-scopes" role="radiogroup" aria-label="@L.Resource(Purpose == FromPurpose ? "AreaPicker_FromTitle" : "AreaPicker_ToTitle")">
+            @if (OfferWithin)
+            {
+                @Scope(WithinScope, "open_with", "AreaPicker_Within", "AreaPicker_WithinHint", null)
+            }
+            @if (ThisWorldAreas.Count > 0)
+            {
+                @Scope(ThisWorldScope, "explore", "AreaPicker_ThisWorld", "AreaPicker_ThisWorldHintFormat", ThisWorldAreas.Count)
+            }
+            @if (Worlds.Count > 0)
+            {
+                @Scope(OtherWorldScope, "public", "AreaPicker_OtherWorld", "AreaPicker_OtherWorldHintFormat", Worlds.Count)
+            }
+        </div>
+        @if (OfferWithin is false && ThisWorldAreas.Count == 0 && Worlds.Count == 0)
+        {
+            <p class="wt-muted" data-base-move="area-none">@L.Resource("AreaPicker_Nothing")</p>
+        }
+
+        @if (_scope == ThisWorldScope)
+        {
+            <div class="area-picker-areas" data-base-move="area-list">
+                @foreach (var (a, key) in RenderKeys.With(OrderAreas(ThisWorldAreas), a => a.FilePath))
+                {
+                    @AreaButton(a, key)
+                }
+            </div>
+        }
+        else if (_scope == OtherWorldScope)
+        {
+            @if (Worlds.Count > 6)
+            {
+                <input class="wt-input" type="search" data-base-move="world-search" placeholder="@L.Resource("AreaPicker_SearchWorlds")" aria-label="@L.Resource("AreaPicker_SearchWorlds")"
+                       value="@_search" @oninput="e => _search = e.Value?.ToString() ?? string.Empty" />
+            }
+            <div class="area-picker-worlds" data-base-move="world-list">
+                @foreach (var (w, key) in RenderKeys.With(FilteredWorlds(), w => w.Name))
+                {
+                    var selected = string.Equals(_world, w.Name, StringComparison.Ordinal);
+                    <button type="button" @key="key" class="area-picker-world @(selected ? "on" : null)" data-base-move="world" data-world="@w.Name" aria-pressed="@(selected ? "true" : "false")" disabled="@Disabled" @onclick="() => ChooseWorldAsync(w)">
+                        <strong>@w.Name</strong>
+                        <small>@WorldHint(w)</small>
+                    </button>
+                }
+                @if (!FilteredWorlds().Any())
+                {
+                    <p class="wt-muted">@L.Resource("AreaPicker_NoMatch")</p>
+                }
+            </div>
+            @if (_world is not null && Worlds.FirstOrDefault(w => w.Name == _world) is { Areas.Count: > 1 } world)
+            {
+                <span class="wt-label">@L.Resource("AreaPicker_WhichAreaFormat", world.Name)</span>
+                <div class="area-picker-areas" data-base-move="area-list">
+                    @foreach (var (a, key) in RenderKeys.With(OrderAreas(world.Areas), a => a.FilePath))
+                    {
+                        @AreaButton(a, key)
+                    }
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    public const string ToPurpose = "to";
+    public const string FromPurpose = "from";
+    private const string WithinScope = "within", ThisWorldScope = "this", OtherWorldScope = "other";
+
+    /// <summary>Every area offered (this world's other areas and the other worlds' areas).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<WorldArea> Areas { get; set; } = [];
+
+    /// <summary>Offer "somewhere else in this world" (a live move inside the running world).</summary>
+    [Parameter] public bool OfferWithin { get; set; }
+
+    /// <summary><see cref="ToPurpose"/> (where a base goes) or <see cref="FromPurpose"/> (where it comes from).</summary>
+    [Parameter] public string Purpose { get; set; } = ToPurpose;
+
+    /// <summary>The chosen area's file, or null.</summary>
+    [Parameter] public string? SelectedPath { get; set; }
+
+    /// <summary>True when "somewhere else in this world" is the choice.</summary>
+    [Parameter] public bool WithinSelected { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>A choice was made: an area's file, or null for somewhere else in this world.</summary>
+    [Parameter] public EventCallback<string?> OnPicked { get; set; }
+
+    private sealed record WorldGroup(string Name, IReadOnlyList<WorldArea> Areas, DateTime? LastPlayed);
+
+    private string? _scope;
+    private string? _world;
+    private string _search = string.Empty;
+    private bool _open;
+    private IReadOnlyList<WorldArea>? _seenAreas;
+    private IReadOnlyList<WorldArea> _thisWorld = [];
+    private IReadOnlyList<WorldGroup> _worlds = [];
+
+    private IReadOnlyList<WorldArea> ThisWorldAreas => _thisWorld;
+    private IReadOnlyList<WorldGroup> Worlds => _worlds;
+
+    /// <summary>What is chosen now, as a scope and maybe an area.</summary>
+    private (string Scope, WorldArea? Area)? Chosen
+        => WithinSelected && OfferWithin ? (WithinScope, null)
+            : SelectedPath is not null && Areas.FirstOrDefault(a => string.Equals(a.FilePath, SelectedPath, StringComparison.OrdinalIgnoreCase)) is { } a
+                ? (a.IsThisWorld ? ThisWorldScope : OtherWorldScope, a)
+                : null;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_seenAreas, Areas))
+        {
+            _seenAreas = Areas;
+            _thisWorld = Areas.Where(a => a.IsThisWorld).ToList();
+            _worlds = Areas.Where(a => !a.IsThisWorld)
+                .GroupBy(a => a.World, StringComparer.Ordinal)
+                .Select(g => new WorldGroup(g.Key, g.ToList(), g.Select(a => LastWritten(a.FilePath)).Max()))
+                .OrderByDescending(w => w.LastPlayed ?? DateTime.MinValue)
+                .ThenBy(w => w.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+        // With nothing chosen yet, and only one kind of place, open that one straight away.
+        if (_scope is null && Chosen is null)
+        {
+            var kinds = (OfferWithin ? 1 : 0) + (_thisWorld.Count > 0 ? 1 : 0) + (_worlds.Count > 0 ? 1 : 0);
+            if (kinds == 1) _scope = _worlds.Count > 0 ? OtherWorldScope : _thisWorld.Count > 0 ? ThisWorldScope : null;
+        }
+    }
+
+    private static DateTime? LastWritten(string path)
+    {
+        try { return File.Exists(path) ? File.GetLastWriteTime(path) : null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or PlatformNotSupportedException) { return null; }
+    }
+
+    private RenderFragment Scope(string scope, string icon, string titleKey, string hintKey, int? count) => __builder =>
+    {
+        var on = _scope == scope || (_scope is null && Chosen?.Scope == scope);
+        <button type="button" role="radio" aria-checked="@(on ? "true" : "false")" class="area-picker-scope @(on ? "on" : null)" data-base-move="scope" data-scope="@scope" disabled="@Disabled" @onclick="() => ChooseScopeAsync(scope)">
+            <span class="material-symbol" aria-hidden="true">@icon</span>
+            <span class="area-picker-scope-text">
+                <strong>@L.Resource(titleKey)</strong>
+                <small>@(count is { } n ? L.Resource(hintKey, n) : L.Resource(hintKey))</small>
+            </span>
+        </button>
+    };
+
+    private RenderFragment AreaButton(WorldArea a, string key) => __builder =>
+    {
+        var on = string.Equals(a.FilePath, SelectedPath, StringComparison.OrdinalIgnoreCase);
+        <button type="button" @key="key" class="area-picker-area @(on ? "on" : null)" data-base-move="area" data-area="@a.Area" aria-pressed="@(on ? "true" : "false")" disabled="@Disabled" @onclick="() => PickAsync(a.FilePath)">
+            <strong>@AreaName(a)</strong>
+            @if (IsMainMap(a)) { <small>@L.Resource("AreaPicker_MainMap")</small> }
+        </button>
+    };
+
+    private static bool IsMainMap(WorldArea a) => string.Equals(a.Area, "Facility", StringComparison.OrdinalIgnoreCase);
+
+    private string AreaName(WorldArea a) => IsMainMap(a) ? L.Resource("AreaPicker_Facility") : a.Area;
+
+    /// <summary>The main map first, then the rest by name.</summary>
+    private static IEnumerable<WorldArea> OrderAreas(IEnumerable<WorldArea> areas)
+        => areas.OrderBy(a => IsMainMap(a) ? 0 : 1).ThenBy(a => a.Area, StringComparer.CurrentCultureIgnoreCase);
+
+    private IEnumerable<WorldGroup> FilteredWorlds()
+        => string.IsNullOrWhiteSpace(_search) ? Worlds : Worlds.Where(w => w.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase));
+
+    private string WorldHint(WorldGroup w)
+    {
+        var areas = L.Resource("AreaPicker_AreasFormat", w.Areas.Count);
+        return w.LastPlayed is { } when ? L.Resource("AreaPicker_WorldHintFormat", areas, when.ToString("g", CultureInfo.CurrentCulture)) : areas;
+    }
+
+    private string ScopeIcon((string Scope, WorldArea? Area) chosen) => chosen.Scope switch
+    {
+        WithinScope => "open_with",
+        ThisWorldScope => "explore",
+        _ => "public",
+    };
+
+    private string ChosenLabel((string Scope, WorldArea? Area) chosen) => chosen switch
+    {
+        (WithinScope, _) => L.Resource("AreaPicker_Within"),
+        (ThisWorldScope, { } a) => L.Resource("AreaPicker_ThisWorldAreaFormat", AreaName(a)),
+        (_, { } a) => L.Resource("AreaPicker_WorldAreaFormat", a.World, AreaName(a)),
+        _ => string.Empty,
+    };
+
+    private void Reopen()
+    {
+        _open = true;
+        _scope = Chosen?.Scope;
+        _world = Chosen?.Area is { IsThisWorld: false } a ? a.World : null;
+    }
+
+    private async Task ChooseScopeAsync(string scope)
+    {
+        _scope = scope;
+        _world = null;
+        if (scope == WithinScope) await PickAsync(null);
+        else if (scope == ThisWorldScope && ThisWorldAreas.Count == 1) await PickAsync(ThisWorldAreas[0].FilePath);
+    }
+
+    private async Task ChooseWorldAsync(WorldGroup w)
+    {
+        _world = w.Name;
+        // A world with one area (or one main map) needs no second choice.
+        if (w.Areas.Count == 1) await PickAsync(w.Areas[0].FilePath);
+    }
+
+    private async Task PickAsync(string? path)
+    {
+        _open = false;
+        await OnPicked.InvokeAsync(path);
+    }
+}

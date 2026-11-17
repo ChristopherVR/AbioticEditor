@@ -16,7 +16,7 @@
    drawing lives in wwwroot/base3d.js (Three.js, vendored, no CDN). Conversion between the save's
    left-handed Z-up centimetres and the viewer's right-handed Y-up metres is Core's
    PlacedSceneSpace, so JavaScript never converts and the maths is unit tested. *@
-<section class="world-editor world-native-tab b3d @(_fullscreen ? "b3d-fullscreen" : null)" aria-label="@L.Resource("World3D_Title")" data-b3d="root" @ref="_root">
+<section class="world-editor world-native-tab b3d @(_fullscreen ? "b3d-fullscreen" : null) @(Placing ? "b3d-placing-mode" : null)" aria-label="@L.Resource("World3D_Title")" data-b3d="root" @ref="_root">
     @if (_webGlMissing)
     {
         <p class="error-text" role="alert" data-b3d="no-webgl">@L.Resource("World3D_NoWebGl")</p>
@@ -88,7 +88,7 @@
                     }
                     <button type="button" class="b3d-hud-btn b3d-hud-edit @(_moveOptIn ? "on" : null)" aria-pressed="@(_moveOptIn ? "true" : "false")" data-b3d="edit-quick"
                             @onclick="() => SetMoveOptInAsync(!_moveOptIn)">@L.Resource("World3D_MoveOptIn")</button>
-                    @if (_moveOptIn)
+                    @if (_moveOptIn && !Placing)
                     {
                         <button type="button" class="b3d-hud-btn" data-b3d="place-open" @onclick="OpenPlaceAsync">@L.Resource("World3D_AddObject")</button>
                         <button type="button" class="b3d-hud-btn" data-b3d="base-import-open" @onclick="() => OpenBaseMoveAsync(BaseMovePanel.ImportMode)">@L.Resource("BaseMove_OpenImport")</button>

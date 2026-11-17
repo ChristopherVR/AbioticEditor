@@ -1,0 +1,85 @@
+.area-picker { display: flex; flex-direction: column; gap: 8px; }
+
+.area-picker-scopes { display: flex; flex-direction: column; gap: 6px; }
+
+.area-picker-scope,
+.area-picker-world,
+.area-picker-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    text-align: left;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--line, #3a3528);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.area-picker-scope:hover:not(:disabled),
+.area-picker-world:hover:not(:disabled),
+.area-picker-area:hover:not(:disabled) { border-color: var(--accent-orange, #f28c28); }
+
+.area-picker-scope.on,
+.area-picker-world.on,
+.area-picker-area.on {
+    border-color: var(--accent-orange, #f28c28);
+    background: rgba(242, 140, 40, 0.12);
+}
+
+.area-picker-scope:disabled,
+.area-picker-world:disabled,
+.area-picker-area:disabled { opacity: 0.55; cursor: default; }
+
+.area-picker-scope .material-symbol,
+.area-picker-chosen .material-symbol { font-size: 22px; color: var(--accent-orange, #f28c28); flex: none; }
+
+.area-picker-scope-text,
+.area-picker-chosen-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.area-picker small { color: var(--muted, #a9a08a); font-size: 12px; }
+
+.area-picker-worlds {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.area-picker-world { flex-direction: column; align-items: flex-start; gap: 1px; }
+
+.area-picker-areas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.area-picker-area { flex-direction: column; align-items: flex-start; gap: 1px; }
+
+.area-picker-chosen {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--accent-orange, #f28c28);
+    border-radius: 4px;
+    background: rgba(242, 140, 40, 0.08);
+}
+
+.area-picker-chosen-text { flex: 1 1 auto; }
+
+/* World and area names keep their own spelling (the editor's buttons are capitalised elsewhere). */
+.area-picker-scope,
+.area-picker-world,
+.area-picker-area,
+.area-picker-chosen { text-transform: none; letter-spacing: normal; font-weight: 400; }
+
+.area-picker-scope strong,
+.area-picker-world strong,
+.area-picker-area strong,
+.area-picker-chosen strong { font-weight: 700; }

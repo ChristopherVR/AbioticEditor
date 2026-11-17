@@ -5324,4 +5324,25 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveMove_PlaceHint" xml:space="preserve"><value>Pick a place to start from, then choose the exact spot in a 3D view of the world. Nothing changes in the game until you press the button below.</value></data>
   <data name="LiveMove_SpotChosen" xml:space="preserve"><value>Spot chosen. Press the button below to make the change in the game.</value></data>
   <data name="LiveMove_ThisWorld" xml:space="preserve"><value>this world</value></data>
+  <data name="AreaPicker_ToTitle" xml:space="preserve"><value>Where should it go?</value></data>
+  <data name="AreaPicker_FromTitle" xml:space="preserve"><value>Where is the base now?</value></data>
+  <data name="AreaPicker_Within" xml:space="preserve"><value>Somewhere else in this world</value></data>
+  <data name="AreaPicker_WithinHint" xml:space="preserve"><value>The same world, a new spot. The pieces move in the game, keeping everything.</value></data>
+  <data name="AreaPicker_ThisWorld" xml:space="preserve"><value>Another area of this world</value></data>
+  <data name="AreaPicker_ThisWorldHintFormat" xml:space="preserve"><value>A portal world or another area of this world ({0}).</value></data>
+  <data name="AreaPicker_OtherWorld" xml:space="preserve"><value>Another world</value></data>
+  <data name="AreaPicker_OtherWorldHintFormat" xml:space="preserve"><value>One of your other worlds on this computer ({0}).</value></data>
+  <data name="AreaPicker_Nothing" xml:space="preserve"><value>There is nowhere else on this computer to choose.</value></data>
+  <data name="AreaPicker_SearchWorlds" xml:space="preserve"><value>Find a world by name</value></data>
+  <data name="AreaPicker_NoMatch" xml:space="preserve"><value>No world has that name.</value></data>
+  <data name="AreaPicker_WhichAreaFormat" xml:space="preserve"><value>Which part of {0}?</value></data>
+  <data name="AreaPicker_MainMap" xml:space="preserve"><value>Main map</value></data>
+  <data name="AreaPicker_Facility" xml:space="preserve"><value>The Facility</value></data>
+  <data name="AreaPicker_AreasFormat" xml:space="preserve"><value>{0} area(s)</value></data>
+  <data name="AreaPicker_WorldHintFormat" xml:space="preserve"><value>{0}, last played {1}</value></data>
+  <data name="AreaPicker_GoingTo" xml:space="preserve"><value>Going to</value></data>
+  <data name="AreaPicker_ComingFrom" xml:space="preserve"><value>Coming from</value></data>
+  <data name="AreaPicker_Change" xml:space="preserve"><value>Change</value></data>
+  <data name="AreaPicker_ThisWorldAreaFormat" xml:space="preserve"><value>This world: {0}</value></data>
+  <data name="AreaPicker_WorldAreaFormat" xml:space="preserve"><value>{0}: {1}</value></data>
 </root>

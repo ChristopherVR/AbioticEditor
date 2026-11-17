@@ -189,6 +189,10 @@ function scrollParent(el) {
  * page. Kept up to date as the window is resized. Returns a handle whose stop() ends that.
  */
 export function fitToWindow(root) {
+    // Inside the "choose where the base goes" dialog the view fills the dialog by its own styles:
+    // measuring against the page's Map / 3D bar (outside the dialog) and scrolling it into view
+    // sized the view wrongly and could push the dialog's bar off the bottom of the window.
+    if (root.closest(".base-place-overlay")) return { refit() { }, stop() { } };
     const scroller = scrollParent(root);
     const bar = () => document.querySelector('[data-b3d="bar"]');
     const apply = () => {

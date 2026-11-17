@@ -7,6 +7,7 @@
     flex-direction: column;
     background: var(--bg, #0c0b09);
     padding: 8px;
+    overflow: hidden;
 }
 
 .base-place-overlay ::deep .b3d {

@@ -1,5 +1,22 @@
 # Abiotic Editor - Session history
 
+## Base moving: area picker and the placement bar off-screen (2026-11-17)
+
+Player feedback: in the "choose where the base goes" view the bar could not be reached (no way to
+scroll down to it), and the "Move to" dropdown (every area of every world in one long list) was
+hard to use.
+
+- Bar: base3d.js `fitToWindow` sized the dialog's view against the page's Map / 3D bar (a
+  document-wide query, outside the dialog) and scrolled that into view. It now does nothing
+  inside `.base-place-overlay`; placement mode (`b3d-placing-mode`) fills the window with the view
+  alone (no side panel or text under it) and pins the bar to the window. Checked at 1280x720: the
+  bar sits inside the window.
+- `BaseAreaPicker` replaces the dropdowns for "move to" and "bring from" in both panels: first the
+  kind of place (somewhere else in this world, live only; another area of this world; another
+  world), then the areas or a searchable list of worlds (last played first, area count) and their
+  areas (the Facility first, as the main map). It folds to one line with Change once chosen.
+  New icon `open_with` added to the icon font subset.
+
 ## Base moving: choose the spot in 3D, safer floors, experimental warning (2026-11-17)
 
 Player feedback: the "Where it lands" picture did not show the world, the place list was too

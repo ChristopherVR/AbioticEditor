@@ -44,13 +44,7 @@
         @if (_areas.Count > 0)
         {
             <span class="wt-label">@L.Resource("BaseMove_BringTitle")</span>
-            <label class="wt-field">
-                <span>@L.Resource("BaseMove_BringFrom")</span>
-                <select class="wt-input" data-base-move="source" @onchange="e => ChooseSourceAsync(e.Value?.ToString())">
-                    <option value="" selected="@(_sourcePath is null)">@L.Resource("BaseMove_ChooseArea")</option>
-                    @foreach (var a in _areas) { <option value="@a.FilePath" selected="@(string.Equals(_sourcePath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option> }
-                </select>
-            </label>
+            <BaseAreaPicker Areas="_areas" Purpose="@BaseAreaPicker.FromPurpose" SelectedPath="@_sourcePath" Disabled="@_busy" OnPicked="ChooseSourceAsync" />
             @if (_source is not null)
             {
                 @if (_sourceBases.Count == 0) { <p class="wt-muted">@L.Resource("BaseMove_NoBasesThere")</p> }
@@ -77,13 +71,7 @@
 
         @if (Mode == BaseMovePanel.MoveMode)
         {
-            <label class="wt-field">
-                <span>@L.Resource("BaseMove_TargetWorld")</span>
-                <select class="wt-input" data-base-move="target" disabled="@_busy" @onchange="e => ChooseTargetAsync(e.Value?.ToString())">
-                    <option value="" selected="@(_targetPath is null)">@L.Resource("LiveMove_WithinThisWorld")</option>
-                    @foreach (var a in _areas) { <option value="@a.FilePath" selected="@(string.Equals(_targetPath, a.FilePath, StringComparison.OrdinalIgnoreCase))">@AreaLabel(a)</option> }
-                </select>
-            </label>
+            <BaseAreaPicker Areas="_areas" OfferWithin="true" WithinSelected="@(_targetPath is null)" SelectedPath="@_targetPath" Disabled="@_busy" OnPicked="ChooseTargetAsync" />
         }
 
         @if (Mode != BaseMovePanel.ExportMode)

@@ -290,7 +290,7 @@
     flex-direction: column;
     gap: 2px;
     min-width: 0;
-    flex: 1 1 280px;
+    flex: 1 1 420px;
 }
 
 .b3d-placing-warn {
@@ -314,3 +314,14 @@
 .b3d-placing-done {
     font-weight: 700;
 }
+
+/* Putting a moved base down (inside BasePlacementDialog): the view alone fills the window, and the
+   bar is pinned to the window, so it can never end up below the bottom edge with no way to scroll
+   to it (the measured view height does not fit inside the dialog). */
+.b3d.b3d-placing-mode { height: 100%; }
+.b3d.b3d-placing-mode > :not(.b3d-layout) { display: none; }
+.b3d.b3d-placing-mode .b3d-layout { grid-template-columns: minmax(0, 1fr); height: 100%; }
+.b3d.b3d-placing-mode .b3d-side { display: none; }
+.b3d.b3d-placing-mode .b3d-stage > :not(.b3d-viewport) { display: none; }
+.b3d.b3d-placing-mode .b3d-canvas { height: calc(100vh - 16px) !important; }
+.b3d.b3d-placing-mode .b3d-placing { position: fixed; left: 20px; right: 20px; bottom: 20px; max-height: 45vh; overflow-y: auto; }
