@@ -1937,6 +1937,14 @@
     [JSInvokable]
     public async Task OnPicked(string? key, bool additive)
     {
+        // Putting a moved base down: the base stays picked whatever is clicked, so it can always
+        // be dragged (a click on the floor used to drop the selection, and the base with it).
+        if (Placing && PlacingKeys() is { Count: > 0 } placing)
+        {
+            await SetSelectionAsync(placing, placing[0], frame: false);
+            StateHasChanged();
+            return;
+        }
         await PickAsync(key, additive, frame: false);
         StateHasChanged();
     }

@@ -2335,12 +2335,15 @@ function buildView(host, dotnet) {
 
     renderer.domElement.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
     renderer.domElement.addEventListener("pointerup", e => {
-        if (!downAt || transform.dragging || transform.axis) { downAt = null; return; }
+        // While "click where it goes" is armed, a click counts even over the drag handles of the
+        // selected base (they surround it, so a click near it used to be swallowed).
+        if (!downAt || transform.dragging || (transform.axis && !pointPickArmed)) { downAt = null; return; }
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 4) return;
         if (pointPickArmed) {
             pointPickArmed = false;
+            transform.enabled = true;
             renderer.domElement.style.cursor = "";
             dotnet.invokeMethodAsync("OnPointPicked", surfaceAt(e.clientX, e.clientY)).catch(() => { });
             return;
@@ -2794,6 +2797,7 @@ function buildView(host, dotnet) {
         /** The next plain click on the view reports its surface point (OnPointPicked) instead of selecting. */
         armPointPick(on) {
             pointPickArmed = !!on;
+            transform.enabled = !pointPickArmed;
             renderer.domElement.style.cursor = pointPickArmed ? "crosshair" : "";
         },
         placementPoint() {
