@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here.
 
+## [2.36.0] - 2026-11-17
+
+### Features
+- Choose where a moved base goes in a 3D view of the world
+- Move bases while you play, plus more live controls
+- Move a base to any part of the game, by picking a place from a list
+- Move a whole base to another world, or save it to a file
+
+
+### Bug Fixes
+- Moving a base while you play works in every edition of the editor
+- The base you are placing stays picked, and "click where it goes" works next to it
+- The browser editor no longer fails to start when a download briefly fails
+- The base placement view keeps its buttons on screen, and picking a place is easier
+- Moved bases land safely on the floor and keep working in the game
+
+
+### Documentation
+- A step-by-step guide with pictures for moving a base
+
+
 ## [2.35.2] - 2026-11-16
 
 ### Bug Fixes
