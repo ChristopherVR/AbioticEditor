@@ -197,6 +197,27 @@ public sealed partial class WorldSaveSession
         return true;
     }
 
+    /// <summary>
+    /// Stands a staged copy on the floor at its new place (see <see cref="BaseFloorFit"/>): the floor
+    /// most of its pieces stand on, each piece keeping its height above it, and pieces over a drop
+    /// reported (by their new keys) instead of dropped. Null when the copy is not staged.
+    /// </summary>
+    public async Task<BaseFloorFitResult?> FitStagedCopyToFloorAsync(int id, Func<PlacedVector, Task<double?>> floorUnder)
+    {
+        ArgumentNullException.ThrowIfNull(floorUnder);
+        if (_baseEdits.Duplications.FirstOrDefault(d => d.Id == id) is not { } copy) return null;
+        // The group's own heights (no earlier fit), so fitting again after a move starts from the same shape.
+        var rows = PreviewHypothetical(edits => edits.RestageDuplication(id, copy.Offset, copy.YawDegrees))
+            .Duplications.Where(r => r.DuplicationId == id && r.After?.Translation is not null).ToList();
+        var fit = await BaseFloorFit.FitAsync(rows.Select(r => new BaseFloorPiece(r.SourceKey, r.After!.Translation!.Value)).ToList(), floorUnder);
+        if (fit.Heights.Count > 0) SetStagedCopyHeights(id, fit.Heights);
+        LastFloorFit = fit with { OverDrop = fit.OverDrop.Select(source => copy.NewKeys.TryGetValue(source, out var key) ? key : source).ToList() };
+        return LastFloorFit;
+    }
+
+    /// <summary>What the last <see cref="FitStagedCopyToFloorAsync"/> found (its over-a-drop pieces by new key).</summary>
+    public BaseFloorFitResult? LastFloorFit { get; private set; }
+
     /// <summary>Shifts every piece of a staged copy by a step (cm).</summary>
     public bool MoveStagedCopy(int id, double dx, double dy, double dz)
         => _baseEdits.Duplications.FirstOrDefault(d => d.Id == id) is { } d

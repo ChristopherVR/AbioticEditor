@@ -45,8 +45,12 @@ public sealed record BaseDestination(BaseDestinationKind Kind, string Name, Plac
 /// </summary>
 public static class BaseDestinations
 {
-    /// <summary>How far from a terminal's sitting spot the middle of a base is put (cm), so it does not cover the terminal.</summary>
-    private const double SectorClearance = 1200;
+    /// <summary>
+    /// How far in front of a terminal's spawn spot the middle of a base starts (cm). Short on purpose:
+    /// the spawn spot is floor a player stands on, while 12 m out (the old distance) was over a drop at
+    /// the Reactor. The spot is then chosen in the 3D view, where the base is stood on the floor.
+    /// </summary>
+    private const double SectorClearance = 300;
 
     /// <summary>The gap left between an existing base and one put beside it (cm).</summary>
     private const double BaseGap = 800;

@@ -70,6 +70,7 @@ builder.Services.AddScoped<SaveSemanticDiff>();
 builder.Services.AddScoped<SaveComparisonService>();
 builder.Services.AddScoped<UserFacingErrorService>();
 builder.Services.AddScoped<ModalService>();
+builder.Services.AddScoped<BaseMoveWarning>();
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<UnsavedChangesGuard>();
 // A browser tab never sees an Xbox save folder, so this guard has nothing to do here. It is

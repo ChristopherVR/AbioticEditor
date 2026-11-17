@@ -88,11 +88,7 @@
 
         @if (Mode != BaseMovePanel.ExportMode)
         {
-            var landing = LandingData;
-            var incoming = LiveBaseMover.Placements(package, _offset, _yaw).Values.Where(t => t.Translation is not null).Select(t => t.Translation!.Value).ToList();
-            var mine = Mode == BaseMovePanel.MoveMode && _targetPath is null ? package.Pieces.Select(p => p.Key).ToHashSet(StringComparer.OrdinalIgnoreCase) : [];
-            var existing = landing?.Deployables.Where(d => !mine.Contains(d.Id)).Select(d => new PlacedVector(d.X, d.Y, d.Z)).ToList() ?? [];
-            <span class="wt-label">@L.Resource("BaseMove_WhereItLands")</span>
+            <span class="wt-label">@L.Resource("BaseMove_StartNear")</span>
             <select class="wt-input" aria-label="@L.Resource("BaseMove_WhereItLands")" data-base-move="destination" disabled="@_busy" @onchange="e => ChooseDestination(e.Value?.ToString())">
                 @if (_destination.Length == 0) { <option value="" selected="true">@L.Resource("BaseMove_DestChoose")</option> }
                 @for (var i = 0; i < _destinations.Count; i++)
@@ -101,12 +97,15 @@
                     <option value="@value" selected="@(_destination == value)">@DestinationLabel(_destinations[i])</option>
                 }
             </select>
-            <BaseFootprint Incoming="@incoming" Existing="@existing" Label="@L.Resource("BaseMove_Picture")" />
-            <small class="wt-muted">@L.Resource("BaseMove_PictureLegend")</small>
-            <div class="base-move-pad" role="group" aria-label="@L.Resource("LiveMove_Turn")">
-                <button type="button" class="wt-btn wt-plain" data-base-move="turn-left" @onclick="() => Turn(-90)">&#x21BA; 90°</button>
-                <button type="button" class="wt-btn wt-plain" data-base-move="turn-right" @onclick="() => Turn(90)">&#x21BB; 90°</button>
+            <small class="wt-muted" data-base-move="place-hint">@L.Resource("LiveMove_PlaceHint")</small>
+            <div class="b3d-links">
+                <button type="button" class="wt-btn" data-base-move="place-3d" disabled="@(_busy || _destination.Length == 0)" @onclick="OpenPlacingAsync">@L.Resource(_placed ? "BaseMove_ChangeSpot" : "BaseMove_PlaceIn3D")</button>
             </div>
+            @if (_placed)
+            {
+                <p class="wt-muted" role="status" data-base-move="spot-chosen">@L.Resource("LiveMove_SpotChosen")</p>
+            }
+            @if (_fitNote is not null) { <p class="wt-muted b3d-warning" data-base-move="fit-note">@_fitNote</p> }
             @if (_blocking.Count > 0)
             {
                 <p class="error-text" role="alert" data-base-move="blocked">@L.Resource("BaseMove_CannotLand")</p>
@@ -130,12 +129,17 @@
         }
 
         <div class="b3d-links">
-            <button type="button" class="wt-btn" data-base-move="live-go" disabled="@(_busy || Bases.Mover is null || !Bases.IsHost || _blocking.Count > 0 || (Mode != BaseMovePanel.ExportMode && _destination.Length == 0))"
+            <button type="button" class="wt-btn" data-base-move="live-go" disabled="@(_busy || Bases.Mover is null || !Bases.IsHost || _blocking.Count > 0 || (Mode != BaseMovePanel.ExportMode && !_placed))"
                     @onclick="GoAsync">@(_busy ? L.Resource("BaseMove_Working") : GoLabel(package))</button>
         </div>
     }
     @if (_error is not null) { <p class="error-text" role="alert" data-base-move="error">@_error</p> }
 </div>
+
+@if (_placing && _placeSession is not null && _placeCopyId is int copyId)
+{
+    <BasePlacementDialog Session="_placeSession" CopyId="copyId" Where="@PlaceLabel()" OnDone="PlacingDoneAsync" />
+}
 
 @code {
     /// <summary>The running world's bases.</summary>
@@ -174,6 +178,72 @@
     private string? _lastMode;
     private IReadOnlyList<string>? _lastKeys;
 
+    // ---- choosing the spot in a 3D view of where the base goes -------------------------------
+    // A move out goes into the other world's save (staged there, written on Go). A move within this
+    // world and a base brought in are placed against a scratch copy of the running world's save, read
+    // after the game saved and never written: only the spot it gives (shift, turn, floor heights) is
+    // used, by the live moves.
+    private WorldSaveSession? _placeSession;
+    private int? _placeCopyId;
+    private bool _placing, _placed;
+    private IReadOnlyDictionary<string, double>? _heights;
+    private string? _fitNote;
+
+    private string PlaceLabel()
+        => Mode == BaseMovePanel.MoveMode && _targetPath is not null
+            ? AreaLabel(_areas.First(a => string.Equals(a.FilePath, _targetPath, StringComparison.OrdinalIgnoreCase)))
+            : L.Resource("LiveMove_ThisWorld");
+
+    /// <summary>Forgets a chosen spot (the start place, the receiving world or the base changed).</summary>
+    private void ResetPlacing()
+    {
+        if (_placeSession is not null && _placeCopyId is int id) _placeSession.RevertPlacedDuplication(id);
+        if (!(Mode == BaseMovePanel.MoveMode && _targetPath is not null)) _placeSession = null;
+        _placeCopyId = null;
+        _placed = false;
+        _heights = null;
+        _fitNote = null;
+    }
+
+    private async Task OpenPlacingAsync()
+    {
+        if (_package is null || _running is null) return;
+        if (_placeCopyId is null)
+        {
+            await RunAsync(L.Resource("BaseMove_LoadingWorld"), () =>
+            {
+                _placeSession ??= Mode == BaseMovePanel.MoveMode && _target is not null
+                    ? _target
+                    : new WorldSaveSession(WorldSaveReader.ReadFromFile(_running.File), _running.File);
+                _placeCopyId = _placeSession.StageBaseTransplant(_package, _offset, _yaw).Id;
+                // Moving within this world: the base's current pieces are taken out of the scratch
+                // copy, so the view shows them gone and does not count them as in the way.
+                if (Mode == BaseMovePanel.MoveMode && _targetPath is null)
+                {
+                    try { _placeSession.StageMoveAway(_package.Pieces.Select(p => p.Key).ToList(), leaveDanglingLinks: true); }
+                    catch (InvalidOperationException) { }
+                }
+                return Task.CompletedTask;
+            });
+        }
+        _placing = _placeCopyId is not null;
+    }
+
+    /// <summary>Back from the 3D view: Done takes the spot the base was put at.</summary>
+    private Task PlacingDoneAsync(bool keep)
+    {
+        _placing = false;
+        if (!keep || _placeSession is null || _placeCopyId is not int id) return Task.CompletedTask;
+        if (_placeSession.StagedPlacedDuplications.FirstOrDefault(d => d.Id == id) is not { } copy) return Task.CompletedTask;
+        _offset = copy.Offset;
+        _yaw = copy.YawDegrees;
+        _heights = copy.PieceHeights;
+        _placed = true;
+        _fitNote = _placeSession.LastFloorFit is { OverDrop.Count: > 0 } fit ? L.Resource("BaseMove_OverDropFormat", fit.OverDrop.Count) : null;
+        CheckLanding();
+        return Task.CompletedTask;
+    }
+
     private WorldSaveData? LandingData => Mode == BaseMovePanel.MoveMode && _targetPath is not null ? _target?.ReadOnlyData : _running?.Data;
 
     private string Title() => Mode switch
@@ -208,6 +278,7 @@
         _lastKeys = Keys;
         _running = null; _lift = null; _package = null; _target = null; _targetPath = null; _source = null; _sourcePath = null;
         _destinations = []; _destination = ""; _offset = new(0, 0, 0); _yaw = 0; _done = null; _error = null; _notes = []; _blocking = [];
+        _placeSession = null; _placeCopyId = null; _placed = false; _heights = null; _fitNote = null;
         _remove = Mode != BaseMovePanel.ImportMode;
         if (Bases.Mover is not { } mover || !Bases.IsHost) return;
         await RunAsync(L.Resource("LiveMove_SavingFirst"), async () =>
@@ -262,15 +333,10 @@
     private void ChooseDestination(string? value)
     {
         _destination = value ?? "";
+        ResetPlacing();
         if (_package is null || !int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var i) || i >= _destinations.Count) return;
         _offset = _destinations[i].OffsetFor(_package);
         _yaw = 0;
-        CheckLanding();
-    }
-
-    private void Turn(double degrees)
-    {
-        _yaw = (_yaw + degrees) % 360;
         CheckLanding();
     }
 
@@ -284,6 +350,8 @@
 
     private async Task ChooseTargetAsync(string? path)
     {
+        ResetPlacing();
+        _placeSession = null;
         _targetPath = string.IsNullOrEmpty(path) ? null : path;
         _target = null;
         if (_targetPath is not null)
@@ -357,19 +425,20 @@
                 case BaseMovePanel.MoveMode when _targetPath is null && _lift is not null:
                     _status = L.Resource("LiveMove_Moving");
                     StateHasChanged();
-                    await mover.MoveWithinAsync(_lift, _offset, _yaw);
+                    await mover.MoveWithinAsync(_lift, _offset, _yaw, _heights);
                     _done = L.Resource("LiveMove_MovedWithinFormat", package.Pieces.Count);
                     break;
                 case BaseMovePanel.MoveMode when _target is not null && _lift is not null:
                     // The receiving world is written first; only then do the pieces leave the running world.
-                    _target.StageBaseTransplant(package, _offset, _yaw);
+                    if (_placeCopyId is null) _target.StageBaseTransplant(package, _offset, _yaw);
                     await _target.SaveAsync();
+                    _placeCopyId = null;
                     if (_remove) await mover.RemoveAsync(_lift.LiveIdByKey.Values.ToList());
                     _done = L.Resource("LiveMove_MovedOutFormat", package.Pieces.Count, AreaLabel(_areas.First(a => string.Equals(a.FilePath, _targetPath, StringComparison.OrdinalIgnoreCase))));
                     break;
                 case BaseMovePanel.ImportMode:
                     var progress = new Progress<(int Done, int Total)>(p => { _status = L.Resource("LiveMove_PlacingFormat", p.Done, p.Total); InvokeAsync(StateHasChanged); });
-                    var result = await mover.BringAsync(package, _offset, _yaw, null, Bases.DonorsByClass, progress);
+                    var result = await mover.BringAsync(package, _offset, _yaw, _heights, Bases.DonorsByClass, progress);
                     _notes = result.Notes.ToList();
                     // Never take the base out of the other world when some of what it held did not
                     // arrive: the original stays, so nothing is lost.

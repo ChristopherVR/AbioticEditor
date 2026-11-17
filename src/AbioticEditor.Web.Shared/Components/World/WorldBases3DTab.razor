@@ -41,6 +41,39 @@
                     </div>
                 }
 
+                @* Putting a moved base down (see WorldBases3DTab.Placing): what is wrong where it stands now, and the tools. *@
+                @if (Placing)
+                {
+                    var problems = PlacingProblems();
+                    <div class="b3d-placing" role="region" aria-label="@L.Resource("BasePlace_Title")" data-b3d="placing">
+                        <div class="b3d-placing-text">
+                            <strong>@L.Resource("BasePlace_TitleFormat", PlacingWhere ?? "")</strong>
+                            <small>@L.Resource("BasePlace_Help")</small>
+                            @if (_placingBusy)
+                            {
+                                <small data-b3d="placing-busy">@L.Resource("BasePlace_Fitting")</small>
+                            }
+                            else if (problems.Count == 0 && _placingFit is { NoLevel: false })
+                            {
+                                <small class="b3d-placing-ok" data-b3d="placing-ok">@L.Resource("BasePlace_LooksFine")</small>
+                            }
+                            @foreach (var (line, lineKey) in RenderKeys.With(problems, l => l))
+                            {
+                                <small @key="lineKey" class="b3d-placing-warn" data-b3d="placing-warn">@line</small>
+                            }
+                        </div>
+                        <div class="b3d-placing-actions">
+                            <button type="button" class="wt-btn @(_placingPick ? "on" : null)" data-b3d="placing-pick" aria-pressed="@(_placingPick ? "true" : "false")" disabled="@_placingBusy" @onclick="ArmPlacingPickAsync">@L.Resource("BasePlace_ClickWhere")</button>
+                            <button type="button" class="wt-btn" data-b3d="placing-here" disabled="@_placingBusy" @onclick="PlacingToViewAsync">@L.Resource("BasePlace_WhereLooking")</button>
+                            <button type="button" class="wt-btn" data-b3d="placing-left" disabled="@_placingBusy" @onclick="() => TurnPlacingAsync(-90)">@L.Resource("BasePlace_TurnLeft")</button>
+                            <button type="button" class="wt-btn" data-b3d="placing-right" disabled="@_placingBusy" @onclick="() => TurnPlacingAsync(90)">@L.Resource("BasePlace_TurnRight")</button>
+                            <button type="button" class="wt-btn" data-b3d="placing-floor" disabled="@_placingBusy" @onclick="FitPlacingWhenLoadedAsync">@L.Resource("BaseMove_StandOnFloor")</button>
+                            <button type="button" class="wt-btn wt-plain" data-b3d="placing-cancel" @onclick="() => OnPlacingDone.InvokeAsync(false)">@L.Resource("Common_Cancel")</button>
+                            <button type="button" class="wt-btn b3d-placing-done" data-b3d="placing-done" disabled="@_placingBusy" @onclick="() => OnPlacingDone.InvokeAsync(true)">@L.Resource(problems.Count > 0 ? "BasePlace_DoneAnyway" : "BasePlace_Done")</button>
+                        </div>
+                    </div>
+                }
+
                 @* View controls float over the top of the view, so the view itself can take the height. *@
                 <div class="b3d-hud b3d-hud-top" data-b3d="hud">
                     <button type="button" class="b3d-hud-btn @(_fullscreen ? "on" : null)" data-b3d="fullscreen" aria-pressed="@(_fullscreen ? "true" : "false")"
@@ -1406,6 +1439,7 @@
             _ = PushMarkersAsync();
         }
         await ProcessLocateAsync();
+        StartPlacingWhenReady();
     }
 
     /// <summary>The objects last sent to the viewer, so a move or turn can be sent on its own.</summary>

@@ -2060,7 +2060,7 @@ function buildView(host, dotnet) {
         for (const hit of checkRay.intersectObjects(targets, false)) {
             if (levelClip.distanceToPoint(hit.point) < 0 || !hit.face || !isSolid(hit)) continue;
             const owner = hit.object.userData.objIndexes ? hit.object.userData.objIndexes[hit.instanceId] : undefined;
-            if (owner !== undefined && owner === ownIndex) continue;
+            if (owner !== undefined && (owner === ownIndex || (ownIndex instanceof Set && ownIndex.has(owner)))) continue;
             return hit;
         }
         return null;
@@ -2311,12 +2311,36 @@ function buildView(host, dotnet) {
     }
     function levelNameAt(clientX, clientY) { return levelPieceAt(clientX, clientY)?.name ?? null; }
 
+    // "Click where it goes" (putting a moved base down): the next plain click reports the surface
+    // under the pointer instead of selecting anything.
+    let pointPickArmed = false;
+    function surfaceAt(clientX, clientY) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const at = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
+        raycaster.setFromCamera(at, camera);
+        const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
+        for (const hit of raycaster.intersectObjects(targets, false)) {
+            if (levelClip.distanceToPoint(hit.point) < 0) continue;
+            return hit.point.toArray();
+        }
+        // Nothing under the pointer: where the ray meets the floor height of the view centre.
+        const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -controls.target.y);
+        const point = raycaster.ray.intersectPlane(floor, new THREE.Vector3());
+        return (point ?? controls.target).toArray();
+    }
+
     renderer.domElement.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
     renderer.domElement.addEventListener("pointerup", e => {
         if (!downAt || transform.dragging || transform.axis) { downAt = null; return; }
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 4) return;
+        if (pointPickArmed) {
+            pointPickArmed = false;
+            renderer.domElement.style.cursor = "";
+            dotnet.invokeMethodAsync("OnPointPicked", surfaceAt(e.clientX, e.clientY)).catch(() => { });
+            return;
+        }
         let marker = null;
         for (const [kind, layer] of Object.entries(markerLayers)) {
             const found = layer.at(e.clientX, e.clientY);
@@ -2761,18 +2785,12 @@ function buildView(host, dotnet) {
          */
         /** The surface under a page point (a piece dropped on the view lands there), or the view centre's. */
         placementPointAt(clientX, clientY) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const at = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -(((clientY - rect.top) / rect.height) * 2 - 1));
-            raycaster.setFromCamera(at, camera);
-            const targets = [...levelGroup.children, ...modelMeshes, ...meshes.filter(m => m.count > 0)];
-            for (const hit of raycaster.intersectObjects(targets, false)) {
-                if (levelClip.distanceToPoint(hit.point) < 0) continue;
-                return hit.point.toArray();
-            }
-            // Nothing under the pointer: where the ray meets the floor height of the view centre.
-            const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -controls.target.y);
-            const point = raycaster.ray.intersectPlane(floor, new THREE.Vector3());
-            return (point ?? controls.target).toArray();
+            return surfaceAt(clientX, clientY);
+        },
+        /** The next plain click on the view reports its surface point (OnPointPicked) instead of selecting. */
+        armPointPick(on) {
+            pointPickArmed = !!on;
+            renderer.domElement.style.cursor = pointPickArmed ? "crosshair" : "";
         },
         placementPoint() {
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -2795,10 +2813,15 @@ function buildView(host, dotnet) {
          * holds it up), gapM (metres to the floor below, or null)}. Inside and support need the level.
          */
         checkPlacement(keys) { return (keys ?? []).map(placementReport).filter(Boolean); },
-        /** The floor height (viewer Y) under a viewer-space point, looking from 1 m above it, or null. */
-        floorAt(point) {
+        /**
+         * The floor height (viewer Y) under a viewer-space point, looking from 1 m above it, or null.
+         * ignoreKeys: pieces whose own models are not floor (the pieces being stood on the floor: looking
+         * down on a crate used to find the crate's own top, so it was lifted by its own height).
+         */
+        floorAt(point, ignoreKeys) {
             const solids = [...nearSolids(new THREE.Vector3(point[0], point[1], point[2])), ...modelMeshes];
-            const hit = solidHit(new THREE.Vector3(point[0], point[1] + 1, point[2]), new THREE.Vector3(0, -1, 0), 41, solids, -1);
+            const ignore = new Set((ignoreKeys ?? []).map(k => keyToIndex.get(k)).filter(i => i !== undefined));
+            const hit = solidHit(new THREE.Vector3(point[0], point[1] + 1, point[2]), new THREE.Vector3(0, -1, 0), 41, solids, ignore.size > 0 ? ignore : -1);
             return hit ? hit.point.y : null;
         },
         /**

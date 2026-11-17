@@ -224,12 +224,12 @@
                 @if (SelectedBase is not null)
                 {
                     <button type="button" class="wt-btn" data-bases="live-move-open" disabled="@(liveMovable.Count == 0 || !liveMoveSession.IsHost)"
-                            @onclick="() => OpenBaseMove(BaseMovePanel.MoveMode, liveMovable)">@L.Resource("BaseMove_OpenMove", liveMovable.Count)</button>
+                            @onclick="() => OpenBaseMove(BaseMovePanel.MoveMode, liveMovable, live: true)">@L.Resource("BaseMove_OpenMove", liveMovable.Count)</button>
                     <button type="button" class="wt-btn" data-bases="live-export-open" disabled="@(liveMovable.Count == 0 || !liveMoveSession.IsHost)"
-                            @onclick="() => OpenBaseMove(BaseMovePanel.ExportMode, liveMovable)">@L.Resource("BaseMove_OpenExport", liveMovable.Count)</button>
+                            @onclick="() => OpenBaseMove(BaseMovePanel.ExportMode, liveMovable, live: true)">@L.Resource("BaseMove_OpenExport", liveMovable.Count)</button>
                 }
                 <button type="button" class="wt-btn wt-plain" data-bases="live-import-open" disabled="@(!liveMoveSession.IsHost)"
-                        @onclick="() => OpenBaseMove(BaseMovePanel.ImportMode, [])">@L.Resource("BaseMove_OpenImport")</button>
+                        @onclick="() => OpenBaseMove(BaseMovePanel.ImportMode, [], live: true)">@L.Resource("BaseMove_OpenImport")</button>
             </div>
             @if (_baseMoveMode is not null)
             {

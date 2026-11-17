@@ -1,5 +1,7 @@
+using AbioticEditor.Web.Services;
 using AbioticEditor.Core.WorldSaves;
 using AbioticEditor.Web.Models;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace AbioticEditor.Web.Components.World;
@@ -21,7 +23,16 @@ public partial class WorldBases3DTab
     private int MovableSelectionCount
         => _selected.Count(k => Session.FindPlacedObject(k) is { DeployedByPlayer: true });
 
-    private async Task OpenBaseMoveAsync(string mode)
+    [Inject] private BaseMoveWarning MoveWarning { get; set; } = null!;
+
+    /// <summary>Opens the move, export or import tool once the player has read the experimental warning.</summary>
+    private Task OpenBaseMoveAsync(string mode) => MoveWarning.ShowAsync(() => InvokeAsync(async () =>
+    {
+        await OpenBaseMoveNowAsync(mode);
+        StateHasChanged();
+    }));
+
+    private async Task OpenBaseMoveNowAsync(string mode)
     {
         if (!_moveOptIn) await SetMoveOptInAsync(true);
         CloseOperationPanels();
@@ -86,6 +97,7 @@ public partial class WorldBases3DTab
         Session.MoveStagedCopy(copy.Id, dx, dy, dz);
         await AfterEditAsync(PlacedTransformStageResult.Ok);
         if (_baseMovePanel is not null) await _baseMovePanel.SyncFromStagedAsync();
+        await AfterPlacingMovedAsync(copy);
     }
 
     private async Task TurnCopyAsync(StagedDuplication copy, double degrees)
@@ -93,5 +105,6 @@ public partial class WorldBases3DTab
         Session.TurnStagedCopy(copy.Id, degrees);
         await AfterEditAsync(PlacedTransformStageResult.Ok);
         if (_baseMovePanel is not null) await _baseMovePanel.SyncFromStagedAsync();
+        await AfterPlacingMovedAsync(copy);
     }
 }

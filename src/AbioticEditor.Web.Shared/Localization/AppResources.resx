@@ -5294,4 +5294,34 @@ Nothing is written until you press SAVE, and REVERT undoes it before then.</valu
   <data name="LiveWorld_PauseClock" xml:space="preserve"><value>Pause the clock</value></data>
   <data name="LiveWorld_ResumeClock" xml:space="preserve"><value>Start the clock again</value></data>
   <data name="LiveMove_SourceKept" xml:space="preserve"><value>The base was left in the other world too, because some of what it held could not be put back here. Nothing was lost.</value></data>
+  <data name="BaseMoveWarning_Title" xml:space="preserve"><value>Moving bases is experimental</value></data>
+  <data name="BaseMoveWarning_Message" xml:space="preserve"><value>Moving, exporting and importing bases is still experimental. It can put pieces in the wrong place, leave things floating or stuck inside walls, or cause other problems in your world.</value></data>
+  <data name="BaseMoveWarning_Offline" xml:space="preserve"><value>Nothing changes until you press SAVE, and the editor keeps a backup of every save it writes. Make a copy of your world first if it matters to you.</value></data>
+  <data name="BaseMoveWarning_Live" xml:space="preserve"><value>The game is running, so changes happen at once: there is no SAVE step, no backup and no undo. Make a copy of your world folder before you go on.</value></data>
+  <data name="BaseMoveWarning_Continue" xml:space="preserve"><value>I understand, go on</value></data>
+  <data name="BaseMove_OverDropFormat" xml:space="preserve"><value>{0} piece(s) have no floor under them here (a drop, a pit or the edge of a walkway). Move the base until this goes away, or they may be out of reach in the game.</value></data>
+  <data name="BasePlace_Title" xml:space="preserve"><value>Choose where the base goes</value></data>
+  <data name="BasePlace_TitleFormat" xml:space="preserve"><value>Choose where the base goes: {0}</value></data>
+  <data name="BasePlace_Help" xml:space="preserve"><value>Drag the base, turn it, or click where it should go. It is stood on the floor after every change. Press Done when it looks right.</value></data>
+  <data name="BasePlace_Fitting" xml:space="preserve"><value>Standing it on the floor...</value></data>
+  <data name="BasePlace_LooksFine" xml:space="preserve"><value>Everything stands on the floor here.</value></data>
+  <data name="BasePlace_NoLevel" xml:space="preserve"><value>The level here is not loaded yet, so the floor could not be found. Wait a moment and press "Stand them all on the floor".</value></data>
+  <data name="BasePlace_InsideFormat" xml:space="preserve"><value>{0} piece(s) cut into a wall, floor or ceiling.</value></data>
+  <data name="BasePlace_FloatingFormat" xml:space="preserve"><value>{0} piece(s) have nothing under them.</value></data>
+  <data name="BasePlace_OverlapFormat" xml:space="preserve"><value>{0} piece(s) overlap something already built here.</value></data>
+  <data name="BasePlace_ClickWhere" xml:space="preserve"><value>Click where it goes</value></data>
+  <data name="BasePlace_WhereLooking" xml:space="preserve"><value>Where I am looking</value></data>
+  <data name="BasePlace_TurnLeft" xml:space="preserve"><value>Turn left</value></data>
+  <data name="BasePlace_TurnRight" xml:space="preserve"><value>Turn right</value></data>
+  <data name="BasePlace_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="BasePlace_DoneAnyway" xml:space="preserve"><value>Done (put it here anyway)</value></data>
+  <data name="BaseMove_StartNear" xml:space="preserve"><value>Start near</value></data>
+  <data name="BaseMove_StartNearHint" xml:space="preserve"><value>Pick a place to start from. Next you choose the exact spot in a 3D view of the world, with the level drawn around the base.</value></data>
+  <data name="BaseMove_StartNearHint3D" xml:space="preserve"><value>Pick a place to start from, then drag the base in the view to the exact spot.</value></data>
+  <data name="BaseMove_PlaceIn3D" xml:space="preserve"><value>Choose the exact spot in 3D</value></data>
+  <data name="BaseMove_ChangeSpot" xml:space="preserve"><value>Change the spot</value></data>
+  <data name="BaseMove_HereLabel" xml:space="preserve"><value>this area</value></data>
+  <data name="LiveMove_PlaceHint" xml:space="preserve"><value>Pick a place to start from, then choose the exact spot in a 3D view of the world. Nothing changes in the game until you press the button below.</value></data>
+  <data name="LiveMove_SpotChosen" xml:space="preserve"><value>Spot chosen. Press the button below to make the change in the game.</value></data>
+  <data name="LiveMove_ThisWorld" xml:space="preserve"><value>this world</value></data>
 </root>

@@ -100,8 +100,10 @@
             @if (_staged is not null)
             {
                 <p class="b3d-feedback" role="status" data-base-move="moved">@L.Resource("BaseMove_MovedFormat", package.Pieces.Count, _targetLabel ?? "")</p>
+                @if (_fitNote is not null) { <p class="wt-muted b3d-warning" data-base-move="fit-note">@_fitNote</p> }
                 <p class="wt-muted">@L.Resource("BaseMove_SaveWritesBoth")</p>
                 <div class="b3d-links">
+                    <button type="button" class="wt-btn" data-base-move="change-spot" @onclick="OpenPlacing">@L.Resource("BaseMove_ChangeSpot")</button>
                     <button type="button" class="wt-btn wt-plain" data-base-move="undo" @onclick="UndoMoveAsync">@L.Resource("BaseMove_Undo")</button>
                     <button type="button" class="wt-btn" data-base-move="done" @onclick="CloseAsync">@L.Resource("BaseMove_Done")</button>
                 </div>
@@ -183,7 +185,7 @@
         {
             <div class="b3d-links">
                 <button type="button" class="wt-btn" data-base-move="move" disabled="@(_busy || _scanning || _preview is null || !_preview.Preview.CanApply || RemovalBlocked)"
-                        @onclick="MoveAsync">@(_busy ? L.Resource("BaseMove_Working") : L.Resource("BaseMove_MoveButtonFormat", package.Pieces.Count, _targetLabel ?? ""))</button>
+                        @onclick="MoveAsync">@(_busy ? L.Resource("BaseMove_Working") : L.Resource("BaseMove_PlaceIn3D"))</button>
             </div>
         }
 
@@ -197,19 +199,29 @@
                 }
                 else
                 {
+                    @if (FloorUnder is null)
+                    {
+                        <button type="button" class="wt-btn" data-base-move="change-spot" @onclick="OpenPlacing">@L.Resource("BaseMove_ChangeSpot")</button>
+                    }
                     <button type="button" class="wt-btn wt-plain" data-base-move="undo-import" @onclick="UndoImportAsync">@L.Resource("BaseMove_Undo")</button>
                     <button type="button" class="wt-btn" data-base-move="done" @onclick="CloseAsync">@L.Resource("BaseMove_Done")</button>
                 }
             </div>
             @if (_staged is not null)
             {
-                <p class="wt-muted" data-base-move="imported">@L.Resource("BaseMove_ImportedHint")</p>
+                @if (_fitNote is not null) { <p class="wt-muted b3d-warning" data-base-move="fit-note">@_fitNote</p> }
+                @if (FloorUnder is not null) { <p class="wt-muted" data-base-move="imported">@L.Resource("BaseMove_ImportedHint")</p> }
                 @if (_source is not null) { <p class="wt-muted">@L.Resource("BaseMove_SaveWritesBoth")</p> }
             }
         }
         @if (_error is not null) { <p class="error-text" role="alert" data-base-move="error">@_error</p> }
     }
 </div>
+
+@if (_placing && PlacingSession is { } placingSession && _staged is not null)
+{
+    <BasePlacementDialog Session="placingSession" CopyId="_staged.Id" Where="@(Mode == MoveMode ? _targetLabel : L.Resource("BaseMove_HereLabel"))" OnDone="PlacingDoneAsync" />
+}
 
 @code {
     public const string MoveMode = "move";
@@ -248,8 +260,42 @@
 
     private string? _floorNote;
 
-    /// <summary>The farthest a piece is lifted or lowered onto a floor (cm); farther than this is another level.</summary>
-    private const double FloorReach = 1000;
+    // ---- choosing the spot in a 3D view of the receiving world -------------------------------
+
+    private bool _placing;
+    private bool _placedOnce;
+    private string? _fitNote;
+
+    /// <summary>The save the staged copy is in: the chosen world for a move, this one for an import.</summary>
+    private WorldSaveSession? PlacingSession => Mode == MoveMode ? _target : Session;
+
+    private void OpenPlacing()
+    {
+        if (_staged is not null && PlacingSession is not null) _placing = true;
+    }
+
+    /// <summary>
+    /// Back from the 3D view. Done keeps the base where it was put (and says when some pieces have no
+    /// floor under them); Cancel on a first placing takes the move or import back.
+    /// </summary>
+    private async Task PlacingDoneAsync(bool keep)
+    {
+        _placing = false;
+        if (PlacingSession is not { } landing || _staged is null) return;
+        if (!keep && !_placedOnce)
+        {
+            if (Mode == MoveMode) await UndoMoveAsync();
+            else await UndoImportAsync();
+            return;
+        }
+        _placedOnce = true;
+        _staged = landing.StagedPlacedDuplications.FirstOrDefault(d => d.Id == _staged.Id) ?? _staged;
+        _fitNote = landing.LastFloorFit is { OverDrop.Count: > 0 } fit ? L.Resource("BaseMove_OverDropFormat", fit.OverDrop.Count) : null;
+        Workspace.NotifyEdited();
+        RecomputePreview();
+        if (keep && Mode == MoveMode && _package is not null) Toasts.Show(L.Resource("BaseMove_MovedToastFormat", _package.Pieces.Count, _targetLabel ?? ""), ToastKind.Success);
+        await OnStaged.InvokeAsync();
+    }
 
     /// <summary>
     /// Stands every piece of the staged base on the floor found under it at its new place (the base
@@ -262,22 +308,14 @@
         _busy = true;
         try
         {
-            // The group's own heights, so standing again after a move starts from the same place.
             var id = _staged.Id;
-            var rows = Session.PreviewHypothetical(edits => edits.RestageDuplication(id, _staged.Offset, _staged.YawDegrees))
-                .Duplications.Where(r => r.DuplicationId == id && r.After?.Translation is not null).ToList();
-            var heights = new Dictionary<string, double>(StringComparer.Ordinal);
-            foreach (var row in rows)
-            {
-                var at = row.After!.Translation!.Value;
-                // Look from a little above, so a piece just under the floor still finds it.
-                if (await FloorUnder(at with { Z = at.Z + 150 }) is { } floor && Math.Abs(floor - at.Z) <= FloorReach) heights[row.SourceKey] = floor;
-            }
-            if (heights.Count > 0) Session.SetStagedCopyHeights(id, heights);
+            var fit = await Session.FitStagedCopyToFloorAsync(id, FloorUnder);
             _staged = Session.StagedPlacedDuplications.FirstOrDefault(d => d.Id == id) ?? _staged;
-            _floorNote = heights.Count == 0
+            _floorNote = fit is null || fit.NoLevel
                 ? L.Resource("BaseMove_FloorNotLoaded")
-                : L.Resource("BaseMove_StoodOnFloorFormat", heights.Count, rows.Count);
+                : fit.OverDrop.Count > 0
+                    ? L.Resource("BaseMove_OverDropFormat", fit.OverDrop.Count)
+                    : L.Resource("BaseMove_StoodOnFloorFormat", fit.Stood, fit.Heights.Count);
             RecomputePreview();
             await OnStaged.InvokeAsync();
         }
@@ -421,19 +459,14 @@
     {
         var landing = Landing;
         var rows = _preview?.Rows ?? [];
-        var incoming = rows.Where(r => r.After?.Translation is not null).Select(r => r.After!.Translation!.Value).ToList();
-        if (incoming.Count == 0 && _package is not null) incoming = PiecePositions(_package).ToList();
         var mine = rows.Select(r => r.NewKey).ToHashSet(StringComparer.Ordinal);
-        var existing = landing is null ? [] : landing.PlacedObjects
-            .Where(o => !mine.Contains(o.Key) && o.Transform?.Translation is not null)
-            .Select(o => o.Transform!.Translation!.Value).ToList();
         // Pieces, not pairs: one new piece close to three old ones counts once.
         var hints = _preview?.Preview.ProximityHints.SelectMany(h => new[] { h.KeyA, h.KeyB }).Where(mine.Contains).Distinct(StringComparer.Ordinal).Count() ?? 0;
         var blocking = _preview?.Preview.Issues.Where(i => i.IsBlocking).Select(i => i.Message).Distinct().ToList() ?? [];
         var otherMap = _package is not null && landing is not null && landing.IsOtherMap(_package);
         var levelNote = _preview?.Preview.Issues.FirstOrDefault(i => i.Code == "other-map" && !i.IsBlocking);
 
-        <span class="wt-label">@L.Resource("BaseMove_WhereItLands")</span>
+        <span class="wt-label">@L.Resource("BaseMove_StartNear")</span>
         @if (otherMap) { <p class="wt-muted b3d-warning" data-base-move="other-map">@L.Resource("BaseMove_OtherMapNote")</p> }
         @if (levelNote is { Severity: BaseEditSeverity.Warning }) { <p class="wt-muted b3d-warning" data-base-move="level-guess">@L.Resource("BaseMove_OtherMapNoPieces")</p> }
         @* Just a list of places by name: the same spot, a part of the Facility, next to a base already
@@ -454,8 +487,7 @@
                 </optgroup>
             }
         </select>
-        <BaseFootprint Incoming="@incoming" Existing="@existing" Label="@L.Resource("BaseMove_Picture")" />
-        <small class="wt-muted">@L.Resource("BaseMove_PictureLegend")</small>
+        <small class="wt-muted" data-base-move="place-hint">@L.Resource(FloorUnder is not null && Mode == ImportMode ? "BaseMove_StartNearHint3D" : "BaseMove_StartNearHint")</small>
         @if (ViewPoint is not null && Mode == ImportMode)
         {
             <div class="b3d-links">
@@ -470,7 +502,6 @@
             @if (_floorNote is not null) { <small class="wt-muted" data-base-move="floor-note">@_floorNote</small> }
         }
         @if (Mode == ImportMode && _staged is not null && ViewPoint is not null) { <small class="wt-muted">@L.Resource("BaseMove_DragHint")</small> }
-        @if (Mode == MoveMode) { <small class="wt-muted" data-base-move="bring-hint">@L.Resource("BaseMove_BringHint")</small> }
         @if (hints > 0) { <p class="wt-muted b3d-warning" data-base-move="close-by">@L.Resource("BaseMove_CloseByFormat", hints)</p> }
         @if (blocking.Count > 0)
         {
@@ -650,7 +681,8 @@
             _staged = Session.StageMoveTo(_target, _package, new PlacedVector(_dx, _dy, _dz), _yaw, _removeHere, _leaveLinks);
             Workspace.RegisterTransfer(Session, _target);
             Workspace.NotifyEdited();
-            Toasts.Show(L.Resource("BaseMove_MovedToastFormat", _package.Pieces.Count, _targetLabel ?? ""), ToastKind.Success);
+            _placedOnce = false;
+            _placing = true;
             await OnStaged.InvokeAsync();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -823,6 +855,13 @@
         RecomputePreview();
         await OnStaged.InvokeAsync();
         await OnImported.InvokeAsync(_staged.NewKeys.Values.ToList());
+        if (FloorUnder is null)
+        {
+            // No 3D view here (the Bases map): the spot is chosen in one, with the world drawn around it.
+            _placedOnce = false;
+            _placing = true;
+            return;
+        }
         await StandOnFloorAsync();
     }
 

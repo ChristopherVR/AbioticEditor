@@ -1,3 +1,5 @@
+using AbioticEditor.Web.Services;
+using Microsoft.AspNetCore.Components;
 using AbioticEditor.Web.Models;
 
 namespace AbioticEditor.Web.Components.World;
@@ -23,11 +25,16 @@ public partial class WorldBasesTab
         return keys;
     }
 
-    private void OpenBaseMove(string mode, IReadOnlyList<string> keys)
-    {
-        _baseMoveKeys = keys.ToList();
-        _baseMoveMode = mode;
-    }
+    [Inject] private BaseMoveWarning MoveWarning { get; set; } = null!;
+
+    /// <summary>Opens the move, export or import tool once the player has read the experimental warning.</summary>
+    private Task OpenBaseMove(string mode, IReadOnlyList<string> keys, bool live = false)
+        => MoveWarning.ShowAsync(() => InvokeAsync(() =>
+        {
+            _baseMoveKeys = keys.ToList();
+            _baseMoveMode = mode;
+            StateHasChanged();
+        }), live);
 
     private void CloseBaseMove()
     {

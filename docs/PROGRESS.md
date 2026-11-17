@@ -1,5 +1,40 @@
 # Abiotic Editor - Session history
 
+## Base moving: choose the spot in 3D, safer floors, experimental warning (2026-11-17)
+
+Player feedback: the "Where it lands" picture did not show the world, the place list was too
+coarse, and moving the "Reactor" base put pieces at the bottom of a drop where a player dies
+trying to reach them. Also asked for: a warning dialog that base moving is experimental.
+
+- Warning: `BaseMoveWarning` (scoped service on `ModalService`) asks before every move, export or
+  import opens, offline (Bases map, 3D view) and live (Bases tab, live 3D). The live text says
+  there is no SAVE step, backup or undo.
+- Placement: `BasePlacementDialog` mounts `WorldBases3DTab` for the receiving save in a new
+  placement mode (`WorldBases3DTab.Placing`, `PlacingCopyId`): the level from the game files, what
+  is built there, and the moving base as a staged copy. Drag, turn left/right, "click where it
+  goes" (new `armPointPick` + `OnPointPicked` in base3d.js), "where I am looking". After every
+  change the base is stood on the floor and checked, and the bar lists what is wrong. Offline:
+  Move stages into the other world and opens it (Cancel undoes); an import on the Bases map opens
+  it too. Live: the 3D step runs against the other world's save (move out) or a scratch copy of the
+  running world's save (move within, bring in; the base's current pieces are taken out of the
+  copy), and the chosen shift, turn and per-piece floor heights are what the live move applies.
+  The place list is now just where to start ("Start near"); the footprint picture is gone from
+  moves and imports (export keeps it).
+- Floors: `BaseFloorFit` (Core, tested): the base's floor is the floor most pieces share, each piece
+  keeps its height above it (wall lamps stay on walls), and a piece with no floor within 2 m of it
+  is left level and reported as over a drop, never dropped to the bottom. Sector start spots are
+  now 3 m in front of the terminal's spawn spot (12 m was over the drop at the Reactors).
+- Bug found while checking: the viewer's `floorAt` hit the moving pieces' own models, so looking
+  down on a crate found its own top and lifted it by its own height (the earlier "stand on the
+  floor" left pieces floating for the same reason). `floorAt` now skips given keys; the 3D view
+  passes every staged copy's pieces.
+
+Checked in the editor (BaseMove_From, "Reactor Underground" base to BaseMove_To at The Reactors):
+warning shown; the Reactors room drawn with the base on its floor; first fit reported only one
+overlap (before the floorAt fix: 4 floating, 1 over a drop, 1 inside); click-to-place moved it;
+turning it towards the ledge reported 3 pieces over a drop, and the panel kept that warning after
+Done; Undo took it back. BaseFloorFit tests and the related suites pass.
+
 ## Live editing parity: base moving and the remaining gaps (2026-11-17)
 
 Base moving now works with the game running, with the same choices as offline. The Bases tab and

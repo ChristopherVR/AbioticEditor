@@ -75,23 +75,32 @@ public partial class WorldBases3DTab
         }
     };
 
-    /// <summary>The floor height (save Z, cm) under a save-space point, from the level in the view, or null.</summary>
-    private async Task<double?> FloorUnderAsync(PlacedVector at)
+    /// <summary>
+    /// The floor height (save Z, cm) under a save-space point, from the level in the view, or null. The
+    /// pieces of staged copies (a base being put down) and <paramref name="also"/> are never the floor:
+    /// looking down on a crate found its own top, and it was lifted by its own height.
+    /// </summary>
+    private async Task<double?> FloorUnderAsync(PlacedVector at, string? also = null)
     {
         if (_view is null) return null;
         try
         {
+            var ignore = Session.StagedPlacedDuplications.SelectMany(d => d.NewKeys.Values).ToList();
+            if (also is not null) ignore.Add(also);
             var v = PlacedSceneSpace.ToViewer(at);
-            var y = await _view.InvokeAsync<double?>("floorAt", new[] { v.X, v.Y, v.Z });
+            var y = await _view.InvokeAsync<double?>("floorAt", new[] { v.X, v.Y, v.Z }, ignore);
             return y is { } floor ? floor * 100 : null;
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException) { return null; }
     }
 
+    /// <summary>The floor under a point, ignoring only the staged copies (the shape the floor-fit and the move panel want).</summary>
+    private Task<double?> FloorUnderAsync(PlacedVector at) => FloorUnderAsync(at, null);
+
     /// <summary>Moves a staged (moved) piece down or up so it stands on the floor under it.</summary>
     private async Task StandOnFloorAsync(string key)
     {
-        if (Session.CurrentPlacedTransform(key)?.Translation is not { } at || await FloorUnderAsync(at) is not { } floor) return;
+        if (Session.CurrentPlacedTransform(key)?.Translation is not { } at || await FloorUnderAsync(at, key) is not { } floor) return;
         var result = Session.StagePlacedTransform(key, at with { Z = floor }, null);
         await AfterEditAsync(result);
     }

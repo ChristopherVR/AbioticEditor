@@ -123,6 +123,7 @@ public static class Program
         builder.Services.AddSingleton<AbioticEditor.Ui.IFolderPicker>(provider => provider.GetRequiredService<DesktopHostService>());
         builder.Services.AddSingleton<AbioticEditor.Ui.IExternalNavigationService>(provider => provider.GetRequiredService<DesktopHostService>());
         builder.Services.AddScoped<ModalService>();
+        builder.Services.AddScoped<BaseMoveWarning>();
         builder.Services.AddScoped<ToastService>();
         var app = builder.Build();
         localHostListening(app.Logger, localUrl, null);

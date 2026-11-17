@@ -101,13 +101,22 @@ You can pick up a whole base, with everything stored in its crates and benches, 
 
 Choose what moves. On the **Map**, pick a base in the list. In the **3D view**, select pieces (Ctrl-click adds more), or pick a base in **Base to show** and press **Select the whole base**. Only pieces you built move. Things that came with the level stay where they are.
 
+Moving bases is experimental, so the editor asks before it opens any of these. It can put pieces in the wrong place or cause other problems in a world, so keep a copy of a world that matters to you.
+
 Then choose one of these:
 
-- **Move to another world or area** lists your other worlds on this computer and the other areas of this world. Pick one, then pick a place from the list: the same spot it is on now, a part of the Facility (the Office Sector, Manufacturing West, the Hydroplant, the Mines and the rest), next to one of your bases there, or the middle of a portal world. A small picture from above shows your base in orange over what is already there in grey. Press **Move**, then **SAVE**.
+- **Move to another world or area** lists your other worlds on this computer and the other areas of this world. Pick one, then pick where to start from: the same spot it is on now, a part of the Facility (the Office Sector, Manufacturing West, the Hydroplant, the Mines and the rest), next to one of your bases there, or the middle of a portal world. Press **Choose the exact spot in 3D**. The other world opens in a 3D view, with its level and what is already built there, and your base in it outlined in orange. Drag the base, press **Turn left** or **Turn right**, or press **Click where it goes** and click a floor. After every change the base is stood on the floor there, and the bar at the bottom says if anything is wrong. Press **Done**, then **SAVE**. **Change the spot** opens the view again, and **Cancel** in the view takes the move back.
 - **Export to a file** saves the pieces in a base file (in your Downloads folder, or as a browser download). Tick **Also remove them from this world** to make it a move. Keep the file until the pieces are safely in their new place.
-- **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base down in the area you have open. Choose a base file, or **Bring a base here** from another world or area on this computer, and pick a place for it. In the 3D view the new pieces are drawn in light blue: drag them, or press **R** to turn them, until they sit right. Then press **SAVE**.
+- **Import a base file** (on the Map, or in the 3D view in Edit mode) puts a base down in the area you have open. Choose a base file, or **Bring a base here** from another world or area on this computer, and pick where to start from. From the Map, the 3D view opens to choose the exact spot, as for a move. In the 3D view the new pieces are drawn in light blue: drag them, or press **R** to turn them, until they sit right. Then press **SAVE**.
 
-In the 3D view every incoming piece is stood on the floor under it, so a base moved to a differently shaped place does not float or sink. If the level there has not loaded yet, look at the place and press **Stand them all on the floor**. A move from the Map keeps the heights the pieces have now, so for a very different place use **Bring a base here** in the 3D view instead.
+The base is stood on the floor most of its pieces stand on. Each piece keeps its height above that floor, so a lamp on a wall stays on the wall and a lamp on a table stays on the table. The bar warns about:
+
+- pieces with no floor under them (a drop, a pit or the edge of a walkway). They are kept level with the rest of the base and never put at the bottom, but in the game they may fall or be out of reach. Move the base until the warning goes away.
+- pieces that cut into a wall, floor or ceiling.
+- pieces with nothing under them.
+- pieces that overlap something already built there.
+
+If the level there has not loaded yet, wait a moment and press **Stand them all on the floor**.
 
 When the map has grouped pieces from floors far apart into one base (a bench up top and a few crates on a level far below), only the floor with the base's benches moves; the panel says how many pieces stay.
 

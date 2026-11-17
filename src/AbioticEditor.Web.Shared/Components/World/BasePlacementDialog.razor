@@ -1,0 +1,23 @@
+@namespace AbioticEditor.Web.Components.World
+
+@* Choosing where a moved base goes, with the world it is going to drawn around it: the 3D view of
+   the receiving save (its level and what is already built there), with the base staged as a copy
+   to drag, turn or click into place (see WorldBases3DTab.Placing). Used by the base move panels
+   (offline and live); the panel reads the copy's place when the player presses Done. *@
+<div class="base-place-overlay" role="dialog" aria-modal="true" aria-label="@L.Resource("BasePlace_Title")" data-base-move="placing-dialog">
+    <WorldBases3DTab Session="Session" Title="@L.Resource("BasePlace_Title")" PlacingCopyId="CopyId" PlacingWhere="@Where" OnPlacingDone="OnDone" />
+</div>
+
+@code {
+    /// <summary>The save the base lands in (the copy is staged there).</summary>
+    [Parameter, EditorRequired] public WorldSaveSession Session { get; set; } = default!;
+
+    /// <summary>The staged copy to put down.</summary>
+    [Parameter, EditorRequired] public int CopyId { get; set; }
+
+    /// <summary>Where it is going, in words.</summary>
+    [Parameter] public string? Where { get; set; }
+
+    /// <summary>True: put it here. False: the player gave up.</summary>
+    [Parameter] public EventCallback<bool> OnDone { get; set; }
+}

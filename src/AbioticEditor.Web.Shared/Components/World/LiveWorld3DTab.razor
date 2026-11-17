@@ -9,6 +9,7 @@
 @inject LiveSessionService Live
 @inject ItemCatalogService Items
 @inject GameClassFactsService ClassFacts
+@inject BaseMoveWarning MoveWarning
 
 <div class="live3d" @ref="_root">
     <div class="live3d-tools">
@@ -173,12 +174,14 @@
         </div>
     };
 
-    private void OpenMove(string mode, IReadOnlyList<string>? keys = null)
-    {
-        _moveKeys = (keys ?? []).ToList();
-        _moveMode = mode;
-        _confirmRemove = false;
-    }
+    private Task OpenMove(string mode, IReadOnlyList<string>? keys = null)
+        => MoveWarning.ShowAsync(() => InvokeAsync(() =>
+        {
+            _moveKeys = (keys ?? []).ToList();
+            _moveMode = mode;
+            _confirmRemove = false;
+            StateHasChanged();
+        }), live: true);
 
     private void CloseMove() => _moveMode = null;
 
