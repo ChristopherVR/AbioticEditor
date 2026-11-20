@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [2.36.2] - 2026-11-20
+
+### Bug Fixes
+- Find mod.io mods even after you move your mod.io folder
+
+
 ## [2.36.1] - 2026-11-17
 
 ### Documentation
