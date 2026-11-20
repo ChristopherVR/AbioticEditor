@@ -46,9 +46,12 @@ public static class ModIoInstallLocator
             }
             foreach (var entry in ReadState(statePath))
             {
-                if (entry.State is not (StateInstalled or StateUpdatePending) || entry.Path is not { } directory) continue;
-                if (!Path.IsPathFullyQualified(directory)) continue;
-                if (Installed(gameRoot, entry.Id, Path.GetFullPath(directory), entry.Name) is { } mod) result.Add(mod);
+                if (entry.State is not (StateInstalled or StateUpdatePending) || entry.Path is not { } recorded) continue;
+                // The game loads each mod from the folder the index records, even when that is
+                // outside today's storage folder (RootLocalStoragePath was changed and the SDK kept
+                // the earlier installs where they were), so follow it wherever it points.
+                if (HostPath(recorded, storageRoot) is not { } directory || !Path.IsPathFullyQualified(directory)) continue;
+                if (InstalledFromIndex(entry.Id, Path.GetFullPath(directory), entry.Name) is { } mod) result.Add(mod);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
@@ -191,11 +194,21 @@ public static class ModIoInstallLocator
         return result;
     }
 
+    /// <summary>A folder found by scanning <c>mods/&lt;id&gt;</c>: it must really sit inside the game's cache.</summary>
     private static AfInstallLocator.InstalledMod? Installed(string gameRoot, long modId, string directory, string? name)
     {
         if (!directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .StartsWith(gameRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
             || !Directory.Exists(directory) || HasReparsePoint(gameRoot, directory)) return null;
+        return ModAt(modId, directory, name);
+    }
+
+    /// <summary>A folder the SDK's own index names: used wherever it is, because the game uses it.</summary>
+    private static AfInstallLocator.InstalledMod? InstalledFromIndex(long modId, string directory, string? name)
+        => Directory.Exists(directory) ? ModAt(modId, directory, name) : null;
+
+    private static AfInstallLocator.InstalledMod? ModAt(long modId, string directory, string? name)
+    {
         var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
         var files = Directory.EnumerateFiles(directory, "*", options)
             .Where(file => Path.GetExtension(file).Equals(".pak", StringComparison.OrdinalIgnoreCase)
@@ -264,11 +277,30 @@ public static class ModIoInstallLocator
         return true;
     }
 
-    private static string SettingsRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "mod.io");
-
-    private static IEnumerable<string> UserSettingsFiles()
+    /// <summary>
+    /// Each place the SDK keeps its settings (<c>%LOCALAPPDATA%\mod.io</c>, inside the Proton prefix
+    /// off Windows), with that install's default mod storage folder (<c>Public\mod.io</c>).
+    /// </summary>
+    private static IEnumerable<(string Settings, string? DefaultRoot)> SettingsLocations()
     {
-        var gameSettings = Path.Combine(SettingsRoot, GameId.ToString(CultureInfo.InvariantCulture));
+        if (OperatingSystem.IsWindows())
+        {
+            yield return (Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "mod.io"),
+                Environment.GetEnvironmentVariable("PUBLIC") is { Length: > 0 } shared ? Path.Combine(shared, "mod.io") : null);
+            yield break;
+        }
+        foreach (var library in AfInstallLocator.FindSteamLibraryRoots())
+        {
+            var driveC = ProtonDriveC(library);
+            yield return (Path.Combine(driveC, "users", "steamuser", "AppData", "Local", "mod.io"), Path.Combine(driveC, "users", "Public", "mod.io"));
+        }
+    }
+
+    private static IEnumerable<string> UserSettingsFiles() => SettingsLocations().SelectMany(location => UserSettingsFilesIn(location.Settings));
+
+    private static IEnumerable<string> UserSettingsFilesIn(string settingsRoot)
+    {
+        var gameSettings = Path.Combine(settingsRoot, GameId.ToString(CultureInfo.InvariantCulture));
         string[] users;
         try { users = Directory.Exists(gameSettings) ? Directory.GetDirectories(gameSettings) : []; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { users = []; }
@@ -292,28 +324,32 @@ public static class ModIoInstallLocator
             yield return Path.Combine(local, "AbioticFactor", "Saved", "Config", platform, "GameUserSettings.ini");
         if (!OperatingSystem.IsWindows())
             foreach (var library in AfInstallLocator.FindSteamLibraryRoots())
-                yield return Path.Combine(library, "steamapps", "compatdata", "427410", "pfx", "drive_c", "users", "steamuser",
+                yield return Path.Combine(ProtonDriveC(library), "users", "steamuser",
                     "AppData", "Local", "AbioticFactor", "Saved", "Config", "Windows", "GameUserSettings.ini");
     }
 
+    /// <summary>
+    /// Where the game's mod.io files live, following the SDK's rules: a per-game
+    /// <c>RootLocalStoragePath</c> in a player's <c>user.json</c> wins, then the one in
+    /// <c>globalsettings.json</c>, then the default shared <c>Public\mod.io</c> folder. Under
+    /// Proton all of this sits in the game's Wine prefix.
+    /// </summary>
     private static IEnumerable<string> StorageRoots()
     {
         if (Environment.GetEnvironmentVariable(RootEnvironmentVariable) is { Length: > 0 } configured)
         { yield return configured; yield break; }
-        var global = ReadRoot(Path.Combine(SettingsRoot, "globalsettings.json"));
-        if (global is not null) yield return global;
-        foreach (var user in UserSettingsFiles())
-            if (ReadRoot(user) is { } root) yield return root;
-        if (OperatingSystem.IsWindows())
-        {
-            if (Environment.GetEnvironmentVariable("PUBLIC") is { Length: > 0 } shared) yield return Path.Combine(shared, "mod.io");
-        }
-        else
-        {
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "mod.io");
-            foreach (var library in AfInstallLocator.FindSteamLibraryRoots())
-                yield return Path.Combine(library, "steamapps", "compatdata", "427410", "pfx", "drive_c", "users", "Public", "mod.io");
-        }
+        foreach (var (settings, defaultRoot) in SettingsLocations())
+            foreach (var root in StorageRootsFor(settings, defaultRoot)) yield return root;
+    }
+
+    /// <summary>The storage folder(s) one SDK settings folder selects (see <see cref="StorageRoots"/>).</summary>
+    internal static IReadOnlyList<string> StorageRootsFor(string settingsRoot, string? defaultRoot)
+    {
+        var userRoots = UserSettingsFilesIn(settingsRoot).Select(ReadRoot).OfType<string>()
+            .Select(root => HostPath(root, settingsRoot)).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (userRoots.Length > 0) return userRoots;
+        if (ReadRoot(Path.Combine(settingsRoot, "globalsettings.json")) is { } global && HostPath(global, settingsRoot) is { } mapped) return [mapped];
+        return defaultRoot is null ? [] : [defaultRoot];
     }
 
     private static string? ReadRoot(string path)
@@ -327,4 +363,26 @@ public static class ModIoInstallLocator
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { return null; }
     }
+
+    /// <summary>
+    /// Turns a path the game wrote into one this machine can open. Under Proton the game writes
+    /// Windows paths (<c>D:\Mods</c>), which live in the Wine prefix's drive folders
+    /// (<c>pfx/dosdevices/d:</c>); <paramref name="nearby"/> is any folder inside that prefix.
+    /// Null when such a path has no prefix to resolve against.
+    /// </summary>
+    internal static string? HostPath(string path, string nearby)
+    {
+        if (OperatingSystem.IsWindows() || path.Length < 3 || !char.IsAsciiLetter(path[0]) || path[1] != ':' || path[2] is not ('\\' or '/'))
+            return path;
+        for (var directory = new DirectoryInfo(nearby); directory is not null; directory = directory.Parent)
+        {
+            var devices = Path.Combine(directory.FullName, "dosdevices");
+            if (Directory.Exists(devices))
+                return Path.Combine(devices, char.ToLowerInvariant(path[0]) + ":", path[3..].Replace('\\', '/'));
+        }
+        return null;
+    }
+
+    private static string ProtonDriveC(string library)
+        => Path.Combine(library, "steamapps", "compatdata", "427410", "pfx", "drive_c");
 }
